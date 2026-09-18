@@ -165,7 +165,23 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 
 <div style="border:2px dashed #7c3aed;border-radius:12px;padding:10px;margin:8px 0;background:#f5f3ff">
 <h3 style="margin:0 0 8px 0;font-size:12px;color:#7c3aed">🏠 Care Mode - Live-in vs Live-out</h3>
-<div class="careModeBox">
+<div class="careModeBox" id="careModeBox">
+<button id="mode-liveout" class="active" onclick="setCareMode('liveout')">🏠 Live-out<br><small>Daily Visit</small></button>
+<button id="mode-livein" onclick="setCareMode('livein')">🏠 Live-in<br><small>24hrs Stay</small></button>
+<button id="mode-both" onclick="setCareMode('both')">🔄 Flexible<br><small>Either</small></button>
+</div>
+
+<div id="liveOutTimeBox" style="background:#eff6ff;border:2px solid #2563eb;border-radius:12px;padding:12px;margin:8px 0">
+<h3 style="margin:0 0 8px 0;font-size:12px;color:#2563eb">⏰ Live-out: Set Start & End Time (Daily)</h3>
+<p style="font-size:10px;color:#6b7280;margin:0 0 8px 0">For Live-out, nurse comes at Start Time and leaves at End Time daily. Hours/day auto-calculated.</p>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<div style="flex:1"><label style="font-size:11px;font-weight:800">Start Time</label><input type="time" id="cStartTime" value="08:00" onchange="calculateTimeFromStartEnd()"></div>
+<div style="flex:1"><label style="font-size:11px;font-weight:800">End Time</label><input type="time" id="cEndTime" value="14:00" onchange="calculateTimeFromStartEnd()"></div>
+</div>
+<div id="calculatedHoursDisplay" style="background:#dcfce7;border:1px solid #16a34a;border-radius:8px;padding:6px;margin-top:8px;font-size:11px;font-weight:800;color:#16a34a;text-align:center">Hours/day: 6 hrs (08:00 - 14:00)</div>
+<small style="font-size:9px;color:#6b7280">Nurse will work these exact hours daily. Night shift allowed (e.g. 20:00 - 06:00 = 10 hrs)</small>
+</div>
+<div style="display:none">
   <button id="btn-liveout" class="active" onclick="selectCareMode('liveout')">🚶 Live-out<br><small>Goes home after shift</small></button>
   <button id="btn-livein" onclick="selectCareMode('livein')">🏠 Live-in<br><small>Stays with client</small></button>
 </div>
@@ -335,7 +351,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </div>
 </div>
 
-<div id="page-ceo-login" class="page"><div class="card" style="margin:20px;border:3px solid #111827"><h2>Secure Access - CEO</h2><input id="ceoLoginID" placeholder="KUSIPETER"><input id="ceoLoginPass" type="password" placeholder="Peterasa80@you!"><button class="btnSubmit" style="background:#111827" onclick="loginCEO()">Login</button><div id="ceoLoginResult" style="color:red;font-size:11px;margin-top:8px"></div></div></div>
+<div id="page-ceo-login" class="page"><div class="card" style="margin:20px;border:3px solid #111827"><h2>Secure Access - CEO Only</h2><input id="ceoLoginID" placeholder="CEO ID"><input id="ceoLoginPass" type="password" placeholder="••••••••••••"><button class="btnSubmit" style="background:#111827" onclick="loginCEO()">Login</button><div id="ceoLoginResult" style="color:red;font-size:11px;margin-top:8px"></div></div></div>
 
 <div id="page-ceo-dashboard" class="page">
 <div class="card" style="border:3px solid #111827"><h2>CEO Management</h2>
@@ -429,6 +445,81 @@ function getCurrentNurseRate(){ var country = document.getElementById('countrySe
 function stepVal(id, delta){ var el = document.getElementById(id); var v = parseInt(el.value)||0; v = v + delta; if(v<1) v=1; if(el.max && v>parseInt(el.max)) v=parseInt(el.max); el.value=v; calculateTotal(); }
 function selectUnit(unit){ bookingUnit = unit; document.querySelectorAll('.unitTabs button').forEach(b=>b.classList.remove('active')); document.getElementById('btn-'+unit).classList.add('active'); document.querySelectorAll('[id^="panel-"]').forEach(p=>p.classList.add('hidden')); document.getElementById('panel-'+unit).classList.remove('hidden'); calculateTotal(); }
 function selectCareMode(mode){ careMode = mode; document.querySelectorAll('.careModeBox button').forEach(b=>b.classList.remove('active')); document.getElementById('btn-'+mode).classList.add('active'); document.getElementById('liveoutInfo').classList.toggle('hidden', mode!=='liveout'); document.getElementById('liveinInfo').classList.toggle('hidden', mode!=='livein'); document.getElementById('liveInExtra').classList.toggle('hidden', mode!=='livein'); calculateTotal(); }
+
+// ===== LIVE-OUT START/END TIME LOGIC =====
+function calculateTimeFromStartEnd(){
+  var startEl = document.getElementById('cStartTime');
+  var endEl = document.getElementById('cEndTime');
+  var displayEl = document.getElementById('calculatedHoursDisplay');
+  if(!startEl || !endEl) return;
+  var start = startEl.value;
+  var end = endEl.value;
+  if(!start || !end){
+    if(displayEl) displayEl.innerText = 'Select start & end time';
+    return;
+  }
+  var startMins = parseInt(start.split(':')[0])*60 + parseInt(start.split(':')[1]);
+  var endMins = parseInt(end.split(':')[0])*60 + parseInt(end.split(':')[1]);
+  var diffMins = endMins - startMins;
+  if(diffMins < 0) diffMins += 24*60; // overnight shift
+  if(diffMins === 0) diffMins = 24*60; // full 24hrs
+  var diffHours = diffMins / 60;
+  
+  if(displayEl){
+    displayEl.innerText = 'Hours/day: ' + diffHours + ' hrs (' + start + ' - ' + end + ')';
+    if(diffMins < 60) displayEl.style.background = '#fee2e2';
+    else displayEl.style.background = '#dcfce7';
+  }
+  
+  // Auto-update hrs per day inputs based on calculated time
+  var hrsPerDay = diffHours;
+  // Update all hrs per day inputs
+  var inputs = ['inputHrsPerDayDaily','inputHrsPerDayWeekly','inputHrsPerDayMonthly','inputHrsPerDay'];
+  inputs.forEach(function(id){
+    var el = document.getElementById(id);
+    if(el){
+      el.value = hrsPerDay;
+    }
+  });
+  
+  // Recalculate total
+  calculateTotal();
+}
+
+function setCareMode(mode){
+  window.currentCareMode = mode;
+  document.querySelectorAll('.careModeBox button').forEach(b=>b.classList.remove('active'));
+  var btn = document.getElementById('mode-'+mode);
+  if(btn) btn.classList.add('active');
+  
+  var timeBox = document.getElementById('liveOutTimeBox');
+  if(timeBox){
+    if(mode==='liveout' || mode==='both'){
+      timeBox.style.display='block';
+    } else {
+      timeBox.style.display='none';
+    }
+  }
+  
+  var extra = document.getElementById('liveInExtra');
+  if(extra){
+    if(mode==='livein'){
+      extra.classList.remove('hidden');
+      extra.innerText = '+ Live-in allowance 10% included - Nurse stays 24hrs, needs room, food, toilet, 8hrs rest';
+    } else {
+      extra.classList.add('hidden');
+    }
+  }
+  
+  var breakMode = document.getElementById('breakCareMode');
+  if(breakMode) breakMode.innerText = mode==='livein' ? 'Live-in (24hrs stay)' : mode==='liveout' ? 'Live-out (Daily visit)' : 'Flexible';
+  
+  calculateTotal();
+  if(mode==='liveout' || mode==='both'){
+    calculateTimeFromStartEnd();
+  }
+}
+
 function calculateTotal(){
  var rateData = getCurrentNurseRate(); var totalHours = 0; var displayDuration = ''; var displayDays = ''; var hrsPerDay = 8;
  if(bookingUnit === 'hourly'){ var h = parseInt(document.getElementById('inputHours').value) || 1; totalHours = h; hrsPerDay = h; displayDuration = h + ' Hours'; displayDays = (h/24).toFixed(2) + ' days equiv'; }
@@ -599,6 +690,7 @@ function closeLegalWagePopup(){ document.getElementById('legalWagePopup').classL
 var firebaseConfig={apiKey:"AIzaSyB52-X1D8Cg-wUDWPds_tR7D8cF82dMdRg",authDomain:"web-care-618e8.firebaseapp.com",databaseURL:"https://web-care-618e8-default-rtdb.firebaseio.com",projectId:"web-care-618e8",storageBucket:"web-care-618e8.firebasestorage.app",messagingSenderId:"1062578660694",appId:"1:1062578660694:web:f94dfe12c929df05bce2f7"};
 var db=null,allBookings=[],allWorkers=[],allRefunds=[],clientLat=null,clientLng=null,nurseRegLat=null,nurseRegLng=null;
 var uberMap=null,ceoMap=null,nurseCluster=null,selectedNurseId=null,nearbyNursesSorted=[];
+var currentCareMode='liveout';
 var lastBookingId=null,lastBookingCurrency='GHS',lastBookingAmount=0,currentRefundBookingId=null;
 var countryCodes=[{c:'Ghana',code:'+233',flag:'🇬🇭'},{c:'Nigeria',code:'+234',flag:'🇳🇬'},{c:'South Africa',code:'+27',flag:'🇿🇦'},{c:'Kenya',code:'+254',flag:'🇰🇪'},{c:'Uganda',code:'+256',flag:'🇺🇬'},{c:'Tanzania',code:'+255',flag:'🇹🇿'},{c:'Rwanda',code:'+250',flag:'🇷🇼'},{c:'Zambia',code:'+260',flag:'🇿🇲'},{c:'Botswana',code:'+267',flag:'🇧🇼'},{c:'Liberia',code:'+231',flag:'🇱🇷'},{c:'Sierra Leone',code:'+232',flag:'🇸🇱'},{c:'USA',code:'+1',flag:'🇺🇸'},{c:'UK',code:'+44',flag:'🇬🇧'},{c:'Canada',code:'+1',flag:'🇨🇦'},{c:'Australia',code:'+61',flag:'🇦🇺'},{c:'Ireland',code:'+353',flag:'🇮🇪'},{c:'India',code:'+91',flag:'🇮🇳'},{c:'Philippines',code:'+63',flag:'🇵🇭'},{c:'Singapore',code:'+65',flag:'🇸🇬'},{c:'Malaysia',code:'+60',flag:'🇲🇾'}];
 function populatePhoneCodes(){var html='';countryCodes.forEach(o=>{html+=`<option value="${o.code}">${o.flag} ${o.code} ${o.c}</option>`;});['cPhoneCode','nRegPhoneCode','nurseLoginCode','myBookPhoneCode'].forEach(id=>{var el=document.getElementById(id); if(el) el.innerHTML=html;});}
@@ -911,7 +1003,9 @@ function submitBooking(){
   var country = document.getElementById('countrySelect').value;
   var verifiedEmail = localStorage.getItem('verifiedClientEmail') || document.getElementById('cEmail').value.trim();
   var id=Date.now();
-  var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status:'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,email:verifiedEmail,country:country,days:calc.displayDuration,totalHours:calc.totalHours,hrsPerDay:calc.hrsPerDay,hourlyRate:calc.rateData.amount,hourlyCurrency:calc.rateData.currency,legalMinTotal:calc.totalMin, bookingUnit:calc.unit, careMode:calc.careMode, verifiedEmail:verifiedEmail};
+  var startTime = document.getElementById('cStartTime') ? document.getElementById('cStartTime').value : '';
+  var endTime = document.getElementById('cEndTime') ? document.getElementById('cEndTime').value : '';
+  var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status:'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,email:verifiedEmail,country:country,days:calc.displayDuration,totalHours:calc.totalHours,hrsPerDay:calc.hrsPerDay,hourlyRate:calc.rateData.amount,hourlyCurrency:calc.rateData.currency,legalMinTotal:calc.totalMin, bookingUnit:calc.unit, careMode:calc.careMode, verifiedEmail:verifiedEmail, startTime:startTime, endTime:endTime, dailySchedule: (calc.careMode==='liveout' || calc.careMode==='both' || window.currentCareMode==='liveout') ? (startTime + ' - ' + endTime) : '24hrs Live-in'};
   if(db)db.ref('bookings/'+id).set(b).then(()=>{
    // Save client permanently for next visit
    localStorage.setItem('lastClientPhone', fullPhone);
