@@ -974,7 +974,186 @@ function updateGroupChatVisibility(){
 }
 function toggleMasterClear(){var isCEO=localStorage.getItem('isCEOLogged')==='true';document.querySelectorAll('#masterClearBtn').forEach(b=>{if(b){if(isCEO) b.classList.remove('hidden'); else b.classList.add('hidden');}});}
 (function(){var logo=document.getElementById('logoTapArea');var press=null;var tapCount=0;if(logo){logo.addEventListener('click',function(){tapCount++; if(tapCount>=5){tapCount=0;showPage('staff-login');} setTimeout(()=>{tapCount=0},3000);});logo.addEventListener('touchstart',function(){press=setTimeout(()=>{showPage('ceo-login');},1800);});logo.addEventListener('touchend',function(){clearTimeout(press);});logo.addEventListener('mousedown',function(){press=setTimeout(()=>{showPage('ceo-login');},1800);});logo.addEventListener('mouseup',function(){clearTimeout(press);});}})();
-function autoGPS(i,s){var se=document.getElementById(s); var ie=document.getElementById(i); if(se){se.classList.remove('hidden');se.innerText='Getting GPS...';} navigator.geolocation.getCurrentPosition(p=>{var lat=p.coords.latitude,lng=p.coords.longitude; if(i.includes('cLocation')){clientLat=lat;clientLng=lng;} if(i.includes('nRegLocation')){nurseRegLat=lat;nurseRegLng=lng;} fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(r=>r.json()).then(d=>{ie.value=d.display_name||lat.toFixed(5)+','+lng.toFixed(5); if(se) se.innerText='GPS: '+lat.toFixed(4)+','+lng.toFixed(4);}).catch(()=>{ie.value=lat.toFixed(5)+','+lng.toFixed(5);});},e=>{if(se) se.innerText='GPS failed';},{enableHighAccuracy:true,timeout:15000});}
+function autoGPS(i,s){
+  var se=document.getElementById(s); 
+  var ie=document.getElementById(i);
+  
+  if(!ie){
+    alert('Input not found');
+    return;
+  }
+  
+  // Show trying message
+  if(se){
+    se.classList.remove('hidden');
+    se.style.display='block';
+    se.innerHTML='📡 <b>Getting GPS...</b> Please allow location permission<br><small>Turn ON GPS/Location in phone settings</small>';
+    se.style.background='#dbeafe';
+    se.style.border='2px solid #2563eb';
+    se.style.color='#1e40af';
+    se.style.padding='10px';
+    se.style.borderRadius='10px';
+  }
+  
+  // Check if geolocation supported
+  if(!navigator.geolocation){
+    if(se){
+      se.innerHTML='❌ <b>GPS not supported on this browser</b><br><small>Use Chrome or type address manually</small>';
+      se.style.background='#fee2e2';
+      se.style.border='2px solid #ef4444';
+      se.style.color='#991b1b';
+    }
+    ie.placeholder='Type your address manually (e.g. Accra, Ghana)';
+    return;
+  }
+  
+  // Check if on HTTPS - required for GPS
+  if(location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1'){
+    if(se){
+      se.innerHTML='⚠️ <b>GPS needs HTTPS</b><br><small>Your site must be https:// (GitHub Pages is https) - If testing locally, allow location</small>';
+    }
+  }
+  
+  var gpsOptions = {
+    enableHighAccuracy: true,
+    timeout: 30000,
+    maximumAge: 0
+  };
+  
+  function handleSuccess(p){
+    var lat=p.coords.latitude;
+    var lng=p.coords.longitude;
+    var accuracy = p.coords.accuracy;
+    
+    // Save coords
+    if(i.includes('cLocation')){
+      clientLat=lat;
+      clientLng=lng;
+      localStorage.setItem('clientLat', lat);
+      localStorage.setItem('clientLng', lng);
+    }
+    if(i.includes('nRegLocation')){
+      nurseRegLat=lat;
+      nurseRegLng=lng;
+      localStorage.setItem('nurseRegLat', lat);
+      localStorage.setItem('nurseRegLng', lng);
+    }
+    
+    // Try to get address with multiple fallbacks
+    // First try: Nominatim (free, no key)
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=18&addressdetails=1')
+      .then(r=>r.json())
+      .then(d=>{
+        var addr = d.display_name || (d.address ? (d.address.road+', '+d.address.city+', '+d.address.country) : null) || lat.toFixed(5)+','+lng.toFixed(5);
+        ie.value=addr;
+        ie.style.background='#f0fdf4';
+        ie.style.border='2px solid #16a34a';
+        if(se){
+          se.innerHTML='✅ <b>GPS Success!</b> Accuracy: '+Math.round(accuracy)+'m<br><small>'+lat.toFixed(6)+','+lng.toFixed(6)+'</small><br><small style="color:#16a34a">✔ Location saved - You can now find nurses / register</small>';
+          se.style.background='#dcfce7';
+          se.style.border='2px solid #16a34a';
+          se.style.color='#166534';
+        }
+        // Auto find nurses if client location
+        if(i.includes('cLocation')){
+          setTimeout(function(){
+            var btn = document.getElementById('findNurseBtn');
+            if(btn) btn.style.animation='pulse 1s infinite';
+          }, 500);
+        }
+      })
+      .catch(err=>{
+        // Fallback 1 failed, try BigDataCloud (free, no key, CORS allowed)
+        fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lat+'&longitude='+lng+'&localityLanguage=en')
+          .then(r=>r.json())
+          .then(d=>{
+            var addr = (d.locality || '') + (d.city ? ', '+d.city : '') + (d.countryName ? ', '+d.countryName : '') || lat.toFixed(5)+','+lng.toFixed(5);
+            ie.value=addr;
+            ie.style.background='#f0fdf4';
+            ie.style.border='2px solid #16a34a';
+            if(se){
+              se.innerHTML='✅ <b>GPS Success!</b> (Backup geocoder)<br><small>'+addr+'</small><br><small>'+lat.toFixed(5)+','+lng.toFixed(5)+' Accuracy: '+Math.round(accuracy)+'m</small>';
+              se.style.background='#dcfce7';
+              se.style.border='2px solid #16a34a';
+              se.style.color='#166534';
+            }
+          })
+          .catch(err2=>{
+            // Both failed, just use coords
+            ie.value=lat.toFixed(6)+', '+lng.toFixed(6);
+            ie.style.background='#f0fdf4';
+            ie.style.border='2px solid #16a34a';
+            if(se){
+              se.innerHTML='✅ <b>GPS Got Coordinates</b> (Address lookup failed, but coords saved)<br><small>'+lat.toFixed(6)+', '+lng.toFixed(6)+' - Accuracy '+Math.round(accuracy)+'m</small><br><small style="color:#16a34a">✔ You can now continue - Coords are enough for nurses</small>';
+              se.style.background='#dcfce7';
+              se.style.border='2px solid #16a34a';
+              se.style.color='#166534';
+            }
+          });
+      });
+  }
+  
+  function handleError(e){
+    var msg = '';
+    var solution = '';
+    
+    switch(e.code){
+      case 1: // PERMISSION_DENIED
+        msg = '❌ <b>Location Permission Denied</b>';
+        solution = 'Go to phone Settings > Apps > Chrome > Permissions > Location > Allow<br>Or tap the lock icon in address bar > Site settings > Location > Allow<br>Then tap GPS again';
+        break;
+      case 2: // POSITION_UNAVAILABLE
+        msg = '❌ <b>GPS Signal Unavailable</b>';
+        solution = 'Turn ON: Phone Settings > Location/GPS > ON<br>Go outside or near window for better signal<br>Or type address manually in box';
+        break;
+      case 3: // TIMEOUT
+        msg = '⏰ <b>GPS Timeout - Slow Signal</b>';
+        solution = 'Retrying with low accuracy mode...<br>If still fails, type address manually';
+        // Retry with low accuracy
+        setTimeout(function(){
+          if(se) se.innerHTML='🔄 <b>Retrying GPS with low accuracy mode...</b>';
+          navigator.geolocation.getCurrentPosition(handleSuccess, handleFinalError, {enableHighAccuracy:false, timeout:30000, maximumAge:60000});
+        }, 1000);
+        break;
+      default:
+        msg = '❌ <b>GPS Failed: '+(e.message||'Unknown')+'</b>';
+        solution = 'Type your address manually (e.g. "Madina, Accra")<br>Or try: Settings > Location ON > Allow Chrome location > Tap GPS again';
+    }
+    
+    if(e.code !== 3){
+      if(se){
+        se.innerHTML=msg+'<br><small style="font-size:11px">'+solution+'</small><br><br><button onclick="autoGPS(\''+i+'\',\''+s+'\')" style="background:#2563eb;color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:800;margin-top:6px">🔄 Try Again</button> <button onclick="document.getElementById(\''+i+'\').focus()" style="background:#6b7280;color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:800">⌨ Type Manually</button>';
+        se.style.background='#fee2e2';
+        se.style.border='2px solid #ef4444';
+        se.style.color='#991b1b';
+        se.style.padding='12px';
+        se.style.display='block';
+      }
+      ie.placeholder='Type address manually - e.g. Accra, Ghana';
+      ie.style.border='2px solid #f59e0b';
+      ie.style.background='#fffbeb';
+    }
+  }
+  
+  function handleFinalError(e){
+    if(se){
+      se.innerHTML='❌ <b>GPS Still Failed After Retry</b><br><small>Please type address manually:<br>Example: "East Legon, Accra, Ghana"<br>Or "Lagos, Nigeria"</small><br><button onclick="document.getElementById(\''+i+'\').focus()" style="background:#16a34a;color:white;border:none;padding:10px 20px;border-radius:8px;font-weight:800;margin-top:8px">⌨ Type Address Manually</button>';
+      se.style.background='#fef3c7';
+      se.style.border='2px solid #f59e0b';
+      se.style.color='#92400e';
+    }
+  }
+  
+  // First attempt: High accuracy
+  try{
+    navigator.geolocation.getCurrentPosition(handleSuccess, handleError, gpsOptions);
+  } catch(err){
+    if(se){
+      se.innerHTML='❌ <b>GPS Error: '+(err.message||'Unknown')+'</b><br><small>Type address manually</small>';
+      se.style.background='#fee2e2';
+    }
+  }
+}
 function getFullPhone(c,p){var code=document.getElementById(c).value; var ph=document.getElementById(p).value.trim().replace(/^0+/,''); if(ph.startsWith('+')) return ph; return code+ph;}
 function getDistanceKm(a,b,c,d){if(!a||!b||!c||!d) return 9999; var R=6371; var dLat=(c-a)*Math.PI/180; var dLon=(d-b)*Math.PI/180; var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2); return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 if(!localStorage.getItem('nurses')){localStorage.setItem('nurses',JSON.stringify([{id:1,name:"Nurse Grace",lat:5.675,lng:-0.165,location:"Madina",phone:"+233244001001",status:'on_duty'},{id:2,name:"Nurse Esther",lat:5.682,lng:-0.185,location:"Haatso",phone:"+233244001002",status:'on_duty'}]));}
