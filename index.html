@@ -325,7 +325,32 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="nurseSetUploadProgress" style="font-size:10px;color:#16a34a;margin-top:4px"></div>
 </div>
 
-<button class="btnSubmit" style="background:#16a34a" onclick="saveNurseSettings()">💾 Save Settings</button>
+<div style="border:3px solid #eab308;background:#fffbeb;border-radius:12px;padding:12px;margin:10px 0">
+<h3 style="margin:0 0 8px 0;font-size:13px;color:#92400e">💳 Withdrawal / Payout Details - 85% of Client Payment</h3>
+<p style="font-size:10px;color:#6b7280;margin:0 0 8px 0">Add your bank/MoMo details to receive 85% after work completed & client confirms. CEO pays via Paystack automatically.</p>
+<select id="nursePayoutMethod" onchange="togglePayoutMethod()">
+<option value="bank">🏦 Bank Account</option>
+<option value="momo_gh">📱 MoMo Ghana (MTN/Vodafone/Airtel)</option>
+<option value="momo_ng">📱 MoMo Nigeria</option>
+<option value="momo_other">📱 MoMo Other Countries</option>
+<option value="paypal">💵 PayPal (International)</option>
+</select>
+<input id="nurseBankName" placeholder="Bank Name - e.g. GCB, Access Bank">
+<input id="nurseAccountNumber" placeholder="Account Number / MoMo Number">
+<input id="nurseAccountName" placeholder="Account Name - Must match your ID">
+<input id="nurseBankCode" placeholder="Bank Code (optional - for Paystack)">
+<div style="background:#dcfce7;padding:8px;border-radius:8px;font-size:10px;margin-top:6px">
+<b>How you get paid:</b><br>
+• Client pays 100% to LOVE CARE GLOBAL via Paystack<br>
+• You complete work, client confirms<br>
+• CEO dashboard shows "Pay Nurse 85%" button<br>
+• You receive 85% automatically via Paystack Transfer<br>
+• Platform keeps 15% commission<br>
+• <span style="color:#16a34a;font-weight:800">Example: Client pays 1000 GHS → You get 850 GHS</span>
+</div>
+</div>
+
+<button class="btnSubmit" style="background:#16a34a" onclick="saveNurseSettings()">💾 Save Settings & Payout Details</button>
 <button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:6px" onclick="document.getElementById('nurseSettingsCard').classList.add('hidden')">Close Settings</button>
 
 <div style="border-top:3px dashed #ef4444;margin-top:16px;padding-top:12px">
@@ -366,6 +391,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <button id="btn-nurses" class="btnSmall" style="background:#16a34a;color:white" onclick="switchCeoTab('nurses')">Nurses + Media</button>
 <button id="btn-clients" class="btnSmall" style="background:#2563eb;color:white" onclick="switchCeoTab('clients')">Clients</button>
 <button id="btn-payments" class="btnSmall" style="background:#eab308;color:#111" onclick="switchCeoTab('payments')">Payments</button>
+<button id="btn-payouts" class="btnSmall" style="background:#ff6a00;color:white" onclick="switchCeoTab('payouts')">💸 Payouts (85%)</button>
 <button id="btn-refunds" class="btnSmall" style="background:#ef4444;color:white" onclick="switchCeoTab('refunds')">Refunds</button>
 <button id="btn-staff" class="btnSmall" style="background:#7c3aed;color:white" onclick="switchCeoTab('staff')">Staff</button>
 <button id="btn-deleted" class="btnSmall" style="background:#ef4444;color:white" onclick="switchCeoTab('deleted')">🗑 Deleted Nurses</button>
@@ -377,7 +403,54 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="ceo-tab-nurses" class="ceo-tab card hidden"><h2>2. Nurses + Video/CV</h2><div id="ceoNursesList">Loading...</div><div id="ceoMap" style="height:380px;border-radius:12px;border:2px solid #16a34a;margin-top:10px"></div><div id="ceoNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:12px;padding:12px;margin-top:12px;background:#f5f3ff"><h3>🔍 Nurse Media Viewer</h3><div id="mediaViewerContent"></div><button class="btnSmall" style="background:#6b7280;color:white" onclick="document.getElementById('ceoNurseMediaView').classList.add('hidden')">Close</button></div></div>
 <div id="ceo-tab-clients" class="ceo-tab card hidden"><h2>3. Clients (Verified Emails)</h2><div id="ceoClientsList">Loading...</div></div>
 <div id="ceo-tab-payments" class="ceo-tab card hidden"><h2>4. Payments</h2><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px"><div style="background:#f0fdf4;padding:10px;border-radius:10px;border:2px solid #16a34a"><small>Total</small><br><b id="totalRevenue">0</b></div><div style="background:#fffbeb;padding:10px;border-radius:10px;border:2px solid #eab308"><small>Pending</small><br><b id="pendingRevenue">0</b></div></div><div id="ceoPaymentsList">Loading...</div></div>
-<div id="ceo-tab-refunds" class="ceo-tab card hidden" style="border:3px solid #ef4444"><h2>💸 Refunds</h2><div id="ceoRefundsList">Loading...</div></div>
+<div 
+<div id="ceo-tab-payouts" class="ceo-tab hidden">
+<div class="card" style="border:3px solid #ff6a00">
+<h2>💸 Nurse Payouts - Pay 85% via Paystack (After Client Confirms Work Done)</h2>
+<div style="background:#fff7ed;border:2px solid #ff6a00;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px">
+<b>How it works:</b><br>
+1. Client pays 100% via Paystack → Booking status: paid<br>
+2. Nurse completes work, client confirms "Work Done" → Status: completed_confirmed<br>
+3. System auto-creates payout: Nurse gets 85%, Platform keeps 15%<br>
+4. CEO sees payout here → Click "Pay Nurse 85%" button<br>
+5. Paystack Transfer automatically sends 85% to nurse's bank/MoMo<br>
+6. Nurse gets SMS/email from Paystack<br><br>
+<b>Example:</b> Client 1000 GHS → Nurse 850 GHS, You 150 GHS<br>
+<b>Paystack Setup:</b> Enter your Paystack Secret Key below (sk_live_...). Key stored locally only, never shared. Needed for auto transfers.
+</div>
+
+<div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:10px;padding:10px;margin-bottom:10px">
+<label style="font-size:11px;font-weight:800">🔑 Paystack Secret Key (for auto transfers):</label>
+<input id="paystackSecretKey" type="password" placeholder="sk_live_... or sk_test_... from Paystack Dashboard > Settings > API Keys" style="margin-bottom:6px">
+<div style="display:flex;gap:6px">
+<button class="btnSmall" style="background:#16a34a;color:white;flex:1" onclick="savePaystackKey()">💾 Save Key</button>
+<button class="btnSmall" style="background:#6b7280;color:white;flex:1" onclick="document.getElementById('paystackSecretKey').type = document.getElementById('paystackSecretKey').type==='password'?'text':'password'">👁 Show/Hide</button>
+<button class="btnSmall" style="background:#2563eb;color:white;flex:1" onclick="testPaystackConnection()">🔌 Test Connection</button>
+</div>
+<small style="font-size:10px;color:#6b7280">Key saved in browser localStorage only. For production, add balance to Paystack. Transfers require Paystack balance.</small>
+<div id="paystackKeyStatus" style="font-size:11px;margin-top:6px"></div>
+</div>
+
+<div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+<button class="btnSmall" style="background:#ff6a00;color:white" onclick="loadPayouts()">🔄 Refresh Payouts</button>
+<button class="btnSmall" style="background:#16a34a;color:white" onclick="loadCompletedBookingsForPayout()">📋 Load Completed (Need Payout)</button>
+<select id="payoutFilter" onchange="loadPayouts()" style="padding:8px;border-radius:8px">
+<option value="pending">⏳ Pending Payouts Only</option>
+<option value="paid">✅ Paid Payouts</option>
+<option value="all">📋 All Payouts</option>
+</select>
+</div>
+
+<div id="ceoPayoutsList">Loading payouts...</div>
+<div id="ceoCompletedForPayout"></div>
+
+<div style="background:#eff6ff;border:2px solid #2563eb;border-radius:10px;padding:10px;margin-top:10px">
+<h3 style="font-size:12px;margin:0 0 6px 0">📊 Payout Summary</h3>
+<div id="payoutSummary">Loading...</div>
+</div>
+</div>
+</div>
+id="ceo-tab-refunds" class="ceo-tab card hidden" style="border:3px solid #ef4444"><h2>💸 Refunds</h2><div id="ceoRefundsList">Loading...</div></div>
 <div id="ceo-tab-deleted" class="ceo-tab card hidden" style="border:3px solid #ef4444"><h2>🗑 Deleted Nurse Accounts - With Reasons (CEO View)</h2><div style="background:#fee2e2;padding:8px;border-radius:8px;font-size:11px;margin-bottom:8px">Nurses who deleted their account. Shows reason, time, name, phone, video/CV links. For audit.</div><div id="ceoDeletedList">Loading deleted accounts...</div></div>
 <div id="ceo-tab-staff" class="ceo-tab card hidden"><h2>5. Staff</h2><div style="display:flex;gap:6px;margin-bottom:10px"><input id="newStaffId" placeholder="New Staff ID" style="flex:1;margin:0"><input id="newStaffPass" placeholder="Password" style="flex:1;margin:0"><button class="btnSmall" style="background:#16a34a;color:white" onclick="addStaff()">Add</button></div><div id="ceoStaffList">Loading...</div></div>
 <div id="ceo-tab-announce" class="ceo-tab card hidden"><h2>6. Announcement Board Settings - Text + Colors</h2>
@@ -1212,8 +1285,18 @@ function loadMyBookings(){
    if(mine.length===0){ listDiv.innerHTML='<div style="text-align:center;color:#999;padding:10px">No bookings for '+fullPhone+'</div>'; return; }
    var h=''; mine.forEach(b=>{
      var statusClass='st-pending'; if(b.status==='confirmed') statusClass='st-confirmed'; if(b.status==='cancelled_by_client') statusClass='st-cancelled'; if(b.status==='refund_requested') statusClass='st-refund_req'; if(b.status==='refund_approved') statusClass='st-refund_ok'; if(b.status==='refunded') statusClass='st-refunded';
-     h+=`<div class="bookingClientCard"><div style="display:flex;justify-content:space-between"><b>#${b.id}</b><span class="statusBadge ${statusClass}">${(b.status||'').toUpperCase()}</span></div><div style="font-size:11px;margin-top:6px"><b>${b.service}</b> - ${b.amount} ${b.currency}<br>📅 ${b.days||'?'} = ${b.totalHours||'?'} hrs (${b.hrsPerDay||'?'} hrs/day)<br>🏠 ${b.careMode||'liveout'}<br>📍 ${b.location||''}<br>⏰ ${b.time||''}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">`;
-     if(b.status==='pending_assignment' || b.status==='confirmed'){ h+=`<button class="btnSmall" style="background:#ef4444;color:white;flex:1" onclick="cancelBookingClient(${b.id})">❌ Cancel</button>`; }
+     h+=`<div class="bookingClientCard"><div style="display:flex;justify-content:space-between"><b>#${b.id}</b><span class="statusBadge ${statusClass}">${(b.status||'').toUpperCase()}</span></div><div style="font-size:11px;margin-top:6px"><b>${b.service}</b> - ${b.amount} ${b.currency}<br>📅 ${b.days||'?'} = ${b.totalHours||'?'} hrs (${b.hrsPerDay||'?'} hrs/day)<br>🏠 ${b.careMode||'liveout'} ${b.dailySchedule||''}<br>📍 ${b.location||''}<br>⏰ ${b.time||''}<br>${b.paystackRef? '🧾 Ref: '+b.paystackRef+'<br>':''}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">`;
+     h+=`<button class="btnSmall" style="background:#111827;color:white;flex:1" onclick="showReceiptForBooking(${b.id})">🧾 Receipt</button>`;
+
+     if(b.status==='pending_assignment' || b.status==='confirmed'){ 
+       h+=`<button class="btnSmall" style="background:#ef4444;color:white;flex:1" onclick="cancelBookingClient(${b.id})">❌ Cancel</button>`; 
+     }
+     if(b.status==='confirmed' || b.status==='work_done'){
+       h+=`<button class="btnSmall" style="background:#16a34a;color:white;flex:1" onclick="confirmWorkCompleted(${b.id})">✅ Work Done - Confirm</button>`;
+     }
+     if(b.status==='completed_confirmed'){
+       h+=`<span class="statusBadge st-confirmed" style="flex:1;text-align:center">✅ Completed - Payout Pending</span>`;
+     }
      if(b.status==='cancelled_by_client' || b.status==='confirmed'){ h+=`<button class="btnSmall" style="background:#7c3aed;color:white;flex:1" onclick="openRefundModal(${b.id}, '${b.amount} ${b.currency}')">💸 Refund</button>`; }
      h+=`</div></div>`; }); listDiv.innerHTML=h;
  });
@@ -1263,6 +1346,9 @@ if(tab==='bookings'||tab==='clients'||tab==='payments'||tab==='staff'||tab==='re
 if(tab==='announce'){ renderMinRateEditor(); loadAnnouncementSettings(); }
 }
 function loadCeoData(){if(!db) return; db.ref('bookings').once('value').then(s=>{allBookings=Object.values(s.val()||{});document.getElementById('statBookings').innerText=allBookings.length;renderBookings(allBookings);renderClients(allBookings);renderPayments(allBookings);renderRefundsCEO(allBookings);}); db.ref('workers').once('value').then(s=>{allWorkers=Object.values(s.val()||{});document.getElementById('statNurses').innerText=allWorkers.length;document.getElementById('statOnline').innerText=allWorkers.filter(w=>w.onDuty).length;renderNurses(allWorkers);}); db.ref('staff').once('value').then(s=>{renderStaff(Object.values(s.val()||{}));}); db.ref('refunds').once('value').then(s=>{allRefunds=Object.values(s.val()||{}); document.getElementById('statRefunds').innerText=allRefunds.length;});}
+function showCEOReceipt(bookingId){
+  showReceiptForBooking(bookingId);
+}
 function renderBookings(list){var c=document.getElementById('ceoBookingsList'); if(!list.length){c.innerHTML='<div style="padding:20px;text-align:center;background:#fef3c7;border-radius:10px">No bookings yet</div>';return;} var h='<table><tr><th>Time</th><th>Client</th><th>Service</th><th>Duration</th><th>Care</th><th>Amount</th><th>Status</th><th>Action</th></tr>'; list.sort((a,b)=>b.timestamp-a.timestamp).forEach(b=>{ var badge=`<span class="statusBadge st-pending">${b.status||''}</span>`; if(b.status==='confirmed') badge=`<span class="statusBadge st-confirmed">${b.status}</span>`; if(b.status==='cancelled_by_client') badge=`<span class="statusBadge st-cancelled">CANCELLED</span>`; if(b.status==='refund_requested') badge=`<span class="statusBadge st-refund_req">REFUND REQ</span>`; h+=`<tr><td>${b.time||''}<br><small>${b.email||b.verifiedEmail||''}</small></td><td>${b.name||''}<br><small>${b.country||''}</small></td><td>${b.service||''}</td><td>${b.days||''}<br><small>${b.totalHours||''}h (${b.hrsPerDay||''}/day)</small></td><td>${b.careMode||''}</td><td>${b.amount||''} ${b.currency||''}<br><small>Min ${b.legalMinTotal||''}</small></td><td>${badge}</td><td><button onclick="updateBookingStatus(${b.id},'confirmed')" class="btnSmall" style="background:green;color:white">Confirm</button><button onclick="deleteBooking(${b.id})" class="btnSmall" style="background:#111;color:white">X</button></td></tr>`;}); h+='</table>'; c.innerHTML=h;}
 function renderRefundsCEO(bookingsList){ var c=document.getElementById('ceoRefundsList'); var refunds = bookingsList.filter(b=> b.status==='refund_requested' || b.status==='refund_approved' || b.status==='refunded' || b.refundReason); if(refunds.length===0){ c.innerHTML='<div style="padding:20px;text-align:center;background:#fef3c7;border-radius:10px">No refunds</div>'; return; } var h='<table><tr><th>Client</th><th>Amount</th><th>Account</th><th>Status</th><th>Action</th></tr>'; refunds.forEach(b=>{ h+=`<tr><td>${b.name||''}</td><td>${b.amount} ${b.currency}</td><td>${b.refundAccount||''}</td><td>${b.status}</td><td>`; if(b.status==='refund_requested'){ h+=`<button onclick="approveRefund(${b.id})" class="btnSmall" style="background:#16a34a;color:white">Approve</button>`; } else if(b.status==='refund_approved'){ h+=`<button onclick="confirmRefundSent(${b.id})" class="btnSmall" style="background:#2563eb;color:white">Confirm Sent</button>`; } h+=`</td></tr>`; }); h+='</table>'; c.innerHTML=h;}
 function approveRefund(id){ if(!confirm('Approve?')) return; if(!db) return; db.ref('bookings/'+id).update({status:'refund_approved'}).then(()=>{ db.ref('refunds/'+id).update({status:'approved'}).then(()=>{ loadCeoData(); }); });}
@@ -1813,6 +1899,443 @@ loadCeoData = function(){
   });
 };
 
+
+// ===== PAYSTACK PAYOUT LOGIC - 85% TO NURSE =====
+function savePaystackKey(){
+  var key = document.getElementById('paystackSecretKey').value.trim();
+  if(!key){ alert('Enter Paystack Secret Key from Paystack Dashboard'); return; }
+  if(!key.startsWith('sk_')){ alert('Invalid key - Should start with sk_live_ or sk_test_'); return; }
+  localStorage.setItem('paystackSecretKey', key);
+  document.getElementById('paystackKeyStatus').innerHTML = '✅ Key saved locally - '+key.substring(0,12)+'... - Ready for auto transfers';
+  document.getElementById('paystackKeyStatus').style.color='#16a34a';
+  alert('✅ Paystack Secret Key saved - You can now auto-pay nurses 85% via Paystack Transfer');
+}
+
+function loadPaystackKey(){
+  var key = localStorage.getItem('paystackSecretKey');
+  if(key){
+    document.getElementById('paystackSecretKey').value = key;
+    document.getElementById('paystackKeyStatus').innerHTML = '✅ Key loaded - Ready for transfers';
+    document.getElementById('paystackKeyStatus').style.color='#16a34a';
+  }
+}
+
+function testPaystackConnection(){
+  var key = localStorage.getItem('paystackSecretKey') || document.getElementById('paystackSecretKey').value.trim();
+  if(!key){ alert('Enter secret key first'); return; }
+  document.getElementById('paystackKeyStatus').innerText='Testing Paystack connection...';
+  fetch('https://api.paystack.co/balance', {
+    headers: { 'Authorization': 'Bearer ' + key }
+  })
+  .then(r=>r.json())
+  .then(d=>{
+    if(d.status){
+      var bal = d.data[0] ? d.data[0].balance/100 + ' ' + d.data[0].currency : 'No balance data';
+      document.getElementById('paystackKeyStatus').innerHTML='✅ Connected! Balance: <b>'+bal+'</b> - Can do transfers';
+      document.getElementById('paystackKeyStatus').style.color='#16a34a';
+    } else {
+      document.getElementById('paystackKeyStatus').innerHTML='❌ Failed: '+(d.message||'Invalid key');
+      document.getElementById('paystackKeyStatus').style.color='#ef4444';
+    }
+  })
+  .catch(err=>{
+    document.getElementById('paystackKeyStatus').innerHTML='❌ Connection failed - Check internet or key - '+err.message;
+    document.getElementById('paystackKeyStatus').style.color='#ef4444';
+  });
+}
+
+// When client confirms work done, auto-create payout
+function createPayoutForBooking(booking){
+  if(!db) return;
+  var clientAmount = parseFloat(booking.amount) || 0;
+  var currency = booking.currency || 'GHS';
+  var nurseShare = Math.round(clientAmount * 0.85 * 100) / 100;
+  var platformShare = Math.round(clientAmount * 0.15 * 100) / 100;
+  
+  var payoutId = booking.id;
+  var payoutData = {
+    id: payoutId,
+    bookingId: booking.id,
+    clientName: booking.name,
+    clientPhone: booking.phone,
+    nursePhone: booking.selectedNurse,
+    nurseName: '', // will be filled from workers
+    clientAmount: clientAmount,
+    currency: currency,
+    nurseShare: nurseShare,
+    platformShare: platformShare,
+    percent: 85,
+    status: 'pending',
+    bookingService: booking.service,
+    bookingTime: booking.time,
+    createdAt: Date.now(),
+    createdAtString: new Date().toLocaleString(),
+    startTime: booking.startTime || '',
+    endTime: booking.endTime || '',
+    dailySchedule: booking.dailySchedule || '',
+    payoutMethod: '',
+    accountDetails: null,
+    transferReference: '',
+    paidAt: null
+  };
+  
+  // Get nurse details
+  db.ref('workers/'+booking.selectedNurse.replace(/[^0-9]/g,'')).once('value').then(snap=>{
+    var nurse = snap.val();
+    if(nurse){
+      payoutData.nurseName = nurse.name || '';
+      payoutData.payoutMethod = nurse.payoutMethod || nurse.payoutDetails?.method || 'bank';
+      payoutData.accountDetails = nurse.payoutDetails || {
+        bankName: nurse.bankName || '',
+        accountNumber: nurse.accountNumber || '',
+        accountName: nurse.accountName || '',
+        bankCode: nurse.bankCode || ''
+      };
+      payoutData.nursePhoneFull = nurse.phone || booking.selectedNurse;
+    }
+    // Save payout
+    db.ref('payouts/'+payoutId).set(payoutData).then(()=>{
+      console.log('Payout created for booking', payoutId, nurseShare);
+      // Also update booking
+      db.ref('bookings/'+booking.id).update({payoutCreated:true, payoutStatus:'pending', payoutId:payoutId});
+    });
+  });
+}
+
+// Load completed bookings that need payout
+function loadCompletedBookingsForPayout(){
+  if(!db) return;
+  var container = document.getElementById('ceoCompletedForPayout');
+  container.innerHTML='Loading completed bookings...';
+  
+  db.ref('bookings').once('value').then(snap=>{
+    var all = Object.values(snap.val()||{});
+    var completed = all.filter(b=> 
+      (b.status==='completed' || b.status==='completed_confirmed' || b.status==='work_done' || b.workConfirmedByClient) && 
+      !b.payoutCreated
+    );
+    
+    if(completed.length===0){
+      container.innerHTML='<div style="padding:10px;background:#f0fdf4;border-radius:8px;text-align:center">✅ No completed bookings need payout - All paid or not yet completed</div>';
+      return;
+    }
+    
+    var h='<div style="margin-top:10px"><h3 style="font-size:12px">📋 Completed Bookings Needing Payout ('+completed.length+')</h3><table><tr><th>Booking</th><th>Client</th><th>Nurse</th><th>Amount</th><th>85% to Nurse</th><th>Action</th></tr>';
+    completed.forEach(b=>{
+      var nurseShare = Math.round((parseFloat(b.amount)||0)*0.85*100)/100;
+      h+='<tr><td>#'+b.id+'<br><small>'+(b.service||'')+'</small></td><td>'+(b.name||'')+'<br><small>'+(b.phone||'')+'</small></td><td>'+(b.selectedNurse||'')+'</td><td>'+b.amount+' '+b.currency+'</td><td><b style="color:#16a34a">'+nurseShare+' '+b.currency+'</b></td><td><button class="btnSmall" style="background:#ff6a00;color:white" onclick="createPayoutForBookingId('+b.id+')">Create Payout</button></td></tr>';
+    });
+    h+='</table></div>';
+    container.innerHTML=h;
+  });
+}
+
+function createPayoutForBookingId(bookingId){
+  if(!db) return;
+  db.ref('bookings/'+bookingId).once('value').then(snap=>{
+    var b=snap.val();
+    if(b) createPayoutForBooking(b);
+    setTimeout(()=>{ loadPayouts(); loadCompletedBookingsForPayout(); }, 1000);
+  });
+}
+
+function loadPayouts(){
+  if(!db) return;
+  var container = document.getElementById('ceoPayoutsList');
+  var summaryEl = document.getElementById('payoutSummary');
+  var filter = document.getElementById('payoutFilter') ? document.getElementById('payoutFilter').value : 'pending';
+  
+  container.innerHTML='Loading payouts...';
+  
+  db.ref('payouts').once('value').then(snap=>{
+    var all = Object.values(snap.val()||{});
+    if(filter==='pending') all = all.filter(p=>p.status==='pending');
+    if(filter==='paid') all = all.filter(p=>p.status==='paid');
+    
+    all.sort((a,b)=>b.createdAt-a.createdAt);
+    
+    if(all.length===0){
+      container.innerHTML='<div style="padding:20px;text-align:center;background:#fff7ed;border-radius:10px">No '+filter+' payouts</div>';
+      if(summaryEl) summaryEl.innerHTML='No payouts';
+      return;
+    }
+    
+    // Summary
+    var totalClient = all.reduce((s,p)=>s+ (parseFloat(p.clientAmount)||0), 0);
+    var totalNurse = all.reduce((s,p)=>s+ (parseFloat(p.nurseShare)||0), 0);
+    var totalPlatform = all.reduce((s,p)=>s+ (parseFloat(p.platformShare)||0), 0);
+    if(summaryEl){
+      summaryEl.innerHTML = 'Total Client Paid: <b>'+totalClient.toFixed(2)+'</b> | Total Nurse (85%): <b style="color:#16a34a">'+totalNurse.toFixed(2)+'</b> | Your Profit (15%): <b style="color:#2563eb">'+totalPlatform.toFixed(2)+'</b> | Count: '+all.length;
+    }
+    
+    var h='<table><tr><th>Time</th><th>Booking & Client</th><th>Nurse & Account</th><th>Amount Breakdown</th><th>Status</th><th>Action</th></tr>';
+    all.forEach(p=>{
+      var statusBadge = p.status==='paid' ? '<span class="statusBadge st-confirmed">PAID</span>' : '<span class="statusBadge" style="background:#ff6a00">PENDING</span>';
+      var acc = p.accountDetails || {};
+      var accStr = (acc.bankName||'')+'<br>'+(acc.accountNumber||'')+'<br>'+(acc.accountName||'')+'<br><small>'+(p.payoutMethod||'')+'</small>';
+      if(!acc.bankName && !acc.accountNumber) accStr = '<span style="color:#ef4444">❌ No payout details<br>Nurse must add in Settings</span>';
+      
+      h+='<tr><td><small>'+(p.createdAtString||'')+'</small><br><small>#'+p.bookingId+'</small></td>';
+      h+='<td><b>'+(p.clientName||'')+'</b><br><small>'+(p.clientPhone||'')+'</small><br><small>'+(p.bookingService||'')+'</small><br><small>'+(p.dailySchedule||'')+'</small></td>';
+      h+='<td><b>'+(p.nurseName||p.nursePhone||'')+'</b><br><small>'+accStr+'</small></td>';
+      h+='<td>Client: <b>'+p.clientAmount+' '+p.currency+'</b><br>Nurse 85%: <b style="color:#16a34a">'+p.nurseShare+' '+p.currency+'</b><br>Platform 15%: <b style="color:#2563eb">'+p.platformShare+' '+p.currency+'</b></td>';
+      h+='<td>'+statusBadge+'<br><small>'+(p.transferReference||'')+'</small><br><small>'+(p.paidAtString||'')+'</small></td>';
+      
+      if(p.status==='pending'){
+        if(acc.accountNumber){
+          h+='<td><button class="btnSmall" style="background:#16a34a;color:white;width:100%;margin-bottom:4px" onclick="payNurse('+p.id+')">💸 Pay Nurse 85% via Paystack</button><button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-bottom:4px" onclick="markAsPaidManually('+p.id+')">✅ Mark Paid Manually</button><button class="btnSmall" style="background:#ef4444;color:white;width:100%" onclick="deletePayout('+p.id+')">🗑 Delete</button></td>';
+        } else {
+          h+='<td><span style="color:#ef4444;font-size:10px">Nurse must add bank/MoMo in Settings</span><br><button class="btnSmall" style="background:#6b7280;color:white;width:100%" onclick="notifyNurseToAddAccount(\''+p.nursePhone+'\')">📩 Notify Nurse</button></td>';
+        }
+      } else {
+        h+='<td>✅ Paid<br><small>Ref: '+(p.transferReference||'')+'</small><br><button class="btnSmall" style="background:#6b7280;color:white" onclick="viewPayoutReceipt('+p.id+')">📄 Receipt</button></td>';
+      }
+      h+='</tr>';
+    });
+    h+='</table>';
+    container.innerHTML=h;
+  });
+}
+
+function payNurse(payoutId){
+  var secretKey = localStorage.getItem('paystackSecretKey') || document.getElementById('paystackSecretKey').value.trim();
+  if(!secretKey){
+    alert('❌ Enter Paystack Secret Key first in the box above (sk_live_... from Paystack Dashboard)');
+    document.getElementById('paystackSecretKey').focus();
+    return;
+  }
+  
+  if(!confirm('💸 Pay Nurse 85% via Paystack Transfer?\n\nThis will automatically send money from your Paystack balance to nurse\'s account.\n\nMake sure Paystack balance is enough.\n\nContinue?')) return;
+  
+  if(!db) return;
+  
+  db.ref('payouts/'+payoutId).once('value').then(snap=>{
+    var p = snap.val();
+    if(!p){ alert('Payout not found'); return; }
+    if(p.status==='paid'){ alert('Already paid'); return; }
+    
+    var acc = p.accountDetails || {};
+    if(!acc.accountNumber){ alert('Nurse has no account number - Ask nurse to add in Settings'); return; }
+    
+    // Step 1: Create recipient (if bank)
+    // For Paystack, need to create transfer recipient first, then transfer
+    // Simplified: Try direct transfer with account details
+    
+    var transferData = {
+      type: 'nuban',
+      name: acc.accountName || p.nurseName || 'Nurse',
+      account_number: acc.accountNumber,
+      bank_code: acc.bankCode || '044', // Default, will try to resolve
+      currency: p.currency || 'GHS'
+    };
+    
+    // If MoMo Ghana, bank code differs - Paystack uses specific codes
+    // For Ghana MoMo: MTN = 055 etc, but we will try to create recipient anyway
+    
+    document.getElementById('ceoPayoutsList').innerHTML = '<div style="padding:20px;text-align:center">⏳ Creating Paystack recipient for '+p.nurseName+'...</div>';
+    
+    // Create recipient
+    fetch('https://api.paystack.co/transferrecipient', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + secretKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(transferData)
+    })
+    .then(r=>r.json())
+    .then(recipientRes=>{
+      console.log('Recipient response', recipientRes);
+      var recipientCode = null;
+      
+      if(recipientRes.status && recipientRes.data && recipientRes.data.recipient_code){
+        recipientCode = recipientRes.data.recipient_code;
+      } else if(recipientRes.data && recipientRes.data.recipient_code){
+        recipientCode = recipientRes.data.recipient_code;
+      } else {
+        // If recipient creation fails, try with different bank code or show error
+        if(recipientRes.message && recipientRes.message.includes('already exists')){
+          // Try to list recipients to find existing
+          return fetch('https://api.paystack.co/transferrecipient?perPage=100', {
+            headers: { 'Authorization': 'Bearer ' + secretKey }
+          })
+          .then(r=>r.json())
+          .then(listRes=>{
+            var found = (listRes.data||[]).find(r=> r.details && r.details.account_number===acc.accountNumber);
+            if(found) return { status:true, data: found };
+            else throw new Error(recipientRes.message || 'Recipient creation failed');
+          });
+        } else {
+          throw new Error(recipientRes.message || 'Failed to create recipient');
+        }
+      }
+      return { status:true, data:{ recipient_code: recipientCode } };
+    })
+    .then(recipientData=>{
+      var recipientCode = recipientData.data.recipient_code;
+      document.getElementById('ceoPayoutsList').innerHTML = '<div style="padding:20px;text-align:center">⏳ Recipient created: '+recipientCode+'<br>Now transferring '+p.nurseShare+' '+p.currency+' to nurse...</div>';
+      
+      // Step 2: Initiate transfer
+      var amountKobo = Math.round(parseFloat(p.nurseShare) * 100); // Paystack expects kobo/pesewas
+      // For GHS, amount in kobo? Paystack GHS uses pesewas (x100)
+      
+      return fetch('https://api.paystack.co/transfer', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + secretKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          source: 'balance',
+          amount: amountKobo,
+          recipient: recipientCode,
+          reason: 'LOVE CARE GLOBAL - Payment for booking #'+p.bookingId+' - '+p.bookingService+' - 85% of '+p.clientAmount+' '+p.currency,
+          reference: 'LC_PAYOUT_'+p.id+'_'+Date.now()
+        })
+      })
+      .then(r=>r.json())
+      .then(transferRes=>{
+        console.log('Transfer response', transferRes);
+        if(transferRes.status){
+          // Success
+          var transferCode = transferRes.data.transfer_code || transferRes.data.reference || 'TRF_'+Date.now();
+          var reference = transferRes.data.reference || transferRes.data.transfer_code;
+          
+          // Update payout as paid
+          db.ref('payouts/'+payoutId).update({
+            status:'paid',
+            transferReference: reference,
+            transferCode: transferCode,
+            paidAt: Date.now(),
+            paidAtString: new Date().toLocaleString(),
+            recipientCode: recipientCode,
+            paystackResponse: transferRes
+          }).then(()=>{
+            db.ref('bookings/'+p.bookingId).update({
+              payoutStatus:'paid',
+              nursePaid:true,
+              nursePaidAt: Date.now(),
+              nursePaidAmount: p.nurseShare
+            });
+            alert('✅ SUCCESS! Paid '+p.nurseShare+' '+p.currency+' to '+p.nurseName+' via Paystack\n\nReference: '+reference+'\nTransfer Code: '+transferCode+'\n\nNurse will receive SMS from Paystack');
+            loadPayouts();
+          });
+        } else {
+          throw new Error(transferRes.message || 'Transfer failed');
+        }
+      });
+    })
+    .catch(err=>{
+      console.error('Paystack payout error', err);
+      document.getElementById('ceoPayoutsList').innerHTML = '<div style="padding:20px;background:#fee2e2;border-radius:10px"><b>❌ Paystack Transfer Failed</b><br>'+err.message+'<br><br><small>Common causes:<br>• Insufficient Paystack balance (add money to Paystack)<br>• Invalid bank code/account<br>• For MoMo Ghana, need correct bank code (MTN= Mobile Money)<br>• Secret key wrong<br><br>You can mark as paid manually if you paid via MoMo app</small><br><br><button class="btnSmall" style="background:#6b7280;color:white" onclick="loadPayouts()">🔄 Back to Payouts</button> <button class="btnSmall" style="background:#16a34a;color:white" onclick="markAsPaidManually('+payoutId+')">✅ Mark Paid Manually</button></div>';
+      alert('❌ Paystack transfer failed: '+err.message+'\n\nYou can pay manually via MoMo/bank app and then click Mark Paid Manually');
+    });
+  });
+}
+
+function markAsPaidManually(payoutId){
+  var ref = prompt('Enter manual payment reference (e.g. MoMo Transaction ID, Bank ref) - Or leave empty:', 'MANUAL_'+Date.now());
+  if(ref===null) return;
+  if(!db) return;
+  db.ref('payouts/'+payoutId).update({
+    status:'paid',
+    transferReference: ref || 'MANUAL_'+Date.now(),
+    paidAt: Date.now(),
+    paidAtString: new Date().toLocaleString(),
+    paidManually: true
+  }).then(()=>{
+    db.ref('payouts/'+payoutId).once('value').then(snap=>{
+      var p=snap.val();
+      if(p) db.ref('bookings/'+p.bookingId).update({payoutStatus:'paid', nursePaid:true, nursePaidAt:Date.now(), nursePaidAmount:p.nurseShare});
+    });
+    alert('✅ Marked as paid manually - Ref: '+ref);
+    loadPayouts();
+  });
+}
+
+function deletePayout(payoutId){
+  if(!confirm('Delete this payout record?')) return;
+  if(db) db.ref('payouts/'+payoutId).remove().then(()=>loadPayouts());
+}
+
+function notifyNurseToAddAccount(nursePhone){
+  alert('Notify nurse '+nursePhone+' to add bank/MoMo details:\n\nNurse should:\n1. Login to Nurse Dashboard\n2. Click ⚙️ Settings\n3. Scroll to 💳 Withdrawal Details\n4. Add Bank/MoMo account\n5. Save\n\nThen you can pay 85%');
+}
+
+function viewPayoutReceipt(payoutId){
+  if(!db) return;
+  db.ref('payouts/'+payoutId).once('value').then(snap=>{
+    var p=snap.val();
+    if(!p) return;
+    var receipt = 'LOVE CARE GLOBAL - PAYOUT RECEIPT\n\nBooking: #'+p.bookingId+'\nClient: '+p.clientName+' ('+p.clientPhone+')\nService: '+p.bookingService+'\nAmount Client Paid: '+p.clientAmount+' '+p.currency+'\n\nNurse: '+p.nurseName+' ('+p.nursePhone+')\nNurse Share 85%: '+p.nurseShare+' '+p.currency+'\nPlatform 15%: '+p.platformShare+' '+p.currency+'\n\nAccount: '+(p.accountDetails?.bankName||'')+' - '+(p.accountDetails?.accountNumber||'')+'\nName: '+(p.accountDetails?.accountName||'')+'\n\nStatus: '+(p.status||'')+'\nReference: '+(p.transferReference||'')+'\nPaid At: '+(p.paidAtString||'')+'\n\nLOVE CARE GLOBAL\nAccra, Ghana';
+    alert(receipt);
+  });
+}
+
+// Hook into client work confirmation to auto-create payout
+var originalConfirmWork = null;
+if(typeof confirmWorkDone !== 'undefined'){
+  originalConfirmWork = confirmWorkDone;
+}
+
+// New function for client to confirm work done - triggers payout creation
+function confirmWorkCompleted(bookingId){
+  if(!db){ alert('No DB'); return; }
+  if(!confirm('Confirm work completed? This will trigger nurse payout of 85%.')) return;
+  
+  db.ref('bookings/'+bookingId).update({
+    status:'completed_confirmed',
+    workConfirmedByClient:true,
+    workConfirmedAt: Date.now(),
+    workConfirmedAtString: new Date().toLocaleString()
+  }).then(()=>{
+    // Auto-create payout
+    db.ref('bookings/'+bookingId).once('value').then(snap=>{
+      var b=snap.val();
+      if(b) createPayoutForBooking(b);
+    });
+    alert('✅ Work confirmed! Payout of 85% will be created for nurse. CEO will pay via Paystack dashboard.');
+    loadMyBookings();
+  });
+}
+
+// Update switchCeoTab to load payouts
+var origSwitchCeoTabForPayout = switchCeoTab;
+switchCeoTab = function(tab){
+  document.querySelectorAll('.ceo-tab').forEach(t=>t.classList.add('hidden'));
+  document.querySelectorAll('.ceoTabs button').forEach(b=>b.classList.remove('activeTab'));
+  var show=document.getElementById('ceo-tab-'+tab);
+  if(show) show.classList.remove('hidden');
+  var btn=document.getElementById('btn-'+tab);
+  if(btn) btn.classList.add('activeTab');
+  if(tab==='nurses') setTimeout(()=>{initCeoMap();loadCeoData();},200);
+  if(tab==='bookings'||tab==='clients'||tab==='payments'||tab==='staff'||tab==='refunds') loadCeoData();
+  if(tab==='deleted') loadDeletedNurses();
+  if(tab==='announce'){ renderMinRateEditor(); loadAnnouncementSettings(); }
+  if(tab==='payouts'){ loadPaystackKey(); loadPayouts(); loadCompletedBookingsForPayout(); }
+};
+
 </script>
+
+<!-- RECEIPT MODAL - After Payment -->
+<div id="receiptModal" class="legalModal hidden" onclick="if(event.target===this)closeReceiptModal()">
+<div class="legalContent" style="max-width:600px;background:white;padding:0;overflow:hidden">
+<div style="background:linear-gradient(90deg,#16a34a,#eab308);color:white;padding:16px;display:flex;justify-content:space-between;align-items:center">
+<div style="display:flex;align-items:center;gap:10px">
+<img src="./Icon-512.png" style="width:40px;height:40px;background:white;border-radius:10px;padding:3px" onerror="this.style.display='none'">
+<div><b>LOVE CARE GLOBAL</b><br><small style="background:white;color:#16a34a;padding:2px 8px;border-radius:10px;font-size:9px">PAYMENT RECEIPT</small></div>
+</div>
+<button onclick="closeReceiptModal()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;font-weight:800">✕ CLOSE</button>
+</div>
+<div id="receiptBody" style="padding:20px"></div>
+<div style="padding:0 20px 20px 20px;display:flex;gap:8px;flex-wrap:wrap">
+<button onclick="printReceipt()" class="btnSubmit" style="background:#111827;flex:1">🖨 Print Receipt</button>
+<button onclick="downloadReceiptPDF()" class="btnSubmit" style="background:#16a34a;flex:1">📥 Download PDF</button>
+<button onclick="shareReceipt()" class="btnSubmit" style="background:#2563eb;flex:1">📤 Share</button>
+</div>
+<div style="background:#f9fafb;padding:10px;text-align:center;font-size:10px;color:#6b7280">Thank you for using LOVE CARE GLOBAL - Compassionate Care, Without Borders<br>lovecareglobal@gmail.com | +233 544 121 814 | Accra, Ghana</div>
+</div>
+</div>
+
 </body>
 </html>
