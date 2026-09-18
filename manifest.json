@@ -1,0 +1,45 @@
+{
+  "name": "LOVE CARE GLOBAL - Home Nursing",
+  "short_name": "Love Care",
+  "description": "LOVE CARE GLOBAL - Professional Home Nursing Services - Elderly Care, Baby Care, Hospital Support, Post-Surgery Care, Disability Support, Maternity Care, Night Nurse, Palliative Care, Physiotherapy, Injection and Wound Care, Diabetes Monitoring, Dementia Care, Child Special Needs - GPS Auto, 13 Services, 15% CEO 85% Nurse, Chat Admin, Live Nurses Map, Accra Ghana",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f0fdf4",
+  "theme_color": "#16a34a",
+  "orientation": "any",
+  "scope": "./",
+  "icons": [
+    {
+      "src": "./logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "categories": [
+    "medical",
+    "health",
+    "lifestyle"
+  ],
+  "lang": "en",
+  "dir": "ltr"
+}
