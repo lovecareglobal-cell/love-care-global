@@ -91,7 +91,8 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <body>
 <div class="sosFloat" onclick="alert('SOS Sent')">SOS</div>
 <div class="header"><div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer"><img src="./Icon-512.png" class="header-logo-img" style="background:white" onerror="this.style.display='none'"><div style="line-height:1"><b>LOVE CARE</b><br><span style="background:white;color:#16a34a;padding:2px 8px;border-radius:20px;font-size:8px;font-weight:800">GLOBAL HOME NURSING</span></div></div></div>
-<div class="announcementBar" id="announcementBar"><span id="announcementText">LOVE CARE GLOBAL - Flexible Hours - Live-in & Live-out - Professional English Nursing Services Worldwide</span></div>
+<div class="announcementBar" id="announcementBar"><span id="announcementText">🔞 18+ ONLY - LOVE CARE GLOBAL - Flexible Hours - Live-in & Live-out - Professional English Nursing Services Worldwide - 18+ Only</span></div>
+<div style="background:#111827;color:#eab308;padding:6px;text-align:center;font-size:11px;font-weight:800;border-bottom:2px solid #eab308">🔞 18+ ONLY - You must be 18 years or older to use this app - Adults Only</div>
 
 <div class="globalBar">
 <span style="font-size:11px;font-weight:800">🌍 English Countries</span>
@@ -159,7 +160,8 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 
 <div id="page-home" class="page active">
 <div class="card"><h2>BOOK NURSE - Flexible Hours + Live-in / Live-out</h2>
-<input id="cName" placeholder="Full Name"><div class="phoneRow"><select id="cPhoneCode"></select><input id="cPhone" placeholder="Phone"></div>
+<div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:6px;font-size:10px;font-weight:800;text-align:center;color:#92400e;margin-bottom:6px">🔞 18+ ONLY - You must be 18+ to book</div>
+<input id="cName" placeholder="Full Name"><div style="display:flex;gap:6px;align-items:center;background:white;padding:6px;border-radius:8px;border:1px solid #e5e7eb;margin:6px 0"><input type="checkbox" id="cAgeConfirm" style="width:18px;height:18px" checked><label for="cAgeConfirm" style="font-size:10px;font-weight:800;color:#111827;margin:0">I am 18+ years old</label></div><div class="phoneRow"><select id="cPhoneCode"></select><input id="cPhone" placeholder="Phone"></div>
 <input id="cEmail" placeholder="Email - will be auto-filled after verification"><div class="locationRow"><input id="cLocation" placeholder="Tap GPS Auto"><button type="button" onclick="autoGPS('cLocation','clientGpsStatus')">GPS Auto</button></div><small id="clientGpsStatus" class="gpsBadge hidden"></small>
 <select id="cService"><option value="">-- Select Service (13 Services) --</option><option>Elderly Care</option><option>Baby Care and Nanny</option><option>Hospital Support</option><option>Post-Surgery Care</option><option>Disability Support</option><option>Maternity Care</option><option>Night Nurse (12hrs)</option><option>Palliative Care</option><option>Physiotherapy</option><option>Injection and Wound Care</option><option>Diabetes Monitoring</option><option>Dementia Care</option><option>Child Special Needs Care</option></select>
 
@@ -245,7 +247,8 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 
 <div id="page-nurse-public" class="page">
 <div class="card"><h2>Nurse Registration - English Countries</h2>
-<input id="nRegName" placeholder="Full Name"><div class="phoneRow"><select id="nRegPhoneCode"></select><input id="nRegPhone" placeholder="Phone"></div>
+<div style="background:#111827;color:#eab308;padding:8px;border-radius:8px;font-size:11px;font-weight:800;text-align:center;margin-bottom:8px">🔞 18+ ONLY - You must be 18+ to register</div>
+<input id="nRegName" placeholder="Full Name"><div style="display:flex;gap:6px;align-items:center;background:#fef3c7;padding:8px;border-radius:8px;border:2px solid #f59e0b;margin:6px 0"><input type="checkbox" id="nRegAgeConfirm" style="width:20px;height:20px"><label for="nRegAgeConfirm" style="font-size:11px;font-weight:800;color:#92400e;margin:0">I confirm I am 18+ and have valid ID</label></div><div class="phoneRow"><select id="nRegPhoneCode"></select><input id="nRegPhone" placeholder="Phone"></div>
 <input id="nRegPass" type="password" placeholder="Password">
 <div class="locationRow"><input id="nRegLocation" placeholder="Tap GPS Auto"><button type="button" onclick="autoGPS('nRegLocation','nurseGpsStatus2')">GPS</button></div><small id="nurseGpsStatus2" class="gpsBadge hidden"></small>
 <input id="nRegExperience" type="number" placeholder="Years Experience">
@@ -484,7 +487,7 @@ id="ceo-tab-refunds" class="ceo-tab card hidden" style="border:3px solid #ef4444
 <button id="nav-nurse" onclick="showPage('nurse-public')"><span>👩⚕</span><span>Join</span></button>
 <button id="nav-book" onclick="showPage('booking-public')"><span>💡</span><span>Help</span></button>
 <button id="nav-login" onclick="showPage('nurse-login')"><span>🔑</span><span>Login</span></button>
-<button id="nav-chat" onclick="showPage('group-chat')" style="background:#fef2f2;border:2px solid #ef4444"><span>💬</span><span>Group</span></button>
+<button id="nav-chat" onclick="showPage('group-chat')" class="hidden" style="background:#fef2f2;border:2px solid #ef4444"><span>💬</span><span>Group</span></button>
 </div>
 
 <script>
@@ -631,6 +634,7 @@ function isEmailVerified(){
   return localStorage.getItem('verifiedClientEmail') && localStorage.getItem('emailVerified')==='true';
 }
 function checkEmailAndFindNurses(){
+  var ageCheck = document.getElementById('cAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book - Please confirm you are 18+'); return; }
   if(!isEmailVerified()){
     document.getElementById('emailVerifyModal').classList.remove('hidden');
     return;
@@ -1034,6 +1038,17 @@ updateGroupChatVisibility();
 }
 function updateGroupChatVisibility(){
   var isNurse = !!localStorage.getItem('nursePhone');
+  var chatNavBtn = document.getElementById('nav-chat');
+  if(chatNavBtn){
+    var isStaff = !!localStorage.getItem('staffID');
+    var isCEO = localStorage.getItem('isCEOLogged')==='true';
+    if(isNurse || isStaff || isCEO){
+      chatNavBtn.classList.remove('hidden'); chatNavBtn.style.display='flex';
+    } else {
+      chatNavBtn.classList.add('hidden'); chatNavBtn.style.display='none';
+    }
+  }
+  var isNurse2 = !!localStorage.getItem('nursePhone');
   var isStaff = !!localStorage.getItem('staffID');
   var isCEO = localStorage.getItem('isCEOLogged')==='true';
   var groupBtn = document.getElementById('nav-chat');
@@ -1314,6 +1329,7 @@ function submitRefundRequest(){
  });
 }
 function registerNurse(){
+  var ageCheck = document.getElementById('nRegAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must confirm you are 18+ to register as nurse'); return; }
  var name=document.getElementById('nRegName').value.trim();
  var fullPhone=getFullPhone('nRegPhoneCode','nRegPhone');
  var pass=document.getElementById('nRegPass').value.trim();
@@ -1678,6 +1694,7 @@ async function handleRegistrationUploads(){
 // Override registerNurse to include file uploads
 var originalRegisterNurse = registerNurse;
 async function registerNurse(){
+  var ageCheck = document.getElementById('nRegAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must confirm you are 18+ to register as nurse'); return; }
   var name=document.getElementById('nRegName').value.trim();
   var fullPhone=getFullPhone('nRegPhoneCode','nRegPhone');
   var pass=document.getElementById('nRegPass').value.trim();
