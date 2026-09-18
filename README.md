@@ -1,12 +1,22 @@
 # Love Care Global 🌍
 **Compassionate Care, Without Borders.**
 
-A global caregiving platform connecting verified nurses with families worldwide. Serving Africa, Europe, Middle East & North America.
+A professional global caregiving platform. Not Ghana only - we serve Africa, Europe, Middle East & North America.
 
-### Features
-- ✅ Verified Nurses & Video Profiles
-- 🎥 Secure video via Cloudinary Global CDN
-- 🌍 Fast worldwide - PWA Ready
+### ✨ Features
+- ✅ Verified Nurses - ID & Video Profile
+- 🎥 Secure video streaming via Cloudinary CDN
+- 🌍 Fast worldwide loading
+- 📱 PWA - Installable like native app
 
-**Live:** https://lovecareglobal-cell.github.io/lovecare-global/
-**Brand:** lovecareglobal@gmail.com (sent as Love Care Global)
+### 🔧 Tech Stack
+HTML5 / Firebase / Cloudinary (whkvne85) / PWA
+
+### 🚀 Live Demo
+**https://lovecareglobal-cell.github.io/love-care-global/**
+
+### 📧 Brand
+Managed by @lovecareglobal-cell
+Email: lovecareglobal@gmail.com (sent as Love Care Global)
+
+© 2026 Love Care Global - MIT License
