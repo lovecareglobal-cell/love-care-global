@@ -5,16 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
 <!-- EMAILJS CONFIG: Service: service_uqu1kcg | Public Key: rJ6O0Qmnsx96892o5 | Template: Create in dashboard -->
-<link rel="icon" type="image/png" sizes="72x72" href="./Icon-72.png">
-<link rel="icon" type="image/png" sizes="96x96" href="./Icon-96.png">
-<link rel="icon" type="image/png" sizes="128x128" href="./Icon-128.png">
-<link rel="icon" type="image/png" sizes="192x192" href="./Icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="./Icon-512.png">
-<link rel="apple-touch-icon" type="image/png" sizes="152x152" href="./Icon-152.png">
-<link rel="apple-touch-icon" type="image/png" sizes="192x192" href="./Icon-192.png">
-<link rel="apple-touch-icon" type="image/png" sizes="512x512" href="./Icon-512.png">
+<link rel="icon" type="image/png" href="./Icon-512.png">
+<link rel="apple-touch-icon" href="./Icon-512.png">
 <link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#16a34a">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
@@ -67,7 +60,11 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 .chatMsg.other{align-self:flex-start;background:white;border:2px solid #e5e7eb;border-bottom-left-radius:4px}
 .roleBadge{font-size:8px;padding:2px 7px;border-radius:10px;font-weight:800;color:white}
 .role-CEO{background:#111827}.role-NURSE{background:#2563eb}.role-STAFF{background:#7c3aed}
-.sosFloat{position:fixed;bottom:110px;right:15px;width:56px;height:56px;background:radial-gradient(circle,#ef4444,#b91c1c);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;z-index:99998;border:3px solid white;cursor:pointer}
+.sosFloat{position:fixed;bottom:110px;right:15px;width:64px;height:64px;background:radial-gradient(circle,#ef4444,#b91c1c);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;z-index:99998;border:3px solid white;cursor:grab;box-shadow:0 4px 12px rgba(0,0,0,.4);user-select:none;touch-action:none;transition:box-shadow 0.2s}
+.sosFloat:active{cursor:grabbing;box-shadow:0 6px 20px rgba(0,0,0,.6);transform:scale(1.05)}
+.sosFloat.dragging{transition:none;opacity:0.9}
+.sosPulse{position:absolute;top:-3px;left:-3px;right:-3px;bottom:-3px;border-radius:50%;border:2px solid #ef4444;animation:sosPulse 2s infinite;pointer-events:none}
+@keyframes sosPulse{0%{transform:scale(1);opacity:1}100%{transform:scale(1.4);opacity:0}}
 .ratePopup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border:4px solid #ef4444;border-radius:20px;padding:20px;width:92%;max-width:420px;z-index:100000;box-shadow:0 10px 30px rgba(0,0,0,.3);text-align:center}
 .statusBadge{padding:3px 8px;border-radius:20px;font-size:9px;font-weight:800;color:white;display:inline-block}
 .st-pending{background:#eab308;color:#111}.st-confirmed{background:#16a34a}.st-cancelled{background:#ef4444}.st-refund_req{background:#7c3aed}.st-refund_ok{background:#2563eb}.st-refunded{background:#00b050}
@@ -100,7 +97,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </style>
 </head>
 <body>
-<div class="sosFloat" onclick="alert('SOS Sent')">SOS</div>
+<div class="sosFloat" id="sosFloatBtn"><div class="sosPulse"></div><span style="position:relative;z-index:1">SOS</span></div>
 <div class="header"><div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer"><img src="./Icon-512.png" class="header-logo-img" style="background:white" onerror="this.style.display='none'"><div style="line-height:1"><b>LOVE CARE</b><br><span style="background:white;color:#16a34a;padding:2px 8px;border-radius:20px;font-size:8px;font-weight:800">GLOBAL HOME NURSING</span></div></div></div>
 <div class="announcementBar" id="announcementBar"><span id="announcementText">🔞 18+ ONLY - LOVE CARE GLOBAL - Flexible Hours - Live-in & Live-out - Professional English Nursing Services Worldwide - 18+ Only</span></div>
 <div style="background:#111827;color:#eab308;padding:6px;text-align:center;font-size:11px;font-weight:800;border-bottom:2px solid #eab308">🔞 18+ ONLY - You must be 18 years or older to use this app - Adults Only</div>
@@ -2478,18 +2475,204 @@ function resendCode(){ document.getElementById('sendCodeArea').classList.remove(
 </script>
 
 <script>
-// Register Service Worker for PWABuilder
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js')
-      .then(function(registration) {
-        console.log('ServiceWorker registered: ', registration.scope);
-      })
-      .catch(function(err) {
-        console.log('ServiceWorker registration failed: ', err);
-      });
+// ===== DRAGGABLE SOS + CALL POLICE & CEO - FIXED =====
+(function(){
+  var sosBtn = document.getElementById('sosFloatBtn');
+  if(!sosBtn) return;
+  try{
+    var savedPos = JSON.parse(localStorage.getItem('sosPosition')||'null');
+    if(savedPos){
+      sosBtn.style.bottom='auto'; sosBtn.style.right='auto';
+      sosBtn.style.left=savedPos.left+'px'; sosBtn.style.top=savedPos.top+'px';
+    }
+  }catch(e){}
+  var isDragging=false, hasMoved=false, startX, startY, initialLeft, initialTop;
+  var threshold=5;
+  function getPos(e){ var t=e.touches?e.touches[0]:e; return {x:t.clientX, y:t.clientY}; }
+  function startDrag(e){
+    var p=getPos(e); startX=p.x; startY=p.y;
+    var r=sosBtn.getBoundingClientRect(); initialLeft=r.left; initialTop=r.top;
+    isDragging=true; hasMoved=false; sosBtn.classList.add('dragging'); sosBtn.style.transition='none'; e.preventDefault();
+  }
+  function onDrag(e){
+    if(!isDragging) return;
+    var p=getPos(e); var dx=p.x-startX, dy=p.y-startY;
+    if(Math.abs(dx)>threshold||Math.abs(dy)>threshold) hasMoved=true;
+    if(!hasMoved) return;
+    var nl=initialLeft+dx, nt=initialTop+dy;
+    nl=Math.max(0,Math.min(window.innerWidth-sosBtn.offsetWidth,nl));
+    nt=Math.max(0,Math.min(window.innerHeight-sosBtn.offsetHeight-20,nt));
+    sosBtn.style.left=nl+'px'; sosBtn.style.top=nt+'px'; sosBtn.style.right='auto'; sosBtn.style.bottom='auto';
+    e.preventDefault();
+  }
+  function endDrag(e){
+    if(!isDragging) return;
+    isDragging=false; sosBtn.classList.remove('dragging'); sosBtn.style.transition='box-shadow 0.2s, transform 0.2s';
+    if(hasMoved){
+      var r=sosBtn.getBoundingClientRect();
+      try{ localStorage.setItem('sosPosition', JSON.stringify({left:r.left, top:r.top})); }catch(err){}
+      setTimeout(function(){ hasMoved=false; }, 100);
+    } else {
+      hasMoved=false; triggerSOS();
+    }
+  }
+  sosBtn.addEventListener('mousedown', startDrag);
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', endDrag);
+  sosBtn.addEventListener('touchstart', startDrag, {passive:false});
+  document.addEventListener('touchmove', onDrag, {passive:false});
+  document.addEventListener('touchend', endDrag);
+  sosBtn.addEventListener('dblclick', function(){
+    sosBtn.style.left=''; sosBtn.style.top=''; sosBtn.style.right='15px'; sosBtn.style.bottom='110px';
+    localStorage.removeItem('sosPosition');
+    if(typeof showToast==='function') showToast('SOS position reset - Drag anywhere');
+    else alert('SOS position reset');
   });
+})();
+
+function triggerSOS(){
+  var lat=0,lng=0,name='',phone='',country='GH';
+  try{
+    lat=parseFloat(localStorage.getItem('clientLat')||'0');
+    lng=parseFloat(localStorage.getItem('clientLng')||'0');
+    name=localStorage.getItem('pendingEmailName')||(document.getElementById('cName')?document.getElementById('cName').value:'Client');
+    phone=localStorage.getItem('pendingEmailPhone')||'';
+    country=localStorage.getItem('selectedCountry')||'GH';
+    if(document.getElementById('countrySelect')){ try{ country=document.getElementById('countrySelect').value||country; }catch(e){} }
+  }catch(e){}
+  var policeNumbers={'GH':'112','NG':'112','ZA':'10111','KE':'112','UG':'112','TZ':'112','RW':'112','ZM':'992','BW':'999','LR':'911','SL':'117','US':'911','GB':'999','CA':'911','AU':'000','IE':'112','IN':'112','PH':'911','SG':'999','MY':'999'};
+  var policeNum=policeNumbers[country]||policeNumbers[country.toUpperCase()]||'112';
+  var ceoPhone='0544121814'; var ceoIntl='+233544121814';
+  try{
+    if(window.db){
+      db.ref('sosAlerts/'+Date.now()).set({name:name,phone:phone,lat:lat,lng:lng,country:country,policeNumber:policeNum,ceoPhone:ceoPhone,time:Date.now(),timestamp:new Date().toISOString(),status:'sos_triggered',location:lat+','+lng});
+    }
+  }catch(e){}
+  var modalId='sosModal'; var ex=document.getElementById(modalId); if(ex) ex.remove();
+  var mapsLink = lat && lng ? 'https://www.google.com/maps?q='+lat+','+lng : '';
+  var html='<div id="'+modalId+'" class="legalModal" style="display:flex;z-index:100003" onclick="if(event.target===this) this.remove()"><div class="legalContent" style="max-width:420px;text-align:center;border:4px solid #ef4444">'
+    +'<h2 style="color:#ef4444;margin:0 0 10px 0">🚨 SOS EMERGENCY</h2>'
+    +'<div style="background:#fef2f2;border:2px solid #ef4444;border-radius:12px;padding:12px;margin:10px 0"><b>Emergency SOS Sent!</b><br><small>Location: '+(lat && lng ? lat.toFixed(5)+','+lng.toFixed(5) : 'Enable GPS for location')+'</small><br><small>Name: '+(name||'Client')+' | Phone: '+(phone||'')+'</small><br><small>Time: '+new Date().toLocaleString()+'</small></div>'
+    +'<div style="display:grid;gap:10px;margin:12px 0">'
+    +'<a href="tel:'+policeNum+'" style="background:#ef4444;color:white;padding:14px;border-radius:12px;text-decoration:none;font-weight:800;font-size:14px">🚓 CALL POLICE - '+policeNum+'<br><small style="font-size:10px">Police in '+country+'</small></a>'
+    +'<a href="tel:'+ceoPhone+'" style="background:#111827;color:#eab308;padding:14px;border-radius:12px;text-decoration:none;font-weight:800;font-size:14px;border:2px solid #eab308">📞 CALL CEO - '+ceoPhone+'<br><small style="font-size:10px">LOVE CARE GLOBAL CEO</small></a>'
+    +'<a href="tel:'+ceoIntl+'" style="background:#7c3aed;color:white;padding:12px;border-radius:10px;text-decoration:none;font-weight:800;font-size:12px">📞 CEO Intl: '+ceoIntl+'</a>'
+    +(mapsLink ? '<a href="'+mapsLink+'" target="_blank" style="background:#16a34a;color:white;padding:12px;border-radius:10px;text-decoration:none;font-weight:800;font-size:12px">📍 Share My Location on Google Maps</a>' : '')
+    +'<button onclick="sendSOSWhatsApp()" style="background:#25D366;color:white;padding:12px;border-radius:10px;border:none;font-weight:800;width:100%">💬 SOS via WhatsApp to CEO</button>'
+    +'<button onclick="sendSOSAlert()" style="background:#2563eb;color:white;padding:12px;border-radius:10px;border:none;font-weight:800;width:100%">📧 SOS Alert to Nurses & Staff Chat</button>'
+    +'</div>'
+    +'<div style="background:#fffbeb;border:1px solid #eab308;border-radius:8px;padding:8px;font-size:10px;margin-top:10px">💡 Drag SOS button anywhere - Long press and drag. Double-tap to reset. SOS saved in CEO dashboard.</div>'
+    +'<button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:10px;padding:12px" onclick="document.getElementById(\''+modalId+'\').remove()">Close</button>'
+    +'</div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+  try{ if(navigator.vibrate) navigator.vibrate([200,100,200,100,400]); }catch(e){}
 }
+
+function sendSOSWhatsApp(){
+  var lat=localStorage.getItem('clientLat')||'0'; var lng=localStorage.getItem('clientLng')||'0';
+  var name=localStorage.getItem('pendingEmailName')||'Client'; var phone=localStorage.getItem('pendingEmailPhone')||'';
+  var mapsLink = lat!='0' ? 'https://www.google.com/maps?q='+lat+','+lng : 'Location not available';
+  var msg = '🚨 SOS EMERGENCY - LOVE CARE GLOBAL\nName: '+name+'\nPhone: '+phone+'\nLocation: '+mapsLink+'\nTime: '+new Date().toLocaleString()+'\nPlease help!';
+  window.open('https://wa.me/233544121814?text='+encodeURIComponent(msg), '_blank');
+}
+
+function sendSOSAlert(){
+  try{
+    var name=localStorage.getItem('pendingEmailName')||'Client';
+    var lat=localStorage.getItem('clientLat')||'0'; var lng=localStorage.getItem('clientLng')||'0';
+    var mapsLink = lat!='0' ? 'https://www.google.com/maps?q='+lat+','+lng : '';
+    var msg='🚨 SOS EMERGENCY from '+name+' - Location: '+mapsLink+' - '+new Date().toLocaleString()+' - Need immediate help!';
+    if(window.db){ db.ref('globalChat/'+Date.now()).set({name: name+' (SOS)', message: msg, role: 'CLIENT', time: Date.now(), isSOS: true}); }
+    alert('✅ SOS Alert sent to Nurses, Staff & CEO Group Chat');
+    var m=document.getElementById('sosModal'); if(m) m.remove();
+  }catch(e){ alert('SOS saved locally'); }
+}
+
+// ===== EMAILJS FIXED v2 - service_uqu1kcg | template_yi4iwel =====
+var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
+var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
+var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
+try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); console.log('EmailJS init service_uqu1kcg'); } }catch(e){}
+
+window.sendVerificationCode = function(){
+  var emailEl=document.getElementById('verifyEmailInput');
+  var email=emailEl?emailEl.value.trim():'';
+  var nameEl=document.getElementById('cName'); var name=nameEl&&nameEl.value.trim()?nameEl.value.trim():'Client';
+  var phone=''; try{ phone=typeof getFullPhone==='function'?getFullPhone('cPhoneCode','cPhone'):(document.getElementById('cPhone')?document.getElementById('cPhone').value:''); }catch(e){}
+  var statusEl=document.getElementById('emailVerifyStatus');
+  if(!email||email.indexOf('@')===-1){ if(statusEl){ statusEl.innerText='Enter valid email'; statusEl.style.color='#ef4444'; } return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ if(statusEl){ statusEl.innerText='Invalid email format'; statusEl.style.color='#ef4444'; } return; }
+  var code=Math.floor(100000+Math.random()*900000).toString();
+  window.pendingEmailCode=code;
+  localStorage.setItem('pendingEmail',email); localStorage.setItem('pendingEmailCode',code);
+  localStorage.setItem('pendingEmailName',name); localStorage.setItem('pendingEmailPhone',phone);
+  if(statusEl){ statusEl.innerText='Sending code '+code+' to '+email+' via service_uqu1kcg...'; statusEl.style.color='#2563eb'; }
+  var sendArea=document.getElementById('sendCodeArea'); var btn=sendArea?sendArea.querySelector('button'):null;
+  if(btn){ btn.disabled=true; btn.innerHTML='Sending...'; }
+  try{
+    var pendingData={email:email,name:name,phone:phone,code:code,status:'code_sent',timestamp:Date.now(),service:'service_uqu1kcg',template:'template_yi4iwel'};
+    if(window.db){ var key=Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,''); db.ref('emailVerifications/'+key).set(pendingData); }
+    var localList=JSON.parse(localStorage.getItem('allEmailVerifications')||'[]'); localList.push(pendingData); localStorage.setItem('allEmailVerifications', JSON.stringify(localList.slice(-200)));
+  }catch(e){}
+  if(!window.emailjs){
+    if(statusEl){ statusEl.innerText='EmailJS not loaded - Demo code: '+code; statusEl.style.color='#eab308'; }
+    var demoEl=document.getElementById('demoCodeDisplay'); if(demoEl){ demoEl.innerHTML='Demo code: <b>'+code+'</b><br>EmailJS library not loaded - Check internet'; demoEl.style.background='#fffbeb'; }
+    var sA=document.getElementById('sendCodeArea'), eA=document.getElementById('enterCodeArea'); if(sA) sA.classList.add('hidden'); if(eA) eA.classList.remove('hidden');
+    if(btn){ btn.disabled=false; }
+    return;
+  }
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_name:name, to_email:email, email:email, name:name, client_name:name, client_email:email, client_phone:phone,
+    verification_code:code, code:code, passcode:code, otp:code,
+    from_name:'LOVE CARE GLOBAL', from_email:'lovecareglobal@gmail.com', reply_to:'lovecareglobal@gmail.com',
+    company:'LOVE CARE GLOBAL', message:'Your code is: '+code, subject:'Your 6-digit code: '+code
+  }).then(function(res){
+    console.log('EmailJS success',res);
+    var sentTo=document.getElementById('sentToEmail'); if(sentTo) sentTo.innerText=email;
+    var demoEl=document.getElementById('demoCodeDisplay');
+    if(demoEl){ demoEl.innerHTML='✅ Code sent to '+email+'! From lovecareglobal@gmail.com via service_uqu1kcg | template_yi4iwel<br>Check inbox & spam. Test code: <b>'+code+'</b>'; demoEl.style.background='#dcfce7'; demoEl.style.border='2px solid #16a34a'; }
+    var sA=document.getElementById('sendCodeArea'), eA=document.getElementById('enterCodeArea'); if(sA) sA.classList.add('hidden'); if(eA) eA.classList.remove('hidden');
+    if(statusEl){ statusEl.innerText='✅ 6-digit code sent to '+email; statusEl.style.color='#16a34a'; }
+    if(btn){ btn.disabled=false; btn.innerText='Send Code'; }
+  }, function(err){
+    console.error('EmailJS fail',err);
+    var demoEl=document.getElementById('demoCodeDisplay');
+    if(demoEl){ demoEl.innerHTML='⚠️ EmailJS failed, demo code: <b style="font-size:20px;color:#16a34a">'+code+'</b><br>Error: '+(err.text||err.message||'Unknown')+'<br><br>Fix: EmailJS Dashboard → Email Services → service_uqu1kcg → Connected as lovecareglobal@gmail.com → Re-authenticate Gmail<br>Template template_yi4iwel → To Email = {{to_email}} and contains {{verification_code}}'; demoEl.style.background='#fffbeb'; demoEl.style.border='2px solid #eab308'; }
+    var sA=document.getElementById('sendCodeArea'), eA=document.getElementById('enterCodeArea'); if(sA) sA.classList.add('hidden'); if(eA) eA.classList.remove('hidden');
+    if(statusEl){ statusEl.innerText='Demo code: '+code+' - Email failed, use demo code. Error: '+(err.text||'check dashboard'); statusEl.style.color='#eab308'; }
+    if(btn){ btn.disabled=false; }
+  });
+};
+
+window.confirmVerificationCode = function(){
+  var entered=document.getElementById('verifyCodeInput').value.trim();
+  var saved=localStorage.getItem('pendingEmailCode')||window.pendingEmailCode;
+  var email=localStorage.getItem('pendingEmail');
+  var name=localStorage.getItem('pendingEmailName')||'Client';
+  var phone=localStorage.getItem('pendingEmailPhone')||'';
+  var statusEl=document.getElementById('emailVerifyStatus');
+  if(entered===saved){
+    localStorage.setItem('verifiedClientEmail',email); localStorage.setItem('emailVerified','true'); localStorage.setItem('clientPermanentEmail',email);
+    var cEmailEl=document.getElementById('cEmail'); if(cEmailEl) cEmailEl.value=email;
+    var badge=document.getElementById('verifiedEmailBadge'); if(badge){ badge.classList.remove('hidden'); badge.innerText='Verified: '+email; }
+    document.getElementById('emailVerifyModal').classList.add('hidden');
+    try{
+      var verifiedData={email:email,name:name,phone:phone,code:saved,status:'verified',timestamp:Date.now(),verifiedAt:Date.now(),service:'service_uqu1kcg',template:'template_yi4iwel'};
+      if(window.db){
+        var key=Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'');
+        db.ref('verifiedEmails/'+key).set(verifiedData);
+        db.ref('emailVerifications/'+key).set(verifiedData);
+        db.ref('clients/'+phone.replace(/[^0-9]/g,'')).update({email:email,verifiedEmail:email,name:name,phone:phone,emailVerifiedAt:Date.now()});
+      }
+      var localList=JSON.parse(localStorage.getItem('allEmailVerifications')||'[]'); localList.push(verifiedData); localStorage.setItem('allEmailVerifications', JSON.stringify(localList.slice(-200)));
+      var vList=JSON.parse(localStorage.getItem('verifiedEmailsList')||'[]'); vList.push(verifiedData); localStorage.setItem('verifiedEmailsList', JSON.stringify(vList.slice(-200)));
+    }catch(e){}
+    alert('✅ Email verified: '+email+' - Code '+saved+' confirmed! CEO and Staff can view in dashboard.');
+    setTimeout(function(){ if(typeof findNursesUber==='function') findNursesUber(); },500);
+  } else {
+    if(statusEl) statusEl.innerText='Wrong code. Expected '+saved+' you entered '+entered;
+  }
+};
 </script>
 
 </body>
