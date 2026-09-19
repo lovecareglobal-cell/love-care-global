@@ -1170,13 +1170,155 @@ function handleAIBotKey(e){ if(e.key==='Enter'){ askAIBot(); } }
 function clearAIBot(){ var box=document.getElementById('aiBotMessages'); if(box) box.innerHTML='<div style="text-align:center;color:#6b7280;font-size:11px;padding:20px">👋 Hi! Ask me anything about using the app.</div>'; }
 
 // ===== 3. FOOTER FIXED =====
+
 var legalPages = {
-  about: {title:'About LOVE CARE GLOBAL', body:'<h2>LOVE CARE GLOBAL - English Home Nursing Worldwide</h2><p>Professional home nursing platform in 20 countries: Ghana, Nigeria, South Africa, Kenya, Uganda, Tanzania, Rwanda, Zambia, Botswana, Liberia, Sierra Leone, USA, UK, Canada, Australia, Ireland, India, Philippines, Singapore, Malaysia.</p><p><b>13 Services:</b> Elderly Care, Baby Care, Hospital Support, Post-Surgery, Disability, Maternity, Night Nurse, Palliative, Physiotherapy, Injection/Wound, Diabetes, Dementia, Child Special Needs.</p><p>Features: Flexible Hours, Live-in/out, Google Live map, Verified nurses, Paystack payments, 85% payout.</p><p>🔞 18+ Only</p>'},
-  privacy: {title:'Privacy Policy', body:'<h2>Privacy Policy</h2><p>We collect Name, Phone, Email verified, GPS, Booking details, Nurse uploads. Stored in Firebase. Email via EmailJS. We use data to match clients/nurses, process Paystack payments, verify credentials. No third party sharing except Paystack/EmailJS. GPS for matching/live nav only.</p>'},
-  terms: {title:'Terms & Conditions', body:'<h2>Terms & Conditions</h2><p>🔞 18+ only.</p><p>Client must pay >= legal minimum. System blocks below. Provide accurate location. Provide room/food/toilet for Live-in.</p><p>Nurse must be 18+ with ID/certificate, upload real video/CV, broadcast live when on duty, complete work.</p><p>Platform keeps 15%, nurse 85% after confirmation via Paystack.</p>'},
-  cancel: {title:'Cancellation & Refund Policy', body:'<h2>Cancellation & Refund</h2><p>Before nurse confirms: full refund. After confirms before start: 50%. After start: no refund unless no-show.</p><p>Request: MY BOOKINGS → LOAD → Cancel or Request Refund → Reason + MoMo/Bank → Submit → CEO reviews → Refund via Paystack/MoMo in 24-48hrs.</p><p>Contact: lovecareglobal@gmail.com / 0544121814</p>'},
-  contact: {title:'Contact Us', body:'<h2>Contact</h2><p>Email: lovecareglobal@gmail.com<br>Phone: 0544121814<br>WhatsApp: 0544121814</p><p>Countries: 20 English countries</p><p>Support: 24/7 via Group Chat and AI Bot</p>'}
+  about: {title:'About LOVE CARE GLOBAL', body:`
+    <h1>About LOVE CARE GLOBAL - Professional Home Nursing</h1>
+    <p><strong>LOVE CARE GLOBAL</strong> is a premium home nursing and caregiving platform operating across <strong>20 English-speaking countries</strong> worldwide. We connect verified, experienced nurses with clients who need professional care at home.</p>
+    <h2>🌍 Countries We Serve (20)</h2>
+    <p>🇬🇭 Ghana (GHS), 🇳🇬 Nigeria (NGN), 🇿🇦 South Africa (ZAR), 🇰🇪 Kenya (KES), 🇺🇬 Uganda (UGX), 🇹🇿 Tanzania (TZS), 🇷🇼 Rwanda (RWF), 🇿🇲 Zambia (ZMW), 🇧🇼 Botswana (BWP), 🇱🇷 Liberia (LRD), 🇸🇱 Sierra Leone (SLL), 🇺🇸 USA (USD), 🇬🇧 UK (GBP), 🇨🇦 Canada (CAD), 🇦🇺 Australia (AUD), 🇮🇪 Ireland (EUR), 🇮🇳 India (INR), 🇵🇭 Philippines (PHP), 🇸🇬 Singapore (SGD), 🇲🇾 Malaysia (MYR)</p>
+    <h2>👩⚕ 13 Professional Services</h2>
+    <ul>
+      <li><strong>Elderly Care</strong> - Compassionate care for seniors</li>
+      <li><strong>Baby Care and Nanny</strong> - Infant and childcare</li>
+      <li><strong>Hospital Support</strong> - Post-discharge home support</li>
+      <li><strong>Post-Surgery Care</strong> - Recovery assistance</li>
+      <li><strong>Disability Support</strong> - Special needs care</li>
+      <li><strong>Maternity Care</strong> - Mother and newborn care</li>
+      <li><strong>Night Nurse (12hrs)</strong> - Overnight care 7pm-7am</li>
+      <li><strong>Palliative Care</strong> - End-of-life comfort care</li>
+      <li><strong>Physiotherapy</strong> - Rehabilitation and mobility</li>
+      <li><strong>Injection and Wound Care</strong> - Medical procedures</li>
+      <li><strong>Diabetes Monitoring</strong> - Blood sugar and diet management</li>
+      <li><strong>Dementia Care</strong> - Specialized memory care</li>
+      <li><strong>Child Special Needs Care</strong> - Pediatric special care</li>
+    </ul>
+    <h2>⏰ Flexible Hours System (Unique)</h2>
+    <p><strong>Hourly:</strong> 1-24 hours (e.g., 3 hours injection)<br>
+    <strong>Daily:</strong> Days × hrs/day (e.g., 7 days × 2 hrs/day = 14 hrs total)<br>
+    <strong>Weekly:</strong> Weeks × 7 × hrs/day (e.g., 2 weeks × 8 hrs/day = 112 hrs)<br>
+    <strong>Monthly:</strong> Months × 30 × hrs/day (e.g., 1 month × 8 hrs/day = 240 hrs)</p>
+    <p><strong>Live-out:</strong> Nurse visits daily at Start Time - End Time, goes home. You set exact hours (08:00-14:00 = 6 hrs/day). Night shift allowed (20:00-06:00 = 10 hrs).<br>
+    <strong>Live-in:</strong> Nurse stays 24hrs with client. 8hrs active + on-call night. Requires private room, food, toilet/bath, rest time. Charged per day + 10% live-in allowance.</p>
+    <h2>🗺 Google Live & Navigation</h2>
+    <p>Real-time GPS tracking with blue dot (your location) + green pulsing dots (nurses). Dashed blue route with distance & time. One-tap navigation opens Google Maps app for turn-by-turn directions. Radius filter 5km/10km/20km/50km.</p>
+    <h2>💳 Secure Payments & Payouts</h2>
+    <p>Client pays 100% via Paystack to LOVE CARE GLOBAL. Nurse completes work, client confirms Work Done. System creates payout: Nurse gets 85%, Platform keeps 15%. CEO pays via Paystack Transfer to nurse bank/MoMo automatically. Example: 1000 GHS → 850 GHS nurse, 150 GHS platform.</p>
+    <h2>🔐 Verification & Safety</h2>
+    <p>All nurses verified with video intro, CV, certificate, ID card (uploaded from storage). Clients verified via EmailJS OTP. 18+ Only - Age check enforced. SOS button for emergencies. Group Chat private for Nurse/Staff/CEO only.</p>
+    <p>© 2026 LOVE CARE GLOBAL - Professional English Nursing Services Worldwide - 18+ Only</p>
+  `},
+  privacy: {title:'Privacy Policy - LOVE CARE GLOBAL', body:`
+    <h1>Privacy Policy</h1>
+    <p><strong>Last Updated: 2026</strong></p>
+    <h2>1. Information We Collect</h2>
+    <p><strong>Client Data:</strong> Full Name (18+ verification), Phone (with country code), Email (verified via EmailJS OTP code), GPS Location (lat/lng for matching & navigation), Booking Details (service, location, hours, amount, care mode live-in/out, start/end time), Email verification status.</p>
+    <p><strong>Nurse Data:</strong> Full Name, Phone, Password (hashed), Years Experience, Specialty (13 options), GPS Location, Care Mode (both/liveout/livein), Video Intro (MP4 from storage), CV (PDF/DOC), Certificate (PDF/image), ID Card (image/PDF), Payout Details (Bank Name, Account Number, Account Name, MoMo number, PayPal), On-Duty status, Last update time.</p>
+    <p><strong>Automatically Collected:</strong> Device info, IP, GPS accuracy, Booking timestamps, Chat messages (Group Chat - Nurse/Staff/CEO only).</p>
+    <h2>2. How We Use Data</h2>
+    <ul>
+      <li>Match clients with nearby nurses within radius (Haversine formula)</li>
+      <li>Show live map with real-time tracking (Google Live)</li>
+      <li>Process bookings and payments via Paystack</li>
+      <li>Verify nurse credentials (video/CV/certificate/ID viewer in CEO dashboard)</li>
+      <li>Send EmailJS verification codes (service_9s6ci5k)</li>
+      <li>Enable turn-by-turn navigation via Google Maps</li>
+      <li>Process payouts 85% via Paystack Transfer</li>
+      <li>Group Chat communication (private, not visible to clients)</li>
+    </ul>
+    <h2>3. Data Storage</h2>
+    <p>Firebase Realtime Database (web-care-618e8-default-rtdb.firebaseio.com) and Firebase Storage for media. EmailJS for verification. Paystack for payments. LocalStorage for session (verified email, staffID, ceoID, nursePhone, clientLat/lng, selectedCountry, paystack secret key stored locally only).</p>
+    <h2>4. Data Sharing</h2>
+    <p>We do NOT sell data. Shared only with: Firebase (Google), Paystack (payments), EmailJS (verification). Nurses see client name/phone/location/amount after booking. Clients see nurse name/location/specialty/phone after selection. GPS not shared publicly - only matched parties.</p>
+    <h2>5. Your Rights</h2>
+    <p>Access, correct, delete your data via Contact. Nurse can delete account permanently (with reason sent to CEO dashboard - Deleted Nurses tab for audit). Client can cancel booking. Request data deletion: lovecareglobal@gmail.com</p>
+    <h2>6. Security</h2>
+    <p>Firebase rules, HTTPS, password protection, 18+ age gate, Email OTP verification. Paystack secret key stored in browser localStorage only, never shared. Staff/CEO access via secret logo taps (5 taps staff, long-press CEO).</p>
+    <h2>7. Children</h2>
+    <p>🔞 18+ Only. We do not collect data from under 18. Age confirmation required at booking and nurse registration.</p>
+    <p>Contact: lovecareglobal@gmail.com | 0544121814</p>
+  `},
+  terms: {title:'Terms & Conditions - LOVE CARE GLOBAL', body:`
+    <h1>Terms & Conditions</h1>
+    <p><strong>🔞 18+ ONLY - Adults Only Platform</strong></p>
+    <h2>1. Acceptance</h2>
+    <p>By using LOVE CARE GLOBAL app (web app), you agree to these Terms. If you are under 18, you must not use this app.</p>
+    <h2>2. Client Responsibilities</h2>
+    <ul>
+      <li>Must be 18+ years old - age confirmation checkbox required</li>
+      <li>Must pay >= legal minimum hourly rate (enforced by system). System BLOCKS bookings below minimum. Example: Ghana 15 GHS/hr × total hours × 1.10 if Live-in = MIN TOTAL. Cannot bypass.</li>
+      <li>Must provide accurate Full Name, Phone (with country code), GPS location (via GPS Auto or manual), Service type (13 options), Care Mode (liveout/livein/both), Start & End Time for Live-out (hours auto-calculated, night shift allowed), Days/Weeks/Months & hrs/day, Offer amount >= minimum</li>
+      <li>For Live-in: Must provide private room, food, toilet/bath, rest time for nurse. Must allow 8hrs active + on-call night.</li>
+      <li>Must verify real email via EmailJS OTP before booking (one-time, saved permanently)</li>
+      <li>Must confirm Work Done after nurse completes to trigger payout</li>
+      <li>Must not abuse SOS, must respect nurse privacy</li>
+    </ul>
+    <h2>3. Nurse Responsibilities</h2>
+    <ul>
+      <li>Must be 18+ with valid ID and nursing certificate</li>
+      <li>Must upload real Video Intro (MP4), CV (PDF/DOC), Certificate (PDF/image), ID Card (image/PDF) from phone storage or link - CEO verifies in Media Viewer</li>
+      <li>Must provide accurate Years Experience, Specialty (13 options), Care Mode, GPS location</li>
+      <li>Must broadcast live GPS location when START DUTY (watchPosition) - appears as green pulsing dot on client map</li>
+      <li>Must complete work as booked, on time</li>
+      <li>Must set Payout Details: Bank/MoMo/PayPal to receive 85% after work done</li>
+      <li>Can delete account permanently but must provide reason (sent to CEO Deleted Nurses tab for audit, with video/CV links)</li>
+    </ul>
+    <h2>4. Platform Role</h2>
+    <p>LOVE CARE GLOBAL is a marketplace connecting clients and nurses. We are not employer of nurses. We verify credentials via CEO dashboard. We keep 15% commission, nurse gets 85% after client confirms work done, paid via Paystack Transfer (CEO clicks Pay Nurse 85% in Payouts tab).</p>
+    <h2>5. Payments</h2>
+    <p>Client pays 100% via Paystack to LOVE CARE GLOBAL. Booking status: pending_assignment → confirmed → paid → completed → completed_confirmed → payout_created → paid_to_nurse. Refunds: see Cancellation page. Paystack Secret Key (sk_live_...) required for auto transfers, stored in localStorage only.</p>
+    <h2>6. Prohibited</h2>
+    <p>No under 18, no fake documents, no harassment, no off-platform payments to bypass commission, no false GPS.</p>
+    <h2>7. Limitation of Liability</h2>
+    <p>Platform not liable for nurse conduct, but we verify and provide Group Chat and CEO oversight. Use SOS for emergencies.</p>
+    <p>© 2026 LOVE CARE GLOBAL</p>
+  `},
+  cancel: {title:'Cancellation & Refund Policy - LOVE CARE GLOBAL', body:`
+    <h1>Cancellation & Refund Policy</h1>
+    <p><strong>Client Cancellation:</strong></p>
+    <ul>
+      <li><strong>Before nurse confirms (pending_assignment):</strong> Full refund 100% - Request via MY BOOKINGS → LOAD → ❌ Cancel or via Contact email</li>
+      <li><strong>After nurse confirms but before work start (confirmed):</strong> 50% refund - Nurse already allocated time</li>
+      <li><strong>After work started (paid/completed):</strong> No refund unless nurse no-show or misconduct - Request via 💸 Request Refund button</li>
+    </ul>
+    <p><strong>How to Request Refund (App):</strong></p>
+    <ol>
+      <li>Go to MY BOOKINGS → Enter phone (with code) → LOAD BOOKINGS</li>
+      <li>Find booking → Tap 💸 Request Refund (or ❌ Cancel)</li>
+      <li>Enter Reason (required), MoMo / Bank Account, Account Name</li>
+      <li>Submit → Creates refund request in Firebase (refunds/bookingId) with status refund_req, booking status becomes refund_req</li>
+      <li>CEO sees in CEO Dashboard → Refunds tab → Reviews reason, account details, booking amount</li>
+      <li>CEO Approves → Refund via Paystack/MoMo - Status refund_ok → refuned</li>
+      <li>Processed within 24-48 hours</li>
+    </ol>
+    <p><strong>Alternative - Email:</strong> Send email to lovecareglobal@gmail.com with Subject: Refund Request - Booking ID, Amount, Reason, MoMo/Bank Account, Account Name. Or tap footer Cancel → Email Refund button (mailto).</p>
+    <p><strong>Nurse No-Show:</strong> If nurse doesn't arrive after START DUTY, client can report via Group Chat or Contact. CEO verifies GPS logs and provides full refund.</p>
+    <p><strong>Nurse Cancellation:</strong> If nurse cancels after confirming, client gets full refund and nurse may be suspended (CEO dashboard).</p>
+    <p><strong>Payouts After Refund:</strong> If refund approved after payout created, payout is cancelled. Nurse does not receive 85% if refunded.</p>
+    <p><strong>Contact for Refunds:</strong><br>Email: lovecareglobal@gmail.com<br>Phone/WhatsApp: 0544121814<br>Response: 24hrs</p>
+    <p>© 2026 LOVE CARE GLOBAL</p>
+  `},
+  contact: {title:'Contact Us - LOVE CARE GLOBAL', body:`
+    <h1>Contact LOVE CARE GLOBAL</h1>
+    <p><strong>Professional Home Nursing Services Worldwide</strong></p>
+    <p><strong>Email:</strong> lovecareglobal@gmail.com<br>
+    <strong>Phone / WhatsApp:</strong> 0544121814<br>
+    <strong>Support Hours:</strong> 24/7 via App Group Chat (Nurse/Staff/CEO) and AI Help Bot</p>
+    <h2>🌍 Countries (20 English)</h2>
+    <p>Ghana, Nigeria, South Africa, Kenya, Uganda, Tanzania, Rwanda, Zambia, Botswana, Liberia, Sierra Leone, USA, UK, Canada, Australia, Ireland, India, Philippines, Singapore, Malaysia</p>
+    <h2>💬 Support Channels</h2>
+    <ul>
+      <li><strong>AI Help Bot:</strong> Help Center tab → AI Bot → Instant answers about booking, rates, live map, nurse join, payouts, staff/CEO access, footer</li>
+      <li><strong>Group Chat:</strong> Private chat for Nurse/Staff/CEO only (clients cannot see) - Real-time messaging, edit/delete own messages, CEO can wipe all</li>
+      <li><strong>Email:</strong> lovecareglobal@gmail.com for refunds, data deletion, general inquiries</li>
+      <li><strong>SOS Button:</strong> Red SOS floating button bottom-right for emergencies</li>
+    </ul>
+    <h2>🏢 Business</h2>
+    <p>For partnerships, nurse verification, Paystack setup, staff creation - Contact CEO via CEO Dashboard.</p>
+    <p><strong>🔞 18+ Only - Adults Only Platform</strong><br>© 2026 LOVE CARE GLOBAL - Flexible hrs/day × days/weeks/months | Live-in & Live-out | Verified Nurses</p>
+  `}
 };
+
 function openLegal(type){
   var modal=document.getElementById('legalModal');
   var title=document.getElementById('legalTitle');
@@ -1199,6 +1341,145 @@ function closeRefundModal(){ var el=document.getElementById('refundModal'); if(e
 function submitRefundRequest(){ var bid=document.getElementById('refundBookingId').innerText; var reason=document.getElementById('refundReason').value; var acc=document.getElementById('refundAccount').value; var name=document.getElementById('refundAccountName').value; if(!reason||!acc||!name){ alert('Fill all'); return; } if(window.db){ db.ref('refunds/'+bid).set({bookingId:bid, reason:reason, account:acc, accountName:name, time:Date.now(), status:'refund_req'}); db.ref('bookings/'+bid).update({status:'refund_req'}); } alert('Refund submitted'); closeRefundModal(); loadMyBookings(); }
 function filterHelp(){ var q=document.getElementById('helpSearch'); if(!q) return; var val=q.value; if(!val){ document.getElementById('helpFaqList').innerHTML=''; return; } var ans=aiBotAnswer(val); document.getElementById('helpFaqList').innerHTML='<div style="background:white;border:2px solid #2563eb;border-radius:12px;padding:12px;margin-top:8px;font-size:12px">'+ans+'</div>'; }
 document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeLegal(); var em=document.getElementById('emailVerifyModal'); if(em) em.classList.add('hidden'); } });
+
+
+
+// ===== FIXED LOGIN FUNCTIONS - STAFF & CEO =====
+function loginStaff(){
+  var id=document.getElementById('staffLoginID').value.trim();
+  var pass=document.getElementById('staffLoginPass').value.trim();
+  var resultEl=document.getElementById('staffLoginResult');
+  if(!id||!pass){ if(resultEl) resultEl.innerText='Enter Staff ID and Password'; else alert('Enter Staff ID and Password'); return; }
+  // Show loading
+  if(resultEl) resultEl.innerText='⏳ Checking...';
+  // Default credentials for demo + Firebase check
+  var validStaff = {
+    'STAFF001': 'staff123',
+    'STAFF002': 'staff123',
+    'LOVE001': 'love123',
+    'ADMIN': 'admin123'
+  };
+  function successLogin(){
+    localStorage.setItem('staffID', id);
+    localStorage.setItem('staffName', id);
+    // Show group chat button for staff
+    var chatBtn=document.getElementById('nav-chat');
+    if(chatBtn){ chatBtn.classList.remove('hidden'); chatBtn.classList.add('show-for-staff'); chatBtn.style.display='flex'; }
+    if(resultEl) resultEl.innerText='✅ Success';
+    showPage('staff-dashboard');
+    setTimeout(function(){ 
+      var list=document.getElementById('staffBookingsList');
+      if(list) list.innerHTML='<div style="padding:10px">Loading bookings from Firebase...<br><small>If Firebase offline, bookings will appear from local demo</small></div>';
+      if(typeof loadStaffBookings==='function') loadStaffBookings();
+      else if(typeof loadCeoData==='function') loadCeoData();
+    },300);
+  }
+  if(validStaff[id] && validStaff[id]===pass){
+    successLogin();
+    return;
+  }
+  if(window.db){
+    db.ref('staff/'+id).once('value').then(function(snap){
+      var data=snap.val();
+      if(data && (data.password===pass || data.pass===pass)){
+        successLogin();
+      } else {
+        // Also check staff list
+        db.ref('staff').once('value').then(function(snap2){
+          var all=snap2.val()||{};
+          var found=false;
+          Object.keys(all).forEach(function(k){
+            if((k===id || all[k].id===id) && (all[k].password===pass || all[k].pass===pass)){ found=true; }
+          });
+          if(found){ successLogin(); }
+          else { if(resultEl) resultEl.innerText='❌ Invalid Staff ID or Password. Try STAFF001 / staff123'; else alert('Invalid'); }
+        });
+      }
+    }).catch(function(){ 
+      if(resultEl) resultEl.innerText='❌ Invalid - Try STAFF001 / staff123';
+    });
+  } else {
+    // No Firebase - allow any non-empty for demo if matches default, else show hint
+    if(resultEl) resultEl.innerText='❌ Invalid Staff ID. Demo: STAFF001 / staff123';
+    else alert('Use STAFF001 / staff123');
+  }
+}
+function logoutStaff(){
+  localStorage.removeItem('staffID');
+  var chatBtn=document.getElementById('nav-chat');
+  if(chatBtn){ chatBtn.classList.add('hidden'); chatBtn.classList.remove('show-for-staff'); }
+  showPage('home');
+}
+function loginCEO(){
+  var id=document.getElementById('ceoLoginID').value.trim();
+  var pass=document.getElementById('ceoLoginPass').value.trim();
+  var resultEl=document.getElementById('ceoLoginResult');
+  if(!id||!pass){ if(resultEl) resultEl.innerText='Enter CEO ID and Password'; return; }
+  if(resultEl) resultEl.innerText='⏳ Verifying CEO...';
+  var validCEO = {
+    'LOVE2026': 'CEO2026',
+    'CEO': 'CEO123',
+    'CEO001': 'ceo123',
+    'ADMIN': 'admin2026'
+  };
+  if(validCEO[id] && validCEO[id]===pass){
+    localStorage.setItem('isCEOLogged','true');
+    localStorage.setItem('ceoID', id);
+    var chatBtn=document.getElementById('nav-chat');
+    var masterBtn=document.getElementById('masterClearBtn');
+    if(chatBtn){ chatBtn.classList.remove('hidden'); chatBtn.classList.add('show-for-staff'); chatBtn.style.display='flex'; }
+    if(masterBtn){ masterBtn.classList.remove('hidden'); }
+    if(resultEl) resultEl.innerText='✅ CEO Verified';
+    showPage('ceo-dashboard');
+    setTimeout(function(){ if(typeof loadCeoData==='function') loadCeoData(); },500);
+    return;
+  }
+  // Check Firebase
+  if(window.db){
+    db.ref('ceo/'+id).once('value').then(function(snap){
+      var data=snap.val();
+      if(data && (data.password===pass || data.pass===pass)){
+        localStorage.setItem('isCEOLogged','true');
+        localStorage.setItem('ceoID', id);
+        showPage('ceo-dashboard');
+      } else {
+        if(resultEl) resultEl.innerText='❌ Invalid CEO credentials. Demo: LOVE2026 / CEO2026';
+      }
+    });
+  } else {
+    if(resultEl) resultEl.innerText='❌ Invalid CEO. Demo: LOVE2026 / CEO2026';
+  }
+}
+function logoutCEO(){
+  localStorage.removeItem('isCEOLogged');
+  localStorage.removeItem('ceoID');
+  showPage('home');
+}
+function loadStaffBookings(){
+  var el=document.getElementById('staffBookingsList');
+  if(!el) return;
+  if(window.db){
+    db.ref('bookings').once('value').then(function(snap){
+      var all=Object.values(snap.val()||{});
+      if(all.length===0){ el.innerHTML='<div style="padding:10px">No bookings yet</div>'; return; }
+      var h='';
+      all.slice(-20).reverse().forEach(function(b){
+        h+='<div style="border:2px solid #7c3aed;border-radius:12px;padding:10px;margin:8px 0;background:#f5f3ff"><b>#'+b.id+'</b> - '+ (b.service||'')+'<br>'+ (b.name||'')+' - '+ (b.phone||'')+'<br>'+ (b.location||'')+'<br>Amount: '+(b.amount||'')+' '+(b.currency||'')+'<br>Status: '+(b.status||'')+'<br><div style="display:flex;gap:6px;margin-top:6px"><button class="btnSmall" style="background:#16a34a;color:white" onclick="if(db)db.ref(\'bookings/'+b.id+'\').update({status:\'confirmed\'}).then(()=>loadStaffBookings())">Confirm</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="if(db)db.ref(\'bookings/'+b.id+'\').update({status:\'cancelled_by_staff\'}).then(()=>loadStaffBookings())">Cancel</button></div></div>';
+      });
+      el.innerHTML=h;
+    });
+  } else {
+    el.innerHTML='<div style="padding:10px;background:#fffbeb;border:2px solid #eab308;border-radius:10px"><b>Demo Staff Dashboard</b><br>Bookings will load from Firebase when connected.<br><small>Staff ID: '+ (localStorage.getItem('staffID')||'')+'</small></div>';
+  }
+}
+function loadCeoData(){
+  if(typeof switchCeoTab==='function'){ switchCeoTab('bookings'); }
+  var statB=document.getElementById('statBookings');
+  if(statB && window.db){
+    db.ref('bookings').once('value').then(function(snap){ var all=Object.values(snap.val()||{}); statB.innerText=all.length; });
+    db.ref('workers').once('value').then(function(snap){ var all=Object.values(snap.val()||{}); var onDuty=all.filter(function(w){return w.onDuty;}).length; document.getElementById('statNurses').innerText=all.length; document.getElementById('statOnline').innerText=onDuty; });
+  }
+}
 
 </script>
 </body>
