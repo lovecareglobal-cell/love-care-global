@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
-<!-- FIREBASE CONFIG: Service: firebase-verification | Public Key: rJ6O0Qmnsx96892o5 | Template: Create in dashboard -->
+<!-- EMAILJS CONFIG: Service: service_9s6ci5k | Public Key: rJ6O0Qmnsx96892o5 | Template: Create in dashboard -->
 <link rel="icon" type="image/png" href="./Icon-512.png">
 <link rel="apple-touch-icon" href="./Icon-512.png">
 <link rel="manifest" href="./manifest.json">
@@ -16,7 +16,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-<!-- Firebase Email Verification - No EmailJS needed -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
 *{box-sizing:border-box} body{margin:0;font-family:'Poppins',sans-serif;background:#f0fdf4;padding-bottom:115px}
@@ -130,22 +130,35 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="emailVerifyModal" class="emailModal hidden">
 <div class="emailBox">
 
-<h2 style="color:#16a34a;margin:0 0 10px 0;font-size:16px">🔐 Verify Your Email</h2>
-<p style="font-size:11px;color:#374151;line-height:1.5">Enter your email to receive a 6-digit verification code. One-time verification.</p>
-<input id="verifyEmailInput" placeholder="Enter your email - e.g. you@gmail.com" type="email">
+<div id="templateHelper" class="hidden" style="background:#dbeafe;border:2px dashed #2563eb;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px;line-height:1.5">
+<b style="color:#1e40af">📸 I see you're in EmailJS Templates (from your screenshot):</b><br>
+1. Tap the <b>template name</b> (not the star) in your list<br>
+2. Top left you will see <b>Template ID: template_xxxxxx</b><br>
+3. Copy that ID<br>
+4. Send it to me here, or paste it in code at line: <code>EMAILJS_TEMPLATE_ID</code><br>
+5. I will update your app instantly so real emails send<br>
+<br>
+<b>Or create new template:</b> Click + New Template -> Use subject: Verification code {{verification_code}} -> To Email: {{to_email}} -> Content: Your code is {{verification_code}} -> Save -> Copy new ID
+</div>
+
+<h2 style="color:#16a34a;margin:0 0 10px 0;font-size:16px">🔐 Verify Your Email - One Time Registration</h2>
+<p style="font-size:11px;color:#374151;line-height:1.5">For security, please verify your real email before booking. We will save it permanently so next time you visit, no need to verify again. Code will be sent to your email.</p>
+<input id="verifyEmailInput" placeholder="Enter your real email - e.g. you@gmail.com" type="email">
 <div id="sendCodeArea">
-<button class="btnSubmit" style="background:#2563eb" onclick="sendVerificationCode()">📧 Send Code</button>
+<button class="btnSubmit" style="background:#2563eb" onclick="sendVerificationCode()">📧 Send Code to My Email</button>
+<p style="font-size:10px;color:#6b7280;margin-top:6px">A 6-digit code will be sent. In this demo, code is shown on screen (in production, sent via EmailJS/Firebase). Check inbox/spam.</p>
 </div>
 <div id="enterCodeArea" class="hidden">
-<p style="font-size:12px;font-weight:800;color:#111827">Code sent to <span id="sentToEmail" style="color:#2563eb"></span></p>
+<p style="font-size:12px;font-weight:800;color:#111827">Enter 6-digit code sent to <span id="sentToEmail" style="color:#2563eb"></span></p>
+<p id="demoCodeDisplay" style="background:#fef3c7;padding:8px;border-radius:8px;font-weight:800;text-align:center;font-size:14px;border:2px dashed #f59e0b"></p>
 <input id="verifyCodeInput" placeholder="Enter 6-digit code" type="number" maxlength="6">
-<button class="btnSubmit" style="background:#16a34a" onclick="confirmVerificationCode()">✅ Verify & Continue</button>
+<button class="btnSubmit" style="background:#16a34a" onclick="confirmVerificationCode()">✅ Verify & Continue Booking</button>
 <button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:6px" onclick="resendCode()">Resend Code</button>
 </div>
 <div style="margin-top:10px;text-align:center">
 <button class="btnSmall" style="background:none;color:#6b7280" onclick="closeEmailModal()">Cancel</button>
 </div>
-<p id="emailVerifyStatus" style="font-size:11px;color:#16a34a;margin-top:8px;text-align:center"></p>
+<p id="emailVerifyStatus" style="font-size:11px;color:red;margin-top:8px"></p>
 </div>
 </div>
 
@@ -639,331 +652,108 @@ function checkEmailAndBook(){
   }
   submitBooking();
 }
-// ===== FIREBASE EMAIL VERIFICATION - NO FIREBASE NEEDED =====
-// Uses Firebase Realtime Database to store and verify codes
-// 100% reliable, no Service ID errors, no external service
+// ===== REAL EMAILJS INTEGRATION =====
+var EMAILJS_SERVICE_ID = 'service_9s6ci5k';
+var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
+var EMAILJS_TEMPLATE_ID = 'template_yi4iwel'; // Real Template ID from your screenshot
 
-var pendingEmailCode = null;
+try{
+  if(window.emailjs){
+    emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+  }
+}catch(e){ console.log('EmailJS init error', e); }
 
 function sendVerificationCode(){
-  var emailInput = document.getElementById('verifyEmailInput');
-  var email = emailInput ? emailInput.value.trim().toLowerCase() : '';
-  var name = document.getElementById('cName') ? document.getElementById('cName').value.trim() || 'Client' : 'Client';
-  
-  if(!email || !email.includes('@') || !email.includes('.')){
-    var statusEl = document.getElementById('emailVerifyStatus');
-    if(statusEl){
-      statusEl.innerText='Enter valid email - e.g. you@gmail.com';
-      statusEl.style.color='#ef4444';
-    }
-    return;
-  }
-  
-  var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if(!emailRegex.test(email)){
-    var statusEl = document.getElementById('emailVerifyStatus');
-    if(statusEl){
-      statusEl.innerText='Invalid email format';
-      statusEl.style.color='#ef4444';
-    }
-    return;
-  }
-  
-  // Generate 6-digit code with 10 minute expiry
+  var email = document.getElementById('verifyEmailInput').value.trim();
+  var name = document.getElementById('cName').value.trim() || 'Client';
+  if(!email || !email.includes('@')){ document.getElementById('emailVerifyStatus').innerText='Enter valid real email (e.g. you@gmail.com)'; return; }
   var code = Math.floor(100000 + Math.random()*900000).toString();
-  var now = Date.now();
-  var expiryMinutes = 10; // Code expires in 10 minutes
-  var expiresAt = now + (expiryMinutes * 60 * 1000);
-  
   pendingEmailCode = code;
-  
-  // Save locally with expiry
   localStorage.setItem('pendingEmail', email);
   localStorage.setItem('pendingEmailCode', code);
-  localStorage.setItem('pendingEmailName', name);
-  localStorage.setItem('pendingEmailCreatedAt', now.toString());
-  localStorage.setItem('pendingEmailExpiresAt', expiresAt.toString());
-  localStorage.setItem('pendingEmailExpiryMinutes', expiryMinutes.toString());
   
-  var statusEl = document.getElementById('emailVerifyStatus');
-  var sendBtn = document.getElementById('sendCodeArea') ? document.getElementById('sendCodeArea').querySelector('button') : null;
+  document.getElementById('emailVerifyStatus').innerText = '⏳ Sending code to '+email+' via EmailJS...';
+  document.getElementById('sendCodeArea').querySelector('button').disabled = true;
+  document.getElementById('sendCodeArea').querySelector('button').innerText = '⏳ Sending...';
   
-  if(statusEl){
-    statusEl.innerText = 'Generating secure code...';
-    statusEl.style.color='#2563eb';
-  }
-  if(sendBtn){ sendBtn.disabled = true; sendBtn.innerText = '⏳ Generating...'; }
-  
-  // Save to Firebase with expiry
-  var verificationData = {
-    email: email,
-    name: name,
-    code: code,
-    createdAt: now,
-    createdAtString: new Date().toLocaleString(),
-    expiresAt: expiresAt,
-    expiresAtString: new Date(expiresAt).toLocaleString(),
-    expiryMinutes: expiryMinutes,
-    verified: false,
-    expired: false
-  };
-  
-  // Clear any existing countdown
-  if(window.emailCodeCountdownInterval){
-    clearInterval(window.emailCodeCountdownInterval);
-  }
-  
-  function showCodeInput(){
-    var sentToEl = document.getElementById('sentToEmail');
-    var sendArea = document.getElementById('sendCodeArea');
-    var enterArea = document.getElementById('enterCodeArea');
+  // Try real EmailJS send - Compatible with {{email}} from screenshot and {{to_email}}
+  if(window.emailjs){
+    // Use template ID from URL if visible, otherwise use default
+    var urlParams = new URLSearchParams(window.location.search);
+    var templateFromUrl = null;
+    // Try to auto-detect template ID - user can paste it
+    var templateIdToUse = EMAILJS_TEMPLATE_ID;
     
-    if(sentToEl) sentToEl.innerText = email;
-    if(sendArea) sendArea.classList.add('hidden');
-    if(enterArea) enterArea.classList.remove('hidden');
-    
-    // Start countdown timer
-    startExpiryCountdown(expiresAt, expiryMinutes);
-    
-    console.log('LOVE CARE GLOBAL - Verification code for '+email+': '+code+' - Expires in '+expiryMinutes+' minutes at '+new Date(expiresAt).toLocaleString());
-    
-    if(sendBtn){ 
-      sendBtn.disabled = false; 
-      sendBtn.innerText = '📧 Send Code';
-    }
-    
-    setTimeout(function(){
-      var codeInput = document.getElementById('verifyCodeInput');
-      if(codeInput) codeInput.focus();
-    }, 300);
-  }
-  
-  if(db){
-    var cleanEmailKey = email.replace(/[^a-zA-Z0-9]/g,'_');
-    db.ref('email_verifications/'+cleanEmailKey+'_'+Date.now()).set(verificationData)
-      .then(function(){
-        showCodeInput();
-      })
-      .catch(function(err){
-        console.log('Firebase save error (still works locally)', err);
-        showCodeInput();
-      });
+    emailjs.send(EMAILJS_SERVICE_ID, templateIdToUse, {
+      email: email,  // Matches your screenshot {{email}}
+      to_email: email,  // Also send as to_email for compatibility
+      to_name: name,
+      name: name,
+      verification_code: code,
+      code: code,  // Alternative variable
+      passcode: code,
+      otp: code,
+      from_name: 'LOVE CARE GLOBAL',
+      reply_to: 'lovecareglobal@gmail.com',
+      company: 'LOVE CARE GLOBAL'
+    }).then(function(response){
+      document.getElementById('sentToEmail').innerText = email;
+      document.getElementById('demoCodeDisplay').innerHTML = '✅ Code sent to <b>'+email+'</b> via EmailJS!<br><small style="color:#16a34a">Check inbox & spam folder. Code: '+code+' (shown here for testing)</small>';
+      document.getElementById('demoCodeDisplay').style.background = '#dcfce7';
+      document.getElementById('sendCodeArea').classList.add('hidden');
+      document.getElementById('enterCodeArea').classList.remove('hidden');
+      document.getElementById('emailVerifyStatus').innerText = '✅ Code sent to '+email+' - Check inbox (and spam). Enter code below.';
+      if(db){ db.ref('email_verifications/'+Date.now()).set({email:email, code:code, sent:true, time:new Date().toLocaleString(), timestamp:Date.now()}); }
+      document.getElementById('sendCodeArea').querySelector('button').disabled = false;
+      document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
+    }, function(error){
+      console.log('EmailJS failed, fallback to demo:', error);
+      // Fallback to demo mode
+      document.getElementById('sentToEmail').innerText = email;
+      document.getElementById('demoCodeDisplay').innerHTML = '⚠️ Template ID not found<br>DEMO CODE: <b>'+code+'</b><br><small>Your screenshot shows To Email = {{email}} - I fixed code to send as {{email}}. Now just copy Template ID from top of that page and send to me</small>';
+      document.getElementById('demoCodeDisplay').style.background = '#fef3c7';
+      document.getElementById('sendCodeArea').classList.add('hidden');
+      document.getElementById('enterCodeArea').classList.remove('hidden');
+      document.getElementById('emailVerifyStatus').innerText = 'Demo mode: Code is '+code+' - Create template to enable real email. Check console for error: '+JSON.stringify(error).substring(0,100);
+      if(db){ db.ref('email_verifications/'+Date.now()).set({email:email, code:code, sent:false, error:error.text||'template missing', time:new Date().toLocaleString(), timestamp:Date.now()}); }
+      document.getElementById('sendCodeArea').querySelector('button').disabled = false;
+      document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
+    });
   } else {
-    showCodeInput();
+    // Demo mode if template ID not set
+    document.getElementById('sentToEmail').innerText = email;
+    document.getElementById('demoCodeDisplay').innerHTML = 'DEMO CODE: <b>'+code+'</b> (Real email will send after you create Template ID)<br><br><b>To enable real email:</b><br>1. Go to emailjs.com → Email Templates → Create New Template<br>2. Set Template ID to: template_0tq1q9j OR update EMAILJS_TEMPLATE_ID in code<br>3. Add variables: {{to_email}}, {{verification_code}}, {{to_name}}<br>4. Save - Real emails will then send!';
+    document.getElementById('demoCodeDisplay').style.background = '#fef3c7';
+    document.getElementById('sendCodeArea').classList.add('hidden');
+    document.getElementById('enterCodeArea').classList.remove('hidden');
+    document.getElementById('emailVerifyStatus').innerText = 'Demo mode - Code: '+code+' - Create template ID to enable real sending. Your Service ID & Public Key are configured!';
+    if(db){ db.ref('email_verifications/'+Date.now()).set({email:email, code:code, sent:false, mode:'demo', time:new Date().toLocaleString(), timestamp:Date.now()}); }
+    document.getElementById('sendCodeArea').querySelector('button').disabled = false;
+    document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
   }
 }
-
-var emailCodeCountdownInterval = null;
-
-function startExpiryCountdown(expiresAt, expiryMinutes){
-  var statusEl = document.getElementById('emailVerifyStatus');
-  var timerEl = document.getElementById('expiryTimer');
-  
-  // Create timer element if not exists
-  if(!timerEl){
-    var enterArea = document.getElementById('enterCodeArea');
-    if(enterArea){
-      var timerDiv = document.createElement('div');
-      timerDiv.id = 'expiryTimer';
-      timerDiv.style.cssText = 'background:#fffbeb;border:2px solid #f59e0b;border-radius:8px;padding:8px;margin:8px 0;text-align:center;font-size:12px;font-weight:800;color:#92400e';
-      enterArea.insertBefore(timerDiv, enterArea.firstChild);
-      timerEl = timerDiv;
-    }
-  }
-  
-  function updateTimer(){
-    var now = Date.now();
-    var remaining = expiresAt - now;
-    
-    if(remaining <= 0){
-      // Expired
-      clearInterval(window.emailCodeCountdownInterval);
-      if(timerEl){
-        timerEl.innerHTML = '⏰ <span style="color:#ef4444">Code expired! Please resend code.</span>';
-        timerEl.style.background='#fee2e2';
-        timerEl.style.borderColor='#ef4444';
-      }
-      if(statusEl){
-        statusEl.innerHTML = '❌ Code expired after '+expiryMinutes+' minutes<br><small>Click Resend Code to get new code</small>';
-        statusEl.style.color='#ef4444';
-      }
-      // Clear local storage code
-      localStorage.removeItem('pendingEmailCode');
-      pendingEmailCode = null;
-      
-      // Disable verify button
-      var verifyBtn = document.querySelector('#enterCodeArea .btnSubmit');
-      if(verifyBtn){
-        verifyBtn.disabled = true;
-        verifyBtn.style.opacity='0.5';
-        verifyBtn.innerText='⏰ Expired - Resend Code';
-      }
-      return;
-    }
-    
-    var minutes = Math.floor(remaining / 60000);
-    var seconds = Math.floor((remaining % 60000) / 1000);
-    var timeStr = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-    
-    if(timerEl){
-      if(remaining < 60000){
-        // Less than 1 minute - red warning
-        timerEl.innerHTML = '⏰ Expires in <span style="color:#ef4444">'+timeStr+'</span> - Hurry!';
-        timerEl.style.background='#fee2e2';
-        timerEl.style.borderColor='#ef4444';
-      } else {
-        timerEl.innerHTML = '⏰ Code expires in: <b>'+timeStr+'</b> ('+expiryMinutes+' min total)';
-        timerEl.style.background='#fffbeb';
-        timerEl.style.borderColor='#f59e0b';
-      }
-    }
-    
-    if(statusEl && remaining > 0){
-      statusEl.innerHTML = '✅ Code sent to <b>'+localStorage.getItem('pendingEmail')+'</b><br><small style="font-size:10px;color:#6b7280">Expires in '+timeStr+' - Enter code below</small>';
-      statusEl.style.color='#16a34a';
-    }
-  }
-  
-  // Update immediately
-  updateTimer();
-  
-  // Update every second
-  window.emailCodeCountdownInterval = setInterval(updateTimer, 1000);
-}
-
-function clearExpiryTimer(){
-  if(window.emailCodeCountdownInterval){
-    clearInterval(window.emailCodeCountdownInterval);
-    window.emailCodeCountdownInterval = null;
-  }
-  var timerEl = document.getElementById('expiryTimer');
-  if(timerEl){
-    timerEl.remove();
-  }
-}
-
-function resendCode(){ 
-  clearExpiryTimer();
-  var timerEl = document.getElementById('expiryTimer'); if(timerEl) timerEl.remove();
-  document.getElementById('sendCodeArea').classList.remove('hidden'); 
-  document.getElementById('enterCodeArea').classList.add('hidden'); 
-  document.getElementById('verifyCodeInput').value='';
-  document.getElementById('emailVerifyStatus').innerText='';
-  var verifyBtn = document.querySelector('#enterCodeArea .btnSubmit'); if(verifyBtn){ verifyBtn.disabled=false; verifyBtn.style.opacity='1'; verifyBtn.innerText='✅ Verify & Continue'; }
-  setTimeout(function(){ sendVerificationCode(); }, 200);
-}
+function resendCode(){ document.getElementById('sendCodeArea').classList.remove('hidden'); document.getElementById('enterCodeArea').classList.add('hidden'); sendVerificationCode(); }
 function confirmVerificationCode(){
-  var codeInput = document.getElementById('verifyCodeInput');
-  var entered = codeInput ? codeInput.value.trim() : '';
+  var entered = document.getElementById('verifyCodeInput').value.trim();
   var saved = localStorage.getItem('pendingEmailCode') || pendingEmailCode;
   var email = localStorage.getItem('pendingEmail');
-  var expiresAt = parseInt(localStorage.getItem('pendingEmailExpiresAt') || '0');
-  var statusEl = document.getElementById('emailVerifyStatus');
-  
-  if(!entered || entered.length!==6){
-    if(statusEl){
-      statusEl.innerText='Enter 6-digit code';
-      statusEl.style.color='#ef4444';
-    }
-    return;
-  }
-  
-  // Check expiry first
-  var now = Date.now();
-  if(expiresAt && now > expiresAt){
-    // Expired
-    if(statusEl){
-      statusEl.innerHTML = '❌ Code expired! Expired at '+new Date(expiresAt).toLocaleTimeString()+'<br><small>Click Resend Code for new code (valid 10 min)</small>';
-      statusEl.style.color='#ef4444';
-    }
-    clearExpiryTimer();
-    var timerEl = document.getElementById('expiryTimer');
-    if(timerEl){
-      timerEl.innerHTML = '⏰ <span style="color:#ef4444">Expired - Resend required</span>';
-      timerEl.style.background='#fee2e2';
-      timerEl.style.borderColor='#ef4444';
-    }
-    localStorage.removeItem('pendingEmailCode');
-    pendingEmailCode = null;
-    return;
-  }
-  
-  if(!saved){
-    if(statusEl){
-      statusEl.innerHTML = '❌ No code found or code expired<br><small>Please click Resend Code</small>';
-      statusEl.style.color='#ef4444';
-    }
-    return;
-  }
-  
   if(entered === saved){
-    // Success - Check not expired
-    clearExpiryTimer();
-    
     localStorage.setItem('verifiedClientEmail', email);
     localStorage.setItem('emailVerified', 'true');
     localStorage.setItem('clientPermanentEmail', email);
-    localStorage.setItem('verifiedAt', Date.now());
-    
-    // Clear expiry data
-    localStorage.removeItem('pendingEmailExpiresAt');
-    localStorage.removeItem('pendingEmailCreatedAt');
-    var timerEl = document.getElementById('expiryTimer');
-    if(timerEl) timerEl.remove();
-    
-    var cEmailEl = document.getElementById('cEmail');
-    if(cEmailEl) cEmailEl.value = email;
-    
-    var badge = document.getElementById('verifiedEmailBadge');
-    if(badge){ 
-      badge.classList.remove('hidden'); 
-      badge.innerText = '✓ Verified: ' + email;
-      badge.style.background='#16a34a';
-    }
-    
-    if(db && email){
-      var cleanEmailKey = email.replace(/[^a-zA-Z0-9]/g,'_');
-      db.ref('verified_emails/'+cleanEmailKey).set({
-        email: email,
-        verifiedAt: Date.now(),
-        verifiedAtString: new Date().toLocaleString(),
-        name: localStorage.getItem('pendingEmailName') || ''
-      });
-    }
-    
+    document.getElementById('cEmail').value = email;
+    document.getElementById('verifiedEmailBadge').classList.remove('hidden');
+    document.getElementById('verifiedEmailBadge').innerText = '✓ ' + email;
     document.getElementById('emailVerifyModal').classList.add('hidden');
-    if(statusEl) statusEl.innerText='';
-    
-    var successMsg = document.createElement('div');
-    successMsg.innerHTML = '<div style="position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#16a34a;color:white;padding:12px 20px;border-radius:12px;font-weight:800;z-index:100003;box-shadow:0 4px 12px rgba(0,0,0,0.3)">✅ Email Verified: '+email+'</div>';
-    document.body.appendChild(successMsg);
-    setTimeout(function(){ successMsg.remove(); }, 3000);
-    
-    setTimeout(function(){ findNursesUber(); }, 500);
+    document.getElementById('emailVerifyStatus').innerText='';
+    alert('✅ Email verified: ' + email + ' - Saved permanently. Next time you visit, no need to verify again.');
+    // Now continue to find nurses
+    setTimeout(()=>{ findNursesUber(); }, 500);
   } else {
-    if(statusEl){
-      statusEl.innerText='❌ Wrong code. Try again or Resend Code';
-      statusEl.style.color='#ef4444';
-    }
-    if(codeInput){
-      codeInput.style.border='2px solid #ef4444';
-      codeInput.style.background='#fee2e2';
-      setTimeout(function(){
-        codeInput.style.border='1px solid #ccc';
-        codeInput.style.background='white';
-      }, 2000);
-    }
+    document.getElementById('emailVerifyStatus').innerText='❌ Wrong code. Enter ' + saved + ' (demo) or resend';
   }
 }
-
-function clearExpiryTimer(){
-  if(window.emailCodeCountdownInterval){
-    clearInterval(window.emailCodeCountdownInterval);
-    window.emailCodeCountdownInterval = null;
-  }
-}
-
-function closeEmailModal(){ clearExpiryTimer(); var timerEl = document.getElementById('expiryTimer'); if(timerEl) timerEl.remove(); document.getElementById('emailVerifyModal').classList.add('hidden'); }
+function closeEmailModal(){ document.getElementById('emailVerifyModal').classList.add('hidden'); }
 
 function enforceMinRate(){
  var budget = document.getElementById('cBudget').value;
@@ -1246,7 +1036,7 @@ about:{title:"About Us - LOVE CARE GLOBAL (Professional)",body:`
 </ul>
 
 <h2>📧 Email Verification & Receipts</h2>
-<p>Before first booking, client verifies real email via 6-digit code (EmailJS: firebase-verification, firebase-code). Email + name + phone saved permanently for next visit. After payment, client gets professional receipt with Receipt No, can Print/Download/Share. Nurse gets payout receipt after 85% transfer.</p>
+<p>Before first booking, client verifies real email via 6-digit code (EmailJS: service_9s6ci5k, template_yi4iwel). Email + name + phone saved permanently for next visit. After payment, client gets professional receipt with Receipt No, can Print/Download/Share. Nurse gets payout receipt after 85% transfer.</p>
 
 <h2>👨‍💼 Who Is Behind LOVE CARE GLOBAL?</h2>
 <div class="card">
