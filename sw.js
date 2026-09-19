@@ -1,58 +1,45 @@
 
-const CACHE_NAME = 'love-care-global-v1';
+const CACHE_NAME = 'love-care-global-v3';
 const urlsToCache = [
   './',
   './index.html',
-  './logo.png',
   './manifest.json',
-  'https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap',
-  'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
-  'https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js'
+  './Icon-72.png',
+  './Icon-96.png',
+  './Icon-128.png',
+  './Icon-144.png',
+  './Icon-152.png',
+  './Icon-192.png',
+  './Icon-384.png',
+  './Icon-512.png',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
 
-self.addEventListener('install', function(event) {
-  console.log('Service Worker installing');
+self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(function(cache) {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache))
   );
 });
 
-self.addEventListener('fetch', function(event) {
+self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
-      .then(function(response) {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request).then(function(response) {
-          if(!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-          var responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then(function(cache) {
-              cache.put(event.request, responseToCache);
-            });
-          return response;
-        });
-      })
+      .then(response => {
+        if (response) return response;
+        return fetch(event.request);
+      }
+    )
   );
 });
 
-self.addEventListener('activate', function(event) {
-  console.log('Service Worker activating');
-  var cacheWhitelist = [CACHE_NAME];
+self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(function(cacheNames) {
+    caches.keys().then(cacheNames => {
       return Promise.all(
-        cacheNames.map(function(cacheName) {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) return caches.delete(cacheName);
         })
       );
     })
