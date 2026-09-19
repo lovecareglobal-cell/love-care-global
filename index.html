@@ -4,7 +4,85 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
-<!-- EMAILJS CONFIG: Service: service_9s6ci5k | Public Key: rJ6O0Qmnsx96892o5 | Template: Create in dashboard -->
+<!-- LCG EMAIL VERIFY MODAL -->
+<div id="emailVerifyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; justify-content:center; align-items:center; padding:15px;">
+  <div style="background:white; padding:25px; border-radius:16px; width:100%; max-width:400px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+    <h3 style="color:#c62828; margin:0;">🔐 Verify Your Email</h3>
+    <p style="color:#555; font-size:14px;">Code expires in 10 min - Check SPAM too!</p>
+    <input id="clientEmail" type="email" placeholder="Enter your email" style="width:100%; padding:14px; margin:12px 0; border:2px solid #ddd; border-radius:10px; font-size:16px;">
+    <button id="sendCodeBtn" onclick="sendLCGCode()" style="width:100%; padding:14px; background:#c62828; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px;">📧 Send Code</button>
+    <div id="otpInputArea" style="display:none; margin-top:18px;">
+      <input id="emailCodeInput" type="number" placeholder="Enter 6-digit code" maxlength="6" style="width:100%; padding:14px; border:2px solid #4caf50; border-radius:10px; font-size:18px; text-align:center; letter-spacing:4px;">
+      <button onclick="verifyLCGCode()" style="width:100%; margin-top:12px; padding:14px; background:#2e7d32; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px;">✅ Verify & Continue</button>
+    </div>
+    <p style="margin-top:12px; font-size:12px; color:#888;">lovecareglobal@gmail.com support</p>
+  </div>
+</div>
+
+<script>
+// ===== LCG REAL EMAIL VERIFY SYSTEM =====
+var pendingLCGCode = null;
+
+function isEmailVerified(){
+  const v = localStorage.getItem('verifiedClientEmail');
+  const e = parseInt(localStorage.getItem('verifiedExpiry')||'0');
+  return v && e && Date.now() < e;
+}
+
+function sendLCGCode(){
+  const email = document.getElementById('clientEmail').value.trim();
+  if(!email.includes('@')){ alert('Boss enter valid email!'); return; }
+  
+  pendingLCGCode = Math.floor(100000 + Math.random()*900000).toString();
+  const expiry = Date.now() + 10*60*1000;
+  localStorage.setItem('lcg_pending_code', pendingLCGCode);
+  localStorage.setItem('lcg_pending_expiry', expiry);
+  localStorage.setItem('lcg_pending_email', email);
+  
+  const btn = document.getElementById('sendCodeBtn');
+  btn.innerText = 'Sending...';
+  
+  emailjs.send("service_8ax6513", "template_yi4iwel", {
+    to_email: email,
+    otp_code: pendingLCGCode
+  }).then(()=>{
+    btn.innerText = 'Code Sent ✓';
+    alert('✅ SENT to ' + email + '\nCODE: ' + pendingLCGCode + '\nCheck INBOX + SPAM!\nValid 10 min');
+    document.getElementById('otpInputArea').style.display='block';
+  }).catch(err=>{
+    btn.innerText = 'Retry Send';
+    alert('❌ FAILED: ' + (err.text||JSON.stringify(err)) + '\nMake sure in EmailJS template To Email = {{to_email}} and body has {{otp_code}}');
+    console.error(err);
+  });
+}
+
+function verifyLCGCode(){
+  const input = document.getElementById('emailCodeInput').value.trim();
+  const saved = localStorage.getItem('lcg_pending_code');
+  const expiry = parseInt(localStorage.getItem('lcg_pending_expiry')||'0');
+  const email = localStorage.getItem('lcg_pending_email');
+  
+  if(!saved){ alert('Click Send Code first!'); return; }
+  if(Date.now() > expiry){ alert('Code expired! Send new one.'); return; }
+  
+  if(input === saved){
+    localStorage.setItem('verifiedClientEmail', email);
+    localStorage.setItem('verifiedExpiry', (Date.now() + 10*60*1000).toString());
+    alert('✅ VERIFIED! Welcome ' + email);
+    document.getElementById('emailVerifyModal').style.display='none';
+    // Call your original function after verify
+    if(typeof findNursesUber === 'function') findNursesUber();
+  } else {
+    alert('❌ Wrong code! You typed ' + input + ' correct is ' + saved);
+  }
+}
+
+// Auto show modal when trying to find nurses
+function checkEmailAndFindNurses(){
+  if(isEmailVerified()){ findNursesUber(); return; }
+  document.getElementById('emailVerifyModal').style.display='flex';
+}
+</script>
 <link rel="icon" type="image/png" href="./Icon-512.png">
 <link rel="apple-touch-icon" href="./Icon-512.png">
 <link rel="manifest" href="./manifest.json">
@@ -121,20 +199,85 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <span id="verifiedEmailBadge" class="hidden" style="background:#16a34a;color:white;padding:3px 8px;border-radius:10px;font-size:9px;font-weight:800">✓ Email Verified</span>
 </div>
 
-<!-- EMAIL VERIFICATION POPUP BEFORE BOOKING -->
-<div id="emailVerifyModal" class="emailModal hidden">
-<div class="emailBox">
-
-<div id="templateHelper" class="hidden" style="background:#dbeafe;border:2px dashed #2563eb;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px;line-height:1.5">
-<b style="color:#1e40af">📸 I see you're in EmailJS Templates (from your screenshot):</b><br>
-1. Tap the <b>template name</b> (not the star) in your list<br>
-2. Top left you will see <b>Template ID: template_xxxxxx</b><br>
-3. Copy that ID<br>
-4. Send it to me here, or paste it in code at line: <code>EMAILJS_TEMPLATE_ID</code><br>
-5. I will update your app instantly so real emails send<br>
-<br>
-<b>Or create new template:</b> Click + New Template -> Use subject: Verification code {{verification_code}} -> To Email: {{to_email}} -> Content: Your code is {{verification_code}} -> Save -> Copy new ID
+<!-- LCG EMAIL VERIFY MODAL -->
+<div id="emailVerifyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:99999; justify-content:center; align-items:center; padding:15px;">
+  <div style="background:white; padding:25px; border-radius:16px; width:100%; max-width:400px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+    <h3 style="color:#c62828; margin:0;">🔐 Verify Your Email</h3>
+    <p style="color:#555; font-size:14px;">Code expires in 10 min - Check SPAM too!</p>
+    <input id="clientEmail" type="email" placeholder="Enter your email" style="width:100%; padding:14px; margin:12px 0; border:2px solid #ddd; border-radius:10px; font-size:16px;">
+    <button id="sendCodeBtn" onclick="sendLCGCode()" style="width:100%; padding:14px; background:#c62828; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px;">📧 Send Code</button>
+    <div id="otpInputArea" style="display:none; margin-top:18px;">
+      <input id="emailCodeInput" type="number" placeholder="Enter 6-digit code" maxlength="6" style="width:100%; padding:14px; border:2px solid #4caf50; border-radius:10px; font-size:18px; text-align:center; letter-spacing:4px;">
+      <button onclick="verifyLCGCode()" style="width:100%; margin-top:12px; padding:14px; background:#2e7d32; color:white; border:none; border-radius:10px; font-weight:bold; font-size:16px;">✅ Verify & Continue</button>
+    </div>
+    <p style="margin-top:12px; font-size:12px; color:#888;">lovecareglobal@gmail.com support</p>
+  </div>
 </div>
+
+<script>
+// ===== LCG REAL EMAIL VERIFY SYSTEM =====
+var pendingLCGCode = null;
+
+function isEmailVerified(){
+  const v = localStorage.getItem('verifiedClientEmail');
+  const e = parseInt(localStorage.getItem('verifiedExpiry')||'0');
+  return v && e && Date.now() < e;
+}
+
+function sendLCGCode(){
+  const email = document.getElementById('clientEmail').value.trim();
+  if(!email.includes('@')){ alert('Boss enter valid email!'); return; }
+  
+  pendingLCGCode = Math.floor(100000 + Math.random()*900000).toString();
+  const expiry = Date.now() + 10*60*1000;
+  localStorage.setItem('lcg_pending_code', pendingLCGCode);
+  localStorage.setItem('lcg_pending_expiry', expiry);
+  localStorage.setItem('lcg_pending_email', email);
+  
+  const btn = document.getElementById('sendCodeBtn');
+  btn.innerText = 'Sending...';
+  
+  emailjs.send("service_8ax6513", "template_yi4iwel", {
+    to_email: email,
+    otp_code: pendingLCGCode
+  }).then(()=>{
+    btn.innerText = 'Code Sent ✓';
+    alert('✅ SENT to ' + email + '\nCODE: ' + pendingLCGCode + '\nCheck INBOX + SPAM!\nValid 10 min');
+    document.getElementById('otpInputArea').style.display='block';
+  }).catch(err=>{
+    btn.innerText = 'Retry Send';
+    alert('❌ FAILED: ' + (err.text||JSON.stringify(err)) + '\nMake sure in EmailJS template To Email = {{to_email}} and body has {{otp_code}}');
+    console.error(err);
+  });
+}
+
+function verifyLCGCode(){
+  const input = document.getElementById('emailCodeInput').value.trim();
+  const saved = localStorage.getItem('lcg_pending_code');
+  const expiry = parseInt(localStorage.getItem('lcg_pending_expiry')||'0');
+  const email = localStorage.getItem('lcg_pending_email');
+  
+  if(!saved){ alert('Click Send Code first!'); return; }
+  if(Date.now() > expiry){ alert('Code expired! Send new one.'); return; }
+  
+  if(input === saved){
+    localStorage.setItem('verifiedClientEmail', email);
+    localStorage.setItem('verifiedExpiry', (Date.now() + 10*60*1000).toString());
+    alert('✅ VERIFIED! Welcome ' + email);
+    document.getElementById('emailVerifyModal').style.display='none';
+    // Call your original function after verify
+    if(typeof findNursesUber === 'function') findNursesUber();
+  } else {
+    alert('❌ Wrong code! You typed ' + input + ' correct is ' + saved);
+  }
+}
+
+// Auto show modal when trying to find nurses
+function checkEmailAndFindNurses(){
+  if(isEmailVerified()){ findNursesUber(); return; }
+  document.getElementById('emailVerifyModal').style.display='flex';
+}
+</script>
 
 <h2 style="color:#16a34a;margin:0 0 10px 0;font-size:16px">🔐 Verify Your Email - One Time Registration</h2>
 <p style="font-size:11px;color:#374151;line-height:1.5">For security, please verify your real email before booking. We will save it permanently so next time you visit, no need to verify again. Code will be sent to your email.</p>
