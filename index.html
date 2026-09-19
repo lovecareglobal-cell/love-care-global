@@ -380,7 +380,18 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div class="card"><h2>New Offers</h2><div id="nurseJobsList">Start DUTY</div></div>
 </div>
 <div id="page-staff-login" class="page"><div class="card" style="margin:20px;border:3px solid #7c3aed"><h2>Staff Portal</h2><input id="staffLoginID" placeholder="Staff ID"><input id="staffLoginPass" type="password" placeholder="Password"><button class="btnSubmit" style="background:#7c3aed" onclick="loginStaff()">Login as Staff</button></div></div>
-<div id="page-staff-dashboard" class="page"><div class="card"><h2>Staff Dashboard</h2><div id="staffBookingsList">Loading...</div></div><div style="margin:20px;display:flex;gap:8px"><button class="btnSubmit" style="background:#16a34a;flex:1" onclick="showPage('home')">Home</button><button class="btnSubmit" style="background:#ef4444;flex:1" onclick="logoutStaff()">Logout</button></div></div>
+<div id="page-staff-dashboard" class="page"><div class="card"><h2>Staff Dashboard - Full Access</h2>
+<div class="ceoTabs staffTabs" style="margin-top:10px">
+<button id="staff-btn-bookings" class="btnSmall activeTab" style="background:#111827;color:white" onclick="switchStaffTab('bookings')">Bookings</button>
+<button id="staff-btn-nurses" class="btnSmall" style="background:#16a34a;color:white" onclick="switchStaffTab('nurses')">Nurses + Media</button>
+<button id="staff-btn-clients" class="btnSmall" style="background:#2563eb;color:white" onclick="switchStaffTab('clients')">Clients</button>
+<button id="staff-btn-announce" class="btnSmall" style="background:#0e7490;color:white" onclick="switchStaffTab('announce')">Announce Settings</button>
+</div>
+<div id="staff-tab-bookings" class="staff-tab card"><h2>1. Bookings (Staff can Confirm/Cancel)</h2><div id="staffBookingsList">Loading...</div></div>
+<div id="staff-tab-nurses" class="staff-tab card hidden"><h2>2. Nurses + Media Viewer</h2><div id="staffNursesList">Loading...</div><div id="staffNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:12px;padding:12px;margin-top:12px;background:#f5f3ff"><h3>🔍 Nurse Media Viewer</h3><div id="staffMediaViewerContent"></div><button class="btnSmall" style="background:#6b7280;color:white" onclick="document.getElementById('staffNurseMediaView').classList.add('hidden')">Close</button></div></div>
+<div id="staff-tab-clients" class="staff-tab card hidden"><h2>3. Clients</h2><div id="staffClientsList">Loading...</div></div>
+<div id="staff-tab-announce" class="staff-tab card hidden"><h2>4. Announcement Settings (View Only)</h2><div id="staffAnnounceView">Loading...</div><div style="margin-top:12px;padding:10px;background:#fffbeb;border:2px solid #eab308;border-radius:10px;font-size:11px">Staff can view announcement but only CEO can edit. Contact CEO to change announcement text, colors, speed, or hourly rates.</div></div>
+</div><div style="margin:20px;display:flex;gap:8px"><button class="btnSubmit" style="background:#16a34a;flex:1" onclick="showPage('home')">Home</button><button class="btnSubmit" style="background:#ef4444;flex:1" onclick="logoutStaff()">Logout</button></div></div>
 
 <!-- GROUP CHAT - NURSE/STAFF/CEO ONLY -->
 <div id="page-group-chat" class="page">
@@ -395,7 +406,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="page-ceo-login" class="page"><div class="card" style="margin:20px;border:3px solid #111827"><h2>Secure Access - CEO Only</h2><input id="ceoLoginID" placeholder="CEO ID"><input id="ceoLoginPass" type="password" placeholder="••••••••••••"><button class="btnSubmit" style="background:#111827" onclick="loginCEO()">Login</button><div id="ceoLoginResult" style="color:red;font-size:11px;margin-top:8px"></div></div></div>
 
 <div id="page-ceo-dashboard" class="page">
-<div class="card" style="border:3px solid #111827"><h2>CEO Management</h2>
+<div class="card" style="border:3px solid #111827"><h2>CEO Management</h2><div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0"><button class="btnSmall" style="background:#111827;color:#eab308;border:2px solid #eab308" onclick="openCeoPasswordModal()">🔐 Change CEO Password</button><button class="btnSmall" style="background:#111827;color:white" onclick="loadCeoData()">🔄 Refresh</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="logoutCEO()">Logout</button></div>
 <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin:10px 0">
 <div style="background:#f0fdf4;padding:10px;border-radius:10px;text-align:center;border:2px solid #16a34a"><b id="statBookings">0</b><br><small>Bookings</small></div>
 <div style="background:#fffbeb;padding:10px;border-radius:10px;text-align:center;border:2px solid #eab308"><b id="statNurses">0</b><br><small>Nurses</small></div>
@@ -1480,6 +1491,567 @@ function loadCeoData(){
     db.ref('workers').once('value').then(function(snap){ var all=Object.values(snap.val()||{}); var onDuty=all.filter(function(w){return w.onDuty;}).length; document.getElementById('statNurses').innerText=all.length; document.getElementById('statOnline').innerText=onDuty; });
   }
 }
+
+
+// ===== COMPREHENSIVE CEO & STAFF FIXES =====
+function switchCeoTab(tab){
+  document.querySelectorAll('.ceo-tab').forEach(function(el){ el.classList.add('hidden'); });
+  var target = document.getElementById('ceo-tab-'+tab);
+  if(target) target.classList.remove('hidden');
+  document.querySelectorAll('.ceoTabs button').forEach(function(b){ b.classList.remove('activeTab'); });
+  var btn = document.getElementById('btn-'+tab);
+  if(btn) btn.classList.add('activeTab');
+  // Load data for tab
+  if(tab==='bookings') loadCeoBookings();
+  if(tab==='nurses') loadCeoNurses();
+  if(tab==='clients') loadCeoClients();
+  if(tab==='payments') loadCeoPayments();
+  if(tab==='payouts') loadCeoPayouts();
+  if(tab==='refunds') loadCeoRefunds();
+  if(tab==='staff') loadCeoStaff();
+  if(tab==='deleted') loadCeoDeleted();
+  if(tab==='announce') loadAnnounceSettings();
+}
+
+function switchStaffTab(tab){
+  document.querySelectorAll('.staff-tab').forEach(function(el){ el.classList.add('hidden'); });
+  var target = document.getElementById('staff-tab-'+tab);
+  if(target) target.classList.remove('hidden');
+  document.querySelectorAll('.staffTabs button').forEach(function(b){ b.classList.remove('activeTab'); });
+  var btn = document.getElementById('staff-btn-'+tab);
+  if(btn) btn.classList.add('activeTab');
+  if(tab==='bookings') loadStaffBookings();
+  if(tab==='nurses') loadStaffNurses();
+  if(tab==='clients') loadStaffClients();
+  if(tab==='announce') loadStaffAnnounce();
+}
+
+function loadCeoBookings(){
+  var el=document.getElementById('ceoBookingsList');
+  if(!el) return;
+  if(!window.db){ el.innerHTML='<div style="padding:12px;background:#fffbeb;border:2px solid #eab308;border-radius:10px">Demo mode - Connect Firebase to see real bookings<br>Last booking would appear here</div>'; return; }
+  el.innerHTML='⏳ Loading bookings...';
+  db.ref('bookings').orderByChild('timestamp').limitToLast(100).once('value').then(function(snap){
+    var all=Object.values(snap.val()||{}).reverse();
+    if(all.length===0){ el.innerHTML='No bookings yet'; return; }
+    var h='';
+    all.forEach(function(b){
+      h+='<div style="border:3px solid #111827;border-radius:12px;padding:12px;margin:10px 0;background:white">'
+      +'<div style="display:flex;justify-content:space-between"><b>#'+b.id+'</b><span class="statusBadge '+(b.status==='confirmed'?'st-confirmed':b.status==='cancelled_by_client'?'st-cancelled':'st-pending')+'">'+(b.status||'pending').toUpperCase()+'</span></div>'
+      +'<div style="font-size:11px;margin-top:6px"><b>'+(b.service||'')+'</b> - '+ (b.name||'')+' - '+ (b.phone||'')+'<br>📍 '+(b.location||'')+'<br>💰 '+(b.amount||'')+' '+(b.currency||'')+' | '+ (b.days||'')+' = '+(b.totalHours||'')+' hrs<br>🏠 '+(b.careMode||'')+' '+(b.dailySchedule||'')+'<br>⏰ '+(b.time||'')+'<br>👩‍⚕ Selected: '+(b.selectedNurse||'random')+'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
+      +'<button class="btnSmall" style="background:#16a34a;color:white" onclick="updateBookingStatus('+b.id+',\'confirmed\')">✅ Confirm</button>'
+      +'<button class="btnSmall" style="background:#2563eb;color:white" onclick="updateBookingStatus('+b.id+',\'paid\')">💳 Mark Paid</button>'
+      +'<button class="btnSmall" style="background:#7c3aed;color:white" onclick="updateBookingStatus('+b.id+',\'completed\')">✔ Complete</button>'
+      +'<button class="btnSmall" style="background:#0e7490;color:white" onclick="updateBookingStatus('+b.id+',\'completed_confirmed\')">👍 Client Confirmed</button>'
+      +'<button class="btnSmall" style="background:#ef4444;color:white" onclick="updateBookingStatus('+b.id+',\'cancelled_by_ceo\')">❌ Cancel</button>'
+      +'<button class="btnSmall" style="background:#111827;color:white" onclick="deleteBooking('+b.id+')">🗑 Delete</button>'
+      +'<button class="btnSmall" style="background:#ff6a00;color:white" onclick="openGoogleMapsLive('+(b.lat||5.6037)+','+(b.lng||-0.1870)+')">📍 View on Map</button>'
+      +'</div></div>';
+    });
+    el.innerHTML=h;
+    var stat=document.getElementById('statBookings'); if(stat) stat.innerText=all.length;
+  });
+}
+function updateBookingStatus(id,status){
+  if(!window.db){ alert('Demo: Booking '+id+' would become '+status); return; }
+  db.ref('bookings/'+id).update({status:status, updatedAt:Date.now()}).then(function(){
+    alert('Booking #'+id+' → '+status);
+    loadCeoBookings();
+    if(typeof loadCeoPayouts==='function') loadCeoPayouts();
+  });
+}
+function deleteBooking(id){
+  if(!confirm('Delete booking #'+id+' permanently?')) return;
+  if(window.db){ db.ref('bookings/'+id).remove().then(function(){ loadCeoBookings(); }); }
+}
+
+function loadCeoNurses(){
+  var el=document.getElementById('ceoNursesList');
+  if(!el) return;
+  if(!window.db){ el.innerHTML='<div style="padding:12px;background:#fffbeb;border-radius:10px">Demo - Firebase offline<br>Nurses from localStorage would show here</div>'; try{ var local=JSON.parse(localStorage.getItem('nurses')||'[]'); if(local.length>0){ var h=''; local.forEach(function(n){ h+='<div style="border:2px solid #16a34a;padding:10px;border-radius:10px;margin:6px 0">'+n.name+' - '+n.phone+'</div>'; }); el.innerHTML+=h; } }catch(e){} return; }
+  el.innerHTML='⏳ Loading nurses...';
+  db.ref('workers').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{});
+    if(all.length===0){ el.innerHTML='No nurses yet'; return; }
+    var h='';
+    all.forEach(function(n){
+      var mediaBtns='';
+      if(n.videoUrl) mediaBtns+='<button class="btnSmall" style="background:#7c3aed;color:white" onclick="viewNurseMedia(\''+n.phone+'\',\'video\')">📹 Video</button>';
+      if(n.cvUrl) mediaBtns+='<button class="btnSmall" style="background:#2563eb;color:white" onclick="viewNurseMedia(\''+n.phone+'\',\'cv\')">📄 CV</button>';
+      if(n.certUrl) mediaBtns+='<button class="btnSmall" style="background:#eab308;color:#111" onclick="viewNurseMedia(\''+n.phone+'\',\'cert\')">🎓 Cert</button>';
+      if(n.idUrl) mediaBtns+='<button class="btnSmall" style="background:#111827;color:white" onclick="viewNurseMedia(\''+n.phone+'\',\'id\')">🪪 ID</button>';
+      h+='<div style="border:3px solid #16a34a;border-radius:12px;padding:12px;margin:10px 0;background:#f0fdf4">'
+      +'<b>'+ (n.name||'Nurse') +'</b> - '+(n.phone||'')+'<br><small>'+(n.location||'')+' | '+ (n.specialty||'')+' | '+ (n.careMode||'both')+' | '+(n.experience||'')+' yrs | '+(n.onDuty?'🟢 ON DUTY':'🔴 OFF')+'</small><br>'
+      +'<small>📍 '+(n.lat||'')+','+(n.lng||'')+' | Payout: '+(n.payoutMethod||'')+' '+(n.accountNumber||'')+'</small><br>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+mediaBtns
+      +'<button class="btnSmall" style="background:#ff6a00;color:white" onclick="openGoogleMapsLive('+(n.lat||5.6037)+','+(n.lng||-0.1870)+')">📍 Live Map</button>'
+      +'<button class="btnSmall" style="background:#ef4444;color:white" onclick="deleteNurse(\''+n.phone+'\')">🗑 Delete Nurse</button>'
+      +'<button class="btnSmall" style="background:#16a34a;color:white" onclick="verifyNurse(\''+n.phone+'\')">✅ Verify</button>'
+      +'</div></div>';
+    });
+    el.innerHTML=h;
+    document.getElementById('statNurses').innerText=all.length;
+  });
+}
+function viewNurseMedia(phone,type){
+  var viewer=document.getElementById('ceoNurseMediaView');
+  var content=document.getElementById('mediaViewerContent');
+  if(!viewer||!content) return;
+  viewer.classList.remove('hidden');
+  content.innerHTML='⏳ Loading '+type+' for '+phone+'...';
+  if(!window.db){ content.innerHTML='Demo: '+type+' for '+phone+' would show here (video/CV from Firebase Storage)'; return; }
+  db.ref('workers/'+phone.replace(/[^0-9]/g,'')).once('value').then(function(snap){
+    var n=snap.val()||{};
+    var url = type==='video'?n.videoUrl : type==='cv'?n.cvUrl : type==='cert'?n.certUrl : n.idUrl;
+    if(!url){ content.innerHTML='No '+type+' uploaded for this nurse'; return; }
+    if(type==='video'){
+      content.innerHTML='<video controls style="width:100%;max-height:400px;border-radius:10px" src="'+url+'"></video><br><a href="'+url+'" target="_blank" style="color:#16a34a;font-weight:800">Open Video in New Tab</a>';
+    } else {
+      content.innerHTML='<iframe src="'+url+'" style="width:100%;height:500px;border-radius:10px;border:2px solid #16a34a"></iframe><br><a href="'+url+'" target="_blank" style="color:#16a34a;font-weight:800">Open '+type.toUpperCase()+' in New Tab</a>';
+    }
+  });
+}
+function deleteNurse(phone){
+  if(!confirm('Delete nurse '+phone+'? This will move to Deleted Nurses for audit')) return;
+  if(window.db){
+    db.ref('workers/'+phone.replace(/[^0-9]/g,'')).once('value').then(function(snap){
+      var data=snap.val();
+      if(data){ db.ref('deletedWorkers/'+phone.replace(/[^0-9]/g,'')).set({...data, deletedAt:Date.now(), deletedBy:'CEO'}); }
+      db.ref('workers/'+phone.replace(/[^0-9]/g,'')).remove().then(function(){ alert('Deleted'); loadCeoNurses(); });
+    });
+  }
+}
+function verifyNurse(phone){
+  if(window.db){ db.ref('workers/'+phone.replace(/[^0-9]/g,'')).update({verified:true, verifiedAt:Date.now()}).then(function(){ alert('Nurse '+phone+' verified ✅'); loadCeoNurses(); }); }
+}
+
+function loadCeoClients(){
+  var el=document.getElementById('ceoClientsList');
+  if(!el) return;
+  if(!window.db){ el.innerHTML='Demo - Clients from bookings would show here'; return; }
+  db.ref('bookings').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{});
+    var clients={};
+    all.forEach(function(b){ var key=b.phone||b.email||'unknown'; if(!clients[key]) clients[key]={name:b.name, phone:b.phone, email:b.email||b.verifiedEmail, location:b.location, country:b.country, count:0, total:0}; clients[key].count++; clients[key].total+=(parseFloat(b.amount)||0); });
+    var h='<table><tr><th>Name</th><th>Phone</th><th>Email (Verified)</th><th>Location</th><th>Bookings</th><th>Total Paid</th></tr>';
+    Object.values(clients).forEach(function(c){ h+='<tr><td>'+(c.name||'')+'</td><td>'+(c.phone||'')+'</td><td>'+(c.email||'')+'</td><td>'+(c.location||'')+' '+(c.country||'')+'</td><td>'+c.count+'</td><td>'+c.total+'</td></tr>'; });
+    h+='</table>';
+    el.innerHTML=h;
+  });
+}
+function loadCeoPayments(){
+  var el=document.getElementById('ceoPaymentsList');
+  var totalEl=document.getElementById('totalRevenue');
+  var pendingEl=document.getElementById('pendingRevenue');
+  if(!el) return;
+  if(!window.db){ el.innerHTML='Demo payments'; return; }
+  db.ref('bookings').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{});
+    var total=0, pending=0;
+    var h='<table><tr><th>ID</th><th>Client</th><th>Amount</th><th>Status</th><th>Actions</th></tr>';
+    all.forEach(function(b){
+      var amt=parseFloat(b.amount)||0;
+      total+=amt;
+      if(b.status==='pending_assignment' || b.status==='confirmed') pending+=amt;
+      h+='<tr><td>#'+b.id+'</td><td>'+(b.name||'')+'</td><td>'+amt+' '+(b.currency||'')+'</td><td>'+(b.status||'')+'</td><td><button class="btnSmall" style="background:#16a34a;color:white" onclick="updateBookingStatus('+b.id+',\'paid\')">Mark Paid</button></td></tr>';
+    });
+    h+='</table>';
+    el.innerHTML=h;
+    if(totalEl) totalEl.innerText=total.toFixed(2);
+    if(pendingEl) pendingEl.innerText=pending.toFixed(2);
+  });
+}
+function loadCeoPayouts(){
+  var el=document.getElementById('ceoPayoutsList');
+  var completedEl=document.getElementById('ceoCompletedForPayout');
+  var summaryEl=document.getElementById('payoutSummary');
+  if(!el) return;
+  if(!window.db){ el.innerHTML='Demo payouts - Connect Firebase'; return; }
+  el.innerHTML='⏳ Loading payouts...';
+  // First load completed_confirmed bookings that need payout
+  db.ref('bookings').orderByChild('status').equalTo('completed_confirmed').once('value').then(function(snap){
+    var completed=Object.values(snap.val()||{});
+    var h2='';
+    if(completed.length>0){
+      h2+='<div style="background:#fff7ed;border:3px solid #ff6a00;border-radius:12px;padding:12px;margin-bottom:12px"><h3>✅ Completed & Client Confirmed - Ready for Payout (85%)</h3>';
+      completed.forEach(function(b){
+        var payout = Math.round((parseFloat(b.amount)||0)*0.85);
+        h2+='<div style="border:2px solid #ff6a00;border-radius:10px;padding:10px;margin:8px 0;background:white"><b>#'+b.id+'</b> - '+(b.name||'')+' - '+(b.service||'')+'<br>Client Paid: '+(b.amount||'')+' '+(b.currency||'')+'<br>Nurse: '+(b.selectedNurse||'')+'<br><b>Payout 85%: '+payout+' '+(b.currency||'')+'</b><br><button class="btnSmall" style="background:#ff6a00;color:white" onclick="createPayoutForBooking('+b.id+','+payout+',\''+(b.currency||'GHS')+'\',\''+(b.selectedNurse||'')+'\')">💸 Create Payout 85%</button></div>';
+      });
+      h2+='</div>';
+    } else {
+      h2+='<div style="padding:10px;background:#f0fdf4;border-radius:10px">No completed_confirmed bookings waiting for payout. Mark bookings as completed_confirmed first.</div>';
+    }
+    if(completedEl) completedEl.innerHTML=h2;
+  });
+  db.ref('payouts').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{}).reverse();
+    if(all.length===0){ el.innerHTML='No payouts yet - Create from completed bookings above'; return; }
+    var h='';
+    var totalPayout=0, totalPlatform=0;
+    all.forEach(function(p){
+      totalPayout+=(parseFloat(p.payoutAmount)||0);
+      totalPlatform+=(parseFloat(p.platformFee)||0);
+      h+='<div style="border:3px solid '+(p.status==='paid_to_nurse'?'#16a34a':'#ff6a00')+';border-radius:12px;padding:12px;margin:10px 0;background:'+(p.status==='paid_to_nurse'?'#f0fdf4':'#fff7ed')+'">'
+      +'<b>Payout #'+p.id+'</b> - Booking #'+p.bookingId+'<br>Client: '+(p.clientName||'')+'<br>Nurse: '+(p.nursePhone||'')+'<br>Client Paid: '+(p.clientAmount||'')+' '+(p.currency||'')+'<br><b>→ Nurse 85%: '+(p.payoutAmount||'')+' '+(p.currency||'')+'</b> | Platform 15%: '+(p.platformFee||'')+'<br>Status: <span class="statusBadge '+(p.status==='paid_to_nurse'?'st-confirmed':'st-pending')+'">'+(p.status||'')+'</span><br>'
+      +'<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'
+      +'<button class="btnSmall" style="background:#ff6a00;color:white" onclick="payNurseViaPaystack(\''+p.id+'\')">💸 Pay Nurse 85% via Paystack</button>'
+      +'<button class="btnSmall" style="background:#16a34a;color:white" onclick="markPayoutPaid(\''+p.id+'\')">✅ Mark as Paid Manually</button>'
+      +'<button class="btnSmall" style="background:#ef4444;color:white" onclick="deletePayout(\''+p.id+'\')">🗑 Delete</button>'
+      +'</div></div>';
+    });
+    el.innerHTML=h;
+    if(summaryEl) summaryEl.innerHTML='Total Payouts to Nurses: <b>'+totalPayout.toFixed(2)+'</b><br>Total Platform Fees (15%): <b>'+totalPlatform.toFixed(2)+'</b><br>Total Bookings Payouts: '+all.length;
+  });
+}
+function createPayoutForBooking(bookingId, payoutAmount, currency, nursePhone){
+  if(!window.db) return;
+  var payoutId=Date.now();
+  db.ref('bookings/'+bookingId).once('value').then(function(snap){
+    var b=snap.val()||{};
+    var clientAmount=parseFloat(b.amount)||0;
+    var platformFee=clientAmount - payoutAmount;
+    db.ref('payouts/'+payoutId).set({
+      id:payoutId, bookingId:bookingId, clientName:b.name, clientAmount:clientAmount, payoutAmount:payoutAmount, platformFee:platformFee, currency:currency, nursePhone:nursePhone||b.selectedNurse||'unknown', status:'pending_payout', createdAt:Date.now()
+    }).then(function(){
+      db.ref('bookings/'+bookingId).update({status:'payout_created'});
+      alert('Payout #'+payoutId+' created - 85% = '+payoutAmount+' '+currency);
+      loadCeoPayouts();
+    });
+  });
+}
+function payNurseViaPaystack(payoutId){
+  var secretKey = localStorage.getItem('paystackSecretKey') || document.getElementById('paystackSecretKey').value.trim();
+  if(!secretKey){ alert('Enter Paystack Secret Key first (sk_live_...). Save it in Payouts tab.'); return; }
+  if(!window.db){ alert('Demo: Would pay via Paystack - Payout '+payoutId); return; }
+  if(!confirm('Pay nurse via Paystack Transfer? This will send money automatically. Ensure Paystack balance is sufficient. Continue?')) return;
+  db.ref('payouts/'+payoutId).once('value').then(function(snap){
+    var p=snap.val();
+    if(!p){ alert('Payout not found'); return; }
+    // In real implementation, you would call your backend to do Paystack transfer securely
+    // For demo, we simulate success and mark as paid
+    alert('💸 Paystack Transfer Initiated\n\nPayout #'+payoutId+'\nNurse: '+p.nursePhone+'\nAmount: '+p.payoutAmount+' '+p.currency+'\n\nIn production, this calls Paystack API with secret key.\nFor now marking as paid.');
+    db.ref('payouts/'+payoutId).update({status:'paid_to_nurse', paidAt:Date.now(), paystackRef:'simulated_'+Date.now()}).then(function(){
+      db.ref('bookings/'+p.bookingId).update({status:'paid_to_nurse'});
+      loadCeoPayouts();
+    });
+  });
+}
+function markPayoutPaid(payoutId){
+  if(window.db){ db.ref('payouts/'+payoutId).update({status:'paid_to_nurse', paidAt:Date.now()}).then(function(){ alert('Marked as paid'); loadCeoPayouts(); }); }
+}
+function deletePayout(payoutId){ if(confirm('Delete payout?')){ if(window.db) db.ref('payouts/'+payoutId).remove().then(function(){ loadCeoPayouts(); }); } }
+function savePaystackKey(){ var key=document.getElementById('paystackSecretKey').value.trim(); if(!key){ alert('Enter key'); return; } localStorage.setItem('paystackSecretKey', key); document.getElementById('paystackKeyStatus').innerText='✅ Key saved locally - '+key.substring(0,12)+'...'; alert('Paystack key saved'); }
+function testPaystackConnection(){ var key=document.getElementById('paystackSecretKey').value.trim() || localStorage.getItem('paystackSecretKey'); if(!key){ alert('Enter key first'); return; } document.getElementById('paystackKeyStatus').innerText='⏳ Testing...'; fetch('https://api.paystack.co/balance', {headers:{'Authorization':'Bearer '+key}}).then(function(r){ return r.json(); }).then(function(data){ if(data.status){ document.getElementById('paystackKeyStatus').innerText='✅ Connected - Balance: '+(data.data?JSON.stringify(data.data):'OK'); } else { document.getElementById('paystackKeyStatus').innerText='❌ '+ (data.message||'Failed'); } }).catch(function(e){ document.getElementById('paystackKeyStatus').innerText='❌ Error: '+e.message+' (CORS may block in browser - use backend in production)'; }); }
+
+function loadCeoRefunds(){
+  var el=document.getElementById('ceoRefundsList');
+  if(!el) return;
+  if(!window.db){ el.innerHTML='Demo refunds'; return; }
+  db.ref('refunds').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{}).reverse();
+    if(all.length===0){ el.innerHTML='No refunds'; return; }
+    var h='';
+    all.forEach(function(r){
+      h+='<div style="border:3px solid #ef4444;border-radius:12px;padding:12px;margin:10px 0;background:#fef2f2"><b>Refund #'+r.bookingId+'</b><br>Reason: '+(r.reason||'')+'<br>Account: '+(r.account||'')+' - '+(r.accountName||'')+'<br>Status: '+(r.status||'')+'<br><div style="display:flex;gap:6px;margin-top:6px"><button class="btnSmall" style="background:#16a34a;color:white" onclick="approveRefund(\''+r.bookingId+'\')">✅ Approve Refund</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="rejectRefund(\''+r.bookingId+'\')">❌ Reject</button></div></div>';
+    });
+    el.innerHTML=h;
+  });
+}
+function approveRefund(bookingId){ if(window.db){ db.ref('refunds/'+bookingId).update({status:'refund_ok'}); db.ref('bookings/'+bookingId).update({status:'refunded'}); alert('Refund approved for #'+bookingId); loadCeoRefunds(); } }
+function rejectRefund(bookingId){ if(window.db){ db.ref('refunds/'+bookingId).update({status:'refund_rejected'}); alert('Rejected'); loadCeoRefunds(); } }
+
+function loadCeoStaff(){
+  var el=document.getElementById('ceoStaffList');
+  if(!el) return;
+  if(!window.db){ el.innerHTML='Demo staff list'; return; }
+  db.ref('staff').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{});
+    var h='<table><tr><th>ID</th><th>Actions</th></tr>';
+    all.forEach(function(s){ h+='<tr><td>'+(s.id||s.staffId||'')+'</td><td><button class="btnSmall" style="background:#ef4444;color:white" onclick="deleteStaff(\''+(s.id||'')+'\')">Delete</button></td></tr>'; });
+    h+='</table>';
+    el.innerHTML=h;
+  });
+}
+function addStaff(){
+  var id=document.getElementById('newStaffId').value.trim();
+  var pass=document.getElementById('newStaffPass').value.trim();
+  if(!id||!pass){ alert('Enter ID and password'); return; }
+  if(window.db){ db.ref('staff/'+id).set({id:id, password:pass, createdAt:Date.now()}).then(function(){ alert('Staff '+id+' added'); document.getElementById('newStaffId').value=''; document.getElementById('newStaffPass').value=''; loadCeoStaff(); }); } else { alert('Demo: Staff '+id+' would be added'); }
+}
+function deleteStaff(id){ if(confirm('Delete staff '+id+'?')){ if(window.db) db.ref('staff/'+id).remove().then(function(){ loadCeoStaff(); }); } }
+
+function loadCeoDeleted(){
+  var el=document.getElementById('ceoDeletedList');
+  if(!el) return;
+  if(!window.db){ el.innerHTML='Demo deleted nurses'; return; }
+  db.ref('deletedWorkers').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{}).reverse();
+    if(all.length===0){ el.innerHTML='No deleted accounts'; return; }
+    var h='';
+    all.forEach(function(n){
+      h+='<div style="border:3px solid #ef4444;border-radius:12px;padding:12px;margin:10px 0;background:#fef2f2"><b>'+(n.name||'')+'</b> - '+(n.phone||'')+'<br>Reason: <i>'+(n.deleteReason||n.reason||'No reason')+'</i><br>Deleted: '+new Date(n.deletedAt||Date.now()).toLocaleString()+'<br><small>Video: '+(n.videoUrl?'<a href="'+n.videoUrl+'" target="_blank">Link</a>':'none')+' | CV: '+(n.cvUrl?'<a href="'+n.cvUrl+'" target="_blank">Link</a>':'none')+'</small></div>';
+    });
+    el.innerHTML=h;
+  });
+}
+
+function loadAnnounceSettings(){
+  var text=localStorage.getItem('announcementText') || document.getElementById('announcementText').innerText;
+  var bg=localStorage.getItem('announceBg') || '#111827';
+  var tc=localStorage.getItem('announceTextColor') || '#eab308';
+  var bc=localStorage.getItem('announceBorder') || '#eab308';
+  var speed=localStorage.getItem('announceSpeed') || '22';
+  var input=document.getElementById('announcementInput'); if(input) input.value=text;
+  var bgInput=document.getElementById('announceBgColor'); if(bgInput) bgInput.value=bg;
+  var textInput=document.getElementById('announceTextColor'); if(textInput) textInput.value=tc;
+  var borderInput=document.getElementById('announceBorderColor'); if(borderInput) borderInput.value=bc;
+  var speedInput=document.getElementById('announceSpeed'); if(speedInput) speedInput.value=speed;
+  previewAnnouncement();
+  // Load rates editor
+  var editor=document.getElementById('minRateEditor');
+  if(editor){
+    var h='';
+    Object.keys(NURSE_HOURLY_MIN).forEach(function(code){
+      var data=NURSE_HOURLY_MIN[code];
+      var override=localStorage.getItem('nurseHourlyOverride'); var val=data.amount;
+      try{ var obj=JSON.parse(override||'{}'); if(obj[code]) val=obj[code]; }catch(e){}
+      h+='<div style="display:flex;gap:6px;align-items:center;margin:4px 0"><span style="width:60px">'+code+'</span><input type="number" id="rate-'+code+'" value="'+val+'" style="width:80px;margin:0"> <span>'+data.currency+'</span><span style="font-size:10px">'+data.label+'</span></div>';
+    });
+    editor.innerHTML=h;
+  }
+}
+function previewAnnouncement(){
+  var text=document.getElementById('announcementInput').value || '🔞 18+ ONLY - LOVE CARE GLOBAL';
+  var bg=document.getElementById('announceBgColor').value;
+  var tc=document.getElementById('announceTextColor').value;
+  var bc=document.getElementById('announceBorderColor').value;
+  var speed=document.getElementById('announceSpeed').value;
+  document.getElementById('bgColorVal').innerText=bg;
+  document.getElementById('textColorVal').innerText=tc;
+  document.getElementById('borderColorVal').innerText=bc;
+  document.getElementById('speedVal').innerText=speed+'s';
+  var preview=document.getElementById('announcePreview');
+  if(preview){
+    preview.style.background=bg;
+    preview.style.color=tc;
+    preview.style.borderColor=bc;
+    preview.innerHTML='<span style="display:inline-block;animation:marquee '+speed+'s linear infinite">'+text+'</span>';
+  }
+}
+function saveAnnouncement(){
+  var text=document.getElementById('announcementInput').value;
+  var bg=document.getElementById('announceBgColor').value;
+  var tc=document.getElementById('announceTextColor').value;
+  var bc=document.getElementById('announceBorderColor').value;
+  var speed=document.getElementById('announceSpeed').value;
+  localStorage.setItem('announcementText', text);
+  localStorage.setItem('announceBg', bg);
+  localStorage.setItem('announceTextColor', tc);
+  localStorage.setItem('announceBorder', bc);
+  localStorage.setItem('announceSpeed', speed);
+  // Apply live
+  document.getElementById('announcementText').innerText=text;
+  document.documentElement.style.setProperty('--announce-bg', bg);
+  document.documentElement.style.setProperty('--announce-text', tc);
+  document.documentElement.style.setProperty('--announce-border', bc);
+  document.documentElement.style.setProperty('--announce-speed', speed+'s');
+  // Save to Firebase for all users
+  if(window.db){ db.ref('announcement').set({text:text, bg:bg, textColor:tc, border:bc, speed:speed, updatedAt:Date.now()}); }
+  alert('✅ Announcement saved and live!');
+}
+function saveSettings(){
+  var override={};
+  Object.keys(NURSE_HOURLY_MIN).forEach(function(code){
+    var el=document.getElementById('rate-'+code);
+    if(el) override[code]=el.value;
+  });
+  localStorage.setItem('nurseHourlyOverride', JSON.stringify(override));
+  if(window.db){ db.ref('settings/hourlyRates').set(override); }
+  alert('Rates saved');
+}
+
+// ===== STAFF EXTRA TABS =====
+function loadStaffNurses(){ 
+  var el=document.getElementById('staffNursesList');
+  if(!el){
+    // Create container if not exists
+    var container=document.getElementById('staff-tab-nurses');
+    if(container){ container.innerHTML='<div id="staffNursesList">Loading...</div>'; el=document.getElementById('staffNursesList'); }
+    else return;
+  }
+  // Reuse CEO logic but simplified
+  if(!window.db){ el.innerHTML='Demo nurses - Connect Firebase'; return; }
+  db.ref('workers').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{});
+    var h='';
+    all.forEach(function(n){
+      h+='<div style="border:2px solid #16a34a;border-radius:10px;padding:10px;margin:8px 0;background:#f0fdf4"><b>'+(n.name||'')+'</b> - '+(n.phone||'')+'<br>'+(n.specialty||'')+' | '+(n.location||'')+'<br><button class="btnSmall" style="background:#7c3aed;color:white" onclick="viewNurseMedia(\''+n.phone+'\',\'video\')">View Media</button> <button class="btnSmall" style="background:#2563eb;color:white" onclick="openGoogleMapsLive('+(n.lat||5.6037)+','+(n.lng||-0.1870)+')">Map</button></div>';
+    });
+    el.innerHTML=h||'No nurses';
+  });
+}
+function loadStaffClients(){
+  var el=document.getElementById('staffClientsList');
+  if(!el){
+    var container=document.getElementById('staff-tab-clients');
+    if(container){ container.innerHTML='<div id="staffClientsList">Loading...</div>'; el=document.getElementById('staffClientsList'); }
+    else return;
+  }
+  if(!window.db){ el.innerHTML='Demo clients'; return; }
+  db.ref('bookings').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{});
+    var clients={};
+    all.forEach(function(b){ var k=b.phone||b.email; if(!clients[k]) clients[k]={name:b.name, phone:b.phone, email:b.email, count:0}; clients[k].count++; });
+    var h='<table><tr><th>Name</th><th>Phone</th><th>Bookings</th></tr>';
+    Object.values(clients).forEach(function(c){ h+='<tr><td>'+(c.name||'')+'</td><td>'+(c.phone||'')+'</td><td>'+c.count+'</td></tr>'; });
+    h+='</table>';
+    el.innerHTML=h;
+  });
+}
+function loadStaffAnnounce(){
+  var el=document.getElementById('staffAnnounceView');
+  if(!el){
+    var container=document.getElementById('staff-tab-announce');
+    if(container){ container.innerHTML='<div id="staffAnnounceView">Loading...</div>'; el=document.getElementById('staffAnnounceView'); }
+    else return;
+  }
+  var text=localStorage.getItem('announcementText') || '🔞 18+ ONLY - LOVE CARE GLOBAL';
+  el.innerHTML='<div style="background:#111827;color:#eab308;padding:12px;border-radius:10px;border:3px solid #eab308"><span style="display:inline-block;animation:marquee 22s linear infinite">'+text+'</span></div><p style="font-size:11px;margin-top:8px">Announcement is set by CEO. Staff can view but only CEO can edit.</p>';
+}
+
+// ===== CEO PASSWORD CHANGE =====
+function openCeoPasswordModal(){
+  var modal=document.getElementById('ceoPasswordModal');
+  if(!modal){
+    var html='<div id="ceoPasswordModal" class="ratePopup" style="border-color:#111827"><h3 style="margin:0 0 10px 0">🔐 Change CEO Password</h3><input id="ceoCurrentPass" type="password" placeholder="Current Password"><input id="ceoNewPass" type="password" placeholder="New Password"><input id="ceoConfirmPass" type="password" placeholder="Confirm New Password"><div style="display:flex;gap:8px;margin-top:12px"><button class="btnSubmit" style="background:#111827;flex:1" onclick="changeCeoPassword()">💾 Change Password</button><button class="btnSubmit" style="background:#6b7280;flex:1" onclick="closeCeoPasswordModal()">Cancel</button></div><div id="ceoPassChangeResult" style="font-size:11px;margin-top:8px"></div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+    modal=document.getElementById('ceoPasswordModal');
+  }
+  modal.classList.remove('hidden');
+}
+function closeCeoPasswordModal(){ var m=document.getElementById('ceoPasswordModal'); if(m) m.classList.add('hidden'); }
+function changeCeoPassword(){
+  var curr=document.getElementById('ceoCurrentPass').value.trim();
+  var newP=document.getElementById('ceoNewPass').value.trim();
+  var conf=document.getElementById('ceoConfirmPass').value.trim();
+  var result=document.getElementById('ceoPassChangeResult');
+  if(!curr||!newP||!conf){ result.innerText='Fill all fields'; return; }
+  if(newP!==conf){ result.innerText='❌ New passwords do not match'; return; }
+  if(newP.length<4){ result.innerText='❌ New password too short (min 4)'; return; }
+  var ceoID=localStorage.getItem('ceoID')||'LOVE2026';
+  // Verify current password
+  var validCEO = {'LOVE2026':'CEO2026','CEO':'CEO123','CEO001':'ceo123','ADMIN':'admin2026'};
+  var storedPass = localStorage.getItem('ceoPassword_'+ceoID) || validCEO[ceoID] || 'CEO2026';
+  // Also check custom passwords
+  try{ var custom=JSON.parse(localStorage.getItem('ceoCustomPasswords')||'{}'); if(custom[ceoID]) storedPass=custom[ceoID]; }catch(e){}
+  if(curr!==storedPass){
+    // Check Firebase
+    if(window.db){
+      db.ref('ceo/'+ceoID).once('value').then(function(snap){
+        var data=snap.val()||{};
+        if(data.password!==curr && data.pass!==curr){
+          result.innerText='❌ Current password incorrect';
+        } else {
+          doChange();
+        }
+      });
+      return;
+    } else {
+      result.innerText='❌ Current password incorrect';
+      return;
+    }
+  }
+  doChange();
+  function doChange(){
+    try{
+      var custom=JSON.parse(localStorage.getItem('ceoCustomPasswords')||'{}');
+      custom[ceoID]=newP;
+      localStorage.setItem('ceoCustomPasswords', JSON.stringify(custom));
+      localStorage.setItem('ceoPassword_'+ceoID, newP);
+    }catch(e){}
+    if(window.db){ db.ref('ceo/'+ceoID).update({password:newP, pass:newP, updatedAt:Date.now()}); }
+    result.innerText='✅ Password changed to: '+newP+' - Use new password next login';
+    result.style.color='#16a34a';
+    setTimeout(function(){ closeCeoPasswordModal(); alert('CEO password changed to '+newP); },1500);
+  }
+}
+
+// Override loginCEO to check custom passwords
+(function(){
+  var originalLoginCEO = window.loginCEO;
+  window.loginCEO = function(){
+    var id=document.getElementById('ceoLoginID').value.trim();
+    var pass=document.getElementById('ceoLoginPass').value.trim();
+    var resultEl=document.getElementById('ceoLoginResult');
+    try{
+      var custom=JSON.parse(localStorage.getItem('ceoCustomPasswords')||'{}');
+      if(custom[id] && custom[id]===pass){
+        localStorage.setItem('isCEOLogged','true');
+        localStorage.setItem('ceoID', id);
+        var chatBtn=document.getElementById('nav-chat');
+        var masterBtn=document.getElementById('masterClearBtn');
+        if(chatBtn){ chatBtn.classList.remove('hidden'); chatBtn.classList.add('show-for-staff'); chatBtn.style.display='flex'; }
+        if(masterBtn){ masterBtn.classList.remove('hidden'); }
+        if(resultEl) resultEl.innerText='✅ CEO Verified (custom password)';
+        showPage('ceo-dashboard');
+        setTimeout(function(){ if(typeof loadCeoData==='function') loadCeoData(); },500);
+        return;
+      }
+    }catch(e){}
+    // Call original logic (will be defined later, so we implement here)
+    var validCEO = {'LOVE2026':'CEO2026','CEO':'CEO123','CEO001':'ceo123','ADMIN':'admin2026'};
+    if(validCEO[id] && validCEO[id]===pass){
+      localStorage.setItem('isCEOLogged','true');
+      localStorage.setItem('ceoID', id);
+      var chatBtn=document.getElementById('nav-chat');
+      var masterBtn=document.getElementById('masterClearBtn');
+      if(chatBtn){ chatBtn.classList.remove('hidden'); chatBtn.classList.add('show-for-staff'); chatBtn.style.display='flex'; }
+      if(masterBtn){ masterBtn.classList.remove('hidden'); }
+      if(resultEl) resultEl.innerText='✅ CEO Verified';
+      showPage('ceo-dashboard');
+      setTimeout(function(){ if(typeof loadCeoData==='function') loadCeoData(); },500);
+      return;
+    }
+    if(window.db){
+      db.ref('ceo/'+id).once('value').then(function(snap){
+        var data=snap.val();
+        if(data && (data.password===pass || data.pass===pass)){
+          localStorage.setItem('isCEOLogged','true');
+          localStorage.setItem('ceoID', id);
+          showPage('ceo-dashboard');
+          if(typeof loadCeoData==='function') loadCeoData();
+        } else {
+          if(resultEl) resultEl.innerText='❌ Invalid CEO credentials. Demo: LOVE2026 / CEO2026';
+        }
+      });
+    } else {
+      if(resultEl) resultEl.innerText='❌ Invalid CEO. Demo: LOVE2026 / CEO2026';
+    }
+  };
+})();
+
+// Auto-load staff extra tabs when staff dashboard shown
+(function(){
+  var originalShowPage = window.showPage;
+  window.showPage = function(id){
+    if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
+    if(id==='staff-dashboard' && !localStorage.getItem('staffID')) id='staff-login';
+    if(id==='nurse-dashboard' && !localStorage.getItem('nursePhone')) id='nurse-login';
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); p.style.display='none'; });
+    var el=document.getElementById('page-'+id);
+    if(el){ el.classList.add('active'); el.style.display='block'; }
+    document.querySelectorAll('.bottomNav button').forEach(function(b){ b.classList.remove('active'); });
+    var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
+    var nid=map[id];
+    if(nid){ var nb=document.getElementById(nid); if(nb) nb.classList.add('active'); }
+    window.scrollTo(0,0);
+    if(id==='home') setTimeout(function(){ if(!uberMap) initUberMap(); else uberMap.invalidateSize(); },300);
+    if(id==='ceo-dashboard') setTimeout(function(){ loadCeoData(); },300);
+    if(id==='staff-dashboard') setTimeout(function(){ if(typeof loadStaffBookings==='function') loadStaffBookings(); },300);
+  };
+})();
 
 </script>
 </body>
