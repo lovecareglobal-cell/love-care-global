@@ -5,9 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
 <!-- EMAILJS CONFIG: Service: service_uqu1kcg | Public Key: rJ6O0Qmnsx96892o5 | Template: Create in dashboard -->
-<link rel="icon" type="image/png" href="./Icon-512.png">
-<link rel="apple-touch-icon" href="./Icon-512.png">
+<link rel="icon" type="image/png" sizes="72x72" href="./Icon-72.png">
+<link rel="icon" type="image/png" sizes="96x96" href="./Icon-96.png">
+<link rel="icon" type="image/png" sizes="128x128" href="./Icon-128.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./Icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./Icon-512.png">
+<link rel="apple-touch-icon" type="image/png" sizes="152x152" href="./Icon-152.png">
+<link rel="apple-touch-icon" type="image/png" sizes="192x192" href="./Icon-192.png">
+<link rel="apple-touch-icon" type="image/png" sizes="512x512" href="./Icon-512.png">
 <link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#16a34a">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
@@ -2469,5 +2476,21 @@ function clearAllVerifications(){
 function resendCode(){ document.getElementById('sendCodeArea').classList.remove('hidden'); document.getElementById('enterCodeArea').classList.add('hidden'); sendVerificationCode(); }
 
 </script>
+
+<script>
+// Register Service Worker for PWABuilder
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(registration) {
+        console.log('ServiceWorker registered: ', registration.scope);
+      })
+      .catch(function(err) {
+        console.log('ServiceWorker registration failed: ', err);
+      });
+  });
+}
+</script>
+
 </body>
 </html>
