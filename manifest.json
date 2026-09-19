@@ -1,45 +1,60 @@
 {
-  "name": "LOVE CARE GLOBAL - Home Nursing",
+  "name": "LOVE CARE GLOBAL - Professional Home Nursing Services",
   "short_name": "Love Care",
-  "description": "LOVE CARE GLOBAL - Professional Home Nursing Services - Elderly Care, Baby Care, Hospital Support, Post-Surgery Care, Disability Support, Maternity Care, Night Nurse, Palliative Care, Physiotherapy, Injection and Wound Care, Diabetes Monitoring, Dementia Care, Child Special Needs - GPS Auto, 13 Services, 15% CEO 85% Nurse, Chat Admin, Live Nurses Map, Accra Ghana",
+  "description": "LOVE CARE GLOBAL - Professional Home Nursing Services - Elderly Care, Baby Care, Hospital Support, Post-Surgery Care",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f0fdf4",
   "theme_color": "#16a34a",
   "orientation": "any",
-  "scope": "./",
   "icons": [
     {
-      "src": "./logo.png",
+      "src": "./Icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./Icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./Icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./Icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./Icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./Icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "./logo.png",
-      "sizes": "512x512",
+      "src": "./Icon-384.png",
+      "sizes": "384x384",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "./logo.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./logo.png",
+      "src": "./Icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
-  ],
-  "screenshots": [],
-  "categories": [
-    "medical",
-    "health",
-    "lifestyle"
-  ],
-  "lang": "en",
-  "dir": "ltr"
+  ]
 }
