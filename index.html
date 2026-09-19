@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
-<!-- EMAILJS CONFIG: Service: service_9s6ci5k | Public Key: rJ6O0Qmnsx96892o5 | Template: Create in dashboard -->
+<script>emailjs.init("8iQY_irxfgwywlk7K");</script>
 <link rel="icon" type="image/png" href="./Icon-512.png">
 <link rel="apple-touch-icon" href="./Icon-512.png">
 <link rel="manifest" href="./manifest.json">
@@ -603,54 +603,49 @@ function sendVerificationCode(){
     // Try to auto-detect template ID - user can paste it
     var templateIdToUse = EMAILJS_TEMPLATE_ID;
     
-    emailjs.send(EMAILJS_SERVICE_ID, templateIdToUse, {
-      email: email,  // Matches your screenshot {{email}}
-      to_email: email,  // Also send as to_email for compatibility
-      to_name: name,
-      name: name,
-      verification_code: code,
-      code: code,  // Alternative variable
-      passcode: code,
-      otp: code,
-      from_name: 'LOVE CARE GLOBAL',
-      reply_to: 'lovecareglobal@gmail.com',
-      company: 'LOVE CARE GLOBAL'
-    }).then(function(response){
-      document.getElementById('sentToEmail').innerText = email;
-      document.getElementById('demoCodeDisplay').innerHTML = '✅ Code sent to <b>'+email+'</b> via EmailJS!<br><small style="color:#16a34a">Check inbox & spam folder. Code: '+code+' (shown here for testing)</small>';
-      document.getElementById('demoCodeDisplay').style.background = '#dcfce7';
-      document.getElementById('sendCodeArea').classList.add('hidden');
-      document.getElementById('enterCodeArea').classList.remove('hidden');
-      document.getElementById('emailVerifyStatus').innerText = '✅ Code sent to '+email+' - Check inbox (and spam). Enter code below.';
-      if(db){ db.ref('email_verifications/'+Date.now()).set({email:email, code:code, sent:true, time:new Date().toLocaleString(), timestamp:Date.now()}); }
-      document.getElementById('sendCodeArea').querySelector('button').disabled = false;
-      document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
-    }, function(error){
-      console.log('EmailJS failed, fallback to demo:', error);
-      // Fallback to demo mode
-      document.getElementById('sentToEmail').innerText = email;
-      document.getElementById('demoCodeDisplay').innerHTML = '⚠️ Template ID not found<br>DEMO CODE: <b>'+code+'</b><br><small>Your screenshot shows To Email = {{email}} - I fixed code to send as {{email}}. Now just copy Template ID from top of that page and send to me</small>';
-      document.getElementById('demoCodeDisplay').style.background = '#fef3c7';
-      document.getElementById('sendCodeArea').classList.add('hidden');
-      document.getElementById('enterCodeArea').classList.remove('hidden');
-      document.getElementById('emailVerifyStatus').innerText = 'Demo mode: Code is '+code+' - Create template to enable real email. Check console for error: '+JSON.stringify(error).substring(0,100);
-      if(db){ db.ref('email_verifications/'+Date.now()).set({email:email, code:code, sent:false, error:error.text||'template missing', time:new Date().toLocaleString(), timestamp:Date.now()}); }
-      document.getElementById('sendCodeArea').querySelector('button').disabled = false;
-      document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
-    });
+    <script>
+// === LOVE CARE GLOBAL - REAL EMAILJS VERIFY ===
+let LCG_OTP = "";
+
+function sendLCGCode(){
+  const e = document.getElementById("clientEmail") || document.querySelector('input[type="email"]');
+  const email = e ? e.value : "";
+  if(!email.includes("@")){ alert("Enter client email first!"); return; }
+  
+  LCG_OTP = Math.floor(100000 + Math.random() * 900000).toString();
+  localStorage.setItem("lcg_otp", LCG_OTP);
+  localStorage.setItem("lcg_otp_email", email);
+  localStorage.setItem("lcg_otp_time", Date.now());
+
+  // REPLACE template_b3x7j9k with your REAL template ID from EmailJS
+  emailjs.send("service_8ax6513", "template_b3x7j9k", {
+    to_email: email,
+    otp_code: LCG_OTP
+  }).then(()=>{
+    alert("CODE SENT to "+email+" ✅\nCode: "+LCG_OTP+" (also emailed)\nCheck spam!");
+  }).catch((err)=>{
+    alert("Error: "+ (err.text || JSON.stringify(err)) + "\nMake sure Template ID is correct!");
+  });
+}
+
+function verifyLCGCode(){
+  const input = document.getElementById("otpInput") ? document.getElementById("otpInput").value : prompt("Enter code:");
+  const saved = localStorage.getItem("lcg_otp");
+  const savedTime = parseInt(localStorage.getItem("lcg_otp_time")||"0");
+  
+  if(Date.now() - savedTime > 10*60*1000){ alert("Code expired! Send new after 10min."); return; }
+  
+  if(input === saved){
+    alert("Email Verified & Saved Permanently! ✓");
+    localStorage.setItem("lcg_verified_email", localStorage.getItem("lcg_otp_email"));
+    localStorage.setItem("lcg_verified_18plus", "true");
+    // close modal if you have one
+    const m = document.getElementById("otpModal"); if(m) m.style.display="none";
   } else {
-    // Demo mode if template ID not set
-    document.getElementById('sentToEmail').innerText = email;
-    document.getElementById('demoCodeDisplay').innerHTML = 'DEMO CODE: <b>'+code+'</b> (Real email will send after you create Template ID)<br><br><b>To enable real email:</b><br>1. Go to emailjs.com → Email Templates → Create New Template<br>2. Set Template ID to: template_0tq1q9j OR update EMAILJS_TEMPLATE_ID in code<br>3. Add variables: {{to_email}}, {{verification_code}}, {{to_name}}<br>4. Save - Real emails will then send!';
-    document.getElementById('demoCodeDisplay').style.background = '#fef3c7';
-    document.getElementById('sendCodeArea').classList.add('hidden');
-    document.getElementById('enterCodeArea').classList.remove('hidden');
-    document.getElementById('emailVerifyStatus').innerText = 'Demo mode - Code: '+code+' - Create template ID to enable real sending. Your Service ID & Public Key are configured!';
-    if(db){ db.ref('email_verifications/'+Date.now()).set({email:email, code:code, sent:false, mode:'demo', time:new Date().toLocaleString(), timestamp:Date.now()}); }
-    document.getElementById('sendCodeArea').querySelector('button').disabled = false;
-    document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
+    alert("Wrong code boss! Try again.");
   }
 }
+</script>
 function resendCode(){ document.getElementById('sendCodeArea').classList.remove('hidden'); document.getElementById('enterCodeArea').classList.add('hidden'); sendVerificationCode(); }
 function confirmVerificationCode(){
   var entered = document.getElementById('verifyCodeInput').value.trim();
