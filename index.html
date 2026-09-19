@@ -572,36 +572,87 @@ function checkEmailAndBook(){
   submitBooking();
 }
 // ===== REAL EMAILJS INTEGRATION =====
-var EMAILJS_SERVICE_ID = 'service_9s6ci5k';
-var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
-var EMAILJS_TEMPLATE_ID = 'template_yi4iwel'; // Real Template ID from your screenshot
+// ===== LCG EMAIL VERIFICATION - REAL EMAILJS - 10 MIN =====
+var pendingLCGCode = null;
 
-try{
-  if(window.emailjs){
-    emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
+function isEmailVerified(){
+  const verified = localStorage.getItem('verifiedClientEmail');
+  const expiry = localStorage.getItem('verifiedExpiry');
+  if(verified && expiry && Date.now() < parseInt(expiry)){
+    return true;
   }
-}catch(e){ console.log('EmailJS init error', e); }
+  return false;
+}
 
-function sendVerificationCode(){
-  var email = document.getElementById('verifyEmailInput').value.trim();
-  var name = document.getElementById('cName').value.trim() || 'Client';
-  if(!email || !email.includes('@')){ document.getElementById('emailVerifyStatus').innerText='Enter valid real email (e.g. you@gmail.com)'; return; }
-  var code = Math.floor(100000 + Math.random()*900000).toString();
-  pendingEmailCode = code;
-  localStorage.setItem('pendingEmail', email);
-  localStorage.setItem('pendingEmailCode', code);
-  
-  document.getElementById('emailVerifyStatus').innerText = '⏳ Sending code to '+email+' via EmailJS...';
-  document.getElementById('sendCodeArea').querySelector('button').disabled = true;
-  document.getElementById('sendCodeArea').querySelector('button').innerText = '⏳ Sending...';
-  
-  // Try real EmailJS send - Compatible with {{email}} from screenshot and {{to_email}}
-  if(window.emailjs){
-    // Use template ID from URL if visible, otherwise use default
-    var urlParams = new URLSearchParams(window.location.search);
-    var templateFromUrl = null;
-    // Try to auto-detect template ID - user can paste it
-    var templateIdToUse = EMAILJS_TEMPLATE_ID;
+function checkEmailAndFindNurses(){
+  if(!isEmailVerified()){
+    const modal = document.getElementById('emailVerifyModal');
+    if(modal){ modal.classList.remove('hidden'); modal.style.display='flex'; }
+    return;
+  }
+  findNursesUber();
+}
+
+function checkEmailAndBook(){
+  if(!isEmailVerified()){
+    const modal = document.getElementById('emailVerifyModal');
+    if(modal){ modal.classList.remove('hidden'); modal.style.display='flex'; }
+    return;
+  }
+  submitBooking();
+}
+
+function sendLCGCode(){
+  const emailInput = document.getElementById('clientEmail');
+  const email = emailInput ? emailInput.value.trim() : "";
+  if(!email || !email.includes("@")){ alert("Boss enter client email first!"); return; }
+
+  pendingLCGCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiryTime = Date.now() + 10*60*1000;
+
+  localStorage.setItem('lcg_pending_code', pendingLCGCode);
+  localStorage.setItem('lcg_pending_expiry', expiryTime);
+  localStorage.setItem('lcg_pending_email', email);
+
+  const btn = document.getElementById('sendCodeBtn');
+  if(btn) btn.innerText = "Sending...";
+
+  // THIS MATCHES YOUR TEMPLATE
+  emailjs.send("service_8ax6513", "template_yi4iwel", {
+    to_email: email,
+    otp_code: pendingLCGCode
+  }).then(()=>{
+    if(btn) btn.innerText = "Code Sent ✓";
+    alert("✅ CODE SENT to " + email + "\nCode: " + pendingLCGCode + "\nCheck INBOX + SPAM!\nExpires in 10 min");
+    const otpArea = document.getElementById('otpInputArea');
+    if(otpArea) otpArea.classList.remove('hidden');
+  }).catch((err)=>{
+    if(btn) btn.innerText = "Retry Send";
+    alert("❌ FAILED: " + (err.text || JSON.stringify(err)) + "\nCheck: 1) Template saved with {{to_email}} 2) {{otp_code}} in body");
+    console.error(err);
+  });
+}
+
+function verifyLCGCode(){
+  const input = document.getElementById('emailCodeInput');
+  const code = input ? input.value.trim() : "";
+  const savedCode = localStorage.getItem('lcg_pending_code');
+  const expiry = parseInt(localStorage.getItem('lcg_pending_expiry') || "0");
+  const email = localStorage.getItem('lcg_pending_email');
+
+  if(!savedCode){ alert("No code sent yet! Click Send Code."); return; }
+  if(Date.now() > expiry){ alert("Code EXPIRED after 10 min! Send new code."); return; }
+
+  if(code === savedCode){
+    localStorage.setItem('verifiedClientEmail', email);
+    localStorage.setItem('verifiedExpiry', (Date.now() + 10*60*1000).toString());
+    alert("✅ Verified! " + email + " saved for 10 min");
+    const modal = document.getElementById('emailVerifyModal');
+    if(modal){ modal.style.display='none'; modal.classList.add('hidden'); }
+  } else {
+    alert("❌ Wrong code! You entered " + code + " but code is " + savedCode);
+  }
+}
     
     <script>
 // === LOVE CARE GLOBAL - REAL EMAILJS VERIFY ===
@@ -618,7 +669,7 @@ function sendLCGCode(){
   localStorage.setItem("lcg_otp_time", Date.now());
 
   // REPLACE template_b3x7j9k with your REAL template ID from EmailJS
-  emailjs.send("service_8ax6513", "template_b3x7j9k", {
+  emailjs.send("service_8ax6513", "template_yi4iwel", {
     to_email: email,
     otp_code: LCG_OTP
   }).then(()=>{
