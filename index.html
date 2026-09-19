@@ -301,7 +301,16 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </div>
 
 <div id="page-booking-public" class="page">
-<div class="card" style="border:3px solid #2563eb"><h2>💡 HELP CENTER</h2><div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:12px;margin:10px 0"><p style="font-size:11px;line-height:1.6"><b>Example 1:</b> 2hrs/day × 7 days = 14 hrs total<br><b>Example 2:</b> 10hrs/day × 3 days = 30 hrs<br><b>Live-out:</b> Goes home, pay per hour<br><b>Live-in:</b> Stays 24hrs, private room + food, +10%</p></div><input id="helpSearch" placeholder="🔍 Search help..." oninput="filterHelp()" style="border:2px solid #2563eb"><div id="helpFaqList"></div></div>
+<div class="card" style="border:3px solid #2563eb"><h2>💡 HELP CENTER</h2><div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:12px;margin:10px 0"><p style="font-size:11px;line-height:1.6"><b>Example 1:</b> 2hrs/day × 7 days = 14 hrs total<br><b>Example 2:</b> 10hrs/day × 3 days = 30 hrs<br><b>Live-out:</b> Goes home, pay per hour<br><b>Live-in:</b> Stays 24hrs, private room + food, +10%</p></div><input id="helpSearch" placeholder="🔍 Search help..." oninput="filterHelp()" style="border:2px solid #2563eb"><div id="helpFaqList"></div>
+<div class="card" style="border:3px solid #16a34a;background:#f0fdf4"><h2>🤖 AI Help Bot - Ask Anything About Using the App</h2>
+<div style="background:#111827;color:#eab308;padding:8px;border-radius:8px;font-size:11px;font-weight:800;text-align:center;margin-bottom:8px">Instant answers - Booking, Rates, Live Map, Nurse Join, Payouts, Staff/CEO, Footer</div>
+<div id="aiBotMessages" style="height:300px;overflow-y:auto;border:3px solid #16a34a;border-radius:12px;padding:10px;background:#f9fafb;display:flex;flex-direction:column;gap:8px;margin-bottom:8px">
+<div style="text-align:center;color:#6b7280;font-size:11px;padding:20px">👋 Hi! I am your LOVE CARE AI assistant. Ask me anything about using the app - booking, rates, live map, nurse registration, payouts, secret staff/CEO access, footer, etc.<br><br><b>Try:</b> "how to book", "live-in vs live-out", "gps not working", "footer buttons not working", "how to join as nurse", "staff login"</div>
+</div>
+<div style="display:flex;gap:6px"><input id="aiBotInput" placeholder="Ask AI: e.g. how to book, live-in difference, footer buttons..." style="flex:1;margin:0"><input type="hidden"><button class="btnSmall" style="background:#16a34a;color:white;padding:12px 18px" onclick="askAIBot()">Ask AI</button></div>
+<div style="display:flex;gap:6px;margin-top:6px"><button class="btnSmall" style="background:#6b7280;color:white;flex:1" onclick="clearAIBot()">Clear Chat</button><button class="btnSmall" style="background:#2563eb;color:white;flex:1" onclick="document.getElementById('aiBotInput').value='how to book'; askAIBot();">Example: How to book</button></div>
+</div>
+</div>
 </div>
 
 <div id="page-nurse-login" class="page"><div class="card" style="margin:20px;border:3px solid #16a34a"><h2>Nurse Login</h2><div class="phoneRow"><select id="nurseLoginCode"></select><input id="nurseLoginPhone" placeholder="Phone"></div><input id="nurseLoginPass" type="password" placeholder="Password"><button class="btnSubmit" onclick="loginNurse()">Login as Nurse</button><div id="nurseLoginResult" style="color:red;font-size:11px;margin-top:8px"></div></div></div>
@@ -1067,6 +1076,130 @@ populatePhoneCodes();
 var savedCountry=localStorage.getItem('selectedCountry'); if(savedCountry){document.getElementById('countrySelect').value=savedCountry;}
 calculateTotal();
 };
+
+
+
+
+
+// ===== 1. STAFF & CEO SECRET ACCESS - RESTORED =====
+(function(){
+  var logo=document.getElementById('logoTapArea');
+  if(!logo) return;
+  var tapCount=0, tapTimer=null, longPressTimer=null, longPressTriggered=false;
+  function resetTap(){ tapCount=0; }
+  logo.addEventListener('click', function(e){
+    if(longPressTriggered){ longPressTriggered=false; return; }
+    tapCount++;
+    clearTimeout(tapTimer);
+    tapTimer=setTimeout(resetTap, 3000);
+    if(tapCount>=5){
+      tapCount=0;
+      clearTimeout(tapTimer);
+      var hint=document.createElement('div');
+      hint.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#7c3aed;color:white;padding:10px 18px;border-radius:20px;font-weight:800;font-size:12px;z-index:100000;box-shadow:0 4px 12px rgba(0,0,0,.3)';
+      hint.innerText='🔓 Staff Portal Unlocked - 5 taps detected';
+      document.body.appendChild(hint);
+      setTimeout(function(){hint.remove()},2000);
+      showPage('staff-login');
+    }
+  });
+  function startLongPress(){
+    longPressTriggered=false;
+    longPressTimer=setTimeout(function(){
+      longPressTriggered=true;
+      var hint=document.createElement('div');
+      hint.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#111827;color:#eab308;padding:10px 18px;border-radius:20px;font-weight:800;font-size:12px;z-index:100000;box-shadow:0 4px 12px rgba(0,0,0,.3);border:2px solid #eab308';
+      hint.innerText='🔐 CEO Access Unlocked - Long press detected';
+      document.body.appendChild(hint);
+      setTimeout(function(){hint.remove()},2000);
+      if(navigator.vibrate) navigator.vibrate(100);
+      showPage('ceo-login');
+    }, 1500);
+  }
+  function cancelLongPress(){ clearTimeout(longPressTimer); }
+  logo.addEventListener('touchstart', startLongPress, {passive:true});
+  logo.addEventListener('touchend', cancelLongPress);
+  logo.addEventListener('touchmove', cancelLongPress);
+  logo.addEventListener('mousedown', startLongPress);
+  logo.addEventListener('mouseup', cancelLongPress);
+  logo.addEventListener('mouseleave', cancelLongPress);
+})();
+
+// ===== 2. AI HELP BOT =====
+var helpKnowledgeBase = [
+  {keywords:['book','booking','how to book'], answer:'📖 <b>How to Book:</b><br>1. Enter Name (18+)<br>2. Phone & Country<br>3. GPS Auto<br>4. Service (13 types)<br>5. Live-in/out + Start/End Time<br>6. Days/Weeks/Months & hrs/day<br>7. System shows MIN legal rate<br>8. Offer >= minimum<br>9. FIND NURSES NEAR ME (Google Live map)<br>10. Select nurse → BOOK'},
+  {keywords:['rate','minimum','legal','wage','pay','price','ghs'], answer:'⚖ <b>Legal Minimum Rates:</b><br>Ghana 15 GHS/hr, Nigeria 1500 NGN/hr, SA 80 ZAR/hr, USA 25 USD/hr, UK 15 GBP/hr<br>Total = hourly × total hours ×1.10 if Live-in<br>System BLOCKS below minimum.'},
+  {keywords:['live-in','livein','live in','live-out','liveout'], answer:'🏠 <b>Live-in vs Live-out:</b><br>Live-out: Nurse comes Start-End daily, goes home.<br>Live-in: Stays 24hrs, needs room/food/toilet, +10% allowance.'},
+  {keywords:['gps','map','google','live','navigation'], answer:'🗺 <b>Google Live & Navigation FIXED:</b><br>GPS Auto → Blue dot live<br>FIND NURSES → Green dots<br>Select nurse → Blue dashed route<br>NAV button → Opens Google Maps turn-by-turn<br>Radius 5/10/20/50km'},
+  {keywords:['nurse','register','join'], answer:'👩⚕ <b>Join as Nurse:</b><br>Join tab → Name 18+, Phone, Password, Experience, Specialty<br>GPS → Upload Video/CV/Cert/ID from storage or link<br>Care Mode → Register → CEO verifies → Login → START DUTY → Live on map'},
+  {keywords:['payout','85%','paystack','momo'], answer:'💸 <b>Payouts 85%:</b><br>Client 100% → Platform → Nurse 85% after client confirms Work Done<br>CEO Payouts tab → Pay Nurse 85% → Paystack Transfer to bank/MoMo<br>Example: 1000 GHS → 850 nurse, 150 platform'},
+  {keywords:['staff','ceo','secret','logo','5 taps','long press'], answer:'🔐 <b>Secret Access:</b><br>Staff: 5 quick taps on LOVE CARE logo → Staff Portal<br>CEO: Long press logo 1.5s → CEO login'},
+  {keywords:['footer','about','privacy','terms','cancel','contact'], answer:'📄 <b>Footer Fixed:</b><br>About, Privacy, Terms, Cancel, Contact now open modals<br>Cancel shows refund policy + email refund<br>Contact: lovecareglobal@gmail.com / 0544121814'},
+  {keywords:['email','verify','code'], answer:'🔐 <b>Email Verification:</b><br>Enter real email → Send Code via EmailJS → 6-digit code inbox/spam → Enter → Verified badge ✓ → Saved permanently'},
+  {keywords:['help','faq','hours'], answer:'💡 <b>Flexible Hours:</b><br>Hourly 1-24hrs<br>Daily: Days × hrs/day<br>Weekly: Weeks×7×hrs/day<br>Monthly: Months×30×hrs/day<br>Night shift allowed 20:00-06:00'}
+];
+function aiBotAnswer(query){
+  if(!query) return 'Please type your question';
+  var q=query.toLowerCase();
+  for(var i=0;i<helpKnowledgeBase.length;i++){
+    var item=helpKnowledgeBase[i];
+    for(var k=0;k<item.keywords.length;k++){
+      if(q.indexOf(item.keywords[k].toLowerCase())!==-1){ return item.answer; }
+    }
+  }
+  return '🤖 <b>I can help with:</b><br>• How to book<br>• Legal rates<br>• Live-in vs Live-out<br>• Google Live map<br>• Join as nurse<br>• Payouts 85%<br>• Staff/CEO secret access<br>• Footer buttons<br>• Email verification<br>Try: "how to book", "footer buttons", "staff login"';
+}
+function askAIBot(){
+  var input=document.getElementById('aiBotInput');
+  if(!input) return;
+  var q=input.value.trim(); if(!q) return;
+  var box=document.getElementById('aiBotMessages');
+  var userMsg=document.createElement('div');
+  userMsg.style.cssText='align-self:flex-end;background:#2563eb;color:white;padding:10px 14px;border-radius:18px 18px 4px 18px;max-width:85%;font-size:12px;margin:6px 0;';
+  userMsg.innerHTML='<b>You:</b> '+q;
+  box.appendChild(userMsg);
+  var ans=aiBotAnswer(q);
+  var botMsg=document.createElement('div');
+  botMsg.style.cssText='align-self:flex-start;background:white;border:2px solid #16a34a;padding:10px 14px;border-radius:18px 18px 18px 4px;max-width:90%;font-size:12px;margin:6px 0;line-height:1.5;';
+  botMsg.innerHTML='<b>🤖 AI:</b><br>'+ans;
+  box.appendChild(botMsg);
+  box.scrollTop=box.scrollHeight;
+  input.value='';
+}
+function handleAIBotKey(e){ if(e.key==='Enter'){ askAIBot(); } }
+function clearAIBot(){ var box=document.getElementById('aiBotMessages'); if(box) box.innerHTML='<div style="text-align:center;color:#6b7280;font-size:11px;padding:20px">👋 Hi! Ask me anything about using the app.</div>'; }
+
+// ===== 3. FOOTER FIXED =====
+var legalPages = {
+  about: {title:'About LOVE CARE GLOBAL', body:'<h2>LOVE CARE GLOBAL - English Home Nursing Worldwide</h2><p>Professional home nursing platform in 20 countries: Ghana, Nigeria, South Africa, Kenya, Uganda, Tanzania, Rwanda, Zambia, Botswana, Liberia, Sierra Leone, USA, UK, Canada, Australia, Ireland, India, Philippines, Singapore, Malaysia.</p><p><b>13 Services:</b> Elderly Care, Baby Care, Hospital Support, Post-Surgery, Disability, Maternity, Night Nurse, Palliative, Physiotherapy, Injection/Wound, Diabetes, Dementia, Child Special Needs.</p><p>Features: Flexible Hours, Live-in/out, Google Live map, Verified nurses, Paystack payments, 85% payout.</p><p>🔞 18+ Only</p>'},
+  privacy: {title:'Privacy Policy', body:'<h2>Privacy Policy</h2><p>We collect Name, Phone, Email verified, GPS, Booking details, Nurse uploads. Stored in Firebase. Email via EmailJS. We use data to match clients/nurses, process Paystack payments, verify credentials. No third party sharing except Paystack/EmailJS. GPS for matching/live nav only.</p>'},
+  terms: {title:'Terms & Conditions', body:'<h2>Terms & Conditions</h2><p>🔞 18+ only.</p><p>Client must pay >= legal minimum. System blocks below. Provide accurate location. Provide room/food/toilet for Live-in.</p><p>Nurse must be 18+ with ID/certificate, upload real video/CV, broadcast live when on duty, complete work.</p><p>Platform keeps 15%, nurse 85% after confirmation via Paystack.</p>'},
+  cancel: {title:'Cancellation & Refund Policy', body:'<h2>Cancellation & Refund</h2><p>Before nurse confirms: full refund. After confirms before start: 50%. After start: no refund unless no-show.</p><p>Request: MY BOOKINGS → LOAD → Cancel or Request Refund → Reason + MoMo/Bank → Submit → CEO reviews → Refund via Paystack/MoMo in 24-48hrs.</p><p>Contact: lovecareglobal@gmail.com / 0544121814</p>'},
+  contact: {title:'Contact Us', body:'<h2>Contact</h2><p>Email: lovecareglobal@gmail.com<br>Phone: 0544121814<br>WhatsApp: 0544121814</p><p>Countries: 20 English countries</p><p>Support: 24/7 via Group Chat and AI Bot</p>'}
+};
+function openLegal(type){
+  var modal=document.getElementById('legalModal');
+  var title=document.getElementById('legalTitle');
+  var body=document.getElementById('legalBody');
+  if(modal && legalPages[type]){
+    title.innerText=legalPages[type].title;
+    body.innerHTML=legalPages[type].body;
+    if(type==='cancel'){
+      body.innerHTML+='<br><div style="margin-top:12px;padding:10px;background:#f0fdf4;border:2px solid #16a34a;border-radius:10px"><b>Need refund?</b><br><button onclick="window.location.href=\'mailto:lovecareglobal@gmail.com?subject=Refund Request\'" style="background:#7c3aed;color:white;border:none;padding:8px 14px;border-radius:8px;font-weight:800;margin-top:6px">📧 Email Refund</button></div>';
+    }
+    modal.classList.remove('hidden');
+    modal.style.display='flex';
+  }
+}
+function closeLegal(){ var m=document.getElementById('legalModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } }
+function cancelBookingClient(id){ if(!confirm('Cancel booking #'+id+'?')) return; if(window.db){ db.ref('bookings/'+id).update({status:'cancelled_by_client'}).then(function(){ alert('Cancelled'); loadMyBookings(); }); } else { alert('Demo cancelled '+id); } }
+function increaseRateAction(){ var curr=parseFloat(document.getElementById('cBudget').value)||currentTotalMin; var newRate=Math.ceil(curr*1.2); document.getElementById('cBudget').value=newRate; calculateTotal(); closeRatePopup(); }
+function closeRatePopup(){ var el=document.getElementById('ratePopup'); if(el) el.classList.add('hidden'); }
+function closeRefundModal(){ var el=document.getElementById('refundModal'); if(el) el.classList.add('hidden'); }
+function submitRefundRequest(){ var bid=document.getElementById('refundBookingId').innerText; var reason=document.getElementById('refundReason').value; var acc=document.getElementById('refundAccount').value; var name=document.getElementById('refundAccountName').value; if(!reason||!acc||!name){ alert('Fill all'); return; } if(window.db){ db.ref('refunds/'+bid).set({bookingId:bid, reason:reason, account:acc, accountName:name, time:Date.now(), status:'refund_req'}); db.ref('bookings/'+bid).update({status:'refund_req'}); } alert('Refund submitted'); closeRefundModal(); loadMyBookings(); }
+function filterHelp(){ var q=document.getElementById('helpSearch'); if(!q) return; var val=q.value; if(!val){ document.getElementById('helpFaqList').innerHTML=''; return; } var ans=aiBotAnswer(val); document.getElementById('helpFaqList').innerHTML='<div style="background:white;border:2px solid #2563eb;border-radius:12px;padding:12px;margin-top:8px;font-size:12px">'+ans+'</div>'; }
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeLegal(); var em=document.getElementById('emailVerifyModal'); if(em) em.classList.add('hidden'); } });
+
 </script>
 </body>
 </html>
