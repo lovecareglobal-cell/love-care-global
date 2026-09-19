@@ -310,14 +310,14 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div style="display:flex;gap:5px;flex-wrap:wrap">
 <button class="btnSubmit" style="width:auto;background:#00b050" onclick="startDuty()">START DUTY</button>
 <button class="btnSubmit" style="width:auto;background:#ef4444" onclick="stopDuty()">STOP</button>
-<button class="btnSubmit" style="width:auto;background:#2563eb" onclick="openNurseSettings()">⚙️ Settings</button>
+<button class="btnSubmit" style="width:auto;background:#2563eb" onclick="openNurseSettings()">⚙ Settings</button>
 <button class="btnSubmit" style="width:auto;background:#111827" onclick="logoutNurse()">Logout</button>
 </div>
 <div id="nurseGpsStatus" style="padding:8px;background:#e8f5e9;border:1px solid #16a34a;font-size:11px;display:none;margin-top:8px">OFF</div>
 </div>
 
 <div id="nurseSettingsCard" class="card hidden" style="border:3px solid #2563eb;background:#eff6ff">
-<h2>⚙️ My Account Settings</h2>
+<h2>⚙ My Account Settings</h2>
 <input id="nurseSetName" placeholder="Full Name">
 <input id="nurseSetExperience" type="number" placeholder="Years Experience">
 <select id="nurseSetSpecialty"><option>General Nurse</option><option>Elderly Care</option><option>Baby Care and Nanny</option><option>Hospital Support</option><option>Post-Surgery Care</option><option>Disability Support</option><option>Maternity Care</option><option>Night Nurse</option><option>Palliative Care</option><option>Physiotherapy</option><option>Injection and Wound Care</option><option>Diabetes Monitoring</option><option>Dementia Care</option><option>Child Special Needs Care</option></select>
@@ -410,7 +410,6 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="ceo-tab-nurses" class="ceo-tab card hidden"><h2>2. Nurses + Video/CV</h2><div id="ceoNursesList">Loading...</div><div id="ceoMap" style="height:380px;border-radius:12px;border:2px solid #16a34a;margin-top:10px"></div><div id="ceoNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:12px;padding:12px;margin-top:12px;background:#f5f3ff"><h3>🔍 Nurse Media Viewer</h3><div id="mediaViewerContent"></div><button class="btnSmall" style="background:#6b7280;color:white" onclick="document.getElementById('ceoNurseMediaView').classList.add('hidden')">Close</button></div></div>
 <div id="ceo-tab-clients" class="ceo-tab card hidden"><h2>3. Clients (Verified Emails)</h2><div id="ceoClientsList">Loading...</div></div>
 <div id="ceo-tab-payments" class="ceo-tab card hidden"><h2>4. Payments</h2><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px"><div style="background:#f0fdf4;padding:10px;border-radius:10px;border:2px solid #16a34a"><small>Total</small><br><b id="totalRevenue">0</b></div><div style="background:#fffbeb;padding:10px;border-radius:10px;border:2px solid #eab308"><small>Pending</small><br><b id="pendingRevenue">0</b></div></div><div id="ceoPaymentsList">Loading...</div></div>
-<div 
 <div id="ceo-tab-payouts" class="ceo-tab hidden">
 <div class="card" style="border:3px solid #ff6a00">
 <h2>💸 Nurse Payouts - Pay 85% via Paystack (After Client Confirms Work Done)</h2>
@@ -457,7 +456,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </div>
 </div>
 </div>
-id="ceo-tab-refunds" class="ceo-tab card hidden" style="border:3px solid #ef4444"><h2>💸 Refunds</h2><div id="ceoRefundsList">Loading...</div></div>
+<div id="ceo-tab-refunds" class="ceo-tab card hidden" style="border:3px solid #ef4444"><h2>💸 Refunds</h2><div id="ceoRefundsList">Loading...</div></div>
 <div id="ceo-tab-deleted" class="ceo-tab card hidden" style="border:3px solid #ef4444"><h2>🗑 Deleted Nurse Accounts - With Reasons (CEO View)</h2><div style="background:#fee2e2;padding:8px;border-radius:8px;font-size:11px;margin-bottom:8px">Nurses who deleted their account. Shows reason, time, name, phone, video/CV links. For audit.</div><div id="ceoDeletedList">Loading deleted accounts...</div></div>
 <div id="ceo-tab-staff" class="ceo-tab card hidden"><h2>5. Staff</h2><div style="display:flex;gap:6px;margin-bottom:10px"><input id="newStaffId" placeholder="New Staff ID" style="flex:1;margin:0"><input id="newStaffPass" placeholder="Password" style="flex:1;margin:0"><button class="btnSmall" style="background:#16a34a;color:white" onclick="addStaff()">Add</button></div><div id="ceoStaffList">Loading...</div></div>
 <div id="ceo-tab-announce" class="ceo-tab card hidden"><h2>6. Announcement Board Settings - Text + Colors</h2>
@@ -466,7 +465,7 @@ id="ceo-tab-refunds" class="ceo-tab card hidden" style="border:3px solid #ef4444
 <div class="colorRow"><label>Text Color:</label><input type="color" id="announceTextColor" value="#eab308" oninput="previewAnnouncement()"><span id="textColorVal" style="font-size:11px">#eab308</span></div>
 <div class="colorRow"><label>Border Color:</label><input type="color" id="announceBorderColor" value="#eab308" oninput="previewAnnouncement()"><span id="borderColorVal" style="font-size:11px">#eab308</span></div>
 <div class="colorRow"><label>Speed (sec):</label><input type="range" id="announceSpeed" min="5" max="60" value="22" oninput="previewAnnouncement()"><span id="speedVal" style="font-size:11px">22s</span></div>
-<div style="background:#f0fdf4;padding:8px;border-radius:8px;margin:8px 0;font-size:11px">Preview:</div>
+<div style="background:#f0f4;padding:8px;border-radius:8px;margin:8px 0;font-size:11px">Preview:</div>
 <div id="announcePreview" style="background:#111827;color:#eab308;padding:10px;border-radius:8px;border:3px solid #eab308;overflow:hidden;white-space:nowrap"><span style="display:inline-block;animation:marquee 22s linear infinite">Preview Text</span></div>
 <button class="btnSmall" style="background:#0e7490;color:white;width:100%;padding:12px;margin-top:8px" onclick="saveAnnouncement()">💾 SAVE LIVE - Text + Colors</button>
 <div style="margin-top:12px;border-top:2px solid #eee;padding-top:8px"><label style="font-size:11px;font-weight:800">Edit Nurse Hourly Minimum (No Ghana 15 label - generic)</label><div id="minRateEditor" style="max-height:300px;overflow-y:auto;font-size:11px"></div><button class="btnSmall" style="background:#16a34a;color:white;margin-top:8px;width:100%;padding:12px" onclick="saveSettings()">💾 Save Rates</button></div>
@@ -481,7 +480,7 @@ id="ceo-tab-refunds" class="ceo-tab card hidden" style="border:3px solid #ef4444
 <footer class="appFooter">
 <div style="font-weight:800;letter-spacing:1px;color:white">LOVE CARE GLOBAL - ENGLISH</div>
 <div style="font-size:11px;margin-top:4px">Flexible hrs/day × days/weeks/months | Live-in & Live-out | Verified Nurses</div>
-<div class="footerLinks"><button onclick="openLegal('about')">ℹ️ About</button><button onclick="openLegal('privacy')">🔒 Privacy</button><button onclick="openLegal('terms')">📄 Terms</button><button onclick="openLegal('cancel')">❌ Cancel</button><button onclick="openLegal('contact')">📧 Contact</button></div>
+<div class="footerLinks"><button onclick="openLegal('about')">ℹ About</button><button onclick="openLegal('privacy')">🔒 Privacy</button><button onclick="openLegal('terms')">📄 Terms</button><button onclick="openLegal('cancel')">❌ Cancel</button><button onclick="openLegal('contact')">📧 Contact</button></div>
 <p style="font-size:11px;margin:8px 0">lovecareglobal@gmail.com | 0544121814</p>
 <p style="font-size:10px;color:#9ca3af">© 2026 LOVE CARE GLOBAL</p>
 </footer>
@@ -495,7 +494,6 @@ id="ceo-tab-refunds" class="ceo-tab card hidden" style="border:3px solid #ef4444
 </div>
 
 <script>
-// ========= ENGLISH ONLY - FLEXIBLE - NO GHANA 15 LABEL =========
 var NURSE_HOURLY_MIN = {
  GH: { amount: 15, currency: "GHS", label: "Ghana" },
  NG: { amount: 1500, currency: "NGN", label: "Nigeria" },
@@ -525,8 +523,6 @@ function getCurrentNurseRate(){ var country = document.getElementById('countrySe
 function stepVal(id, delta){ var el = document.getElementById(id); var v = parseInt(el.value)||0; v = v + delta; if(v<1) v=1; if(el.max && v>parseInt(el.max)) v=parseInt(el.max); el.value=v; calculateTotal(); }
 function selectUnit(unit){ bookingUnit = unit; document.querySelectorAll('.unitTabs button').forEach(b=>b.classList.remove('active')); document.getElementById('btn-'+unit).classList.add('active'); document.querySelectorAll('[id^="panel-"]').forEach(p=>p.classList.add('hidden')); document.getElementById('panel-'+unit).classList.remove('hidden'); calculateTotal(); }
 function selectCareMode(mode){ careMode = mode; document.querySelectorAll('.careModeBox button').forEach(b=>b.classList.remove('active')); document.getElementById('btn-'+mode).classList.add('active'); document.getElementById('liveoutInfo').classList.toggle('hidden', mode!=='liveout'); document.getElementById('liveinInfo').classList.toggle('hidden', mode!=='livein'); document.getElementById('liveInExtra').classList.toggle('hidden', mode!=='livein'); calculateTotal(); }
-
-// ===== LIVE-OUT START/END TIME LOGIC =====
 function calculateTimeFromStartEnd(){
   var startEl = document.getElementById('cStartTime');
   var endEl = document.getElementById('cEndTime');
@@ -541,65 +537,40 @@ function calculateTimeFromStartEnd(){
   var startMins = parseInt(start.split(':')[0])*60 + parseInt(start.split(':')[1]);
   var endMins = parseInt(end.split(':')[0])*60 + parseInt(end.split(':')[1]);
   var diffMins = endMins - startMins;
-  if(diffMins < 0) diffMins += 24*60; // overnight shift
-  if(diffMins === 0) diffMins = 24*60; // full 24hrs
+  if(diffMins < 0) diffMins += 24*60;
+  if(diffMins === 0) diffMins = 24*60;
   var diffHours = diffMins / 60;
-  
   if(displayEl){
     displayEl.innerText = 'Hours/day: ' + diffHours + ' hrs (' + start + ' - ' + end + ')';
     if(diffMins < 60) displayEl.style.background = '#fee2e2';
     else displayEl.style.background = '#dcfce7';
   }
-  
-  // Auto-update hrs per day inputs based on calculated time
   var hrsPerDay = diffHours;
-  // Update all hrs per day inputs
   var inputs = ['inputHrsPerDayDaily','inputHrsPerDayWeekly','inputHrsPerDayMonthly','inputHrsPerDay'];
   inputs.forEach(function(id){
     var el = document.getElementById(id);
-    if(el){
-      el.value = hrsPerDay;
-    }
+    if(el){ el.value = hrsPerDay; }
   });
-  
-  // Recalculate total
   calculateTotal();
 }
-
 function setCareMode(mode){
   window.currentCareMode = mode;
   document.querySelectorAll('.careModeBox button').forEach(b=>b.classList.remove('active'));
   var btn = document.getElementById('mode-'+mode);
   if(btn) btn.classList.add('active');
-  
   var timeBox = document.getElementById('liveOutTimeBox');
   if(timeBox){
-    if(mode==='liveout' || mode==='both'){
-      timeBox.style.display='block';
-    } else {
-      timeBox.style.display='none';
-    }
+    if(mode==='liveout' || mode==='both'){ timeBox.style.display='block'; } else { timeBox.style.display='none'; }
   }
-  
   var extra = document.getElementById('liveInExtra');
   if(extra){
-    if(mode==='livein'){
-      extra.classList.remove('hidden');
-      extra.innerText = '+ Live-in allowance 10% included - Nurse stays 24hrs, needs room, food, toilet, 8hrs rest';
-    } else {
-      extra.classList.add('hidden');
-    }
+    if(mode==='livein'){ extra.classList.remove('hidden'); extra.innerText = '+ Live-in allowance 10% included - Nurse stays 24hrs, needs room, food, toilet, 8hrs rest'; } else { extra.classList.add('hidden'); }
   }
-  
   var breakMode = document.getElementById('breakCareMode');
   if(breakMode) breakMode.innerText = mode==='livein' ? 'Live-in (24hrs stay)' : mode==='liveout' ? 'Live-out (Daily visit)' : 'Flexible';
-  
   calculateTotal();
-  if(mode==='liveout' || mode==='both'){
-    calculateTimeFromStartEnd();
-  }
+  if(mode==='liveout' || mode==='both'){ calculateTimeFromStartEnd(); }
 }
-
 function calculateTotal(){
  var rateData = getCurrentNurseRate(); var totalHours = 0; var displayDuration = ''; var displayDays = ''; var hrsPerDay = 8;
  if(bookingUnit === 'hourly'){ var h = parseInt(document.getElementById('inputHours').value) || 1; totalHours = h; hrsPerDay = h; displayDuration = h + ' Hours'; displayDays = (h/24).toFixed(2) + ' days equiv'; }
@@ -631,105 +602,57 @@ function validateBudgetLive(){
  return { valid:!amt || amt >= currentTotalMin, minRequired: currentTotalMin };
 }
 function changeCountry(){ var sel=document.getElementById('countrySelect'); var opt=sel.options[sel.selectedIndex]; var curr=opt.getAttribute('data-curr'); document.getElementById('currencyDisplay').innerText=curr; document.getElementById('cCurrency').value=curr; localStorage.setItem('selectedCountry',sel.value); calculateTotal(); }
-
-// ===== EMAIL VERIFICATION BEFORE BOOKING =====
 var pendingEmailCode = null;
-function isEmailVerified(){
-  return localStorage.getItem('verifiedClientEmail') && localStorage.getItem('emailVerified')==='true';
-}
+function isEmailVerified(){ return localStorage.getItem('verifiedClientEmail') && localStorage.getItem('emailVerified')==='true'; }
 function checkEmailAndFindNurses(){
-  var ageCheck = document.getElementById('cAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book - Please confirm you are 18+'); return; }
-  if(!isEmailVerified()){
-    document.getElementById('emailVerifyModal').classList.remove('hidden');
-    return;
-  }
+  var ageCheck = document.getElementById('cAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book'); return; }
+  if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; }
   findNursesUber();
 }
-function checkEmailAndBook(){
-  if(!isEmailVerified()){
-    document.getElementById('emailVerifyModal').classList.remove('hidden');
-    return;
-  }
-  submitBooking();
-}
-// ===== REAL EMAILJS INTEGRATION =====
+function checkEmailAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
 var EMAILJS_SERVICE_ID = 'service_9s6ci5k';
 var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
-var EMAILJS_TEMPLATE_ID = 'template_yi4iwel'; // Real Template ID from your screenshot
-
-try{
-  if(window.emailjs){
-    emailjs.init({publicKey: EMAILJS_PUBLIC_KEY});
-  }
-}catch(e){ console.log('EmailJS init error', e); }
-
+var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
+try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); } }catch(e){}
 function sendVerificationCode(){
   var email = document.getElementById('verifyEmailInput').value.trim();
   var name = document.getElementById('cName').value.trim() || 'Client';
-  if(!email || !email.includes('@')){ document.getElementById('emailVerifyStatus').innerText='Enter valid real email (e.g. you@gmail.com)'; return; }
+  if(!email || !email.includes('@')){ document.getElementById('emailVerifyStatus').innerText='Enter valid real email'; return; }
   var code = Math.floor(100000 + Math.random()*900000).toString();
   pendingEmailCode = code;
   localStorage.setItem('pendingEmail', email);
   localStorage.setItem('pendingEmailCode', code);
-  
   document.getElementById('emailVerifyStatus').innerText = '⏳ Sending code to '+email+' via EmailJS...';
   document.getElementById('sendCodeArea').querySelector('button').disabled = true;
   document.getElementById('sendCodeArea').querySelector('button').innerText = '⏳ Sending...';
-  
-  // Try real EmailJS send - Compatible with {{email}} from screenshot and {{to_email}}
   if(window.emailjs){
-    // Use template ID from URL if visible, otherwise use default
-    var urlParams = new URLSearchParams(window.location.search);
-    var templateFromUrl = null;
-    // Try to auto-detect template ID - user can paste it
     var templateIdToUse = EMAILJS_TEMPLATE_ID;
-    
     emailjs.send(EMAILJS_SERVICE_ID, templateIdToUse, {
-      email: email,  // Matches your screenshot {{email}}
-      to_email: email,  // Also send as to_email for compatibility
-      to_name: name,
-      name: name,
-      verification_code: code,
-      code: code,  // Alternative variable
-      passcode: code,
-      otp: code,
-      from_name: 'LOVE CARE GLOBAL',
-      reply_to: 'lovecareglobal@gmail.com',
-      company: 'LOVE CARE GLOBAL'
+      email: email, to_email: email, to_name: name, name: name, verification_code: code, code: code, passcode: code, otp: code, from_name: 'LOVE CARE GLOBAL', reply_to: 'lovecareglobal@gmail.com', company: 'LOVE CARE GLOBAL'
     }).then(function(response){
       document.getElementById('sentToEmail').innerText = email;
-      document.getElementById('demoCodeDisplay').innerHTML = '✅ Code sent to <b>'+email+'</b> via EmailJS!<br><small style="color:#16a34a">Check inbox & spam folder. Code: '+code+' (shown here for testing)</small>';
+      document.getElementById('demoCodeDisplay').innerHTML = '✅ Code sent to <b>'+email+'</b> via EmailJS!<br><small>Check inbox & spam folder. Code: '+code+' (shown here for testing)</small>';
       document.getElementById('demoCodeDisplay').style.background = '#dcfce7';
       document.getElementById('sendCodeArea').classList.add('hidden');
       document.getElementById('enterCodeArea').classList.remove('hidden');
-      document.getElementById('emailVerifyStatus').innerText = '✅ Code sent to '+email+' - Check inbox (and spam). Enter code below.';
-      if(db){ db.ref('email_verifications/'+Date.now()).set({email:email, code:code, sent:true, time:new Date().toLocaleString(), timestamp:Date.now()}); }
+      document.getElementById('emailVerifyStatus').innerText = '✅ Code sent to '+email;
       document.getElementById('sendCodeArea').querySelector('button').disabled = false;
       document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
     }, function(error){
-      console.log('EmailJS failed, fallback to demo:', error);
-      // Fallback to demo mode
       document.getElementById('sentToEmail').innerText = email;
-      document.getElementById('demoCodeDisplay').innerHTML = '⚠️ Template ID not found<br>DEMO CODE: <b>'+code+'</b><br><small>Your screenshot shows To Email = {{email}} - I fixed code to send as {{email}}. Now just copy Template ID from top of that page and send to me</small>';
-      document.getElementById('demoCodeDisplay').style.background = '#fef3c7';
+      document.getElementById('demoCodeDisplay').innerHTML = 'DEMO CODE: <b>'+code+'</b>';
       document.getElementById('sendCodeArea').classList.add('hidden');
       document.getElementById('enterCodeArea').classList.remove('hidden');
-      document.getElementById('emailVerifyStatus').innerText = 'Demo mode: Code is '+code+' - Create template to enable real email. Check console for error: '+JSON.stringify(error).substring(0,100);
-      if(db){ db.ref('email_verifications/'+Date.now()).set({email:email, code:code, sent:false, error:error.text||'template missing', time:new Date().toLocaleString(), timestamp:Date.now()}); }
+      document.getElementById('emailVerifyStatus').innerText = 'Demo mode: Code is '+code;
       document.getElementById('sendCodeArea').querySelector('button').disabled = false;
-      document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
     });
   } else {
-    // Demo mode if template ID not set
     document.getElementById('sentToEmail').innerText = email;
-    document.getElementById('demoCodeDisplay').innerHTML = 'DEMO CODE: <b>'+code+'</b> (Real email will send after you create Template ID)<br><br><b>To enable real email:</b><br>1. Go to emailjs.com → Email Templates → Create New Template<br>2. Set Template ID to: template_0tq1q9j OR update EMAILJS_TEMPLATE_ID in code<br>3. Add variables: {{to_email}}, {{verification_code}}, {{to_name}}<br>4. Save - Real emails will then send!';
-    document.getElementById('demoCodeDisplay').style.background = '#fef3c7';
+    document.getElementById('demoCodeDisplay').innerHTML = 'DEMO CODE: <b>'+code+'</b>';
     document.getElementById('sendCodeArea').classList.add('hidden');
     document.getElementById('enterCodeArea').classList.remove('hidden');
-    document.getElementById('emailVerifyStatus').innerText = 'Demo mode - Code: '+code+' - Create template ID to enable real sending. Your Service ID & Public Key are configured!';
-    if(db){ db.ref('email_verifications/'+Date.now()).set({email:email, code:code, sent:false, mode:'demo', time:new Date().toLocaleString(), timestamp:Date.now()}); }
+    document.getElementById('emailVerifyStatus').innerText = 'Demo mode - Code: '+code;
     document.getElementById('sendCodeArea').querySelector('button').disabled = false;
-    document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
   }
 }
 function resendCode(){ document.getElementById('sendCodeArea').classList.remove('hidden'); document.getElementById('enterCodeArea').classList.add('hidden'); sendVerificationCode(); }
@@ -746,15 +669,13 @@ function confirmVerificationCode(){
     document.getElementById('verifiedEmailBadge').innerText = '✓ ' + email;
     document.getElementById('emailVerifyModal').classList.add('hidden');
     document.getElementById('emailVerifyStatus').innerText='';
-    alert('✅ Email verified: ' + email + ' - Saved permanently. Next time you visit, no need to verify again.');
-    // Now continue to find nurses
+    alert('✅ Email verified: ' + email);
     setTimeout(()=>{ findNursesUber(); }, 500);
   } else {
-    document.getElementById('emailVerifyStatus').innerText='❌ Wrong code. Enter ' + saved + ' (demo) or resend';
+    document.getElementById('emailVerifyStatus').innerText='❌ Wrong code. Enter ' + saved;
   }
 }
 function closeEmailModal(){ document.getElementById('emailVerifyModal').classList.add('hidden'); }
-
 function enforceMinRate(){
  var budget = document.getElementById('cBudget').value;
  if(!budget) return true;
@@ -767,7 +688,6 @@ function enforceMinRate(){
  return true;
 }
 function closeLegalWagePopup(){ document.getElementById('legalWagePopup').classList.add('hidden'); }
-
 var firebaseConfig={apiKey:"AIzaSyB52-X1D8Cg-wUDWPds_tR7D8cF82dMdRg",authDomain:"web-care-618e8.firebaseapp.com",databaseURL:"https://web-care-618e8-default-rtdb.firebaseio.com",projectId:"web-care-618e8",storageBucket:"web-care-618e8.firebasestorage.app",messagingSenderId:"1062578660694",appId:"1:1062578660694:web:f94dfe12c929df05bce2f7"};
 var db=null,allBookings=[],allWorkers=[],allRefunds=[],clientLat=null,clientLng=null,nurseRegLat=null,nurseRegLng=null;
 var uberMap=null,ceoMap=null,nurseCluster=null,selectedNurseId=null,nearbyNursesSorted=[];
@@ -776,644 +696,307 @@ var lastBookingId=null,lastBookingCurrency='GHS',lastBookingAmount=0,currentRefu
 var countryCodes=[{c:'Ghana',code:'+233',flag:'🇬🇭'},{c:'Nigeria',code:'+234',flag:'🇳🇬'},{c:'South Africa',code:'+27',flag:'🇿🇦'},{c:'Kenya',code:'+254',flag:'🇰🇪'},{c:'Uganda',code:'+256',flag:'🇺🇬'},{c:'Tanzania',code:'+255',flag:'🇹🇿'},{c:'Rwanda',code:'+250',flag:'🇷🇼'},{c:'Zambia',code:'+260',flag:'🇿🇲'},{c:'Botswana',code:'+267',flag:'🇧🇼'},{c:'Liberia',code:'+231',flag:'🇱🇷'},{c:'Sierra Leone',code:'+232',flag:'🇸🇱'},{c:'USA',code:'+1',flag:'🇺🇸'},{c:'UK',code:'+44',flag:'🇬🇧'},{c:'Canada',code:'+1',flag:'🇨🇦'},{c:'Australia',code:'+61',flag:'🇦🇺'},{c:'Ireland',code:'+353',flag:'🇮🇪'},{c:'India',code:'+91',flag:'🇮🇳'},{c:'Philippines',code:'+63',flag:'🇵🇭'},{c:'Singapore',code:'+65',flag:'🇸🇬'},{c:'Malaysia',code:'+60',flag:'🇲🇾'}];
 function populatePhoneCodes(){var html='';countryCodes.forEach(o=>{html+=`<option value="${o.code}">${o.flag} ${o.code} ${o.c}</option>`;});['cPhoneCode','nRegPhoneCode','nurseLoginCode','myBookPhoneCode'].forEach(id=>{var el=document.getElementById(id); if(el) el.innerHTML=html;});}
 try{firebase.initializeApp(firebaseConfig);db=firebase.database();}catch(e){}
-const legalPages={
-privacy:{title:"Privacy Policy - LOVE CARE GLOBAL (Professional)",body:`
-<span class="badge">LOVE CARE GLOBAL</span>
-<h1>Privacy Policy</h1>
-<p><b>Last Updated:</b> May 13, 2026 | <b>Effective:</b> May 13, 2026<br>
-<b>Company:</b> LOVE CARE GLOBAL - Accra, Ghana | Email: lovecareglobal@gmail.com | Phone: +233 544 121 814</p>
-
-<h2>1. Introduction</h2>
-<p>LOVE CARE GLOBAL ("we", "us", "our") operates a home nursing marketplace connecting clients in 20 English-speaking countries to licensed nurses. We respect your privacy and are committed to protecting your personal data in compliance with Ghana Data Protection Act 2012 (Act 843) and international best practices.</p>
-
-<h2>2. Who We Are</h2>
-<p>Platform for 13 home nursing services: Elderly Care, Baby Care & Nanny, Hospital Support, Post-Surgery, Disability, Maternity, Night Nurse, Palliative, Physiotherapy, Injection & Wound Care, Diabetes Monitoring, Dementia Care, Child Special Needs Care. We serve Ghana, Nigeria, South Africa, Kenya, Uganda, Tanzania, Rwanda, Zambia, Botswana, Liberia, Sierra Leone, USA, UK, Canada, Australia, Ireland, India, Philippines, Singapore, Malaysia.</p>
-
-<h2>3. Data We Collect</h2>
-<table>
-<tr><th>Category</th><th>Examples</th><th>Purpose</th></tr>
-<tr><td>Identity</td><td>Full name, phone, email, profile photo</td><td>Account creation, verification</td></tr>
-<tr><td>Contact</td><td>Phone code, email, GPS address</td><td>Find nearby nurses, navigation</td></tr>
-<tr><td>Location (Precise)</td><td>Latitude, longitude, address</td><td>Find closest nurse, live tracking during active duty only</td></tr>
-<tr><td>Booking Data</td><td>Service type, duration (hrs/day × days/weeks/months), care mode (live-in/live-out), start/end time, amount</td><td>Calculate legal minimum, matching</td></tr>
-<tr><td>Nurse Verification</td><td>Video intro, CV, certificate, ID card (uploaded from storage or link)</td><td>CEO verification, safety</td></tr>
-<tr><td>Payment</td><td>Amount, currency, Paystack reference (we do NOT store card numbers)</td><td>Process booking, refunds</td></tr>
-<tr><td>Communication</td><td>Group chat messages (nurse/staff/CEO only), cancellation/refund reasons, deletion reasons</td><td>Support, audit</td></tr>
-</table>
-
-<h2>4. Why We Collect - Legal Basis</h2>
-<p>Contract (to provide nursing service), Legitimate Interest (safety, fraud prevention), Consent (email verification code, GPS), Legal Obligation (tax, audit).</p>
-
-<h2>5. Location Data - Special Notice</h2>
-<p><b>Client:</b> Precise GPS collected only when you tap GPS Auto during booking. Used to find nurses within 5-50km radius and show live map. <b>Nurse:</b> Background location used ONLY when nurse is ON DUTY and has active paid booking, to show navigation to client home and CEO workflow monitor (duty start → client confirm → work done → client confirm). When OFF DUTY, location not tracked.</p>
-
-<h2>6. How We Store & Secure</h2>
-<p>All data encrypted in transit (HTTPS/TLS) and at rest via Firebase (Google) - Realtime Database & Storage. Access restricted to CEO. Nurses see only assigned client name, phone, location, service, amount. We never sell data. Paystack handles payments with PCI-DSS compliance.</p>
-
-<h2>7. Sharing</h2>
-<p>We share ONLY: Client name/phone/location/service/amount with assigned nurse after payment. Nurse name/phone/video/CV with CEO for verification. No sharing with third-party advertisers. Firebase & Paystack are processors.</p>
-
-<h2>8. Email Verification & Permanent Save</h2>
-<p>Before first booking, client verifies real email via 6-digit code. Email + name + phone saved permanently in browser localStorage and Firebase under bookings for auto-fill next visit. You can request deletion anytime.</p>
-
-<h2>9. Retention</h2>
-<p>Bookings: 5 years for legal audit. Nurse verification files: until account deletion + 1 year. Deleted nurse accounts: reason + profile kept 2 years in deleted_nurses for CEO audit. Chat messages: until deleted by user or CEO master delete.</p>
-
-<h2>10. Your Rights - Delete Account</h2>
-<p>You have right to access, correct, delete. <b>Client:</b> Email lovecareglobal@gmail.com with subject "Delete My Account" - deleted within 48 hours. Or App > My Bookings > Cancel with reason. <b>Nurse:</b> Dashboard > Settings > Delete My Account - enter reason (sent to CEO dashboard). Reason required for audit.</p>
-
-<h2>11. Cookies</h2>
-<p>We use localStorage for country, currency, verified email, last client profile, announcement colors. No tracking cookies.</p>
-
-<h2>12. Children's Data</h2>
-<p>For Child Special Needs Care, we collect child's care needs, not child's identity. Parent/guardian consents.</p>
-
-<h2>13. Medical Disclaimer</h2>
-<p>LOVE CARE GLOBAL is a marketplace platform, not a hospital or clinic. Nurses are independent licensed professionals verified by CEO via video/CV/certificate/ID. In emergency, call 112 or local emergency number. We do not provide emergency surgery or ambulance.</p>
-
-<h2>14. Changes</h2>
-<p>We may update this policy. New version posted with new date and announcement bar notification.</p>
-
-<h2>15. Contact</h2>
-<p>Email: lovecareglobal@gmail.com | Phone: +233 544 121 814 | Address: Accra, Ghana | GitHub: lovecareglobal-cell</p>
-
-<p style="font-size:11px; color:#6b7280; margin-top:30px">© 2026 LOVE CARE GLOBAL. All rights reserved. English Countries Only.</p>
-`},
-terms:{title:"Terms of Service - LOVE CARE GLOBAL",body:`
-<span class="badge">TERMS OF SERVICE</span>
-<h1>Terms of Service - LOVE CARE GLOBAL</h1>
-<p><b>Last Updated:</b> May 13, 2026 | <b>Company:</b> LOVE CARE GLOBAL, Accra, Ghana | <b>Email:</b> lovecareglobal@gmail.com | <b>Phone:</b> +233 544 121 814</p>
-
-<h2>1. Acceptance</h2>
-<p>By accessing app at https://lovecareglobal-cell.github.io/love-care-global/, you agree to these Terms. If you do not agree, do not use platform.</p>
-
-<h2>2. Services (13)</h2>
-<p>We connect clients to licensed home nurses for: Elderly Care, Baby Care & Nanny, Hospital Support, Post-Surgery, Disability, Maternity, Night Nurse (12hrs), Palliative, Physiotherapy, Injection & Wound Care, Diabetes Monitoring, Dementia Care, Child Special Needs Care.</p>
-
-<h2>3. English Countries Only</h2>
-<p>Supported: Ghana, Nigeria, South Africa, Kenya, Uganda, Tanzania, Rwanda, Zambia, Botswana, Liberia, Sierra Leone, USA, UK, Canada, Australia, Ireland, India, Philippines, Singapore, Malaysia. Language: English only.</p>
-
-<h2>4. Flexible Booking Model - How It Works</h2>
-<table>
-<tr><th>Unit</th><th>Client Enters</th><th>Calculation</th><th>Example</th></tr>
-<tr><td>Hourly</td><td>Hours (1-24)</td><td>Total = Hours</td><td>3 hrs = 3 hrs</td></tr>
-<tr><td>Daily</td><td>Days + hrs/day (1-24)</td><td>Total = Days × hrs/day</td><td>7 days × 2 hrs = 14 hrs</td></tr>
-<tr><td>Weekly</td><td>Weeks + hrs/day</td><td>Total = Weeks × 7 × hrs/day</td><td>2 weeks × 8 hrs = 112 hrs</td></tr>
-<tr><td>Monthly</td><td>Months + hrs/day</td><td>Total = Months × 30 × hrs/day</td><td>1 month × 8 hrs = 240 hrs</td></tr>
-</table>
-<p><b>Live-out:</b> Nurse comes at start time, leaves at end time daily. Pay per active hour.<br>
-<b>Live-in:</b> Nurse stays 24hrs (8hrs active + on-call night). Client must provide: Private room, bed, food, water, electricity, toilet/bathroom, 8hrs rest. +10% accommodation allowance added to legal minimum.</p>
-
-<h2>5. Legal Minimum Rate - Block Below Minimum</h2>
-<p>Each country has legal minimum per hour stored in app (editable by CEO). System calculates: Legal Minimum Total = Hourly Rate × Total Hours × (1.10 if live-in). Converted to client's currency. If client's offer is below minimum, system BLOCKS booking: buttons disabled, red warning, popup "Below Legal Minimum - Blocked". Client must increase to book. No payment below minimum allowed.</p>
-
-<h2>6. Email Verification</h2>
-<p>Before first booking, client must verify real email via 6-digit code (sent via EmailJS/Firebase - demo shows code on screen). Verified email + name + phone + location saved permanently via localStorage & Firebase for auto-fill next visit. No need to re-verify.</p>
-
-<h2>7. Booking Flow & 10-Minute Alert</h2>
-<p>Client: Verify email → Enter details → Select nurse on map → Offer ≥ minimum → Book → Status pending_assignment. If no nurse accepts within 10 minutes, system shows popup: "No Nurse Responded in 10 Minutes - Increase your rate for quick successful booking! Higher pay = faster acceptance." Client can increase rate, new amount updates Firebase and nurses see first.</p>
-
-<h2>8. Nurse Verification & File Uploads</h2>
-<p>Nurse registration requires: Full name, phone, password, GPS, years experience, specialty (13), care mode (live-in/out/both). <b>Uploads:</b> Video intro, CV, certificate, ID card - can upload directly from phone/laptop storage (file picker) OR paste link (YouTube/Drive). Both options optional but CEO verifies before activation. Files stored in Firebase Storage nurses/{phone}/. CEO Dashboard → Nurses + Media → View Video/CV with embedded player.</p>
-
-<h2>9. Nurse Account Settings & Deletion</h2>
-<p>Nurse Dashboard → Settings: Edit name, experience, specialty, care mode, re-upload files. Save. Delete Account: Must enter reason (required). Reason + full profile saved to deleted_nurses for CEO audit (CEO Dashboard → Deleted Nurses tab). Account removed from workers. CEO can Restore or Permanently Delete record.</p>
-
-<h2>10. Payments</h2>
-<p>All payments via Paystack (cards, MoMo, bank). We do not store card numbers. Booking confirmation after payment. CEO sees total & pending revenue.</p>
-
-<h2>11. Group Chat - Private</h2>
-<p>Group chat visible ONLY to logged-in Nurses, Staff, CEO. Clients cannot see or access. Any user can edit/delete own message. CEO has master delete to wipe all messages.</p>
-
-<h2>12. Announcement Board</h2>
-<p>CEO can change announcement text, background color, text color, border color, scroll speed (5-60s). Saved live via Firebase, visible to all clients instantly.</p>
-
-<h2>13. User Responsibilities</h2>
-<p>Client: Accurate info, accurate GPS, safe working environment, respect live-in rest time, confirm nurse start duty and work completion (reflects to CEO). Nurse: Licensed, professional conduct, start duty only when at client home, cannot stop duty until work completed and client confirms (CEO monitors). Staff: Manage bookings.</p>
-
-<h2>14. Cancellation & Refund - Summary</h2>
-<p>See separate Cancellation & Refund Policy page. Brief: Cancel with reason → CEO sees. Refund only if paid and within policy (see cancellation.html). MoMo/Bank refund within 48hrs after CEO approval.</p>
-
-<h2>15. Limitation of Liability</h2>
-<p>Platform connects parties. We verify nurses via documents/video but not liable for nurse negligence. Maximum liability limited to booking amount. Not liable for indirect damages.</p>
-
-<h2>16. Termination</h2>
-<p>We may suspend accounts violating Terms, fake documents, abuse, below-minimum attempts.</p>
-
-<h2>17. Contact</h2>
-<p>lovecareglobal@gmail.com | +233 544 121 814 | Accra, Ghana</p>
-
-<p style="font-size:11px; color:#6b7280; margin-top:30px">© 2026 LOVE CARE GLOBAL. MIT License for code, Terms for service use.</p>
-`},
-cancel:{title:"Cancellation & Account Deletion",body:`
-<div style="padding:10px">
-<h3 style="color:#ef4444">🗑 Cancel / Delete Account</h3>
-<p style="font-size:13px">Click button below to open your email app with auto-filled cancellation message to <b>lovecareglobal@gmail.com</b></p>
-<div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:12px;margin:10px 0">
-<b>What happens:</b><br>
-- Your account + bookings will be deleted within 48 hours<br>
-- Refund if paid and eligible (see Refund Policy)<br>
-- You will get confirmation email<br>
-</div>
-<button onclick="openCancellationEmail()" class="btnSubmit" style="background:#ef4444">📧 Open Email to Cancel My Account</button>
-<button onclick="openContactEmail()" class="btnSubmit" style="background:#2563eb;margin-top:8px">📧 Contact Support</button>
-<div style="margin-top:12px;font-size:11px;background:#fef3c7;padding:8px;border-radius:8px">
-<b>Manual:</b> If email app doesn't open, email to <b>lovecareglobal@gmail.com</b> with subject "Delete My Account" and include your phone number.
-</div>
-</div>
-`},
-about:{title:"About Us - LOVE CARE GLOBAL (Professional)",body:`
-
-<span class="badge">LOVE CARE GLOBAL</span> <span class="badge-dark">🔞 18+ ONLY</span>
-
-<div class="hero">
-<img src="./Icon-512.png" onerror="this.src='./logo.png'" alt="LOVE CARE GLOBAL Logo">
-<h1 style="margin:10px 0 0 0;border:none;color:white;padding:0">LOVE CARE GLOBAL</h1>
-<p style="margin:5px 0;font-size:14px;font-weight:800">Compassionate Care, Without Borders</p>
-<p style="font-size:12px;opacity:0.9">Professional Home Nursing Marketplace • 20 English Countries • 13 Services</p>
-</div>
-
-<h1>About Us</h1>
-<p><b>Last Updated:</b> May 13, 2026 | <b>Company:</b> LOVE CARE GLOBAL, Accra, Ghana | <b>Email:</b> lovecareglobal@gmail.com | <b>Phone:</b> +233 544 121 814 | <b>Website:</b> lovecareglobal-cell.github.io/love-care-global</p>
-
-<div class="card-green">
-<b>🔞 Age Requirement:</b> This platform is for adults aged 18 years and above only. You must be 18+ to use this app. By using our services, you confirm you are 18 or older. For Child Special Needs Care, parent/guardian must be 18+.
-</div>
-
-<h2>🌍 Who We Are</h2>
-<p>LOVE CARE GLOBAL is a <b>home nursing marketplace</b> that connects clients who need compassionate care at home to <b>licensed, verified nurses</b> in their area. We are not a hospital — we are a technology platform that makes it easy to find, book, and pay for professional home nursing services.</p>
-
-<p>Founded in Accra, Ghana, we serve <b>20 English-speaking countries</b>: Ghana, Nigeria, South Africa, Kenya, Uganda, Tanzania, Rwanda, Zambia, Botswana, Liberia, Sierra Leone, USA, UK, Canada, Australia, Ireland, India, Philippines, Singapore, Malaysia.</p>
-
-<div class="grid">
-<div class="stat"><b>20</b> Countries<br><small>English Only</small></div>
-<div class="stat"><b>13</b> Services<br><small>Home Nursing</small></div>
-<div class="stat"><b>85%</b> To Nurse<br><small>After Completion</small></div>
-<div class="stat"><b>18+</b> Only<br><small>Adults Only</small></div>
-</div>
-
-<h2>💚 Our Mission</h2>
-<p>To provide <b>compassionate, professional, and affordable home nursing care</b> to every family that needs it, while empowering nurses with fair pay (85% of client payment) and flexible work opportunities.</p>
-
-<div class="card">
-<b>We believe:</b>
-<ul>
-<li>Every elderly person deserves dignified care at home</li>
-<li>Every new mother deserves support from a professional nurse</li>
-<li>Every person with disability or special needs deserves compassionate care</li>
-<li>Every nurse deserves fair pay, respect, and verified opportunities</li>
-<li>Healthcare should be accessible, transparent, and borderless</li>
-</ul>
-</div>
-
-<h2>👩‍⚕️ What We Offer - 13 Home Nursing Services</h2>
-
-<div class="grid">
-<div class="card-green"><b>1. Elderly Care</b><br><small>Daily living assistance, companionship, medication reminders for seniors</small></div>
-<div class="card-green"><b>2. Baby Care & Nanny</b><br><small>Newborn care, feeding, bathing, nanny services for babies</small></div>
-<div class="card-green"><b>3. Hospital Support</b><br><small>Accompany patients to hospital, post-consultation care at home</small></div>
-<div class="card-green"><b>4. Post-Surgery Care</b><br><small>Wound care, recovery monitoring after surgery</small></div>
-<div class="card-green"><b>5. Disability Support</b><br><small>Daily assistance for persons with physical disabilities</small></div>
-<div class="card-green"><b>6. Maternity Care</b><br><small>Prenatal and postnatal care for mothers</small></div>
-<div class="card-yellow"><b>7. Night Nurse (12hrs)</b><br><small>Overnight care 8PM-8AM or custom night hours</small></div>
-<div class="card-yellow"><b>8. Palliative Care</b><br><small>Comfort care for serious illness, end-of-life support</small></div>
-<div class="card-yellow"><b>9. Physiotherapy</b><br><small>Home physiotherapy, mobility exercises, rehabilitation</small></div>
-<div class="card-yellow"><b>10. Injection & Wound Care</b><br><small>Injections, wound dressing, vital signs monitoring</small></div>
-<div class="card-yellow"><b>11. Diabetes Monitoring</b><br><small>Blood sugar checks, diet guidance, insulin support</small></div>
-<div class="card-yellow"><b>12. Dementia Care</b><br><small>Specialized care for Alzheimer's and dementia patients</small></div>
-<div class="card-green"><b>13. Child Special Needs Care</b><br><small>Care for children with special needs - Parent/Guardian 18+ must book</small></div>
-</div>
-
-<h2>⏱ Flexible Booking Model - How It Works</h2>
-
-<table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0">
-<tr style="background:#f0fdf4"><th style="border:1px solid #e5e7eb;padding:8px;text-align:left">Unit</th><th style="border:1px solid #e5e7eb;padding:8px">Client Enters</th><th style="border:1px solid #e5e7eb;padding:8px">Calculation</th></tr>
-<tr><td style="border:1px solid #e5e7eb;padding:8px">Hourly</td><td style="border:1px solid #e5e7eb;padding:8px">Hours (1-24)</td><td style="border:1px solid #e5e7eb;padding:8px">Total = Hours</td></tr>
-<tr><td style="border:1px solid #e5e7eb;padding:8px">Daily</td><td style="border:1px solid #e5e7eb;padding:8px">Days + hrs/day</td><td style="border:1px solid #e5e7eb;padding:8px">Days × hrs/day</td></tr>
-<tr><td style="border:1px solid #e5e7eb;padding:8px">Weekly</td><td style="border:1px solid #e5e7eb;padding:8px">Weeks + hrs/day</td><td style="border:1px solid #e5e7eb;padding:8px">Weeks ×7 × hrs/day</td></tr>
-<tr><td style="border:1px solid #e5e7eb;padding:8px">Monthly</td><td style="border:1px solid #e5e7eb;padding:8px">Months + hrs/day</td><td style="border:1px solid #e5e7eb;padding:8px">Months ×30 × hrs/day</td></tr>
-</table>
-
-<div class="grid">
-<div class="card"><b>🏠 Live-out (Daily Visit)</b><br><small>Nurse comes at Start Time (e.g. 08:00), leaves at End Time (e.g. 14:00) daily. Pay per active hour. You set start/end time.</small></div>
-<div class="card"><b>🏠 Live-in (24hrs Stay)</b><br><small>Nurse stays 24hrs (8hrs active + on-call night). Client must provide: Private room, bed, food, water, electricity, toilet/bathroom, 8hrs rest. +10% allowance.</small></div>
-</div>
-
-<h2>💳 How Payment Works - 85% to Nurse</h2>
-<div class="card-yellow">
-<b>Transparent 85/15 Split:</b><br>
-1. Client pays 100% via Paystack (Card, MoMo, Bank) → Booking confirmed<br>
-2. Nurse completes work, client confirms "Work Done" in My Bookings<br>
-3. CEO Dashboard shows Payout → Click "Pay Nurse 85% via Paystack"<br>
-4. Nurse receives 85% automatically via Paystack Transfer to bank/MoMo<br>
-5. Platform keeps 15% commission<br><br>
-<b>Example:</b> Client pays 1000 GHS → Nurse gets 850 GHS, Platform keeps 150 GHS<br>
-<b>Receipt:</b> Both client and nurse get professional receipt with Receipt No, can Print/Download/Share
-</div>
-
-<h2>🔒 How We Verify Nurses - Safety First</h2>
-<p>Every nurse must provide:</p>
-<ul>
-<li><b>Full Name, Phone, GPS Location</b></li>
-<li><b>Years of Experience, Specialty (13 services), Care Mode (Live-in/out)</b></li>
-<li><b>Video Intro</b> - Upload from phone/laptop or YouTube link - CEO watches</li>
-<li><b>CV</b> - PDF/DOC upload or Drive link</li>
-<li><b>Certificate</b> - Nursing certificate photo/PDF</li>
-<li><b>ID Card</b> - Government ID showing 18+</li>
-<li><b>Withdrawal Details</b> - Bank/MoMo account to receive 85% via Paystack</li>
-</ul>
-<p>CEO verifies all files in Dashboard → Nurses + Media before activation. Clients see only assigned nurse after payment.</p>
-
-<h2>📍 How We Find Nearby Nurses - GPS & Map</h2>
-<p>We use <b>Leaflet Maps</b> and <b>GPS Auto</b> with 3-level fallback:</p>
-<ul>
-<li>Tap GPS Auto → High accuracy (30 sec) → If fails, retry low accuracy → If fails, allow manual address typing</li>
-<li>Shows nurses within 5/10/20/50 km radius</li>
-<li>Distance calculated, sorted by nearest</li>
-<li>Map markers show nurse locations</li>
-<li>Legal minimum rate enforced: Cannot pay below minimum per hour × total hours × 1.10 if live-in</li>
-<li>10-minute alert: If no nurse picks in 10 min, popup "Increase your rate for quick booking!"</li>
-</ul>
-
-<h2>📧 Email Verification & Receipts</h2>
-<p>Before first booking, client verifies real email via 6-digit code (EmailJS: service_9s6ci5k, template_yi4iwel). Email + name + phone saved permanently for next visit. After payment, client gets professional receipt with Receipt No, can Print/Download/Share. Nurse gets payout receipt after 85% transfer.</p>
-
-<h2>👨‍💼 Who Is Behind LOVE CARE GLOBAL?</h2>
-<div class="card">
-<p><b>CEO:</b> Based in Accra, Ghana | <b>Contact:</b> lovecareglobal@gmail.com | +233 544 121 814</p>
-<p>We are a team passionate about healthcare accessibility. We started in Ghana to solve the problem of finding trusted home nurses quickly, especially for elderly parents, new mothers, and persons with disabilities.</p>
-<p>Our platform is built with <b>Firebase (Google)</b> for real-time database & storage, <b>Paystack</b> for secure payments, <b>Leaflet</b> for maps, and <b>EmailJS</b> for verification.</p>
-</div>
-
-<h2>🔞 18+ Only - Age Restriction</h2>
-<div class="card-yellow">
-<b>🔞 This app is for adults 18 years and above only.</b><br>
-- You must be 18+ to book a nurse<br>
-- You must be 18+ to register as a nurse (with valid ID)<br>
-- For Child Special Needs Care, parent/guardian must be 18+ to book<br>
-- Any account found to be under 18 will be terminated immediately<br>
-- We do not knowingly collect data from children under 18
-</div>
-
-<h2>📄 Legal Documents</h2>
-<div class="grid">
-<div class="card"><a href="./privacy.html">🔒 Privacy Policy</a><br><small>Ghana Data Protection Act 2012 (Act 843) compliant, 18+ policy, location notice, retention</small></div>
-<div class="card"><a href="./terms.html">📄 Terms of Service</a><br><small>Flexible booking, legal min block, verification, payments, group chat private, 18+</small></div>
-<div class="card"><a href="./cancellation.html">❌ Cancellation & Refund</a><br><small>Cancel with reason, refund via CEO 48hrs, MoMo/Bank</small></div>
-<div class="card"><a href="./about.html">ℹ️ About Us (This Page)</a><br><small>Who we are, mission, services, how it works</small></div>
-</div>
-
-<h2>📧 Contact Us</h2>
-<div class="card-green" style="text-align:center">
-<img src="./Icon-512.png" style="width:60px;height:60px;border-radius:12px;background:white;padding:4px" onerror="this.src='./logo.png'">
-<p><b>LOVE CARE GLOBAL</b><br>Compassionate Care, Without Borders<br>🔞 18+ Only - Adults Only</p>
-<p>Email: <a href="mailto:lovecareglobal@gmail.com">lovecareglobal@gmail.com</a><br>
-Phone: <a href="tel:+233544121814">+233 544 121 814</a><br>
-Location: Accra, Ghana<br>
-Website: <a href="https://lovecareglobal-cell.github.io/love-care-global/">lovecareglobal-cell.github.io/love-care-global</a><br>
-GitHub: lovecareglobal-cell</p>
-<a href="mailto:lovecareglobal@gmail.com?subject=Support%20Request%20-%20LOVE%20CARE%20GLOBAL" style="display:inline-block;background:#16a34a;color:white;padding:10px 20px;border-radius:10px;margin:6px">📧 Email Us</a>
-<a href="https://wa.me/233544121814" target="_blank" style="display:inline-block;background:#25D366;color:white;padding:10px 20px;border-radius:10px;margin:6px">💬 WhatsApp Us</a>
-</div>
-
-<p style="font-size:11px; color:#6b7280; margin-top:30px; text-align:center">© 2026 LOVE CARE GLOBAL. All rights reserved. English Countries Only. 🔞 18+ Only. Made with ❤️ in Accra, Ghana for compassionate care worldwide.</p>
-
-`}, contact:{title:"Contact - LOVE CARE GLOBAL",body:`
-<div style="text-align:center;padding:10px">
-<img src="./Icon-512.png" style="width:80px;height:80px;border-radius:20px;margin-bottom:10px" onerror="this.src='./logo.png'">
-<h3>LOVE CARE GLOBAL</h3>
-<p>Compassionate Care, Without Borders</p>
-<p><b>Email:</b> lovecareglobal@gmail.com<br>
-<b>Phone:</b> +233 544 121 814<br>
-<b>Location:</b> Accra, Ghana<br>
-<b>Website:</b> lovecareglobal-cell.github.io/love-care-global</p>
-<button onclick="openContactEmail()" class="btnSubmit" style="background:#16a34a">📧 Email Us</button>
-<a href="https://wa.me/233544121814" target="_blank" class="btnSubmit" style="background:#25D366;display:block;text-align:center;text-decoration:none;margin-top:8px">💬 WhatsApp Us</a>
-</div>
-`}
-};
-function openLegal(key){
-  if(key==='cancel'){
-    openCancellationEmail();
-    return;
-  }
-  document.getElementById('legalTitle').innerText=legalPages[key].title;
-  document.getElementById('legalBody').innerHTML=legalPages[key].body;
-  document.getElementById('legalModal').classList.remove('hidden');
-}
-function openCancellationEmail(){
-  var phone = localStorage.getItem('lastClientPhone') || localStorage.getItem('nursePhone') || '';
-  var name = localStorage.getItem('lastClientName') || localStorage.getItem('nurseName') || '';
-  var email = localStorage.getItem('verifiedClientEmail') || '';
-  var subject = encodeURIComponent('Request for Account Deletion / Cancellation - LOVE CARE GLOBAL');
-  var body = encodeURIComponent(
-    'Hello LOVE CARE GLOBAL Team,\n\n' +
-    'I am writing to request cancellation and deletion of my account.\n\n' +
-    'My Details:\n' +
-    'Full Name: ' + name + '\n' +
-    'Phone: ' + phone + '\n' +
-    'Email: ' + email + '\n' +
-    'Account Type: ' + (localStorage.getItem('nursePhone') ? 'Nurse' : 'Client') + '\n\n' +
-    'Reason for cancellation:\n[Please write your reason here - Required]\n\n' +
-    'I understand that:\n' +
-    '- My account and bookings will be deleted within 48 hours\n' +
-    '- Refund will be processed if eligible (48hrs after CEO approval)\n' +
-    '- This request will be reviewed by CEO\n\n' +
-    'Please confirm deletion.\n\n' +
-    'Thank you,\n' +
-    name
-  );
-  var mailto = 'mailto:lovecareglobal@gmail.com?subject=' + subject + '&body=' + body;
-  window.location.href = mailto;
-  // Also show modal as fallback
-  setTimeout(function(){
-    document.getElementById('legalTitle').innerText=legalPages['cancel'].title;
-    document.getElementById('legalBody').innerHTML=legalPages['cancel'].body + '<p style="margin-top:10px;color:#16a34a;font-weight:bold">✅ Email app opened - If not, manually email lovecareglobal@gmail.com</p>';
-    document.getElementById('legalModal').classList.remove('hidden');
-  }, 500);
-}
-function openContactEmail(){
-  var subject = encodeURIComponent('Support Request - LOVE CARE GLOBAL');
-  var body = encodeURIComponent('Hello LOVE CARE GLOBAL Team,\n\nI need help with:\n[Describe your issue here]\n\nMy Phone: ' + (localStorage.getItem('lastClientPhone')||'') + '\n\nThank you');
-  window.location.href = 'mailto:lovecareglobal@gmail.com?subject=' + subject + '&body=' + body;
-}
-
-function closeLegal(){document.getElementById('legalModal').classList.add('hidden');}
-function scheduleRateCheck(bookingId, amount, currency){
- lastBookingId=bookingId; lastBookingAmount=amount; lastBookingCurrency=currency;
- setTimeout(()=>{
-  if(!db) return;
-  db.ref('bookings/'+bookingId).once('value').then(snap=>{
-   var b=snap.val();
-   if(b && b.status==='pending_assignment'){
-     showRatePopup(b);
-     // Also auto push message to client via alert + notification
-     if(Notification && Notification.permission==='granted'){
-       new Notification('LOVE CARE - Increase Rate', {body:'No nurse responded in 10 min. Increase rate for quick booking!'});
-     }
-   }
-  });
- }, 10*60*1000); // 10 minutes
-}
-function showRatePopup(b){
- document.getElementById('ratePopupMsg').innerHTML = `Your booking <b>#${b.id}</b> has not been picked by any nurse in 10 minutes.<br><br>Current: <b>${b.amount} ${b.currency}</b> for ${b.days||''} = ${b.totalHours}hrs<br><br>💡 <b>Tip: Increase your rate for quick successful booking!</b> Higher pay = faster acceptance. Nurses see higher pay first.`;
- document.getElementById('ratePopupCurrent').innerText = `Min required: ${b.legalMinTotal||''} ${b.currency||''} | Care: ${b.careMode||''}`;
- document.getElementById('ratePopup').classList.remove('hidden');
-}
-function closeRatePopup(){document.getElementById('ratePopup').classList.add('hidden');}
-function increaseRateAction(){
- var calc = calculateTotal();
- var suggested = Math.max(Math.round(lastBookingAmount*1.5), calc.totalMin);
- var newAmt=prompt("Enter new higher rate ("+lastBookingCurrency+") - Min is "+calc.totalMin+" for quick booking:", suggested);
- if(newAmt &&!isNaN(parseFloat(newAmt))){
-   if(parseFloat(newAmt) < calc.totalMin){ alert('BLOCKED: Below legal min '+calc.totalMin); return; }
-   if(db && lastBookingId){ db.ref('bookings/'+lastBookingId).update({amount:parseFloat(newAmt), increased:true, increaseTime:Date.now()}).then(()=>{ alert("✅ Rate increased to "+newAmt+" - Nurses will see it first!"); closeRatePopup(); }); }
- }
-}
 function showPage(id){
 if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
 if(id==='staff-dashboard' &&!localStorage.getItem('staffID')) id='staff-login';
 if(id==='nurse-dashboard' &&!localStorage.getItem('nursePhone')) id='nurse-login';
-if(id==='group-chat'){
-  var isNurse = !!localStorage.getItem('nursePhone');
-  var isStaff = !!localStorage.getItem('staffID');
-  var isCEO = localStorage.getItem('isCEOLogged')==='true';
-  if(!isNurse && !isStaff && !isCEO){
-    alert('🔒 Group Chat is private: Only Nurses, Staff and CEO can access. Clients cannot see this chat. Please login as Nurse/Staff/CEO.');
-    id='nurse-login';
-  }
-}
 document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
 var el=document.getElementById('page-'+id); if(el){el.classList.add('active');el.style.display='block';}
 document.querySelectorAll('.bottomNav button').forEach(b=>b.classList.remove('active'));
 var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
 var nid=map[id]; if(nid){var nb=document.getElementById(nid); if(nb) nb.classList.add('active');}
 window.scrollTo(0,0);
-if(id==='home') setTimeout(()=>{if(!uberMap)initUberMap();else{uberMap.invalidateSize();fitMapWide();}},300);
-if(id==='ceo-dashboard') setTimeout(()=>{loadCeoData();initCeoMap();toggleMasterClear();renderMinRateEditor();loadAnnouncementSettings();},400);
-if(id==='nurse-dashboard') setTimeout(()=>{loadNurseDashboard();},400);
-if(id==='staff-dashboard') setTimeout(()=>{loadStaffData();},400);
-if(id==='group-chat') setTimeout(()=>{initGroupChat();toggleMasterClear();},400);
-updateGroupChatVisibility();
+if(id==='home') setTimeout(()=>{if(!uberMap)initUberMap();else{uberMap.invalidateSize();}},300);
 }
-function updateGroupChatVisibility(){
-  var isNurse = !!localStorage.getItem('nursePhone');
-  var chatNavBtn = document.getElementById('nav-chat');
-  if(chatNavBtn){
-    var isStaff = !!localStorage.getItem('staffID');
-    var isCEO = localStorage.getItem('isCEOLogged')==='true';
-    if(isNurse || isStaff || isCEO){
-      chatNavBtn.classList.remove('hidden'); chatNavBtn.style.display='flex';
-    } else {
-      chatNavBtn.classList.add('hidden'); chatNavBtn.style.display='none';
-    }
-  }
-  var isNurse2 = !!localStorage.getItem('nursePhone');
-  var isStaff = !!localStorage.getItem('staffID');
-  var isCEO = localStorage.getItem('isCEOLogged')==='true';
-  var groupBtn = document.getElementById('nav-chat');
-  if(groupBtn){
-    if(isNurse || isStaff || isCEO){
-      groupBtn.style.display='flex';
-    } else {
-      groupBtn.style.display='none'; // Hide from clients
-    }
-  }
-}
-function toggleMasterClear(){var isCEO=localStorage.getItem('isCEOLogged')==='true';document.querySelectorAll('#masterClearBtn').forEach(b=>{if(b){if(isCEO) b.classList.remove('hidden'); else b.classList.add('hidden');}});}
-(function(){var logo=document.getElementById('logoTapArea');var press=null;var tapCount=0;if(logo){logo.addEventListener('click',function(){tapCount++; if(tapCount>=5){tapCount=0;showPage('staff-login');} setTimeout(()=>{tapCount=0},3000);});logo.addEventListener('touchstart',function(){press=setTimeout(()=>{showPage('ceo-login');},1800);});logo.addEventListener('touchend',function(){clearTimeout(press);});logo.addEventListener('mousedown',function(){press=setTimeout(()=>{showPage('ceo-login');},1800);});logo.addEventListener('mouseup',function(){clearTimeout(press);});}})();
 function autoGPS(i,s){
   var se=document.getElementById(s); 
   var ie=document.getElementById(i);
-  
-  if(!ie){
-    alert('Input not found');
-    return;
-  }
-  
-  // Show trying message
+  if(!ie){ alert('Input not found'); return; }
   if(se){
     se.classList.remove('hidden');
     se.style.display='block';
-    se.innerHTML='📡 <b>Getting GPS...</b> Please allow location permission<br><small>Turn ON GPS/Location in phone settings</small>';
-    se.style.background='#dbeafe';
-    se.style.border='2px solid #2563eb';
-    se.style.color='#1e40af';
-    se.style.padding='10px';
-    se.style.borderRadius='10px';
+    se.innerHTML='📡 <b>Getting Google Live GPS...</b> Please allow location<br><small>Turn ON GPS/Location</small>';
+    se.style.background='#dbeafe'; se.style.border='2px solid #2563eb'; se.style.color='#1e40af'; se.style.padding='10px'; se.style.borderRadius='10px';
   }
-  
-  // Check if geolocation supported
   if(!navigator.geolocation){
-    if(se){
-      se.innerHTML='❌ <b>GPS not supported on this browser</b><br><small>Use Chrome or type address manually</small>';
-      se.style.background='#fee2e2';
-      se.style.border='2px solid #ef4444';
-      se.style.color='#991b1b';
-    }
-    ie.placeholder='Type your address manually (e.g. Accra, Ghana)';
-    return;
+    if(se){ se.innerHTML='❌ GPS not supported'; }
+    ie.placeholder='Type your address manually'; return;
   }
-  
-  // Check if on HTTPS - required for GPS
-  if(location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1'){
-    if(se){
-      se.innerHTML='⚠️ <b>GPS needs HTTPS</b><br><small>Your site must be https:// (GitHub Pages is https) - If testing locally, allow location</small>';
-    }
-  }
-  
-  var gpsOptions = {
-    enableHighAccuracy: true,
-    timeout: 30000,
-    maximumAge: 0
-  };
-  
-  function handleSuccess(p){
-    var lat=p.coords.latitude;
-    var lng=p.coords.longitude;
-    var accuracy = p.coords.accuracy;
-    
-    // Save coords
-    if(i.includes('cLocation')){
-      clientLat=lat;
-      clientLng=lng;
-      localStorage.setItem('clientLat', lat);
-      localStorage.setItem('clientLng', lng);
-    }
-    if(i.includes('nRegLocation')){
-      nurseRegLat=lat;
-      nurseRegLng=lng;
-      localStorage.setItem('nurseRegLat', lat);
-      localStorage.setItem('nurseRegLng', lng);
-    }
-    
-    // Try to get address with multiple fallbacks
-    // First try: Nominatim (free, no key)
-    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=18&addressdetails=1')
-      .then(r=>r.json())
-      .then(d=>{
-        var addr = d.display_name || (d.address ? (d.address.road+', '+d.address.city+', '+d.address.country) : null) || lat.toFixed(5)+','+lng.toFixed(5);
-        ie.value=addr;
-        ie.style.background='#f0fdf4';
-        ie.style.border='2px solid #16a34a';
-        if(se){
-          se.innerHTML='✅ <b>GPS Success!</b> Accuracy: '+Math.round(accuracy)+'m<br><small>'+lat.toFixed(6)+','+lng.toFixed(6)+'</small><br><small style="color:#16a34a">✔ Location saved - You can now find nurses / register</small>';
-          se.style.background='#dcfce7';
-          se.style.border='2px solid #16a34a';
-          se.style.color='#166534';
-        }
-        // Auto find nurses if client location
-        if(i.includes('cLocation')){
-          setTimeout(function(){
-            var btn = document.getElementById('findNurseBtn');
-            if(btn) btn.style.animation='pulse 1s infinite';
-          }, 500);
-        }
-      })
-      .catch(err=>{
-        // Fallback 1 failed, try BigDataCloud (free, no key, CORS allowed)
-        fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude='+lat+'&longitude='+lng+'&localityLanguage=en')
-          .then(r=>r.json())
-          .then(d=>{
-            var addr = (d.locality || '') + (d.city ? ', '+d.city : '') + (d.countryName ? ', '+d.countryName : '') || lat.toFixed(5)+','+lng.toFixed(5);
-            ie.value=addr;
-            ie.style.background='#f0fdf4';
-            ie.style.border='2px solid #16a34a';
-            if(se){
-              se.innerHTML='✅ <b>GPS Success!</b> (Backup geocoder)<br><small>'+addr+'</small><br><small>'+lat.toFixed(5)+','+lng.toFixed(5)+' Accuracy: '+Math.round(accuracy)+'m</small>';
-              se.style.background='#dcfce7';
-              se.style.border='2px solid #16a34a';
-              se.style.color='#166534';
-            }
-          })
-          .catch(err2=>{
-            // Both failed, just use coords
-            ie.value=lat.toFixed(6)+', '+lng.toFixed(6);
-            ie.style.background='#f0fdf4';
-            ie.style.border='2px solid #16a34a';
-            if(se){
-              se.innerHTML='✅ <b>GPS Got Coordinates</b> (Address lookup failed, but coords saved)<br><small>'+lat.toFixed(6)+', '+lng.toFixed(6)+' - Accuracy '+Math.round(accuracy)+'m</small><br><small style="color:#16a34a">✔ You can now continue - Coords are enough for nurses</small>';
-              se.style.background='#dcfce7';
-              se.style.border='2px solid #16a34a';
-              se.style.color='#166534';
-            }
-          });
-      });
-  }
-  
-  function handleError(e){
-    var msg = '';
-    var solution = '';
-    
-    switch(e.code){
-      case 1: // PERMISSION_DENIED
-        msg = '❌ <b>Location Permission Denied</b>';
-        solution = 'Go to phone Settings > Apps > Chrome > Permissions > Location > Allow<br>Or tap the lock icon in address bar > Site settings > Location > Allow<br>Then tap GPS again';
-        break;
-      case 2: // POSITION_UNAVAILABLE
-        msg = '❌ <b>GPS Signal Unavailable</b>';
-        solution = 'Turn ON: Phone Settings > Location/GPS > ON<br>Go outside or near window for better signal<br>Or type address manually in box';
-        break;
-      case 3: // TIMEOUT
-        msg = '⏰ <b>GPS Timeout - Slow Signal</b>';
-        solution = 'Retrying with low accuracy mode...<br>If still fails, type address manually';
-        // Retry with low accuracy
-        setTimeout(function(){
-          if(se) se.innerHTML='🔄 <b>Retrying GPS with low accuracy mode...</b>';
-          navigator.geolocation.getCurrentPosition(handleSuccess, handleFinalError, {enableHighAccuracy:false, timeout:30000, maximumAge:60000});
-        }, 1000);
-        break;
-      default:
-        msg = '❌ <b>GPS Failed: '+(e.message||'Unknown')+'</b>';
-        solution = 'Type your address manually (e.g. "Madina, Accra")<br>Or try: Settings > Location ON > Allow Chrome location > Tap GPS again';
-    }
-    
-    if(e.code !== 3){
-      if(se){
-        se.innerHTML=msg+'<br><small style="font-size:11px">'+solution+'</small><br><br><button onclick="autoGPS(\''+i+'\',\''+s+'\')" style="background:#2563eb;color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:800;margin-top:6px">🔄 Try Again</button> <button onclick="document.getElementById(\''+i+'\').focus()" style="background:#6b7280;color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:800">⌨ Type Manually</button>';
-        se.style.background='#fee2e2';
-        se.style.border='2px solid #ef4444';
-        se.style.color='#991b1b';
-        se.style.padding='12px';
-        se.style.display='block';
-      }
-      ie.placeholder='Type address manually - e.g. Accra, Ghana';
-      ie.style.border='2px solid #f59e0b';
-      ie.style.background='#fffbeb';
-    }
-  }
-  
-  function handleFinalError(e){
-    if(se){
-      se.innerHTML='❌ <b>GPS Still Failed After Retry</b><br><small>Please type address manually:<br>Example: "East Legon, Accra, Ghana"<br>Or "Lagos, Nigeria"</small><br><button onclick="document.getElementById(\''+i+'\').focus()" style="background:#16a34a;color:white;border:none;padding:10px 20px;border-radius:8px;font-weight:800;margin-top:8px">⌨ Type Address Manually</button>';
-      se.style.background='#fef3c7';
-      se.style.border='2px solid #f59e0b';
-      se.style.color='#92400e';
-    }
-  }
-  
-  // First attempt: High accuracy
+  navigator.geolocation.getCurrentPosition(p=>{
+    var lat=p.coords.latitude, lng=p.coords.longitude, acc=p.coords.accuracy;
+    if(i.includes('cLocation')){ clientLat=lat; clientLng=lng; localStorage.setItem('clientLat',lat); localStorage.setItem('clientLng',lng); }
+    if(i.includes('nRegLocation')){ nurseRegLat=lat; nurseRegLng=lng; localStorage.setItem('nurseRegLat',lat); localStorage.setItem('nurseRegLng',lng); }
+    // Reverse geocode for address
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=18').then(r=>r.json()).then(d=>{
+      var addr = d.display_name || lat.toFixed(6)+','+lng.toFixed(6);
+      ie.value=addr; ie.style.background='#f0fdf4'; ie.style.border='2px solid #16a34a';
+      if(se){ se.innerHTML='✅ <b>Google Live GPS Success!</b> Accuracy: '+Math.round(acc)+'m<br><small>'+lat.toFixed(6)+','+lng.toFixed(6)+'</small><br><small style="color:#16a34a">✔ Live tracking started - You are visible on map</small>'; se.style.background='#dcfce7'; se.style.border='2px solid #16a34a'; se.style.color='#166534'; }
+      if(i.includes('cLocation')){ if(uberMap) showUserOnMap(lat,lng,acc); startGoogleLiveTracking(); }
+    }).catch(()=>{ ie.value=lat.toFixed(6)+','+lng.toFixed(6); if(se) se.innerHTML='✅ GPS: '+lat.toFixed(5)+','+lng.toFixed(5)+' - Live active'; });
+  }, e=>{
+    var msg='❌ '+e.message;
+    if(e.code===1) msg='❌ Permission Denied - Allow location in browser settings';
+    if(e.code===2) msg='❌ GPS unavailable - Turn ON Location/GPS';
+    if(e.code===3) msg='⏰ Timeout - Retrying...';
+    if(se){ se.innerHTML=msg+'<br><button onclick="autoGPS(\''+i+'\',\''+s+'\')" style="background:#2563eb;color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:800;margin-top:6px">🔄 Try Again</button> <button onclick="document.getElementById(\''+i+'\').focus()" style="background:#6b7280;color:white;border:none;padding:8px 16px;border-radius:8px">⌨ Type Manually</button>'; se.style.background='#fee2e2'; se.style.border='2px solid #ef4444'; se.style.color='#991b1b'; }
+  }, {enableHighAccuracy:true, timeout:30000, maximumAge:0});
+}
+
+function getFullPhone(c,p){var code=document.getElementById(c).value; var ph=document.getElementById(p).value.trim().replace(/^0+/,''); if(ph.startsWith('+')) return ph; return code+ph;}
+function getDistanceKm(a,b,c,d){if(!a||!b||!c||!d) return 9999; var R=6371; var dLat=(c-a)*Math.PI/180; var dLon=(d-b)*Math.PI/180; var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2); return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+// ===== GOOGLE LIVE + LIVE NAVIGATION - FIXED =====
+var userLiveMarker=null, userAccuracyCircle=null, watchId=null, liveRouteLine=null, liveNurseMarkers=[];
+var googleLiveActive=false;
+
+function initUberMap(){
+  var m=document.getElementById('uberMap'); 
+  if(!m) return; 
+  if(uberMap){ setTimeout(()=>{uberMap.invalidateSize(); fitMapWide();},100); return; }
+  uberMap=L.map('uberMap',{zoomControl:true}).setView([5.6037,-0.1870],12);
+  // Google-like tiles (Carto Voyager - clean Google style) + OSM fallback
+  var googleStreets = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:20, attribution:'© CARTO © OSM'});
+  var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OSM'});
+  googleStreets.addTo(uberMap);
+  L.control.layers({"Google Live (Voyager)":googleStreets,"OSM":osm}).addTo(uberMap);
+  nurseCluster=L.markerClusterGroup({showCoverageOnHover:false, maxClusterRadius:60});
+  uberMap.addLayer(nurseCluster);
+  // Add live scale
+  L.control.scale().addTo(uberMap);
+  renderNurseMarkers();
+  setTimeout(()=>{uberMap.invalidateSize(); fitMapWide(); startGoogleLiveTracking();},600);
+}
+
+function startGoogleLiveTracking(){
+  if(!navigator.geolocation || googleLiveActive) return;
+  googleLiveActive=true;
+  var opts={enableHighAccuracy:true, timeout:20000, maximumAge:0};
+  // One-time fix
+  if(clientLat && clientLng){ showUserOnMap(clientLat, clientLng, 30); }
+  // Watch for live movement
   try{
-    navigator.geolocation.getCurrentPosition(handleSuccess, handleError, gpsOptions);
-  } catch(err){
-    if(se){
-      se.innerHTML='❌ <b>GPS Error: '+(err.message||'Unknown')+'</b><br><small>Type address manually</small>';
-      se.style.background='#fee2e2';
+    watchId = navigator.geolocation.watchPosition(pos=>{
+      var lat=pos.coords.latitude, lng=pos.coords.longitude, acc=pos.coords.accuracy;
+      clientLat=lat; clientLng=lng;
+      localStorage.setItem('clientLat',lat); localStorage.setItem('clientLng',lng);
+      showUserOnMap(lat,lng,acc);
+      // If we have nearby nurses sorted, update distances live
+      if(nearbyNursesSorted.length>0){
+        nearbyNursesSorted = nearbyNursesSorted.map(n=>{
+          var d=getDistanceKm(lat,lng,parseFloat(n.lat),parseFloat(n.lng));
+          return {...n,distance:d};
+        }).sort((a,b)=>a.distance-b.distance);
+        renderNearbyList();
+        document.getElementById('nearbyCount').innerText=nearbyNursesSorted.length;
+      }
+    }, err=>{
+      console.log('Live tracking error',err);
+    }, opts);
+  }catch(e){ console.log('watchPosition failed',e); }
+}
+
+function showUserOnMap(lat,lng,accuracy){
+  if(!uberMap) return;
+  if(!userLiveMarker){
+    var blueIcon = L.divIcon({className:'', html:'<div style="width:18px;height:18px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 0 0 6px rgba(37,99,235,0.25)"></div>', iconSize:[18,18], iconAnchor:[9,9]});
+    userLiveMarker = L.marker([lat,lng],{icon:blueIcon, zIndexOffset:1000}).addTo(uberMap).bindPopup('<b>📍 You (Live)</b><br>'+lat.toFixed(5)+','+lng.toFixed(5));
+  } else {
+    userLiveMarker.setLatLng([lat,lng]);
+  }
+  if(accuracy && accuracy<2000){
+    if(!userAccuracyCircle){
+      userAccuracyCircle = L.circle([lat,lng],{radius:accuracy, color:'#2563eb', fillColor:'#2563eb', fillOpacity:0.08, weight:1}).addTo(uberMap);
+    } else {
+      userAccuracyCircle.setLatLng([lat,lng]).setRadius(accuracy);
     }
   }
 }
-function getFullPhone(c,p){var code=document.getElementById(c).value; var ph=document.getElementById(p).value.trim().replace(/^0+/,''); if(ph.startsWith('+')) return ph; return code+ph;}
-function getDistanceKm(a,b,c,d){if(!a||!b||!c||!d) return 9999; var R=6371; var dLat=(c-a)*Math.PI/180; var dLon=(d-b)*Math.PI/180; var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2); return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
-if(!localStorage.getItem('nurses')){localStorage.setItem('nurses',JSON.stringify([{id:1,name:"Nurse Grace",lat:5.675,lng:-0.165,location:"Madina",phone:"+233244001001",status:'on_duty'},{id:2,name:"Nurse Esther",lat:5.682,lng:-0.185,location:"Haatso",phone:"+233244001002",status:'on_duty'}]));}
-function initUberMap(){var m=document.getElementById('uberMap'); if(!m) return; if(uberMap){uberMap.invalidateSize();fitMapWide();return;} uberMap=L.map('uberMap').setView([5.6037,-0.1870],11); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(uberMap); nurseCluster=L.markerClusterGroup({showCoverageOnHover:false}); uberMap.addLayer(nurseCluster); renderNurseMarkers(); setTimeout(()=>{uberMap.invalidateSize();fitMapWide();},500);}
-function getAllNursesSource(){if(allWorkers&&allWorkers.length>0) return allWorkers; try{return JSON.parse(localStorage.getItem('nurses')||'[]');}catch(e){return [];}}
-function renderNurseMarkers(list){if(!uberMap||!nurseCluster) return; nurseCluster.clearLayers(); var src=list||getAllNursesSource(); src.forEach(w=>{if(!w.lat||!w.lng) return; var mk=L.marker([parseFloat(w.lat),parseFloat(w.lng)]); mk.bindPopup(`<b>${w.name}</b>`); mk.on('click',()=>selectNurseCard(w.phone||w.id)); nurseCluster.addLayer(mk);});}
-function fitMapWide(){if(!uberMap) return; var b=L.latLngBounds(); var has=false; if(clientLat&&clientLng){b.extend([clientLat,clientLng]);has=true;} var list=nearbyNursesSorted.length>0?nearbyNursesSorted:getAllNursesSource(); list.forEach(n=>{if(n.lat&&n.lng){b.extend([parseFloat(n.lat),parseFloat(n.lng)]);has=true;}}); if(!has){uberMap.setView([5.6037,-0.1870],11);return;} uberMap.fitBounds(b,{padding:[60,60],maxZoom:13});}
+
+function getAllNursesSource(){
+  if(allWorkers && allWorkers.length>0) return allWorkers; 
+  try{return JSON.parse(localStorage.getItem('nurses')||'[]');}catch(e){return [];}
+}
+function renderNurseMarkers(list){
+  if(!uberMap || !nurseCluster) return; 
+  nurseCluster.clearLayers(); 
+  liveNurseMarkers=[];
+  var src=list||getAllNursesSource(); 
+  src.forEach(w=>{
+    if(!w.lat||!w.lng) return; 
+    var isSelected = selectedNurseId && (w.phone===selectedNurseId || w.id==selectedNurseId);
+    var iconHtml = '<div style="width:38px;height:38px;background:'+(isSelected?'#111827':'#16a34a')+';border:2px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.3)">👩‍⚕️</div><div style="width:12px;height:12px;background:#00ff88;border:2px solid white;border-radius:50%;margin:-8px auto 0 auto;box-shadow:0 0 0 2px #16a34a"></div>';
+    var nIcon = L.divIcon({html:iconHtml, className:'', iconSize:[38,46], iconAnchor:[19,36]});
+    var mk=L.marker([parseFloat(w.lat),parseFloat(w.lng)],{icon:nIcon});
+    mk.bindPopup(`<div style="min-width:180px"><b>${w.name}</b><br><small>${w.location||''} - ${w.specialty||''}</small><br><small>${w.careMode||'both'} - ${w.phone||''}</small><br><div style="display:flex;gap:4px;margin-top:6px"><button onclick="selectNurseCard('${w.phone||w.id}')" style="flex:1;background:#16a34a;color:white;border:none;padding:6px;border-radius:6px;font-weight:800;font-size:10px">Select</button><button onclick="navigateToNurse(${w.lat},${w.lng},'${w.name}')" style="flex:1;background:#2563eb;color:white;border:none;padding:6px;border-radius:6px;font-weight:800;font-size:10px">🧭 Navigate</button></div><button onclick="openGoogleMapsLive(${w.lat},${w.lng})" style="width:100%;margin-top:4px;background:#111827;color:white;border:none;padding:6px;border-radius:6px;font-weight:800;font-size:10px">📍 Open in Google Maps</button></div>`);
+    mk.on('click',()=>selectNurseCard(w.phone||w.id));
+    nurseCluster.addLayer(mk);
+    liveNurseMarkers.push(mk);
+  });
+}
+function fitMapWide(){
+  if(!uberMap) return; 
+  var b=L.latLngBounds(); var has=false; 
+  if(clientLat&&clientLng){b.extend([clientLat,clientLng]);has=true;} 
+  if(userLiveMarker){b.extend(userLiveMarker.getLatLng()); has=true;}
+  var list=nearbyNursesSorted.length>0?nearbyNursesSorted:getAllNursesSource(); 
+  list.forEach(n=>{if(n.lat&&n.lng){b.extend([parseFloat(n.lat),parseFloat(n.lng)]);has=true;}}); 
+  if(!has){uberMap.setView([5.6037,-0.1870],11);return;} 
+  uberMap.fitBounds(b,{padding:[60,60],maxZoom:14});
+}
 function toggleMap(){var w=document.getElementById('loveCareMapWrapper'); w.classList.toggle('hidden'); if(!w.classList.contains('hidden')){if(!uberMap) initUberMap(); setTimeout(()=>{uberMap.invalidateSize();fitMapWide();},300);}}
-function findNursesUber(){ var src=getAllNursesSource(); if(!clientLat||!clientLng){alert('Tap GPS Auto first');return;} var rad=parseInt(document.getElementById('radiusSelect').value)||10; nearbyNursesSorted=src.filter(w=>w.lat&&w.lng).map(w=>{var d=getDistanceKm(clientLat,clientLng,parseFloat(w.lat),parseFloat(w.lng)); return {...w,distance:d};}).filter(w=>w.distance<=rad).sort((a,b)=>a.distance-b.distance).slice(0,40); document.getElementById('nearbyCount').innerText=nearbyNursesSorted.length; document.getElementById('uberActionArea').classList.remove('hidden'); document.getElementById('loveCareMapWrapper').classList.remove('hidden'); if(!uberMap) initUberMap(); setTimeout(()=>{uberMap.invalidateSize();renderNurseMarkers(nearbyNursesSorted);fitMapWide();},300); renderNearbyList(); showPage('home');}
-function renderNearbyList(){var l=document.getElementById('loveCareLiveList'); if(nearbyNursesSorted.length===0){l.innerHTML='<div style="padding:12px;background:#fef3c7;border-radius:10px;text-align:center">No nurses within range</div>';return;} var h=''; nearbyNursesSorted.forEach(n=>{h+=`<div class="uber-card" onclick="selectNurseCard('${n.phone||n.id}')"><img src="./Icon-512.png" style="width:40px;height:40px;border-radius:50%;background:white;padding:2px"><div style="flex:1"><b>${n.name}</b> - ${n.distance.toFixed(1)}km<br><small>${n.location||''} - ${n.careMode||'both'}</small></div><div class="nurse-dot"></div></div>`;}); l.innerHTML=h;}
-function selectNurseCard(id){selectedNurseId=id; document.getElementById('selectedNurseInfo').innerText='Selected: '+id;}
-function randomSelectNurse(){if(nearbyNursesSorted.length===0){alert('No nurses');return;} var p=nearbyNursesSorted[Math.floor(Math.random()*nearbyNursesSorted.length)]; selectNurseCard(p.phone||p.id);}
+
+function findNursesUber(){ 
+  var src=getAllNursesSource(); 
+  if(!clientLat||!clientLng){
+    // Try to get from localStorage
+    var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng');
+    if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); }
+    else { alert('📡 Tap GPS Auto first to get your live location'); return; }
+  } 
+  var rad=parseInt(document.getElementById('radiusSelect').value)||10; 
+  nearbyNursesSorted=src.filter(w=>w.lat&&w.lng).map(w=>{
+    var d=getDistanceKm(clientLat,clientLng,parseFloat(w.lat),parseFloat(w.lng)); 
+    return {...w,distance:d};
+  }).filter(w=>w.distance<=rad).sort((a,b)=>a.distance-b.distance).slice(0,50); 
+  document.getElementById('nearbyCount').innerText=nearbyNursesSorted.length; 
+  document.getElementById('uberActionArea').classList.remove('hidden'); 
+  document.getElementById('loveCareMapWrapper').classList.remove('hidden'); 
+  if(!uberMap) initUberMap(); 
+  setTimeout(()=>{
+    uberMap.invalidateSize();
+    renderNurseMarkers(nearbyNursesSorted);
+    showUserOnMap(clientLat, clientLng, 25);
+    fitMapWide();
+    startGoogleLiveTracking();
+  },300); 
+  renderNearbyList(); 
+  showPage('home');
+}
+
+function renderNearbyList(){
+  var l=document.getElementById('loveCareLiveList'); 
+  if(nearbyNursesSorted.length===0){
+    l.innerHTML='<div style="padding:12px;background:#fef3c7;border-radius:10px;text-align:center;font-size:11px">No nurses within '+ (document.getElementById('radiusSelect').value||10) +'km. Try 20km or 50km.<br><small>Live tracking active - Move map or increase radius</small></div>';
+    return;
+  } 
+  var h=''; 
+  nearbyNursesSorted.forEach(n=>{
+    var isSel = selectedNurseId && (n.phone==selectedNurseId || n.id==selectedNurseId);
+    h+=`<div class="uber-card" style="${isSel?'border:3px solid #111827;background:#f0fdf4':''}" onclick="selectNurseCard('${n.phone||n.id}')">
+      <img src="./Icon-512.png" style="width:40px;height:40px;border-radius:50%;background:white;padding:2px" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3774/3774293.png'">
+      <div style="flex:1"><b>${n.name}</b> - <span style="color:#16a34a;font-weight:800">${n.distance.toFixed(1)}km away - LIVE</span><br><small>${n.location||''} • ${n.specialty||'General'} • ${n.careMode||'both'}</small><br><small style="color:#2563eb">👩‍⚕️ ${n.phone||''}</small></div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div class="nurse-dot"></div>
+        <button onclick="event.stopPropagation(); navigateToNurse(${n.lat},${n.lng},'${n.name}')" style="background:#2563eb;color:white;border:none;padding:5px 8px;border-radius:6px;font-weight:800;font-size:9px">🧭 NAV</button>
+      </div>
+    </div>`;
+  }); 
+  l.innerHTML=h;
+}
+
+function selectNurseCard(id){
+  selectedNurseId=id; 
+  document.getElementById('selectedNurseInfo').innerText='✅ Selected: '+id+' - Ready to BOOK';
+  // Highlight marker
+  renderNurseMarkers(nearbyNursesSorted.length>0?nearbyNursesSorted:null);
+  // Draw live route to selected nurse
+  var nurse = nearbyNursesSorted.find(n=> (n.phone||n.id)==id) || getAllNursesSource().find(n=> (n.phone||n.id)==id);
+  if(nurse && clientLat && clientLng){
+    showLiveRoute(clientLat, clientLng, parseFloat(nurse.lat), parseFloat(nurse.lng));
+  }
+}
+
+function randomSelectNurse(){
+  if(nearbyNursesSorted.length===0){alert('No nurses in range - Increase radius to 20km or 50km');return;} 
+  var p=nearbyNursesSorted[Math.floor(Math.random()*nearbyNursesSorted.length)]; 
+  selectNurseCard(p.phone||p.id);
+}
+
+function showLiveRoute(fromLat, fromLng, toLat, toLng){
+  if(!uberMap) return;
+  if(liveRouteLine){ uberMap.removeLayer(liveRouteLine); }
+  // Use OSRM for free routing (car)
+  var url = `https://router.project-osrm.org/route/v1/driving/${fromLng},${fromLat};${toLng},${toLat}?overview=full&geometries=geojson`;
+  fetch(url).then(r=>r.json()).then(data=>{
+    if(data.routes && data.routes[0]){
+      var coords = data.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]);
+      liveRouteLine = L.polyline(coords,{color:'#2563eb', weight:5, opacity:0.85, dashArray:'10,10', lineCap:'round'}).addTo(uberMap);
+      var dist = (data.routes[0].distance/1000).toFixed(1);
+      var dur = Math.round(data.routes[0].duration/60);
+      liveRouteLine.bindPopup(`<b>🧭 Live Route</b><br>📏 ${dist} km<br>⏱ ~${dur} mins<br><small>Blue dashed = driving route</small><br><button onclick="openGoogleMapsLive(${toLat},${toLng})" style="margin-top:6px;background:#111827;color:white;border:none;padding:6px 10px;border-radius:6px;font-weight:800">Open Google Maps</button>`).openPopup();
+    } else {
+      // Fallback straight line
+      liveRouteLine = L.polyline([[fromLat,fromLng],[toLat,toLng]],{color:'#2563eb', weight:4, opacity:0.7, dashArray:'10,10'}).addTo(uberMap);
+    }
+    fitMapWide();
+  }).catch(()=>{
+    liveRouteLine = L.polyline([[fromLat,fromLng],[toLat,toLng]],{color:'#2563eb', weight:4, opacity:0.7, dashArray:'10,10'}).addTo(uberMap);
+  });
+}
+
+function navigateToNurse(lat,lng,name){
+  if(!clientLat || !clientLng){ alert('Get your GPS first'); return; }
+  showLiveRoute(clientLat, clientLng, lat, lng);
+  // Also offer Google Maps
+  setTimeout(()=>{ 
+    if(confirm('🧭 Show route to '+name+' on map.\n\nOpen in Google Maps for turn-by-turn navigation?')){ 
+      openGoogleMapsLive(lat,lng); 
+    }
+  },400);
+}
+
+function openGoogleMapsLive(destLat, destLng){
+  // Google Maps navigation - works on Android, iPhone, desktop
+  var origin = clientLat && clientLng ? `&origin=${clientLat},${clientLng}` : '';
+  var gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${destLat},${destLng}${origin}&travelmode=driving`;
+  window.open(gmapsUrl,'_blank');
+}
+
+function openGoogleMapsDirections(clientLatParam, clientLngParam){
+  // For nurse: navigate to client
+  var dest = clientLatParam && clientLngParam ? `${clientLatParam},${clientLngParam}` : `${clientLat},${clientLng}`;
+  var url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
+  window.open(url,'_blank');
+}
+
+// Nurse live duty tracking
+var nurseWatchId=null;
+function startDuty(){
+  var phone=localStorage.getItem('nursePhone');
+  if(!phone){ alert('Login first'); return; }
+  if(!navigator.geolocation){ alert('GPS not supported'); return; }
+  document.getElementById('nurseGpsStatus').style.display='block';
+  document.getElementById('nurseGpsStatus').innerHTML='🟢 <b>LIVE - Broadcasting location...</b> Clients can see you on map';
+  // Update Firebase onDuty true
+  if(db){
+    db.ref('workers/'+phone.replace(/[^0-9]/g,'')).update({onDuty:true, status:'on_duty', lastDutyStart:Date.now()});
+  }
+  // Start live watch
+  if(nurseWatchId) navigator.geolocation.clearWatch(nurseWatchId);
+  nurseWatchId = navigator.geolocation.watchPosition(pos=>{
+    var lat=pos.coords.latitude, lng=pos.coords.longitude;
+    document.getElementById('nurseGpsStatus').innerHTML=`🟢 LIVE - ${lat.toFixed(5)},${lng.toFixed(5)} - Accuracy ${Math.round(pos.coords.accuracy)}m<br><small>Broadcasting to clients...</small><br><button onclick="openGoogleMapsLive(${lat},${lng})" style="margin-top:4px;background:#111827;color:white;border:none;padding:4px 8px;border-radius:6px;font-size:9px">View My Live on Google Maps</button>`;
+    if(db){
+      db.ref('workers/'+phone.replace(/[^0-9]/g,'')).update({lat:lat, lng:lng, lastUpdate:Date.now()});
+    }
+    localStorage.setItem('nurseRegLat',lat);
+    localStorage.setItem('nurseRegLng',lng);
+  }, err=>{
+    document.getElementById('nurseGpsStatus').innerHTML='❌ GPS Error: '+err.message;
+  }, {enableHighAccuracy:true, timeout:20000, maximumAge:0});
+  alert('✅ ON DUTY - Your live location is now broadcasting to clients. You will appear on LIVE map with green dot.');
+}
+
+function stopDuty(){
+  var phone=localStorage.getItem('nursePhone');
+  if(nurseWatchId) navigator.geolocation.clearWatch(nurseWatchId);
+  nurseWatchId=null;
+  document.getElementById('nurseGpsStatus').style.display='none';
+  if(db && phone){
+    db.ref('workers/'+phone.replace(/[^0-9]/g,'')).update({onDuty:false, status:'off_duty'});
+  }
+  alert('⛔ OFF DUTY - You are now hidden from map');
+}
+
 function submitBooking(){
   var name=document.getElementById('cName').value.trim();
   var phone=document.getElementById('cPhone').value.trim();
@@ -1423,7 +1006,6 @@ function submitBooking(){
   if(!selectedNurseId&&nearbyNursesSorted[0])selectedNurseId=nearbyNursesSorted[0].phone||nearbyNursesSorted[0].id;
   var calc = calculateTotal();
   var amount=parseFloat(document.getElementById('cBudget').value||0);
-  // BLOCK below minimum - Requirement 4
   if(!amount){ alert('Enter Your Offer - Min is '+calc.totalMin+' '+document.getElementById('cCurrency').value + ' - System blocks below minimum'); return; }
   if(amount < calc.totalMin){ alert('❌ BLOCKED: Cannot pay below minimum rate. Offer '+amount+' is below legal total '+calc.totalMin+'. Increase to book.'); document.getElementById('legalWageMsg').innerHTML = 'BLOCKED: Offer below minimum<br>Min: '+calc.totalMin+' '+document.getElementById('cCurrency').value; document.getElementById('legalWagePopup').classList.remove('hidden'); return; }
   var cur=document.getElementById('cCurrency').value;
@@ -1434,1085 +1016,57 @@ function submitBooking(){
   var endTime = document.getElementById('cEndTime') ? document.getElementById('cEndTime').value : '';
   var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status:'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,email:verifiedEmail,country:country,days:calc.displayDuration,totalHours:calc.totalHours,hrsPerDay:calc.hrsPerDay,hourlyRate:calc.rateData.amount,hourlyCurrency:calc.rateData.currency,legalMinTotal:calc.totalMin, bookingUnit:calc.unit, careMode:calc.careMode, verifiedEmail:verifiedEmail, startTime:startTime, endTime:endTime, dailySchedule: (calc.careMode==='liveout' || calc.careMode==='both' || window.currentCareMode==='liveout') ? (startTime + ' - ' + endTime) : '24hrs Live-in'};
   if(db)db.ref('bookings/'+id).set(b).then(()=>{
-   // Save client permanently for next visit
    localStorage.setItem('lastClientPhone', fullPhone);
    localStorage.setItem('lastClientName', name);
    localStorage.setItem('lastClientLocation', document.getElementById('cLocation').value);
    localStorage.setItem('lastClientService', service);
    localStorage.setItem('clientPermanentProfile', JSON.stringify({name:name, phone:fullPhone, email:verifiedEmail, location:document.getElementById('cLocation').value, country:country}));
-   alert('✅ Booked! '+calc.displayDuration+' = '+calc.totalHours+' hrs ('+calc.hrsPerDay+' hrs/day) Care:'+calc.careMode+' Total '+amount+' '+cur+'. Email '+verifiedEmail+' saved permanently. After 10 min if no nurse picks, you will get alert to increase rate.');
-   scheduleRateCheck(id, amount, cur);
+   alert('✅ Booked! '+calc.displayDuration+' = '+calc.totalHours+' hrs ('+calc.hrsPerDay+' hrs/day) Care:'+calc.careMode+' Total '+amount+' '+cur+'.\n\n🧭 Live route to nurse drawn on map. Tap Google Maps button for turn-by-turn.');
+   if(selectedNurseId){
+     var nurse = nearbyNursesSorted.find(n=> (n.phone||n.id)==selectedNurseId);
+     if(nurse) showLiveRoute(clientLat, clientLng, parseFloat(nurse.lat), parseFloat(nurse.lng));
+   }
    document.getElementById('myBookPhone').value=document.getElementById('cPhone').value;
    document.getElementById('myBookPhoneCode').value=document.getElementById('cPhoneCode').value;
    loadMyBookings();
   });
+  else {
+    alert('✅ Demo Booking: '+name+' - '+service+' - '+amount+' '+cur+'\nSelected nurse: '+selectedNurseId+'\nLive route shown on map');
+  }
 }
+
 function loadMyBookings(){
  var codeEl=document.getElementById('myBookPhoneCode'); var phoneEl=document.getElementById('myBookPhone');
  var fullPhone = codeEl && phoneEl? (codeEl.value + phoneEl.value.trim().replace(/^0+/,'').replace(/\+/g,'')) : '';
  if(phoneEl.value.trim().startsWith('+')) fullPhone = phoneEl.value.trim();
  else if(phoneEl.value.trim()!=''){ try{ fullPhone = getFullPhone('myBookPhoneCode','myBookPhone'); }catch(e){} } else { fullPhone = localStorage.getItem('lastClientPhone')||''; }
  if(!fullPhone){ alert('Enter your phone'); return; }
- var listDiv=document.getElementById('myBookingsList'); listDiv.innerHTML='Loading...'; if(!db){ listDiv.innerHTML='Firebase not connected'; return; }
+ var listDiv=document.getElementById('myBookingsList'); listDiv.innerHTML='Loading live bookings...'; 
+ if(!db){ listDiv.innerHTML='<div style="padding:10px;background:#fef3c7;border-radius:8px">Firebase not connected - Demo mode<br>Your last booking would appear here with Google Live navigation button</div>'; return; }
  var suffix = fullPhone.replace(/[^0-9]/g,'').slice(-9);
  db.ref('bookings').once('value').then(snap=>{
    var all = Object.values(snap.val()||{}); var mine = all.filter(b=> (b.phone||'').replace(/[^0-9]/g,'').endsWith(suffix) ); mine.sort((a,b)=>b.timestamp-a.timestamp);
-   if(mine.length===0){ listDiv.innerHTML='<div style="text-align:center;color:#999;padding:10px">No bookings for '+fullPhone+'</div>'; return; }
+   if(mine.length===0){ listDiv.innerHTML='<div style="text-align:center;color:#999;padding:10px">No bookings for '+fullPhone+'<br><small>Live navigation will appear after booking</small></div>'; return; }
    var h=''; mine.forEach(b=>{
-     var statusClass='st-pending'; if(b.status==='confirmed') statusClass='st-confirmed'; if(b.status==='cancelled_by_client') statusClass='st-cancelled'; if(b.status==='refund_requested') statusClass='st-refund_req'; if(b.status==='refund_approved') statusClass='st-refund_ok'; if(b.status==='refunded') statusClass='st-refunded';
-     h+=`<div class="bookingClientCard"><div style="display:flex;justify-content:space-between"><b>#${b.id}</b><span class="statusBadge ${statusClass}">${(b.status||'').toUpperCase()}</span></div><div style="font-size:11px;margin-top:6px"><b>${b.service}</b> - ${b.amount} ${b.currency}<br>📅 ${b.days||'?'} = ${b.totalHours||'?'} hrs (${b.hrsPerDay||'?'} hrs/day)<br>🏠 ${b.careMode||'liveout'} ${b.dailySchedule||''}<br>📍 ${b.location||''}<br>⏰ ${b.time||''}<br>${b.paystackRef? '🧾 Ref: '+b.paystackRef+'<br>':''}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">`;
-     h+=`<button class="btnSmall" style="background:#111827;color:white;flex:1" onclick="showReceiptForBooking(${b.id})">🧾 Receipt</button>`;
-
+     var statusClass='st-pending'; if(b.status==='confirmed') statusClass='st-confirmed'; if(b.status==='cancelled_by_client') statusClass='st-cancelled'; 
+     h+=`<div class="bookingClientCard"><div style="display:flex;justify-content:space-between"><b>#${b.id}</b><span class="statusBadge ${statusClass}">${(b.status||'').toUpperCase()}</span></div><div style="font-size:11px;margin-top:6px"><b>${b.service}</b> - ${b.amount} ${b.currency}<br>📅 ${b.days||'?'} = ${b.totalHours||'?'} hrs<br>🏠 ${b.careMode||''} ${b.dailySchedule||''}<br>📍 ${b.location||''}<br>⏰ ${b.time||''}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">`;
+     h+=`<button class="btnSmall" style="background:#2563eb;color:white;flex:1" onclick="openGoogleMapsLive(${b.lat||clientLat},${b.lng||clientLng})">🧭 Navigate to Location</button>`;
+     if(b.selectedNurse){
+       h+=`<button class="btnSmall" style="background:#16a34a;color:white;flex:1" onclick="openGoogleMapsLive(${b.lat},${b.lng})">📍 Google Live</button>`;
+     }
      if(b.status==='pending_assignment' || b.status==='confirmed'){ 
        h+=`<button class="btnSmall" style="background:#ef4444;color:white;flex:1" onclick="cancelBookingClient(${b.id})">❌ Cancel</button>`; 
      }
-     if(b.status==='confirmed' || b.status==='work_done'){
-       h+=`<button class="btnSmall" style="background:#16a34a;color:white;flex:1" onclick="confirmWorkCompleted(${b.id})">✅ Work Done - Confirm</button>`;
-     }
-     if(b.status==='completed_confirmed'){
-       h+=`<span class="statusBadge st-confirmed" style="flex:1;text-align:center">✅ Completed - Payout Pending</span>`;
-     }
-     if(b.status==='cancelled_by_client' || b.status==='confirmed'){ h+=`<button class="btnSmall" style="background:#7c3aed;color:white;flex:1" onclick="openRefundModal(${b.id}, '${b.amount} ${b.currency}')">💸 Refund</button>`; }
-     h+=`</div></div>`; }); listDiv.innerHTML=h;
+     h+=`</div></div>`; 
+   }); listDiv.innerHTML=h;
  });
-}
-function cancelBookingClient(id){ if(!confirm('Cancel booking?')) return; if(!db) return; db.ref('bookings/'+id).update({status:'cancelled_by_client', cancelTime:Date.now()}).then(()=>{ alert('Cancelled'); loadMyBookings(); });}
-function openRefundModal(id, amountStr){ currentRefundBookingId=id; document.getElementById('refundBookingId').innerText=id; document.getElementById('refundBookingAmount').innerText=amountStr; document.getElementById('refundModal').classList.remove('hidden');}
-function closeRefundModal(){document.getElementById('refundModal').classList.add('hidden');}
-function submitRefundRequest(){
- var reason=document.getElementById('refundReason').value.trim(); var acct=document.getElementById('refundAccount').value.trim(); var acctName=document.getElementById('refundAccountName').value.trim();
- if(!reason||!acct){ alert('Reason and account required'); return; } if(!db ||!currentRefundBookingId) return;
- db.ref('bookings/'+currentRefundBookingId).once('value').then(snap=>{
-   var b=snap.val(); if(!b){ alert('Not found'); return; }
-   var update={status:'refund_requested', refundReason:reason, refundAccount:acct, refundAccountName:acctName, refundRequestTime:Date.now()};
-   db.ref('bookings/'+currentRefundBookingId).update(update).then(()=>{ db.ref('refunds/'+currentRefundBookingId).set({...b,...update}).then(()=>{ alert('Refund request sent'); closeRefundModal(); loadMyBookings(); }); });
- });
-}
-function registerNurse(){
-  var ageCheck = document.getElementById('nRegAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must confirm you are 18+ to register as nurse'); return; }
- var name=document.getElementById('nRegName').value.trim();
- var fullPhone=getFullPhone('nRegPhoneCode','nRegPhone');
- var pass=document.getElementById('nRegPass').value.trim();
- var loc=document.getElementById('nRegLocation').value.trim();
- if(!name||!fullPhone||!pass||!loc){alert('All required');return;}
- if(!nurseRegLat){alert('GPS required');return;}
- var w={ name:name,phone:fullPhone,password:pass,location:loc,timestamp:Date.now(),lat:nurseRegLat,lng:nurseRegLng,status:'on_duty',onDuty:true, specialty:document.getElementById('nRegSpecialty').value||'General', careMode:document.getElementById('nRegCareMode').value||'both', video:document.getElementById('nRegVideo').value.trim(), cv:document.getElementById('nRegCV').value.trim(), certificate:document.getElementById('nRegCertificate').value.trim(), idCard:document.getElementById('nRegID').value.trim(), verified:false };
- if(db) db.ref('workers/'+fullPhone.replace(/[^0-9]/g,'')).set(w).then(()=>{alert('Registered! CEO will verify video & CV. Now login');showPage('nurse-login');});
-}
-function loginNurse(){var fullPhone=getFullPhone('nurseLoginCode','nurseLoginPhone'); var pass=document.getElementById('nurseLoginPass').value.trim(); if(db){db.ref('workers/'+fullPhone.replace(/[^0-9]/g,'')).once('value').then(s=>{var d=s.val(); if(d&&d.password===pass){localStorage.setItem('nursePhone',fullPhone);localStorage.setItem('nurseName',d.name);localStorage.setItem('nurseId',fullPhone.replace(/[^0-9]/g,''));showPage('nurse-dashboard'); updateGroupChatVisibility();}else if(d){document.getElementById('nurseLoginResult').innerText='Wrong password';}else{localStorage.setItem('nursePhone',fullPhone);localStorage.setItem('nurseName',fullPhone);localStorage.setItem('nurseId',fullPhone.replace(/[^0-9]/g,''));showPage('nurse-dashboard'); updateGroupChatVisibility();}});}else{localStorage.setItem('nursePhone',fullPhone);showPage('nurse-dashboard');}}
-function loginStaff(){var id=document.getElementById('staffLoginID').value.trim(); if(!id){alert('Enter ID');return;} localStorage.setItem('staffID',id); localStorage.setItem('staffName',id); showPage('staff-dashboard'); updateGroupChatVisibility();}
-function loginCEO(){var id=document.getElementById('ceoLoginID').value.trim().toUpperCase(); var pass=document.getElementById('ceoLoginPass').value.trim(); var r=document.getElementById('ceoLoginResult'); if(id==='KUSIPETER'&&pass==='Peterasa80@you!'){localStorage.setItem('isCEOLogged','true');localStorage.setItem('ceoName','CEO');r.innerText='Success';setTimeout(()=>{showPage('ceo-dashboard'); updateGroupChatVisibility();},400);}else{r.innerText='Access denied';}}
-function logoutCEO(){localStorage.removeItem('isCEOLogged');localStorage.removeItem('ceoName');showPage('home'); updateGroupChatVisibility();}
-function logoutStaff(){localStorage.removeItem('staffID');localStorage.removeItem('staffName');showPage('home'); updateGroupChatVisibility();}
-function logoutNurse(){localStorage.removeItem('nursePhone');localStorage.removeItem('nurseName');localStorage.removeItem('nurseId');showPage('home'); updateGroupChatVisibility();}
-function renderMinRateEditor(){
- var container = document.getElementById('minRateEditor'); if(!container) return;
- var override = {}; try{ override = JSON.parse(localStorage.getItem('nurseHourlyOverride')||'{}'); }catch(e){}
- var html = '<table><tr><th>Country</th><th>Rate</th><th>Edit</th></tr>';
- Object.keys(NURSE_HOURLY_MIN).forEach(code=>{
-   var d = NURSE_HOURLY_MIN[code]; var val = override[code] || d.amount;
-   html += `<tr><td>${code} - ${d.label}</td><td>${d.amount} ${d.currency}/hr</td><td><input id="min-${code}" type="number" value="${val}" style="width:90px;margin:0"><span style="font-size:10px"> ${d.currency}</span></td></tr>`;
- }); html+='</table>'; container.innerHTML=html;
-}
-function switchCeoTab(tab){
-document.querySelectorAll('.ceo-tab').forEach(t=>t.classList.add('hidden')); document.querySelectorAll('.ceoTabs button').forEach(b=>b.classList.remove('activeTab'));
-var show=document.getElementById('ceo-tab-'+tab); if(show) show.classList.remove('hidden'); var btn=document.getElementById('btn-'+tab); if(btn) btn.classList.add('activeTab');
-if(tab==='nurses') setTimeout(()=>{initCeoMap();loadCeoData();},200);
-if(tab==='bookings'||tab==='clients'||tab==='payments'||tab==='staff'||tab==='refunds') loadCeoData();
-if(tab==='announce'){ renderMinRateEditor(); loadAnnouncementSettings(); }
-}
-function loadCeoData(){if(!db) return; db.ref('bookings').once('value').then(s=>{allBookings=Object.values(s.val()||{});document.getElementById('statBookings').innerText=allBookings.length;renderBookings(allBookings);renderClients(allBookings);renderPayments(allBookings);renderRefundsCEO(allBookings);}); db.ref('workers').once('value').then(s=>{allWorkers=Object.values(s.val()||{});document.getElementById('statNurses').innerText=allWorkers.length;document.getElementById('statOnline').innerText=allWorkers.filter(w=>w.onDuty).length;renderNurses(allWorkers);}); db.ref('staff').once('value').then(s=>{renderStaff(Object.values(s.val()||{}));}); db.ref('refunds').once('value').then(s=>{allRefunds=Object.values(s.val()||{}); document.getElementById('statRefunds').innerText=allRefunds.length;});}
-function showCEOReceipt(bookingId){
-  showReceiptForBooking(bookingId);
-}
-function renderBookings(list){var c=document.getElementById('ceoBookingsList'); if(!list.length){c.innerHTML='<div style="padding:20px;text-align:center;background:#fef3c7;border-radius:10px">No bookings yet</div>';return;} var h='<table><tr><th>Time</th><th>Client</th><th>Service</th><th>Duration</th><th>Care</th><th>Amount</th><th>Status</th><th>Action</th></tr>'; list.sort((a,b)=>b.timestamp-a.timestamp).forEach(b=>{ var badge=`<span class="statusBadge st-pending">${b.status||''}</span>`; if(b.status==='confirmed') badge=`<span class="statusBadge st-confirmed">${b.status}</span>`; if(b.status==='cancelled_by_client') badge=`<span class="statusBadge st-cancelled">CANCELLED</span>`; if(b.status==='refund_requested') badge=`<span class="statusBadge st-refund_req">REFUND REQ</span>`; h+=`<tr><td>${b.time||''}<br><small>${b.email||b.verifiedEmail||''}</small></td><td>${b.name||''}<br><small>${b.country||''}</small></td><td>${b.service||''}</td><td>${b.days||''}<br><small>${b.totalHours||''}h (${b.hrsPerDay||''}/day)</small></td><td>${b.careMode||''}</td><td>${b.amount||''} ${b.currency||''}<br><small>Min ${b.legalMinTotal||''}</small></td><td>${badge}</td><td><button onclick="updateBookingStatus(${b.id},'confirmed')" class="btnSmall" style="background:green;color:white">Confirm</button><button onclick="deleteBooking(${b.id})" class="btnSmall" style="background:#111;color:white">X</button></td></tr>`;}); h+='</table>'; c.innerHTML=h;}
-function renderRefundsCEO(bookingsList){ var c=document.getElementById('ceoRefundsList'); var refunds = bookingsList.filter(b=> b.status==='refund_requested' || b.status==='refund_approved' || b.status==='refunded' || b.refundReason); if(refunds.length===0){ c.innerHTML='<div style="padding:20px;text-align:center;background:#fef3c7;border-radius:10px">No refunds</div>'; return; } var h='<table><tr><th>Client</th><th>Amount</th><th>Account</th><th>Status</th><th>Action</th></tr>'; refunds.forEach(b=>{ h+=`<tr><td>${b.name||''}</td><td>${b.amount} ${b.currency}</td><td>${b.refundAccount||''}</td><td>${b.status}</td><td>`; if(b.status==='refund_requested'){ h+=`<button onclick="approveRefund(${b.id})" class="btnSmall" style="background:#16a34a;color:white">Approve</button>`; } else if(b.status==='refund_approved'){ h+=`<button onclick="confirmRefundSent(${b.id})" class="btnSmall" style="background:#2563eb;color:white">Confirm Sent</button>`; } h+=`</td></tr>`; }); h+='</table>'; c.innerHTML=h;}
-function approveRefund(id){ if(!confirm('Approve?')) return; if(!db) return; db.ref('bookings/'+id).update({status:'refund_approved'}).then(()=>{ db.ref('refunds/'+id).update({status:'approved'}).then(()=>{ loadCeoData(); }); });}
-function confirmRefundSent(id){ if(!confirm('Confirm sent?')) return; if(!db) return; db.ref('bookings/'+id).update({status:'refunded'}).then(()=>{ db.ref('refunds/'+id).update({status:'refunded'}).then(()=>{ loadCeoData(); }); });}
-function renderNurses(list){
- var c=document.getElementById('ceoNursesList');
- if(!list.length){c.innerHTML='<div style="padding:20px;text-align:center;background:#fef3c7;border-radius:10px">No nurses</div>';return;}
- var h='<table><tr><th>Name</th><th>Phone</th><th>Location</th><th>Care</th><th>Media</th><th>Action</th></tr>';
- list.forEach(w=>{
-   var hasMedia = (w.video||w.cv||w.certificate||w.idCard) ? '✅' : '❌';
-   h+=`<tr><td>${w.name||''}<br><small>${w.specialty||''}</small></td><td>${w.phone||''}</td><td>${w.location||''}<br><small>${w.status||''}</small></td><td>${w.careMode||'both'}</td><td>${hasMedia} <button onclick="viewNurseMedia('${(w.phone||'').replace(/[^0-9]/g,'')}')" class="btnSmall" style="background:#7c3aed;color:white">View</button></td><td><button onclick="verifyNurse('${(w.phone||'').replace(/[^0-9]/g,'')}')" class="btnSmall" style="background:#16a34a;color:white">Verify</button><button onclick="deleteWorker('${(w.phone||'').replace(/[^0-9]/g,'')}')" class="btnSmall" style="background:red;color:white">Remove</button></td></tr>`;
- });
- h+='</table>'; c.innerHTML=h;
-}
-function viewNurseMedia(phoneKey){
- if(!db) return;
- db.ref('workers/'+phoneKey).once('value').then(snap=>{
-   var w=snap.val(); if(!w) return;
-   var div=document.getElementById('ceoNurseMediaView');
-   var content=document.getElementById('mediaViewerContent');
-   var html = `<div style="text-align:left"><b>${w.name}</b> - ${w.phone}<br><small>${w.location}</small><br><br>`;
-   html += `<b>🎥 Video:</b><br>${w.video ? `<a href="${w.video}" target="_blank">${w.video}</a><br><iframe src="${w.video.replace('watch?v=','embed/')}" style="width:100%;height:220px;border-radius:10px;margin-top:6px" allowfullscreen></iframe>` : 'No video'}<br><br>`;
-   html += `<b>📄 CV:</b> ${w.cv ? `<a href="${w.cv}" target="_blank">${w.cv}</a>` : 'No CV'}<br><b>🎓 Cert:</b> ${w.certificate ? `<a href="${w.certificate}" target="_blank">${w.certificate}</a>` : 'No cert'}<br><b>🪪 ID:</b> ${w.idCard ? `<a href="${w.idCard}" target="_blank">${w.idCard}</a>` : 'No ID'}<br><br>`;
-   html += `<div style="background:#f0fdf4;padding:8px;border-radius:8px"><b>Verified:</b> ${w.verified ? '✅ YES' : '❌ NO'}</div></div>`;
-   content.innerHTML=html; div.classList.remove('hidden'); div.scrollIntoView({behavior:'smooth'});
- });
-}
-function verifyNurse(phoneKey){ if(!confirm('Verify nurse?')) return; if(db) db.ref('workers/'+phoneKey).update({verified:true, verifiedTime:Date.now()}).then(()=>{ alert('✅ Verified'); loadCeoData(); });}
-function renderClients(b){var c=document.getElementById('ceoClientsList'); var map={}; b.forEach(x=>{if(x.phone) map[x.phone]={name:x.name,phone:x.phone,location:x.location,email:x.email||x.verifiedEmail||'',count:(map[x.phone]?.count||0)+1};}); var clients=Object.values(map); if(!clients.length){c.innerHTML='<div style="padding:20px;text-align:center;background:#fef3c7;border-radius:10px">No clients</div>';return;} var h='<table><tr><th>Name</th><th>Phone</th><th>Email (Verified)</th><th>Bookings</th></tr>'; clients.forEach(x=>{h+=`<tr><td>${x.name||''}</td><td>${x.phone}</td><td>${x.email||''}</td><td>${x.count}</td></tr>`;}); h+='</table>'; c.innerHTML=h;}
-function renderPayments(b){var total=b.reduce((s,x)=>s+(x.amount||0),0); document.getElementById('totalRevenue').innerText=total.toFixed(2); document.getElementById('pendingRevenue').innerText=b.filter(x=>x.status==='pending_assignment').reduce((s,x)=>s+(x.amount||0),0).toFixed(2); var c=document.getElementById('ceoPaymentsList'); if(!b.length){c.innerHTML='<div style="padding:20px;text-align:center">No payments</div>';return;} var h='<table><tr><th>Client</th><th>Service</th><th>Amount</th></tr>'; b.forEach(x=>{h+=`<tr><td>${x.name||''}<br><small>${x.email||''}</small></td><td>${x.service||''}</td><td>${x.amount} ${x.currency}</td></tr>`;}); h+='</table>'; c.innerHTML=h;}
-function renderStaff(list){var c=document.getElementById('ceoStaffList'); if(!list.length){c.innerHTML='<div style="padding:20px;text-align:center">No staff</div>';return;} var h='<table><tr><th>Staff ID</th><th>Action</th></tr>'; list.forEach(s=>{h+=`<tr><td>${s.id||''}</td><td><button onclick="deleteStaff('${s.id}')" class="btnSmall" style="background:red;color:white">Delete</button></td></tr>`;}); h+='</table>'; c.innerHTML=h;}
-function updateBookingStatus(id,s){if(!db) return; db.ref('bookings/'+id).update({status:s}).then(()=>loadCeoData());}
-function deleteBooking(id){if(confirm('Delete?')){if(db) db.ref('bookings/'+id).remove().then(()=>{ loadCeoData(); });}}
-function deleteWorker(k){if(confirm('Remove nurse?')){if(db) db.ref('workers/'+k).remove().then(()=>loadCeoData());}}
-function addStaff(){var id=document.getElementById('newStaffId').value.trim(); var pass=document.getElementById('newStaffPass').value.trim(); if(!id||!pass){alert('ID and pass required');return;} if(db) db.ref('staff/'+id).set({id:id,password:pass}).then(()=>{alert('Staff added');loadCeoData();});}
-function deleteStaff(id){if(confirm('Delete staff?')){if(db) db.ref('staff/'+id).remove().then(()=>loadCeoData());}}
-
-// ===== ANNOUNCEMENT SETTINGS WITH COLORS =====
-function loadAnnouncementSettings(){
-  try{
-    var cfg = JSON.parse(localStorage.getItem('announcementConfig')||'null');
-    if(cfg){
-      if(cfg.text) document.getElementById('announcementInput').value = cfg.text;
-      if(cfg.bg) { document.getElementById('announceBgColor').value = cfg.bg; }
-      if(cfg.textColor) { document.getElementById('announceTextColor').value = cfg.textColor; }
-      if(cfg.border) { document.getElementById('announceBorderColor').value = cfg.border; }
-      if(cfg.speed) { document.getElementById('announceSpeed').value = parseInt(cfg.speed); }
-      previewAnnouncement();
-      applyAnnouncementConfig(cfg);
-    }
-  }catch(e){}
-}
-function previewAnnouncement(){
-  var bg = document.getElementById('announceBgColor').value;
-  var txt = document.getElementById('announceTextColor').value;
-  var border = document.getElementById('announceBorderColor').value;
-  var speed = document.getElementById('announceSpeed').value;
-  document.getElementById('bgColorVal').innerText = bg;
-  document.getElementById('textColorVal').innerText = txt;
-  document.getElementById('borderColorVal').innerText = border;
-  document.getElementById('speedVal').innerText = speed + 's';
-  var preview = document.getElementById('announcePreview');
-  preview.style.background = bg;
-  preview.style.color = txt;
-  preview.style.borderColor = border;
-  preview.querySelector('span').style.animationDuration = speed + 's';
-  // Live preview on real bar
-  var realBar = document.getElementById('announcementBar');
-  var realText = document.getElementById('announcementText');
-  if(realBar){
-    realBar.style.background = bg;
-    realBar.style.borderBottomColor = border;
-    realText.style.color = txt;
-    realText.style.animationDuration = speed + 's';
-    var inputText = document.getElementById('announcementInput').value.trim();
-    if(inputText) realText.innerText = inputText;
-    preview.querySelector('span').innerText = inputText || 'Preview Text';
-  }
-}
-function applyAnnouncementConfig(cfg){
-  if(!cfg) return;
-  var bar = document.getElementById('announcementBar');
-  var text = document.getElementById('announcementText');
-  if(bar){
-    if(cfg.bg) bar.style.background = cfg.bg;
-    if(cfg.border) bar.style.borderBottomColor = cfg.border;
-    document.documentElement.style.setProperty('--announce-bg', cfg.bg||'#111827');
-    document.documentElement.style.setProperty('--announce-border', cfg.border||'#eab308');
-  }
-  if(text){
-    if(cfg.text) text.innerText = cfg.text;
-    if(cfg.textColor) text.style.color = cfg.textColor;
-    if(cfg.speed) text.style.animationDuration = cfg.speed;
-    document.documentElement.style.setProperty('--announce-text', cfg.textColor||'#eab308');
-    document.documentElement.style.setProperty('--announce-speed', cfg.speed||'22s');
-  }
-  localStorage.setItem('announcementConfig', JSON.stringify(cfg));
-}
-function saveAnnouncement(){
-  var txt = document.getElementById('announcementInput').value.trim();
-  var bg = document.getElementById('announceBgColor').value;
-  var textColor = document.getElementById('announceTextColor').value;
-  var border = document.getElementById('announceBorderColor').value;
-  var speedVal = document.getElementById('announceSpeed').value + 's';
-  if(!txt){ alert('Enter announcement text'); return; }
-  var cfg = {text:txt, bg:bg, textColor:textColor, border:border, speed:speedVal};
-  applyAnnouncementConfig(cfg);
-  if(db){
-    db.ref('settings/announcementConfig').set(cfg).then(()=>alert('✅ LIVE! Announcement text + colors + speed saved. All clients see it instantly.'));
-  } else {
-    alert('Saved locally');
-  }
-}
-function saveSettings(){
- var override = {};
- Object.keys(NURSE_HOURLY_MIN).forEach(code=>{
-   var el = document.getElementById('min-'+code);
-   if(el) override[code] = parseFloat(el.value);
- });
- localStorage.setItem('nurseHourlyOverride', JSON.stringify(override));
- Object.keys(override).forEach(k=>{ NURSE_HOURLY_MIN[k].amount = override[k]; });
- if(db){ db.ref('settings/nurseHourly').set(override).then(()=>alert('✅ Rates saved - generic, no Ghana 15 label')); } else { alert('Saved locally'); }
- calculateTotal();
 }
 
-// ===== GROUP CHAT WITH EDIT/DELETE OWN =====
-var groupChatListener=false;
-var currentChatMessages = {};
-function initGroupChat(){if(!db||groupChatListener) return; groupChatListener=true; db.ref('group_chat').limitToLast(200).on('value',snap=>{var data=snap.val()||{}; currentChatMessages = data; var msgs=Object.entries(data).map(([k,v])=>{return {...v,_key:k};}).sort((a,b)=>a.timestamp-b.timestamp); renderGroupChat(msgs);});}
-function getCurrentUserId(){
-  return localStorage.getItem('nurseId') || localStorage.getItem('staffID') || (localStorage.getItem('isCEOLogged')?'CEO':'') || '';
-}
-function getCurrentUserName(){
-  return localStorage.getItem('nurseName') || localStorage.getItem('staffName') || localStorage.getItem('ceoName') || 'Unknown';
-}
-function renderGroupChat(msgs){
-var box=document.getElementById('globalChatBox'); if(!box) return;
-var currentId = getCurrentUserId();
-var isCEO = localStorage.getItem('isCEOLogged')==='true';
-var html='';
-msgs.forEach(m=>{
-  var isOwn = (m.senderId && m.senderId === currentId) || (m.senderName === getCurrentUserName() && !isCEO);
-  var canEdit = isOwn || isCEO;
-  html+=`<div class="chatMsg ${isOwn?'me':'other'}" id="msg-${m._key}"><div><b>${escapeHtml(m.senderName)}</b> <span class="roleBadge role-${m.role}">${m.role}</span> <small style="font-size:8px;color:${isOwn?'#dcfce7':'#9ca3af'}">${new Date(m.timestamp).toLocaleTimeString()}</small></div><div class="msgText" id="text-${m._key}">${escapeHtml(m.text)}</div>`;
-  if(canEdit){
-    html+=`<div class="chatActions">`;
-    if(isOwn){
-      html+=`<button onclick="editOwnMessage('${m._key}')">✏ Edit</button><button onclick="deleteOwnMessage('${m._key}')" style="color:red">🗑 Delete</button>`;
-    }
-    if(isCEO && !isOwn){
-      html+=`<button onclick="deleteOwnMessage('${m._key}')" style="color:red">🗑 CEO Delete</button>`;
-    }
-    html+=`</div>`;
-  }
-  html+=`</div>`;
-});
-box.innerHTML=html||'<div style="text-align:center;color:#999;padding:20px">No messages yet. Start chatting - Nurses, Staff, CEO only.</div>';
-box.scrollTop=box.scrollHeight;
-}
-function editOwnMessage(key){
-  var current = currentChatMessages[key];
-  if(!current) return;
-  var currentId = getCurrentUserId();
-  var isCEO = localStorage.getItem('isCEOLogged')==='true';
-  if(current.senderId !== currentId && !isCEO){
-    alert('You can only edit your own message');
-    return;
-  }
-  var newText = prompt('Edit your message:', current.text);
-  if(newText===null) return;
-  if(!newText.trim()){ alert('Message cannot be empty'); return; }
-  if(db) db.ref('group_chat/'+key).update({text:newText.trim(), edited:true, editedTime:Date.now()});
-}
-function deleteOwnMessage(key){
-  var current = currentChatMessages[key];
-  if(!current) return;
-  var currentId = getCurrentUserId();
-  var isCEO = localStorage.getItem('isCEOLogged')==='true';
-  if(current.senderId !== currentId && !isCEO){
-    alert('You can only delete your own message');
-    return;
-  }
-  if(!confirm('Delete this message?')) return;
-  if(db) db.ref('group_chat/'+key).remove();
-}
-function sendGlobalChat(){
-  var input=document.getElementById('globalChatInput'); var text=input.value.trim(); if(!text) return;
-  var role = localStorage.getItem('isCEOLogged')?'CEO': (localStorage.getItem('nursePhone')?'NURSE':'STAFF');
-  var name = getCurrentUserName();
-  var senderId = getCurrentUserId();
-  if(!senderId){ alert('Login required'); return; }
-  if(db) db.ref('group_chat').push({senderName:name, senderId:senderId, role:role, text:text, timestamp:Date.now()});
-  input.value='';
-}
-function clearGroupChat(){ if(localStorage.getItem('isCEOLogged')!=='true'){ alert('Only CEO can master delete'); return; } if(!confirm('CEO MASTER DELETE: Wipe ALL group chat messages? This cannot be undone.')) return; if(db) db.ref('group_chat').remove().then(()=>{ alert('All messages wiped by CEO'); });}
-function escapeHtml(t){var d=document.createElement('div'); d.textContent=t; return d.innerHTML;}
-function loadStaffData(){if(!db) return; db.ref('bookings').once('value').then(s=>{var v=Object.values(s.val()||{}); var h=v.length?'<table><tr><th>Client</th><th>Service</th></tr>':'No bookings'; v.slice(0,30).forEach(b=>{h+=`<tr><td>${b.name}<br><small>${b.email||''}</small></td><td>${b.service}</td></tr>`;}); if(v.length) h+='</table>'; document.getElementById('staffBookingsList').innerHTML=h;});}
-function loadNurseDashboard(){var p=localStorage.getItem('nursePhone'); if(!p) return; if(db){db.ref('bookings').orderByChild('selectedNurse').equalTo(p).once('value').then(s=>{var v=Object.values(s.val()||{}); var l=document.getElementById('nurseJobsList'); if(!v.length){l.innerHTML='No offers yet.';return;} var h=''; v.slice(-10).reverse().forEach(b=>{h+=`<div class="uber-card"><div style="flex:1"><b>${b.name}</b> - ${b.service}<br><small>${b.days||''} = ${b.totalHours}h (${b.hrsPerDay||''}/day) ${b.careMode||''} - ${b.amount} ${b.currency}<br>Email: ${b.email||''}</small></div><button class="btnSmall" style="background:#16a34a;color:white" onclick="updateBookingStatus(${b.id},'confirmed')">Accept</button></div>`;}); l.innerHTML=h;});}}
-function initCeoMap(){var d=document.getElementById('ceoMap'); if(!d) return; if(ceoMap){ceoMap.invalidateSize();return;} ceoMap=L.map('ceoMap').setView([5.6037,-0.1870],10); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(ceoMap); var workers=getAllNursesSource(); workers.forEach(w=>{if(w.lat&&w.lng) L.marker([w.lat,w.lng]).addTo(ceoMap).bindPopup(w.name||'Nurse');});}
-function filterHelp(){ var q = document.getElementById('helpSearch').value.toLowerCase(); document.querySelectorAll('.helpItem').forEach(item=>{ var kw = item.getAttribute('data-keywords')||''; var txt = item.innerText.toLowerCase(); if(!q || kw.includes(q) || txt.includes(q)) item.style.display='block'; else item.style.display='none'; }); }
 window.onload=function(){
 populatePhoneCodes();
-if(db){
-db.ref('bookings').on('value',s=>{allBookings=Object.values(s.val()||{});});
-db.ref('workers').on('value',s=>{allWorkers=Object.values(s.val()||{});});
-db.ref('settings/announcementConfig').on('value',snap=>{var cfg=snap.val(); if(cfg){applyAnnouncementConfig(cfg); if(document.getElementById('announcementInput') && cfg.text) document.getElementById('announcementInput').value=cfg.text; }});
-db.ref('settings/nurseHourly').on('value',snap=>{ var remote=snap.val(); if(remote){ localStorage.setItem('nurseHourlyOverride', JSON.stringify(remote)); Object.keys(remote).forEach(k=>{ if(NURSE_HOURLY_MIN[k]) NURSE_HOURLY_MIN[k].amount=parseFloat(remote[k]); }); calculateTotal(); } });
-initGroupChat();
-}
-try{var localCfg=JSON.parse(localStorage.getItem('announcementConfig')||'null'); if(localCfg) applyAnnouncementConfig(localCfg);}catch(e){}
-var savedCountry=localStorage.getItem('selectedCountry'); if(savedCountry){document.getElementById('countrySelect').value=savedCountry; var opt=document.getElementById('countrySelect').options[document.getElementById('countrySelect').selectedIndex]; if(opt) document.getElementById('cCurrency').value=opt.getAttribute('data-curr');}
-// Restore verified email if exists
-var verifiedEmail = localStorage.getItem('verifiedClientEmail');
-if(verifiedEmail){
-  document.getElementById('cEmail').value = verifiedEmail;
-  document.getElementById('verifiedEmailBadge').classList.remove('hidden');
-  document.getElementById('verifiedEmailBadge').innerText = '✓ ' + verifiedEmail;
-  // Also restore permanent profile
-  try{
-    var profile = JSON.parse(localStorage.getItem('clientPermanentProfile')||'null');
-    if(profile){
-      document.getElementById('cName').value = profile.name||'';
-      document.getElementById('cLocation').value = profile.location||'';
-      if(profile.country) document.getElementById('countrySelect').value = profile.country;
-    }
-  }catch(e){}
-}
-showPage('home'); setTimeout(initUberMap,700); setTimeout(()=>{toggleMasterClear(); calculateTotal(); selectCareMode('liveout'); updateGroupChatVisibility(); loadAnnouncementSettings();},1000);
-let faqData = [
- {q:"📘 Flexible hrs/day?",kw:"hours",a:"Daily: Days × hrs/day (e.g. 7 days × 2 hrs = 14 hrs). Weekly: Weeks×7×hrs/day. Monthly: Months×30×hrs/day."},
- {q:"🏠 Live-in vs Live-out?",kw:"live",a:"Live-out: goes home, pay per hour. Live-in: stays 24hrs, private room + food + toilet, +10% allowance."},
- {q:"📧 Email verification?",kw:"email",a:"First booking: Enter real email, get 6-digit code, verify. Saved permanently. Next visit no need to verify."},
- {q:"💰 Block below minimum?",kw:"minimum",a:"System blocks booking if offer below legal min. Buttons disabled, red warning. Must increase."},
- {q:"⏰ 10 min auto alert?",kw:"10 min",a:"If no nurse picks in 10 min, popup alerts: Increase rate for quick successful booking. Higher pay = faster."},
- {q:"💬 Group chat private?",kw:"group",a:"Only Nurses/Staff/CEO can see group chat. Clients cannot. Edit/delete own message. CEO master wipe all."},
-];
-let faqList=document.getElementById('helpFaqList');
-if(faqList){ faqList.innerHTML = faqData.map(i=>`<div class="helpItem" data-keywords="${i.kw}"><div class="helpQ" onclick="this.nextElementSibling.classList.toggle('hidden')" style="padding:10px;background:#f9fafb;font-weight:800;font-size:12px;cursor:pointer;display:flex;justify-content:space-between">${i.q} <span>+</span></div><div class="hidden" style="padding:10px;background:white;font-size:11px">${i.a}</div></div>`).join(''); }
+var savedCountry=localStorage.getItem('selectedCountry'); if(savedCountry){document.getElementById('countrySelect').value=savedCountry;}
+calculateTotal();
 };
-
-// ===== FILE UPLOAD FROM PHONE/LAPTOP STORAGE - Firebase Storage =====
-var storage = null;
-try{ if(firebase.storage) storage = firebase.storage(); }catch(e){}
-var uploadedFiles = {video:null, cv:null, certificate:null, idCard:null};
-
-function uploadFileToStorage(file, path, progressElId){
-  return new Promise((resolve, reject)=>{
-    if(!file){ resolve(null); return; }
-    var progressEl = document.getElementById(progressElId);
-    if(progressEl) progressEl.innerText = 'Uploading '+file.name+'...';
-    
-    if(!storage){
-      // Fallback: store as base64 in localStorage for demo
-      var reader = new FileReader();
-      reader.onload = function(e){
-        var base64 = e.target.result;
-        // Save to localStorage (demo) and return base64 as URL
-        try{
-          localStorage.setItem('upload_'+path, base64.substring(0, 50000)); // truncated
-        }catch(err){}
-        if(progressEl) progressEl.innerText = '✅ Uploaded locally (demo): '+file.name;
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-      return;
-    }
-    
-    var storageRef = storage.ref().child(path + '/' + Date.now() + '_' + file.name);
-    var uploadTask = storageRef.put(file);
-    uploadTask.on('state_changed', 
-      function(snapshot){
-        var progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        if(progressEl) progressEl.innerText = 'Uploading: ' + Math.round(progress) + '% - ' + file.name;
-      },
-      function(error){
-        if(progressEl) progressEl.innerText = '❌ Upload failed: ' + error.message;
-        // Fallback to base64
-        var reader = new FileReader();
-        reader.onload = function(e){
-          if(progressEl) progressEl.innerText = '⚠️ Stored locally (Storage failed)';
-          resolve(e.target.result);
-        };
-        reader.readAsDataURL(file);
-      },
-      function(){
-        uploadTask.snapshot.ref.getDownloadURL().then(function(url){
-          if(progressEl) progressEl.innerText = '✅ Uploaded: ' + file.name;
-          resolve(url);
-        });
-      }
-    );
-  });
-}
-
-async function handleRegistrationUploads(){
-  var statusBox = document.getElementById('uploadStatusBox');
-  if(statusBox){ statusBox.style.display='block'; statusBox.innerText='Uploading files from storage...'; }
-  
-  var videoFile = document.getElementById('nRegVideoFile')?.files[0];
-  var cvFile = document.getElementById('nRegCVFile')?.files[0];
-  var certFile = document.getElementById('nRegCertFile')?.files[0];
-  var idFile = document.getElementById('nRegIDFile')?.files[0];
-  
-  var phone = getFullPhone('nRegPhoneCode','nRegPhone').replace(/[^0-9]/g,'');
-  var basePath = 'nurses/' + phone;
-  
-  try{
-    var videoUrl = videoFile ? await uploadFileToStorage(videoFile, basePath+'/video', 'videoUploadProgress') : null;
-    var cvUrl = cvFile ? await uploadFileToStorage(cvFile, basePath+'/cv', 'cvUploadProgress') : null;
-    var certUrl = certFile ? await uploadFileToStorage(certFile, basePath+'/certificate', 'certUploadProgress') : null;
-    var idUrl = idFile ? await uploadFileToStorage(idFile, basePath+'/id', 'idUploadProgress') : null;
-    
-    if(videoUrl) uploadedFiles.video = videoUrl;
-    if(cvUrl) uploadedFiles.cv = cvUrl;
-    if(certUrl) uploadedFiles.certificate = certUrl;
-    if(idUrl) uploadedFiles.idCard = idUrl;
-    
-    if(statusBox) statusBox.innerText = '✅ Files ready - Will save with registration';
-    return true;
-  }catch(e){
-    if(statusBox) statusBox.innerText = '⚠️ Upload error: ' + e.message + ' - Links will be used';
-    return true; // continue anyway
-  }
-}
-
-// Override registerNurse to include file uploads
-var originalRegisterNurse = registerNurse;
-async function registerNurse(){
-  var ageCheck = document.getElementById('nRegAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must confirm you are 18+ to register as nurse'); return; }
-  var name=document.getElementById('nRegName').value.trim();
-  var fullPhone=getFullPhone('nRegPhoneCode','nRegPhone');
-  var pass=document.getElementById('nRegPass').value.trim();
-  var loc=document.getElementById('nRegLocation').value.trim();
-  if(!name||!fullPhone||!pass||!loc){alert('All required');return;}
-  if(!nurseRegLat){alert('GPS required - Tap GPS');return;}
-  
-  // Show uploading
-  document.getElementById('uploadStatusBox')?.classList.remove('hidden');
-  
-  // Upload files first
-  await handleRegistrationUploads();
-  
-  var videoLink = document.getElementById('nRegVideo').value.trim();
-  var cvLink = document.getElementById('nRegCV').value.trim();
-  var certLink = document.getElementById('nRegCertificate').value.trim();
-  var idLink = document.getElementById('nRegID').value.trim();
-  
-  // Prefer file upload, fallback to link, allow both
-  var finalVideo = uploadedFiles.video || videoLink;
-  var finalCV = uploadedFiles.cv || cvLink;
-  var finalCert = uploadedFiles.certificate || certLink;
-  var finalID = uploadedFiles.idCard || idLink;
-  
-  // If file uploaded and link also provided, combine
-  if(uploadedFiles.video && videoLink) finalVideo = uploadedFiles.video + ' | Link: ' + videoLink;
-  if(uploadedFiles.cv && cvLink) finalCV = uploadedFiles.cv + ' | Link: ' + cvLink;
-  if(uploadedFiles.certificate && certLink) finalCert = uploadedFiles.certificate + ' | Link: ' + certLink;
-  if(uploadedFiles.idCard && idLink) finalID = uploadedFiles.idCard + ' | Link: ' + idLink;
-  
-  var w={
-    name:name,phone:fullPhone,password:pass,location:loc,timestamp:Date.now(),lat:nurseRegLat,lng:nurseRegLng,status:'on_duty',onDuty:true,
-    specialty:document.getElementById('nRegSpecialty').value||'General',
-    careMode:document.getElementById('nRegCareMode').value||'both',
-    video:finalVideo, cv:finalCV, certificate:finalCert, idCard:finalID,
-    videoFileUrl:uploadedFiles.video||'', cvFileUrl:uploadedFiles.cv||'', certificateFileUrl:uploadedFiles.certificate||'', idCardFileUrl:uploadedFiles.idCard||'',
-    videoLink:videoLink, cvLink:cvLink, certificateLink:certLink, idCardLink:idLink,
-    verified:false
-  };
-  if(db) db.ref('workers/'+fullPhone.replace(/[^0-9]/g,'')).set(w).then(()=>{alert('✅ Registered! Files uploaded from storage: '+(uploadedFiles.video?'Video ':'')+(uploadedFiles.cv?'CV ':'')+(uploadedFiles.certificate?'Cert ':'')+(uploadedFiles.idCard?'ID ':'')+' + Links saved. CEO will verify.');showPage('nurse-login');});
-}
-
-// ===== NURSE SETTINGS & DELETE ACCOUNT =====
-function openNurseSettings(){
-  var card = document.getElementById('nurseSettingsCard');
-  card.classList.toggle('hidden');
-  // Load current data
-  var phone = localStorage.getItem('nursePhone');
-  if(!phone || !db) return;
-  db.ref('workers/'+phone.replace(/[^0-9]/g,'')).once('value').then(snap=>{
-    var w = snap.val(); if(!w) return;
-    document.getElementById('nurseSetName').value = w.name||'';
-    document.getElementById('nurseSetExperience').value = w.experience||'';
-    document.getElementById('nurseSetSpecialty').value = w.specialty||'General';
-    document.getElementById('nurseSetCareMode').value = w.careMode||'both';
-  });
-}
-async function saveNurseSettings(){
-  var phone = localStorage.getItem('nursePhone'); if(!phone){alert('Login first');return;}
-  var progressEl = document.getElementById('nurseSetUploadProgress');
-  if(progressEl) progressEl.innerText='Uploading new files...';
-  
-  var videoFile = document.getElementById('nurseSetVideoFile')?.files[0];
-  var cvFile = document.getElementById('nurseSetCVFile')?.files[0];
-  var certFile = document.getElementById('nurseSetCertFile')?.files[0];
-  var idFile = document.getElementById('nurseSetIDFile')?.files[0];
-  
-  var basePath = 'nurses/' + phone.replace(/[^0-9]/g,'') + '/settings';
-  var updates = {
-    name:document.getElementById('nurseSetName').value.trim(),
-    experience:document.getElementById('nurseSetExperience').value.trim(),
-    specialty:document.getElementById('nurseSetSpecialty').value,
-    careMode:document.getElementById('nurseSetCareMode').value,
-    updatedAt:Date.now()
-  };
-  
-  try{
-    if(videoFile){
-      var url = await uploadFileToStorage(videoFile, basePath+'/video', 'nurseSetUploadProgress');
-      if(url) updates.video = url;
-    }
-    if(cvFile){
-      var url = await uploadFileToStorage(cvFile, basePath+'/cv', 'nurseSetUploadProgress');
-      if(url) updates.cv = url;
-    }
-    if(certFile){
-      var url = await uploadFileToStorage(certFile, basePath+'/cert', 'nurseSetUploadProgress');
-      if(url) updates.certificate = url;
-    }
-    if(idFile){
-      var url = await uploadFileToStorage(idFile, basePath+'/id', 'nurseSetUploadProgress');
-      if(url) updates.idCard = url;
-    }
-    
-    if(db) db.ref('workers/'+phone.replace(/[^0-9]/g,'')).update(updates).then(()=>{
-      if(progressEl) progressEl.innerText='✅ Settings saved';
-      alert('✅ Settings updated');
-      localStorage.setItem('nurseName', updates.name);
-    });
-  }catch(e){
-    if(progressEl) progressEl.innerText='❌ Error: '+e.message;
-  }
-}
-function deleteNurseAccount(){
-  var reason = document.getElementById('nurseDeleteReason').value.trim();
-  if(!reason){alert('Enter reason for deletion - Required, will be sent to CEO');return;}
-  if(!confirm('⚠️ DELETE YOUR ACCOUNT PERMANENTLY?\nReason: '+reason+'\n\nThis will be sent to CEO dashboard and your account removed. Continue?')) return;
-  var phone = localStorage.getItem('nursePhone');
-  var name = localStorage.getItem('nurseName')||'Unknown';
-  if(!phone){alert('Login first');return;}
-  var phoneKey = phone.replace(/[^0-9]/g,'');
-  if(!db){ alert('No DB'); return; }
-  
-  // Get worker data before delete
-  db.ref('workers/'+phoneKey).once('value').then(snap=>{
-    var w = snap.val()||{};
-    var deletionRecord = {
-      name:w.name||name,
-      phone:phone,
-      phoneKey:phoneKey,
-      location:w.location||'',
-      specialty:w.specialty||'',
-      experience:w.experience||'',
-      video:w.video||'',
-      cv:w.cv||'',
-      certificate:w.certificate||'',
-      idCard:w.idCard||'',
-      deleteReason:reason,
-      deleteTime:Date.now(),
-      deleteTimeString:new Date().toLocaleString(),
-      timestamp:Date.now()
-    };
-    // Save to CEO dashboard - deleted_nurses
-    db.ref('deleted_nurses/'+phoneKey).set(deletionRecord).then(()=>{
-      // Also save to deletions log
-      db.ref('deletions/'+Date.now()).set(deletionRecord).then(()=>{
-        // Now delete worker account
-        db.ref('workers/'+phoneKey).remove().then(()=>{
-          alert('✅ Account deleted. Reason sent to CEO dashboard: '+reason);
-          localStorage.removeItem('nursePhone');
-          localStorage.removeItem('nurseName');
-          localStorage.removeItem('nurseId');
-          showPage('home');
-        });
-      });
-    });
-  });
-}
-
-// ===== CEO VIEW DELETED ACCOUNTS =====
-function loadDeletedNurses(){
-  if(!db) return;
-  db.ref('deleted_nurses').once('value').then(snap=>{
-    var data = snap.val()||{};
-    var list = Object.values(data);
-    var c = document.getElementById('ceoDeletedList');
-    if(!c) return;
-    if(list.length===0){ c.innerHTML='<div style="padding:20px;text-align:center;background:#f0fdf4;border-radius:10px">No deleted accounts yet</div>'; return; }
-    var h='<table><tr><th>Time</th><th>Name</th><th>Phone</th><th>Reason</th><th>Media</th><th>Action</th></tr>';
-    list.sort((a,b)=>b.timestamp-a.timestamp).forEach(w=>{
-      h+=`<tr><td>${w.deleteTimeString||''}</td><td>${w.name||''}<br><small>${w.specialty||''} | ${w.experience||''} yrs</small></td><td>${w.phone||''}<br><small>${w.location||''}</small></td><td style="max-width:200px"><b style="color:#ef4444">${escapeHtml(w.deleteReason||'')}</b></td><td>${(w.video||w.cv)?'✅ Has files':''}<br><small><a href="${w.video||'#'}" target="_blank">Video</a> | <a href="${w.cv||'#'}" target="_blank">CV</a></small></td><td><button onclick="restoreNurse('${w.phoneKey}')" class="btnSmall" style="background:#16a34a;color:white">Restore</button><button onclick="permanentDeleteRecord('${w.phoneKey}')" class="btnSmall" style="background:#111;color:white">Delete Record</button></td></tr>`;
-    });
-    h+='</table>'; c.innerHTML=h;
-  });
-}
-function restoreNurse(phoneKey){
-  if(!confirm('Restore this nurse account?')) return;
-  if(!db) return;
-  db.ref('deleted_nurses/'+phoneKey).once('value').then(snap=>{
-    var w=snap.val(); if(!w) return;
-    var restoreData = {
-      name:w.name, phone:w.phone, location:w.location, specialty:w.specialty, experience:w.experience,
-      video:w.video, cv:w.cv, certificate:w.certificate, idCard:w.idCard,
-      timestamp:Date.now(), lat:5.6037, lng:-0.1870, status:'on_duty', onDuty:false, verified:false,
-      restored:true, restoredTime:Date.now()
-    };
-    db.ref('workers/'+phoneKey).set(restoreData).then(()=>{
-      alert('Restored');
-      loadDeletedNurses(); loadCeoData();
-    });
-  });
-}
-function permanentDeleteRecord(phoneKey){
-  if(!confirm('Permanently delete this deletion record from CEO dashboard?')) return;
-  if(db) db.ref('deleted_nurses/'+phoneKey).remove().then(()=>{ loadDeletedNurses(); });
-}
-
-// Patch switchCeoTab to load deleted
-var origSwitchCeoTab = switchCeoTab;
-switchCeoTab = function(tab){
-  document.querySelectorAll('.ceo-tab').forEach(t=>t.classList.add('hidden'));
-  document.querySelectorAll('.ceoTabs button').forEach(b=>b.classList.remove('activeTab'));
-  var show=document.getElementById('ceo-tab-'+tab);
-  if(show) show.classList.remove('hidden');
-  var btn=document.getElementById('btn-'+tab);
-  if(btn) btn.classList.add('activeTab');
-  if(tab==='nurses') setTimeout(()=>{initCeoMap();loadCeoData();},200);
-  if(tab==='bookings'||tab==='clients'||tab==='payments'||tab==='staff'||tab==='refunds') loadCeoData();
-  if(tab==='deleted') loadDeletedNurses();
-  if(tab==='announce'){ renderMinRateEditor(); loadAnnouncementSettings(); }
-};
-
-// Patch loadCeoData to also count deleted
-var origLoadCeoData = loadCeoData;
-loadCeoData = function(){
-  if(!db) return;
-  db.ref('bookings').once('value').then(s=>{allBookings=Object.values(s.val()||{});document.getElementById('statBookings').innerText=allBookings.length;renderBookings(allBookings);renderClients(allBookings);renderPayments(allBookings);renderRefundsCEO(allBookings);});
-  db.ref('workers').once('value').then(s=>{allWorkers=Object.values(s.val()||{});document.getElementById('statNurses').innerText=allWorkers.length;document.getElementById('statOnline').innerText=allWorkers.filter(w=>w.onDuty).length;renderNurses(allWorkers);});
-  db.ref('staff').once('value').then(s=>{renderStaff(Object.values(s.val()||{}));});
-  db.ref('refunds').once('value').then(s=>{allRefunds=Object.values(s.val()||{}); document.getElementById('statRefunds').innerText=allRefunds.length;});
-  // Update deleted count if exists
-  db.ref('deleted_nurses').once('value').then(s=>{
-    var count = Object.keys(s.val()||{}).length;
-    var el = document.getElementById('statDeleted');
-    if(el) el.innerText = count;
-    // Also update deleted tab button text
-    var btn = document.getElementById('btn-deleted');
-    if(btn) btn.innerText = '🗑 Deleted ('+count+')';
-  });
-};
-
-
-// ===== PAYSTACK PAYOUT LOGIC - 85% TO NURSE =====
-function savePaystackKey(){
-  var key = document.getElementById('paystackSecretKey').value.trim();
-  if(!key){ alert('Enter Paystack Secret Key from Paystack Dashboard'); return; }
-  if(!key.startsWith('sk_')){ alert('Invalid key - Should start with sk_live_ or sk_test_'); return; }
-  localStorage.setItem('paystackSecretKey', key);
-  document.getElementById('paystackKeyStatus').innerHTML = '✅ Key saved locally - '+key.substring(0,12)+'... - Ready for auto transfers';
-  document.getElementById('paystackKeyStatus').style.color='#16a34a';
-  alert('✅ Paystack Secret Key saved - You can now auto-pay nurses 85% via Paystack Transfer');
-}
-
-function loadPaystackKey(){
-  var key = localStorage.getItem('paystackSecretKey');
-  if(key){
-    document.getElementById('paystackSecretKey').value = key;
-    document.getElementById('paystackKeyStatus').innerHTML = '✅ Key loaded - Ready for transfers';
-    document.getElementById('paystackKeyStatus').style.color='#16a34a';
-  }
-}
-
-function testPaystackConnection(){
-  var key = localStorage.getItem('paystackSecretKey') || document.getElementById('paystackSecretKey').value.trim();
-  if(!key){ alert('Enter secret key first'); return; }
-  document.getElementById('paystackKeyStatus').innerText='Testing Paystack connection...';
-  fetch('https://api.paystack.co/balance', {
-    headers: { 'Authorization': 'Bearer ' + key }
-  })
-  .then(r=>r.json())
-  .then(d=>{
-    if(d.status){
-      var bal = d.data[0] ? d.data[0].balance/100 + ' ' + d.data[0].currency : 'No balance data';
-      document.getElementById('paystackKeyStatus').innerHTML='✅ Connected! Balance: <b>'+bal+'</b> - Can do transfers';
-      document.getElementById('paystackKeyStatus').style.color='#16a34a';
-    } else {
-      document.getElementById('paystackKeyStatus').innerHTML='❌ Failed: '+(d.message||'Invalid key');
-      document.getElementById('paystackKeyStatus').style.color='#ef4444';
-    }
-  })
-  .catch(err=>{
-    document.getElementById('paystackKeyStatus').innerHTML='❌ Connection failed - Check internet or key - '+err.message;
-    document.getElementById('paystackKeyStatus').style.color='#ef4444';
-  });
-}
-
-// When client confirms work done, auto-create payout
-function createPayoutForBooking(booking){
-  if(!db) return;
-  var clientAmount = parseFloat(booking.amount) || 0;
-  var currency = booking.currency || 'GHS';
-  var nurseShare = Math.round(clientAmount * 0.85 * 100) / 100;
-  var platformShare = Math.round(clientAmount * 0.15 * 100) / 100;
-  
-  var payoutId = booking.id;
-  var payoutData = {
-    id: payoutId,
-    bookingId: booking.id,
-    clientName: booking.name,
-    clientPhone: booking.phone,
-    nursePhone: booking.selectedNurse,
-    nurseName: '', // will be filled from workers
-    clientAmount: clientAmount,
-    currency: currency,
-    nurseShare: nurseShare,
-    platformShare: platformShare,
-    percent: 85,
-    status: 'pending',
-    bookingService: booking.service,
-    bookingTime: booking.time,
-    createdAt: Date.now(),
-    createdAtString: new Date().toLocaleString(),
-    startTime: booking.startTime || '',
-    endTime: booking.endTime || '',
-    dailySchedule: booking.dailySchedule || '',
-    payoutMethod: '',
-    accountDetails: null,
-    transferReference: '',
-    paidAt: null
-  };
-  
-  // Get nurse details
-  db.ref('workers/'+booking.selectedNurse.replace(/[^0-9]/g,'')).once('value').then(snap=>{
-    var nurse = snap.val();
-    if(nurse){
-      payoutData.nurseName = nurse.name || '';
-      payoutData.payoutMethod = nurse.payoutMethod || nurse.payoutDetails?.method || 'bank';
-      payoutData.accountDetails = nurse.payoutDetails || {
-        bankName: nurse.bankName || '',
-        accountNumber: nurse.accountNumber || '',
-        accountName: nurse.accountName || '',
-        bankCode: nurse.bankCode || ''
-      };
-      payoutData.nursePhoneFull = nurse.phone || booking.selectedNurse;
-    }
-    // Save payout
-    db.ref('payouts/'+payoutId).set(payoutData).then(()=>{
-      console.log('Payout created for booking', payoutId, nurseShare);
-      // Also update booking
-      db.ref('bookings/'+booking.id).update({payoutCreated:true, payoutStatus:'pending', payoutId:payoutId});
-    });
-  });
-}
-
-// Load completed bookings that need payout
-function loadCompletedBookingsForPayout(){
-  if(!db) return;
-  var container = document.getElementById('ceoCompletedForPayout');
-  container.innerHTML='Loading completed bookings...';
-  
-  db.ref('bookings').once('value').then(snap=>{
-    var all = Object.values(snap.val()||{});
-    var completed = all.filter(b=> 
-      (b.status==='completed' || b.status==='completed_confirmed' || b.status==='work_done' || b.workConfirmedByClient) && 
-      !b.payoutCreated
-    );
-    
-    if(completed.length===0){
-      container.innerHTML='<div style="padding:10px;background:#f0fdf4;border-radius:8px;text-align:center">✅ No completed bookings need payout - All paid or not yet completed</div>';
-      return;
-    }
-    
-    var h='<div style="margin-top:10px"><h3 style="font-size:12px">📋 Completed Bookings Needing Payout ('+completed.length+')</h3><table><tr><th>Booking</th><th>Client</th><th>Nurse</th><th>Amount</th><th>85% to Nurse</th><th>Action</th></tr>';
-    completed.forEach(b=>{
-      var nurseShare = Math.round((parseFloat(b.amount)||0)*0.85*100)/100;
-      h+='<tr><td>#'+b.id+'<br><small>'+(b.service||'')+'</small></td><td>'+(b.name||'')+'<br><small>'+(b.phone||'')+'</small></td><td>'+(b.selectedNurse||'')+'</td><td>'+b.amount+' '+b.currency+'</td><td><b style="color:#16a34a">'+nurseShare+' '+b.currency+'</b></td><td><button class="btnSmall" style="background:#ff6a00;color:white" onclick="createPayoutForBookingId('+b.id+')">Create Payout</button></td></tr>';
-    });
-    h+='</table></div>';
-    container.innerHTML=h;
-  });
-}
-
-function createPayoutForBookingId(bookingId){
-  if(!db) return;
-  db.ref('bookings/'+bookingId).once('value').then(snap=>{
-    var b=snap.val();
-    if(b) createPayoutForBooking(b);
-    setTimeout(()=>{ loadPayouts(); loadCompletedBookingsForPayout(); }, 1000);
-  });
-}
-
-function loadPayouts(){
-  if(!db) return;
-  var container = document.getElementById('ceoPayoutsList');
-  var summaryEl = document.getElementById('payoutSummary');
-  var filter = document.getElementById('payoutFilter') ? document.getElementById('payoutFilter').value : 'pending';
-  
-  container.innerHTML='Loading payouts...';
-  
-  db.ref('payouts').once('value').then(snap=>{
-    var all = Object.values(snap.val()||{});
-    if(filter==='pending') all = all.filter(p=>p.status==='pending');
-    if(filter==='paid') all = all.filter(p=>p.status==='paid');
-    
-    all.sort((a,b)=>b.createdAt-a.createdAt);
-    
-    if(all.length===0){
-      container.innerHTML='<div style="padding:20px;text-align:center;background:#fff7ed;border-radius:10px">No '+filter+' payouts</div>';
-      if(summaryEl) summaryEl.innerHTML='No payouts';
-      return;
-    }
-    
-    // Summary
-    var totalClient = all.reduce((s,p)=>s+ (parseFloat(p.clientAmount)||0), 0);
-    var totalNurse = all.reduce((s,p)=>s+ (parseFloat(p.nurseShare)||0), 0);
-    var totalPlatform = all.reduce((s,p)=>s+ (parseFloat(p.platformShare)||0), 0);
-    if(summaryEl){
-      summaryEl.innerHTML = 'Total Client Paid: <b>'+totalClient.toFixed(2)+'</b> | Total Nurse (85%): <b style="color:#16a34a">'+totalNurse.toFixed(2)+'</b> | Your Profit (15%): <b style="color:#2563eb">'+totalPlatform.toFixed(2)+'</b> | Count: '+all.length;
-    }
-    
-    var h='<table><tr><th>Time</th><th>Booking & Client</th><th>Nurse & Account</th><th>Amount Breakdown</th><th>Status</th><th>Action</th></tr>';
-    all.forEach(p=>{
-      var statusBadge = p.status==='paid' ? '<span class="statusBadge st-confirmed">PAID</span>' : '<span class="statusBadge" style="background:#ff6a00">PENDING</span>';
-      var acc = p.accountDetails || {};
-      var accStr = (acc.bankName||'')+'<br>'+(acc.accountNumber||'')+'<br>'+(acc.accountName||'')+'<br><small>'+(p.payoutMethod||'')+'</small>';
-      if(!acc.bankName && !acc.accountNumber) accStr = '<span style="color:#ef4444">❌ No payout details<br>Nurse must add in Settings</span>';
-      
-      h+='<tr><td><small>'+(p.createdAtString||'')+'</small><br><small>#'+p.bookingId+'</small></td>';
-      h+='<td><b>'+(p.clientName||'')+'</b><br><small>'+(p.clientPhone||'')+'</small><br><small>'+(p.bookingService||'')+'</small><br><small>'+(p.dailySchedule||'')+'</small></td>';
-      h+='<td><b>'+(p.nurseName||p.nursePhone||'')+'</b><br><small>'+accStr+'</small></td>';
-      h+='<td>Client: <b>'+p.clientAmount+' '+p.currency+'</b><br>Nurse 85%: <b style="color:#16a34a">'+p.nurseShare+' '+p.currency+'</b><br>Platform 15%: <b style="color:#2563eb">'+p.platformShare+' '+p.currency+'</b></td>';
-      h+='<td>'+statusBadge+'<br><small>'+(p.transferReference||'')+'</small><br><small>'+(p.paidAtString||'')+'</small></td>';
-      
-      if(p.status==='pending'){
-        if(acc.accountNumber){
-          h+='<td><button class="btnSmall" style="background:#16a34a;color:white;width:100%;margin-bottom:4px" onclick="payNurse('+p.id+')">💸 Pay Nurse 85% via Paystack</button><button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-bottom:4px" onclick="markAsPaidManually('+p.id+')">✅ Mark Paid Manually</button><button class="btnSmall" style="background:#ef4444;color:white;width:100%" onclick="deletePayout('+p.id+')">🗑 Delete</button></td>';
-        } else {
-          h+='<td><span style="color:#ef4444;font-size:10px">Nurse must add bank/MoMo in Settings</span><br><button class="btnSmall" style="background:#6b7280;color:white;width:100%" onclick="notifyNurseToAddAccount(\''+p.nursePhone+'\')">📩 Notify Nurse</button></td>';
-        }
-      } else {
-        h+='<td>✅ Paid<br><small>Ref: '+(p.transferReference||'')+'</small><br><button class="btnSmall" style="background:#6b7280;color:white" onclick="viewPayoutReceipt('+p.id+')">📄 Receipt</button></td>';
-      }
-      h+='</tr>';
-    });
-    h+='</table>';
-    container.innerHTML=h;
-  });
-}
-
-function payNurse(payoutId){
-  var secretKey = localStorage.getItem('paystackSecretKey') || document.getElementById('paystackSecretKey').value.trim();
-  if(!secretKey){
-    alert('❌ Enter Paystack Secret Key first in the box above (sk_live_... from Paystack Dashboard)');
-    document.getElementById('paystackSecretKey').focus();
-    return;
-  }
-  
-  if(!confirm('💸 Pay Nurse 85% via Paystack Transfer?\n\nThis will automatically send money from your Paystack balance to nurse\'s account.\n\nMake sure Paystack balance is enough.\n\nContinue?')) return;
-  
-  if(!db) return;
-  
-  db.ref('payouts/'+payoutId).once('value').then(snap=>{
-    var p = snap.val();
-    if(!p){ alert('Payout not found'); return; }
-    if(p.status==='paid'){ alert('Already paid'); return; }
-    
-    var acc = p.accountDetails || {};
-    if(!acc.accountNumber){ alert('Nurse has no account number - Ask nurse to add in Settings'); return; }
-    
-    // Step 1: Create recipient (if bank)
-    // For Paystack, need to create transfer recipient first, then transfer
-    // Simplified: Try direct transfer with account details
-    
-    var transferData = {
-      type: 'nuban',
-      name: acc.accountName || p.nurseName || 'Nurse',
-      account_number: acc.accountNumber,
-      bank_code: acc.bankCode || '044', // Default, will try to resolve
-      currency: p.currency || 'GHS'
-    };
-    
-    // If MoMo Ghana, bank code differs - Paystack uses specific codes
-    // For Ghana MoMo: MTN = 055 etc, but we will try to create recipient anyway
-    
-    document.getElementById('ceoPayoutsList').innerHTML = '<div style="padding:20px;text-align:center">⏳ Creating Paystack recipient for '+p.nurseName+'...</div>';
-    
-    // Create recipient
-    fetch('https://api.paystack.co/transferrecipient', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + secretKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(transferData)
-    })
-    .then(r=>r.json())
-    .then(recipientRes=>{
-      console.log('Recipient response', recipientRes);
-      var recipientCode = null;
-      
-      if(recipientRes.status && recipientRes.data && recipientRes.data.recipient_code){
-        recipientCode = recipientRes.data.recipient_code;
-      } else if(recipientRes.data && recipientRes.data.recipient_code){
-        recipientCode = recipientRes.data.recipient_code;
-      } else {
-        // If recipient creation fails, try with different bank code or show error
-        if(recipientRes.message && recipientRes.message.includes('already exists')){
-          // Try to list recipients to find existing
-          return fetch('https://api.paystack.co/transferrecipient?perPage=100', {
-            headers: { 'Authorization': 'Bearer ' + secretKey }
-          })
-          .then(r=>r.json())
-          .then(listRes=>{
-            var found = (listRes.data||[]).find(r=> r.details && r.details.account_number===acc.accountNumber);
-            if(found) return { status:true, data: found };
-            else throw new Error(recipientRes.message || 'Recipient creation failed');
-          });
-        } else {
-          throw new Error(recipientRes.message || 'Failed to create recipient');
-        }
-      }
-      return { status:true, data:{ recipient_code: recipientCode } };
-    })
-    .then(recipientData=>{
-      var recipientCode = recipientData.data.recipient_code;
-      document.getElementById('ceoPayoutsList').innerHTML = '<div style="padding:20px;text-align:center">⏳ Recipient created: '+recipientCode+'<br>Now transferring '+p.nurseShare+' '+p.currency+' to nurse...</div>';
-      
-      // Step 2: Initiate transfer
-      var amountKobo = Math.round(parseFloat(p.nurseShare) * 100); // Paystack expects kobo/pesewas
-      // For GHS, amount in kobo? Paystack GHS uses pesewas (x100)
-      
-      return fetch('https://api.paystack.co/transfer', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + secretKey,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          source: 'balance',
-          amount: amountKobo,
-          recipient: recipientCode,
-          reason: 'LOVE CARE GLOBAL - Payment for booking #'+p.bookingId+' - '+p.bookingService+' - 85% of '+p.clientAmount+' '+p.currency,
-          reference: 'LC_PAYOUT_'+p.id+'_'+Date.now()
-        })
-      })
-      .then(r=>r.json())
-      .then(transferRes=>{
-        console.log('Transfer response', transferRes);
-        if(transferRes.status){
-          // Success
-          var transferCode = transferRes.data.transfer_code || transferRes.data.reference || 'TRF_'+Date.now();
-          var reference = transferRes.data.reference || transferRes.data.transfer_code;
-          
-          // Update payout as paid
-          db.ref('payouts/'+payoutId).update({
-            status:'paid',
-            transferReference: reference,
-            transferCode: transferCode,
-            paidAt: Date.now(),
-            paidAtString: new Date().toLocaleString(),
-            recipientCode: recipientCode,
-            paystackResponse: transferRes
-          }).then(()=>{
-            db.ref('bookings/'+p.bookingId).update({
-              payoutStatus:'paid',
-              nursePaid:true,
-              nursePaidAt: Date.now(),
-              nursePaidAmount: p.nurseShare
-            });
-            alert('✅ SUCCESS! Paid '+p.nurseShare+' '+p.currency+' to '+p.nurseName+' via Paystack\n\nReference: '+reference+'\nTransfer Code: '+transferCode+'\n\nNurse will receive SMS from Paystack');
-            loadPayouts();
-          });
-        } else {
-          throw new Error(transferRes.message || 'Transfer failed');
-        }
-      });
-    })
-    .catch(err=>{
-      console.error('Paystack payout error', err);
-      document.getElementById('ceoPayoutsList').innerHTML = '<div style="padding:20px;background:#fee2e2;border-radius:10px"><b>❌ Paystack Transfer Failed</b><br>'+err.message+'<br><br><small>Common causes:<br>• Insufficient Paystack balance (add money to Paystack)<br>• Invalid bank code/account<br>• For MoMo Ghana, need correct bank code (MTN= Mobile Money)<br>• Secret key wrong<br><br>You can mark as paid manually if you paid via MoMo app</small><br><br><button class="btnSmall" style="background:#6b7280;color:white" onclick="loadPayouts()">🔄 Back to Payouts</button> <button class="btnSmall" style="background:#16a34a;color:white" onclick="markAsPaidManually('+payoutId+')">✅ Mark Paid Manually</button></div>';
-      alert('❌ Paystack transfer failed: '+err.message+'\n\nYou can pay manually via MoMo/bank app and then click Mark Paid Manually');
-    });
-  });
-}
-
-function markAsPaidManually(payoutId){
-  var ref = prompt('Enter manual payment reference (e.g. MoMo Transaction ID, Bank ref) - Or leave empty:', 'MANUAL_'+Date.now());
-  if(ref===null) return;
-  if(!db) return;
-  db.ref('payouts/'+payoutId).update({
-    status:'paid',
-    transferReference: ref || 'MANUAL_'+Date.now(),
-    paidAt: Date.now(),
-    paidAtString: new Date().toLocaleString(),
-    paidManually: true
-  }).then(()=>{
-    db.ref('payouts/'+payoutId).once('value').then(snap=>{
-      var p=snap.val();
-      if(p) db.ref('bookings/'+p.bookingId).update({payoutStatus:'paid', nursePaid:true, nursePaidAt:Date.now(), nursePaidAmount:p.nurseShare});
-    });
-    alert('✅ Marked as paid manually - Ref: '+ref);
-    loadPayouts();
-  });
-}
-
-function deletePayout(payoutId){
-  if(!confirm('Delete this payout record?')) return;
-  if(db) db.ref('payouts/'+payoutId).remove().then(()=>loadPayouts());
-}
-
-function notifyNurseToAddAccount(nursePhone){
-  alert('Notify nurse '+nursePhone+' to add bank/MoMo details:\n\nNurse should:\n1. Login to Nurse Dashboard\n2. Click ⚙️ Settings\n3. Scroll to 💳 Withdrawal Details\n4. Add Bank/MoMo account\n5. Save\n\nThen you can pay 85%');
-}
-
-function viewPayoutReceipt(payoutId){
-  if(!db) return;
-  db.ref('payouts/'+payoutId).once('value').then(snap=>{
-    var p=snap.val();
-    if(!p) return;
-    var receipt = 'LOVE CARE GLOBAL - PAYOUT RECEIPT\n\nBooking: #'+p.bookingId+'\nClient: '+p.clientName+' ('+p.clientPhone+')\nService: '+p.bookingService+'\nAmount Client Paid: '+p.clientAmount+' '+p.currency+'\n\nNurse: '+p.nurseName+' ('+p.nursePhone+')\nNurse Share 85%: '+p.nurseShare+' '+p.currency+'\nPlatform 15%: '+p.platformShare+' '+p.currency+'\n\nAccount: '+(p.accountDetails?.bankName||'')+' - '+(p.accountDetails?.accountNumber||'')+'\nName: '+(p.accountDetails?.accountName||'')+'\n\nStatus: '+(p.status||'')+'\nReference: '+(p.transferReference||'')+'\nPaid At: '+(p.paidAtString||'')+'\n\nLOVE CARE GLOBAL\nAccra, Ghana';
-    alert(receipt);
-  });
-}
-
-// Hook into client work confirmation to auto-create payout
-var originalConfirmWork = null;
-if(typeof confirmWorkDone !== 'undefined'){
-  originalConfirmWork = confirmWorkDone;
-}
-
-// New function for client to confirm work done - triggers payout creation
-function confirmWorkCompleted(bookingId){
-  if(!db){ alert('No DB'); return; }
-  if(!confirm('Confirm work completed? This will trigger nurse payout of 85%.')) return;
-  
-  db.ref('bookings/'+bookingId).update({
-    status:'completed_confirmed',
-    workConfirmedByClient:true,
-    workConfirmedAt: Date.now(),
-    workConfirmedAtString: new Date().toLocaleString()
-  }).then(()=>{
-    // Auto-create payout
-    db.ref('bookings/'+bookingId).once('value').then(snap=>{
-      var b=snap.val();
-      if(b) createPayoutForBooking(b);
-    });
-    alert('✅ Work confirmed! Payout of 85% will be created for nurse. CEO will pay via Paystack dashboard.');
-    loadMyBookings();
-  });
-}
-
-// Update switchCeoTab to load payouts
-var origSwitchCeoTabForPayout = switchCeoTab;
-switchCeoTab = function(tab){
-  document.querySelectorAll('.ceo-tab').forEach(t=>t.classList.add('hidden'));
-  document.querySelectorAll('.ceoTabs button').forEach(b=>b.classList.remove('activeTab'));
-  var show=document.getElementById('ceo-tab-'+tab);
-  if(show) show.classList.remove('hidden');
-  var btn=document.getElementById('btn-'+tab);
-  if(btn) btn.classList.add('activeTab');
-  if(tab==='nurses') setTimeout(()=>{initCeoMap();loadCeoData();},200);
-  if(tab==='bookings'||tab==='clients'||tab==='payments'||tab==='staff'||tab==='refunds') loadCeoData();
-  if(tab==='deleted') loadDeletedNurses();
-  if(tab==='announce'){ renderMinRateEditor(); loadAnnouncementSettings(); }
-  if(tab==='payouts'){ loadPaystackKey(); loadPayouts(); loadCompletedBookingsForPayout(); }
-};
-
 </script>
-
-<!-- RECEIPT MODAL - After Payment -->
-<div id="receiptModal" class="legalModal hidden" onclick="if(event.target===this)closeReceiptModal()">
-<div class="legalContent" style="max-width:600px;background:white;padding:0;overflow:hidden">
-<div style="background:linear-gradient(90deg,#16a34a,#eab308);color:white;padding:16px;display:flex;justify-content:space-between;align-items:center">
-<div style="display:flex;align-items:center;gap:10px">
-<img src="./Icon-512.png" style="width:40px;height:40px;background:white;border-radius:10px;padding:3px" onerror="this.style.display='none'">
-<div><b>LOVE CARE GLOBAL</b><br><small style="background:white;color:#16a34a;padding:2px 8px;border-radius:10px;font-size:9px">PAYMENT RECEIPT</small></div>
-</div>
-<button onclick="closeReceiptModal()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;font-weight:800">✕ CLOSE</button>
-</div>
-<div id="receiptBody" style="padding:20px"></div>
-<div style="padding:0 20px 20px 20px;display:flex;gap:8px;flex-wrap:wrap">
-<button onclick="printReceipt()" class="btnSubmit" style="background:#111827;flex:1">🖨 Print Receipt</button>
-<button onclick="downloadReceiptPDF()" class="btnSubmit" style="background:#16a34a;flex:1">📥 Download PDF</button>
-<button onclick="shareReceipt()" class="btnSubmit" style="background:#2563eb;flex:1">📤 Share</button>
-</div>
-<div style="background:#f9fafb;padding:10px;text-align:center;font-size:10px;color:#6b7280">Thank you for using LOVE CARE GLOBAL - Compassionate Care, Without Borders<br>lovecareglobal@gmail.com | +233 544 121 814 | Accra, Ghana</div>
-</div>
-</div>
-
 </body>
 </html>
