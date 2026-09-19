@@ -793,10 +793,28 @@ function initUberMap(){
   if(uberMap){ setTimeout(()=>{uberMap.invalidateSize(); fitMapWide();},100); return; }
   uberMap=L.map('uberMap',{zoomControl:true}).setView([5.6037,-0.1870],12);
   // Google-like tiles (Carto Voyager - clean Google style) + OSM fallback
-  var googleStreets = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{maxZoom:20, attribution:'© CARTO © OSM'});
-  var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OSM'});
-  googleStreets.addTo(uberMap);
-  L.control.layers({"Google Live (Voyager)":googleStreets,"OSM":osm}).addTo(uberMap);
+  // ===== LCG MAP CONFIG - PAY LATER READY =====
+const LCG_MAP_KEY = ""; // <-- LATER PASTE YOUR PAID KEY HERE
+
+var googleStreets = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom: 19,
+  attribution: '© OSM - LCG Free Mode'
+});
+
+// When you pay, uncomment this and comment the one above
+// var googleStreets = L.tileLayer('https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=' + LCG_MAP_KEY,{
+//   maxZoom: 20,
+//   attribution: '© MapTiler © OSM'
+// });
+
+var osm = L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',{
+  maxZoom: 19,
+  attribution: '© OSM HOT - Backup'
+});
+
+osm.addTo(uberMap); // Use clean OSM now - NO watermark!
+
+L.control.layers({"LCG Live (OSM Free)":osm, "Premium (Pay Later)":googleStreets}).addTo(uberMap);
   nurseCluster=L.markerClusterGroup({showCoverageOnHover:false, maxClusterRadius:60});
   uberMap.addLayer(nurseCluster);
   // Add live scale
