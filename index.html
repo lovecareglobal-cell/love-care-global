@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
-<!-- EMAILJS CONFIG: Service: service_9s6ci5k | Public Key: rJ6O0Qmnsx96892o5 | Template: Create in dashboard -->
+<!-- EMAILJS CONFIG: Service: service_uqu1kcg | Public Key: rJ6O0Qmnsx96892o5 | Template: Create in dashboard -->
 <link rel="icon" type="image/png" href="./Icon-512.png">
 <link rel="apple-touch-icon" href="./Icon-512.png">
 <link rel="manifest" href="./manifest.json">
@@ -386,12 +386,18 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <button id="staff-btn-nurses" class="btnSmall" style="background:#16a34a;color:white" onclick="switchStaffTab('nurses')">Nurses + Media</button>
 <button id="staff-btn-clients" class="btnSmall" style="background:#2563eb;color:white" onclick="switchStaffTab('clients')">Clients</button>
 <button id="staff-btn-announce" class="btnSmall" style="background:#0e7490;color:white" onclick="switchStaffTab('announce')">Announce Settings</button>
+<button id="staff-btn-emails" class="btnSmall" style="background:#16a34a;color:white;border:2px solid #eab308" onclick="switchStaffTab('emails')">📧 Email Verifications</button>
 </div>
 <div id="staff-tab-bookings" class="staff-tab card"><h2>1. Bookings (Staff can Confirm/Cancel)</h2><div id="staffBookingsList">Loading...</div></div>
 <div id="staff-tab-nurses" class="staff-tab card hidden"><h2>2. Nurses + Media Viewer</h2><div id="staffNursesList">Loading...</div><div id="staffNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:12px;padding:12px;margin-top:12px;background:#f5f3ff"><h3>🔍 Nurse Media Viewer</h3><div id="staffMediaViewerContent"></div><button class="btnSmall" style="background:#6b7280;color:white" onclick="document.getElementById('staffNurseMediaView').classList.add('hidden')">Close</button></div></div>
 <div id="staff-tab-clients" class="staff-tab card hidden"><h2>3. Clients</h2><div id="staffClientsList">Loading...</div></div>
 <div id="staff-tab-announce" class="staff-tab card hidden"><h2>4. Announcement Settings (View Only)</h2><div id="staffAnnounceView">Loading...</div><div style="margin-top:12px;padding:10px;background:#fffbeb;border:2px solid #eab308;border-radius:10px;font-size:11px">Staff can view announcement but only CEO can edit. Contact CEO to change announcement text, colors, speed, or hourly rates.</div></div>
 </div><div style="margin:20px;display:flex;gap:8px"><button class="btnSubmit" style="background:#16a34a;flex:1" onclick="showPage('home')">Home</button><button class="btnSubmit" style="background:#ef4444;flex:1" onclick="logoutStaff()">Logout</button></div></div>
+
+
+<div id="staff-tab-emails" class="staff-tab card hidden"><h2>📧 Email Verifications - Staff View</h2><div style="background:#eff6ff;border:2px solid #2563eb;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px">Staff can view all client email verifications: Service service_uqu1kcg | Template template_yi4iwel</div><div style="display:flex;gap:6px;margin-bottom:10px"><button class="btnSmall" style="background:#16a34a;color:white" onclick="loadEmailVerifications()">Refresh</button></div><div id="staffEmailVerificationsList">Loading...</div></div>
+
+</div></div>
 
 <!-- GROUP CHAT - NURSE/STAFF/CEO ONLY -->
 <div id="page-group-chat" class="page">
@@ -423,6 +429,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <button id="btn-staff" class="btnSmall" style="background:#7c3aed;color:white" onclick="switchCeoTab('staff')">Staff</button>
 <button id="btn-deleted" class="btnSmall" style="background:#ef4444;color:white" onclick="switchCeoTab('deleted')">🗑 Deleted Nurses</button>
 <button id="btn-announce" class="btnSmall" style="background:#0e7490;color:white" onclick="switchCeoTab('announce')">Announce Settings</button>
+<button id="btn-emails" class="btnSmall" style="background:#16a34a;color:white;border:2px solid #eab308" onclick="switchCeoTab('emails')">📧 Email Verifications</button>
 </div>
 <div style="display:flex;gap:6px;margin-top:6px"><button class="btnSmall" style="background:#111827;color:white" onclick="loadCeoData()">🔄 Refresh</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="logoutCEO()">Logout</button></div>
 </div>
@@ -490,6 +497,11 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <button class="btnSmall" style="background:#0e7490;color:white;width:100%;padding:12px;margin-top:8px" onclick="saveAnnouncement()">💾 SAVE LIVE - Text + Colors</button>
 <div style="margin-top:12px;border-top:2px solid #eee;padding-top:8px"><label style="font-size:11px;font-weight:800">Edit Nurse Hourly Minimum (No Ghana 15 label - generic)</label><div id="minRateEditor" style="max-height:300px;overflow-y:auto;font-size:11px"></div><button class="btnSmall" style="background:#16a34a;color:white;margin-top:8px;width:100%;padding:12px" onclick="saveSettings()">💾 Save Rates</button></div>
 </div>
+</div>
+
+
+<div id="ceo-tab-emails" class="ceo-tab card hidden" style="border:3px solid #16a34a"><h2>📧 Email Verifications - 6-Digit Codes (CEO View)</h2><div style="background:#eff6ff;border:2px solid #2563eb;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px"><b>How it works:</b><br>1. Client enters email → Send Code → 6-digit code sent via EmailJS Service: <b>service_uqu1kcg</b> | Template: <b>template_yi4iwel</b> | From: lovecareglobal@gmail.com<br>2. Saved to Firebase: <b>emailVerifications/</b> and <b>verifiedEmails/</b><br>3. CEO and Staff see all here<br>4. Client enters code → Status verified → Can book</div><div style="display:flex;gap:6px;margin-bottom:10px"><button class="btnSmall" style="background:#16a34a;color:white" onclick="loadEmailVerifications()">Refresh Emails</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="clearAllVerifications()">Clear All</button></div><div id="ceoEmailVerificationsList">Loading...</div></div>
+
 </div>
 
 <div id="ratePopup" class="ratePopup hidden" style="border-color:#eab308"><h3 style="color:#b45309;margin:0 0 10px 0">⏰ No Nurse Responded in 10 Minutes</h3><p id="ratePopupMsg" style="font-size:13px;color:#333">Your booking has not been picked. Increase your rate for quick successful booking! Higher pay = faster acceptance.</p><p style="font-size:12px"><b id="ratePopupCurrent"></b></p><div style="display:flex;gap:8px;margin-top:12px"><button class="btnSubmit" style="background:#16a34a;flex:1" onclick="increaseRateAction()">💰 Increase Rate Now</button><button class="btnSubmit" style="background:#6b7280;flex:1" onclick="closeRatePopup()">Wait More</button></div></div>
@@ -630,7 +642,7 @@ function checkEmailAndFindNurses(){
   findNursesUber();
 }
 function checkEmailAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
-var EMAILJS_SERVICE_ID = 'service_9s6ci5k';
+var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
 var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
 var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
 try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); } }catch(e){}
@@ -1232,7 +1244,7 @@ var legalPages = {
       <li>Show live map with real-time tracking (Google Live)</li>
       <li>Process bookings and payments via Paystack</li>
       <li>Verify nurse credentials (video/CV/certificate/ID viewer in CEO dashboard)</li>
-      <li>Send EmailJS verification codes (service_9s6ci5k)</li>
+      <li>Send EmailJS verification codes (service_uqu1kcg)</li>
       <li>Enable turn-by-turn navigation via Google Maps</li>
       <li>Process payouts 85% via Paystack Transfer</li>
       <li>Group Chat communication (private, not visible to clients)</li>
@@ -2296,6 +2308,165 @@ function requestRefundForBooking(id){
     alert('Demo refund request for #'+id);
   }
 }
+
+
+
+// ===== EMAILJS CONFIG - FROM SCREENSHOTS =====
+// Service ID: service_uqu1kcg (Gmail - Connected as lovecareglobal@gmail.com)
+// Template ID: template_yi4iwel (LOVECARE GLOBAL)
+// Public Key: rJ6O0Qmnsx96892o5 (from previous config, account level)
+var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
+var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
+var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
+try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); } }catch(e){}
+
+function sendVerificationCode(){
+  var emailEl = document.getElementById('verifyEmailInput');
+  var email = emailEl ? emailEl.value.trim() : '';
+  var name = (document.getElementById('cName') && document.getElementById('cName').value.trim()) || 'Client';
+  var phone = '';
+  try{ phone = getFullPhone('cPhoneCode','cPhone'); }catch(e){ try{ phone = document.getElementById('cPhone').value; }catch(e2){} }
+  var statusEl = document.getElementById('emailVerifyStatus');
+  if(!email || email.indexOf('@')===-1){ if(statusEl) statusEl.innerText='Enter valid real email'; return; }
+  var code = Math.floor(100000 + Math.random()*900000).toString();
+  window.pendingEmailCode = code;
+  localStorage.setItem('pendingEmail', email);
+  localStorage.setItem('pendingEmailCode', code);
+  localStorage.setItem('pendingEmailName', name);
+  localStorage.setItem('pendingEmailPhone', phone);
+  if(statusEl) statusEl.innerText = 'Sending 6-digit code to '+email+' via service_uqu1kcg...';
+  var btnArea = document.getElementById('sendCodeArea');
+  var btn = btnArea ? btnArea.querySelector('button') : null;
+  if(btn){ btn.disabled=true; btn.innerText='Sending...'; }
+  // Save pending to Firebase for CEO/Staff
+  try{
+    var pendingData = {email: email, name: name, phone: phone, code: code, status: 'code_sent', timestamp: Date.now(), service: 'service_uqu1kcg', template: 'template_yi4iwel'};
+    if(window.db){ db.ref('emailVerifications/'+Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'')).set(pendingData); }
+    var localList = JSON.parse(localStorage.getItem('allEmailVerifications')||'[]');
+    localList.push(pendingData);
+    if(localList.length>200) localList=localList.slice(-200);
+    localStorage.setItem('allEmailVerifications', JSON.stringify(localList));
+  }catch(e){}
+  if(window.emailjs){
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_name: name,
+      to_email: email,
+      email: email,
+      name: name,
+      client_name: name,
+      client_email: email,
+      client_phone: phone,
+      verification_code: code,
+      code: code,
+      passcode: code,
+      otp: code,
+      from_name: 'LOVE CARE GLOBAL',
+      from_email: 'lovecareglobal@gmail.com',
+      reply_to: 'lovecareglobal@gmail.com',
+      company: 'LOVE CARE GLOBAL',
+      message: 'Your LOVE CARE GLOBAL verification code is: ' + code,
+      subject: 'Your 6-digit code: ' + code
+    }).then(function(){
+      document.getElementById('sentToEmail').innerText = email;
+      document.getElementById('demoCodeDisplay').innerHTML = 'Code sent to '+email+'! From lovecareglobal@gmail.com via service_uqu1kcg | template_yi4iwel<br>Check inbox & spam. Testing code: <b>'+code+'</b>';
+      document.getElementById('demoCodeDisplay').style.background='#dcfce7';
+      document.getElementById('sendCodeArea').classList.add('hidden');
+      document.getElementById('enterCodeArea').classList.remove('hidden');
+      if(statusEl){ statusEl.innerText='6-digit code sent to '+email; statusEl.style.color='#16a34a'; }
+      if(btn){ btn.disabled=false; btn.innerText='Send 6-Digit Code'; }
+    }, function(err){
+      document.getElementById('sentToEmail').innerText = email;
+      document.getElementById('demoCodeDisplay').innerHTML = 'EmailJS error, demo code: <b>'+code+'</b><br>Error: '+(err.text||err.message||'check service_uqu1kcg config')+'<br>Make sure template_yi4iwel has variables: to_email, verification_code, to_name';
+      document.getElementById('sendCodeArea').classList.add('hidden');
+      document.getElementById('enterCodeArea').classList.remove('hidden');
+      if(statusEl) statusEl.innerText='Demo code: '+code;
+      if(btn) btn.disabled=false;
+    });
+  } else {
+    document.getElementById('sentToEmail').innerText = email;
+    document.getElementById('demoCodeDisplay').innerHTML = 'Demo code: <b>'+code+'</b>';
+    document.getElementById('sendCodeArea').classList.add('hidden');
+    document.getElementById('enterCodeArea').classList.remove('hidden');
+  }
+}
+
+function confirmVerificationCode(){
+  var entered = document.getElementById('verifyCodeInput').value.trim();
+  var saved = localStorage.getItem('pendingEmailCode') || window.pendingEmailCode;
+  var email = localStorage.getItem('pendingEmail');
+  var name = localStorage.getItem('pendingEmailName') || 'Client';
+  var phone = localStorage.getItem('pendingEmailPhone') || '';
+  var statusEl = document.getElementById('emailVerifyStatus');
+  if(entered === saved){
+    localStorage.setItem('verifiedClientEmail', email);
+    localStorage.setItem('emailVerified', 'true');
+    localStorage.setItem('clientPermanentEmail', email);
+    var cEmailEl=document.getElementById('cEmail');
+    if(cEmailEl) cEmailEl.value=email;
+    var badge=document.getElementById('verifiedEmailBadge');
+    if(badge){ badge.classList.remove('hidden'); badge.innerText='Verified: '+email; }
+    document.getElementById('emailVerifyModal').classList.add('hidden');
+    try{
+      var verifiedData = {email: email, name: name, phone: phone, code: saved, status: 'verified', timestamp: Date.now(), verifiedAt: Date.now(), service: 'service_uqu1kcg', template: 'template_yi4iwel'};
+      if(window.db){
+        db.ref('verifiedEmails/'+Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'')).set(verifiedData);
+        db.ref('emailVerifications/'+Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'')).set(verifiedData);
+        db.ref('clients/'+phone.replace(/[^0-9]/g,'')).update({email: email, verifiedEmail: email, name: name, phone: phone, emailVerifiedAt: Date.now()});
+      }
+      var localList = JSON.parse(localStorage.getItem('allEmailVerifications')||'[]');
+      localList.push(verifiedData);
+      localStorage.setItem('allEmailVerifications', JSON.stringify(localList));
+      var verifiedList = JSON.parse(localStorage.getItem('verifiedEmailsList')||'[]');
+      verifiedList.push(verifiedData);
+      localStorage.setItem('verifiedEmailsList', JSON.stringify(verifiedList));
+    }catch(e){}
+    alert('Email verified: '+email+' - Code '+saved+' confirmed! CEO and Staff can view in dashboard.');
+    setTimeout(function(){ if(typeof findNursesUber==='function') findNursesUber(); },500);
+  } else {
+    if(statusEl) statusEl.innerText='Wrong code. Expected '+saved+' you entered '+entered;
+  }
+}
+
+function loadEmailVerifications(){
+  var ceoEl = document.getElementById('ceoEmailVerificationsList');
+  var staffEl = document.getElementById('staffEmailVerificationsList');
+  function render(container){
+    if(!container) return;
+    if(!window.db){
+      try{
+        var list = JSON.parse(localStorage.getItem('allEmailVerifications')||'[]').reverse();
+        if(list.length===0){ container.innerHTML='<div style="padding:10px;background:#fffbeb;border-radius:10px">No verifications yet. Service service_uqu1kcg | Template template_yi4iwel</div>'; return; }
+        var h='<table><tr><th>Email</th><th>Name</th><th>Phone</th><th>Code</th><th>Status</th><th>Time</th></tr>';
+        list.forEach(function(v){ var t=new Date(v.timestamp||Date.now()).toLocaleString(); h+='<tr><td>'+(v.email||'')+'</td><td>'+(v.name||'')+'</td><td>'+(v.phone||'')+'</td><td><b>'+(v.code||'')+'</b></td><td>'+(v.status||'')+'</td><td>'+t+'</td></tr>'; });
+        h+='</table>';
+        container.innerHTML=h;
+      }catch(e){ container.innerHTML='Error'; }
+      return;
+    }
+    container.innerHTML='Loading from Firebase...';
+    db.ref('emailVerifications').orderByChild('timestamp').limitToLast(100).once('value').then(function(snap){
+      var all=Object.values(snap.val()||{}).reverse();
+      if(all.length===0){ container.innerHTML='No verifications in Firebase yet. Path emailVerifications/ Service service_uqu1kcg'; return; }
+      var h='<div style="background:#f0fdf4;padding:8px;border-radius:8px;margin-bottom:8px">Total: '+all.length+' | Service: service_uqu1kcg | Template: template_yi4iwel</div><table><tr><th>Email</th><th>Name</th><th>Phone</th><th>6-Digit Code</th><th>Status</th><th>Time</th></tr>';
+      all.forEach(function(v){ var t=new Date(v.timestamp||Date.now()).toLocaleString(); var col=v.status==='verified'?'#16a34a':'#eab308'; h+='<tr><td>'+(v.email||'')+'</td><td>'+(v.name||'')+'</td><td>'+(v.phone||'')+'</td><td><b style="color:'+col+'">'+(v.code||'')+'</b></td><td>'+(v.status||'')+'</td><td style="font-size:10px">'+t+'</td></tr>'; });
+      h+='</table>';
+      container.innerHTML=h;
+    });
+  }
+  render(ceoEl);
+  render(staffEl);
+}
+
+function clearAllVerifications(){
+  if(!confirm('Delete all email verifications from Firebase and local?')) return;
+  if(window.db){ db.ref('emailVerifications').remove(); db.ref('verifiedEmails').remove(); }
+  localStorage.removeItem('allEmailVerifications');
+  localStorage.removeItem('verifiedEmailsList');
+  loadEmailVerifications();
+  alert('Cleared');
+}
+
+function resendCode(){ document.getElementById('sendCodeArea').classList.remove('hidden'); document.getElementById('enterCodeArea').classList.add('hidden'); sendVerificationCode(); }
 
 </script>
 </body>
