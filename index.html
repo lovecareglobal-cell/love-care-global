@@ -2053,6 +2053,250 @@ function changeCeoPassword(){
   };
 })();
 
+
+
+// ===== FIXES FOR CLIENT BOOKING FLOW - 5 REQUESTS =====
+
+// 4. When click Find nurse around me -> initiate/link to show Google map live
+function findNursesUber(){ 
+  var src=getAllNursesSource(); 
+  if(!clientLat||!clientLng){
+    var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng');
+    if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); }
+    else { 
+      alert('📡 Tap GPS Auto first to get your live location - Allow location permission'); 
+      document.getElementById('cLocation').focus();
+      return; 
+    }
+  } 
+  var rad=parseInt(document.getElementById('radiusSelect').value)||10; 
+  nearbyNursesSorted=src.filter(function(w){return w.lat&&w.lng;}).map(function(w){
+    var d=getDistanceKm(clientLat,clientLng,parseFloat(w.lat),parseFloat(w.lng)); 
+    return Object.assign({}, w, {distance:d});
+  }).filter(function(w){return w.distance<=rad;}).sort(function(a,b){return a.distance-b.distance;}).slice(0,50); 
+  document.getElementById('nearbyCount').innerText=nearbyNursesSorted.length; 
+  document.getElementById('uberActionArea').classList.remove('hidden'); 
+  document.getElementById('loveCareMapWrapper').classList.remove('hidden'); 
+  if(!uberMap) initUberMap(); 
+  // Scroll to map and make it visible - Google Map Live initiation
+  setTimeout(function(){
+    uberMap.invalidateSize();
+    renderNurseMarkers(nearbyNursesSorted);
+    showUserOnMap(clientLat, clientLng, 25);
+    fitMapWide();
+    startGoogleLiveTracking();
+    // Scroll to map for user to see live map
+    var mapWrapper = document.getElementById('loveCareMapWrapper');
+    if(mapWrapper){
+      mapWrapper.scrollIntoView({behavior:'smooth', block:'start'});
+      mapWrapper.style.border='4px solid #2563eb';
+      mapWrapper.style.boxShadow='0 0 20px rgba(37,99,235,0.4)';
+      setTimeout(function(){ mapWrapper.style.border='3px solid #16a34a'; mapWrapper.style.boxShadow='none'; },2000);
+    }
+    // Show toast
+    var toast=document.createElement('div');
+    toast.style.cssText='position:fixed;top:90px;left:50%;transform:translateX(-50%);background:#2563eb;color:white;padding:12px 20px;border-radius:20px;font-weight:800;font-size:12px;z-index:100000;box-shadow:0 4px 15px rgba(0,0,0,.3)';
+    toast.innerHTML='🗺 Google Map Live Active - '+nearbyNursesSorted.length+' nurses within '+rad+'km - Select a nurse to see profile & video';
+    document.body.appendChild(toast);
+    setTimeout(function(){ toast.remove(); },4000);
+  },400); 
+  renderNearbyList(); 
+}
+
+// 5. Client able to watch uploaded video and small profile of selected nurse before booking
+function renderNearbyList(){
+  var l=document.getElementById('loveCareLiveList'); 
+  if(!l) return;
+  if(nearbyNursesSorted.length===0){
+    l.innerHTML='<div style="padding:12px;background:#fef3c7;border-radius:10px;text-align:center;font-size:11px">No nurses within '+ (document.getElementById('radiusSelect').value||10) +'km. Try 20km or 50km.<br><small>Live tracking active - Increase radius</small></div>';
+    return;
+  } 
+  var h=''; 
+  nearbyNursesSorted.forEach(function(n){
+    var isSel = selectedNurseId && (n.phone==selectedNurseId || n.id==selectedNurseId);
+    var hasVideo = n.videoUrl ? true : false;
+    var profileImg = n.profileUrl || n.photoUrl || './Icon-512.png';
+    h+='<div class="uber-card" style="'+(isSel?'border:3px solid #111827;background:#f0fdf4;':'')+'flex-direction:column;align-items:stretch;padding:12px" id="card-'+(n.phone||n.id)+'">'
+      +'<div style="display:flex;gap:10px;align-items:center;width:100%">'
+      +'<img src="'+profileImg+'" style="width:56px;height:56px;border-radius:50%;background:white;padding:2px;border:2px solid #16a34a;object-fit:cover" onerror="this.src=\'./Icon-512.png\'">'
+      +'<div style="flex:1"><b>'+n.name+'</b> - <span style="color:#16a34a;font-weight:800">'+n.distance.toFixed(1)+'km LIVE</span><br><small>'+(n.location||'')+' • '+(n.specialty||'General')+' • '+ (n.experience||'?')+' yrs • '+(n.careMode||'both')+'</small><br><small style="color:#2563eb">👩‍⚕️ '+(n.phone||'')+'</small>'+ (hasVideo ? '<br><span style="background:#7c3aed;color:white;padding:2px 6px;border-radius:10px;font-size:9px">📹 Video Available</span>' : '') +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:4px"><div class="nurse-dot"></div></div>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'
+      +'<button onclick="selectNurseCard(\''+(n.phone||n.id)+'\')" style="flex:1;background:'+(isSel?'#111827':'#16a34a')+';color:white;border:none;padding:10px 8px;border-radius:8px;font-weight:800;font-size:11px">'+(isSel?'✅ Selected':'👆 Select Nurse')+'</button>'
+      +'<button onclick="viewNurseProfileBeforeBooking(\''+(n.phone||n.id)+'\')" style="flex:1;background:#7c3aed;color:white;border:none;padding:10px 8px;border-radius:8px;font-weight:800;font-size:11px">👁 View Profile & Video</button>'
+      +'<button onclick="event.stopPropagation(); navigateToNurse('+n.lat+','+n.lng+',\''+n.name+'\')" style="background:#2563eb;color:white;border:none;padding:10px 12px;border-radius:8px;font-weight:800;font-size:11px">🧭 NAV</button>'
+      +'</div>'
+      +(isSel ? '<div id="selectedProfilePreview" style="margin-top:10px"></div>' : '')
+      +'</div>';
+  }); 
+  l.innerHTML=h;
+  // If a nurse is selected, show its profile preview below
+  if(selectedNurseId){
+    setTimeout(function(){ showSelectedNursePreview(selectedNurseId); },100);
+  }
+}
+
+function viewNurseProfileBeforeBooking(id){
+  var nurse = nearbyNursesSorted.find(function(n){ return (n.phone||n.id)==id; }) || getAllNursesSource().find(function(n){ return (n.phone||n.id)==id; });
+  if(!nurse){ alert('Nurse not found'); return; }
+  selectNurseCard(id);
+  showNurseProfileModal(nurse);
+}
+
+function showSelectedNursePreview(id){
+  var nurse = nearbyNursesSorted.find(function(n){ return (n.phone||n.id)==id; }) || getAllNursesSource().find(function(n){ return (n.phone||n.id)==id; });
+  if(!nurse) return;
+  var container = document.getElementById('selectedProfilePreview');
+  if(!container){
+    var card = document.getElementById('card-'+id);
+    if(card){
+      var div = document.createElement('div');
+      div.id='selectedProfilePreview';
+      div.style.marginTop='10px';
+      card.appendChild(div);
+      container=div;
+    } else return;
+  }
+  var profileImg = nurse.profileUrl || nurse.photoUrl || './Icon-512.png';
+  var videoHtml = nurse.videoUrl ? '<video controls style="width:100%;max-height:220px;border-radius:10px;margin-top:8px;background:#000" src="'+nurse.videoUrl+'" poster="'+profileImg+'"></video><br><small style="color:#7c3aed">📹 Watch nurse intro video before booking</small>' : '<div style="padding:10px;background:#fffbeb;border-radius:8px;font-size:11px;margin-top:8px">No video uploaded by this nurse</div>';
+  container.innerHTML = '<div style="background:white;border:2px solid #16a34a;border-radius:12px;padding:12px">'
+    +'<div style="display:flex;gap:10px"><img src="'+profileImg+'" style="width:64px;height:64px;border-radius:50%;border:3px solid #16a34a;object-fit:cover" onerror="this.src=\'./Icon-512.png\'"><div style="flex:1"><b style="font-size:14px">'+nurse.name+'</b><br><small>⭐ '+(nurse.rating||'4.8')+' | '+ (nurse.experience||'3')+' yrs | '+(nurse.specialty||'General')+'</small><br><small>📍 '+(nurse.location||'')+' - '+nurse.distance.toFixed(1)+'km away - LIVE</small><br><small>🏠 '+(nurse.careMode||'both')+' | 🗣 English</small><br><small>📱 '+(nurse.phone||'')+'</small></div></div>'
+    +videoHtml
+    +'<div style="margin-top:10px;display:flex;gap:6px"><button class="btnSubmit" style="background:#16a34a;flex:1" onclick="document.getElementById(\'cService\').focus(); window.scrollTo(0,0);">✅ Continue to Book This Nurse</button><button class="btnSmall" style="background:#6b7280;color:white" onclick="document.getElementById(\'selectedProfilePreview\').innerHTML=\'\'">Close</button></div>'
+    +'</div>';
+}
+
+function showNurseProfileModal(nurse){
+  var modalId='nurseProfileModal';
+  var existing=document.getElementById(modalId);
+  if(existing) existing.remove();
+  var profileImg = nurse.profileUrl || nurse.photoUrl || './Icon-512.png';
+  var videoHtml = nurse.videoUrl ? '<video controls autoplay style="width:100%;max-height:300px;border-radius:12px;background:#000" src="'+nurse.videoUrl+'"></video>' : '<div style="padding:20px;background:#fffbeb;border-radius:10px;text-align:center">No video uploaded<br><small>Nurse: '+nurse.name+'</small></div>';
+  var cvHtml = nurse.cvUrl ? '<a href="'+nurse.cvUrl+'" target="_blank" style="background:#2563eb;color:white;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:800;font-size:11px">📄 View CV</a>' : '';
+  var certHtml = nurse.certUrl ? '<a href="'+nurse.certUrl+'" target="_blank" style="background:#eab308;color:#111;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:800;font-size:11px">🎓 Certificate</a>' : '';
+  var html='<div id="'+modalId+'" class="legalModal" style="display:flex" onclick="if(event.target===this) this.remove()"><div class="legalContent" style="max-width:500px">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">👩‍⚕ '+nurse.name+' - Profile</h2><button onclick="document.getElementById(\''+modalId+'\').remove()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;font-weight:800">✕</button></div>'
+    +'<div style="text-align:center;margin:12px 0"><img src="'+profileImg+'" style="width:100px;height:100px;border-radius:50%;border:4px solid #16a34a;object-fit:cover" onerror="this.src=\'./Icon-512.png\'"><br><b style="font-size:16px">'+nurse.name+'</b><br><small>⭐ '+(nurse.rating||'4.8')+' | '+(nurse.experience||'3')+' years | '+(nurse.specialty||'General Nurse')+'</small><br><small>📍 '+(nurse.location||'')+' - '+nurse.distance.toFixed(1)+'km away - <span style="color:#16a34a;font-weight:800">LIVE</span></small><br><small>🏠 '+(nurse.careMode||'both')+' | 🗣 English | 📱 '+(nurse.phone||'')+'</small></div>'
+    +'<div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:10px;margin:10px 0"><b>About:</b><br><small>'+(nurse.bio||nurse.description||'Professional verified nurse with experience in '+ (nurse.specialty||'general care')+'. Verified with video, CV, certificate, ID. Available for '+(nurse.careMode||'both')+'.')+'</small></div>'
+    +videoHtml
+    +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center">'+cvHtml+certHtml+'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:16px"><button class="btnSubmit" style="background:#16a34a;flex:1" onclick="document.getElementById(\''+modalId+'\').remove(); document.getElementById(\'cService\').focus();">✅ Book This Nurse</button><button class="btnSubmit" style="background:#2563eb;flex:1" onclick="navigateToNurse('+nurse.lat+','+nurse.lng+',\''+nurse.name+'\')">🧭 Navigate</button></div>'
+    +'<button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:8px" onclick="document.getElementById(\''+modalId+'\').remove()">Close</button>'
+    +'</div></div>';
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function selectNurseCard(id){
+  selectedNurseId=id; 
+  document.getElementById('selectedNurseInfo').innerText='✅ Selected: '+id+' - Watch profile & video before booking';
+  renderNurseMarkers(nearbyNursesSorted.length>0?nearbyNursesSorted:null);
+  var nurse = nearbyNursesSorted.find(function(n){ return (n.phone||n.id)==id; }) || getAllNursesSource().find(function(n){ return (n.phone||n.id)==id; });
+  if(nurse && clientLat && clientLng){
+    showLiveRoute(clientLat, clientLng, parseFloat(nurse.lat), parseFloat(nurse.lng));
+  }
+  renderNearbyList();
+  // Auto show profile preview
+  setTimeout(function(){ showSelectedNursePreview(id); },200);
+}
+
+// 1,2,3 - Client pending bookings: cancel pending button, refund logic, remove navigation button from pending
+function loadMyBookings(){
+ var codeEl=document.getElementById('myBookPhoneCode'); var phoneEl=document.getElementById('myBookPhone');
+ var fullPhone = codeEl && phoneEl? (codeEl.value + phoneEl.value.trim().replace(/^0+/,'').replace(/\+/g,'')) : '';
+ if(phoneEl && phoneEl.value.trim().startsWith('+')) fullPhone = phoneEl.value.trim();
+ else if(phoneEl && phoneEl.value.trim()!=''){ try{ fullPhone = getFullPhone('myBookPhoneCode','myBookPhone'); }catch(e){} } else { fullPhone = localStorage.getItem('lastClientPhone')||''; }
+ if(!fullPhone){ alert('Enter your phone'); return; }
+ var listDiv=document.getElementById('myBookingsList'); 
+ listDiv.innerHTML='<div style="text-align:center;padding:12px">⏳ Loading your bookings...</div>'; 
+ if(!db){ 
+   listDiv.innerHTML='<div style="padding:12px;background:#fffbeb;border:2px solid #eab308;border-radius:12px">'
+   +'<b>Demo Mode - Firebase Offline</b><br><small>Example pending booking would show below with Cancel Pending button and Google Live</small><br><br>'
+   +'<div class="bookingClientCard" style="border:3px solid #eab308"><div style="display:flex;justify-content:space-between"><b>#12345</b><span class="statusBadge st-pending">PENDING_ASSIGNMENT</span></div>'
+   +'<div style="font-size:11px;margin-top:6px"><b>Elderly Care</b> - 500 GHS<br>📅 7 days = 14 hrs<br>🏠 liveout<br>📍 Accra<br>⏰ 08:00-14:00</div>'
+   +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
+   +'<button class="btnSmall" style="background:#16a34a;color:white;flex:1">📍 Google Live</button>'
+   +'<button class="btnSmall" style="background:#ef4444;color:white;flex:1">❌ Cancel Pending</button>'
+   +'</div></div>'
+   +'<div class="bookingClientCard" style="border:3px solid #16a34a;margin-top:10px"><div style="display:flex;justify-content:space-between"><b>#12346</b><span class="statusBadge st-confirmed">PAID</span></div>'
+   +'<div style="font-size:11px;margin-top:6px"><b>Baby Care</b> - 800 GHS - PAID<br>📅 14 days</div>'
+   +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
+   +'<button class="btnSmall" style="background:#16a34a;color:white;flex:1">📍 Google Live</button>'
+   +'<button class="btnSmall" style="background:#7c3aed;color:white;flex:1">💸 Request Refund</button>'
+   +'</div></div>'
+   +'</div>'; 
+   return; 
+ }
+ var suffix = fullPhone.replace(/[^0-9]/g,'').slice(-9);
+ db.ref('bookings').once('value').then(function(snap){
+   var all = Object.values(snap.val()||{}); 
+   var mine = all.filter(function(b){ return (b.phone||'').replace(/[^0-9]/g,'').endsWith(suffix); }); 
+   mine.sort(function(a,b){return b.timestamp-a.timestamp;});
+   if(mine.length===0){ listDiv.innerHTML='<div style="text-align:center;color:#999;padding:12px">No bookings for '+fullPhone+'<br><small>Book a nurse first, then your pending bookings will appear here with Cancel button</small></div>'; return; }
+   var h=''; 
+   mine.forEach(function(b){
+     var statusClass='st-pending'; 
+     if(b.status==='confirmed') statusClass='st-confirmed'; 
+     if(b.status==='paid') statusClass='st-confirmed'; 
+     if(b.status==='cancelled_by_client') statusClass='st-cancelled'; 
+     if(b.status==='refunded' || b.status==='refund_ok') statusClass='st-refunded';
+     var isPaid = (b.status==='paid' || b.status==='completed' || b.status==='completed_confirmed' || b.status==='payout_created' || b.status==='paid_to_nurse' || b.paymentStatus==='paid' || b.paid===true || parseFloat(b.amountPaid||0)>0);
+     var isPending = (b.status==='pending_assignment' || b.status==='pending' || !b.status);
+     h+='<div class="bookingClientCard" style="border:3px solid '+(isPaid?'#16a34a':'#eab308')+'"><div style="display:flex;justify-content:space-between"><b>#'+b.id+'</b><span class="statusBadge '+statusClass+'">'+(b.status||'PENDING').toUpperCase()+'</span></div>'
+       +'<div style="font-size:11px;margin-top:6px"><b>'+(b.service||'')+'</b> - '+ (b.amount||'')+' '+(b.currency||'')+' '+(isPaid?'(PAID)':'(PENDING)')+'<br>📅 '+(b.days||'?')+' = '+(b.totalHours||'?')+' hrs<br>🏠 '+(b.careMode||'')+' '+(b.dailySchedule||'')+'<br>📍 '+(b.location||'')+'<br>⏰ '+(b.time||'')+'<br>👩‍⚕ Nurse: '+(b.selectedNurse||'Random')+'</div>'
+       +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">';
+     // Google Live always appears
+     h+='<button class="btnSmall" style="background:#16a34a;color:white;flex:1" onclick="openGoogleMapsLive('+(b.lat||clientLat||5.6037)+','+(b.lng||clientLng||-0.1870)+')">📍 Google Live</button>';
+     // Logic: If paid -> refund button, if not paid (pending) -> only cancel pending button + Google Live (no navigation button)
+     if(isPaid){
+       h+='<button class="btnSmall" style="background:#7c3aed;color:white;flex:1" onclick="requestRefundForBooking('+b.id+')">💸 Request Refund</button>';
+     } else if(isPending){
+       h+='<button class="btnSmall" style="background:#ef4444;color:white;flex:1" onclick="cancelPendingBooking('+b.id+')">❌ Cancel Pending</button>';
+     } else if(b.status==='confirmed'){
+       h+='<button class="btnSmall" style="background:#ef4444;color:white;flex:1" onclick="cancelPendingBooking('+b.id+')">❌ Cancel Booking</button>';
+     }
+     // Navigation button REMOVED as per request - only Google Live kept
+     h+='</div>';
+     if(isPending){
+       h+='<div style="margin-top:8px;padding:8px;background:#fffbeb;border-radius:8px;font-size:10px">⏳ Pending - Staff will confirm shortly. You can cancel pending anytime before confirmation. Google Live shows your location.</div>';
+     }
+     if(isPaid){
+       h+='<div style="margin-top:8px;padding:8px;background:#f0fdf4;border-radius:8px;font-size:10px">✅ Paid - You can request refund if needed. Refund will be reviewed by CEO.</div>';
+     }
+     h+='</div>'; 
+   }); 
+   listDiv.innerHTML=h;
+ });
+}
+
+function cancelPendingBooking(id){
+  if(!confirm('Cancel this pending booking #'+id+'? This will free the nurse and cancel your request.')) return;
+  if(window.db){
+    db.ref('bookings/'+id).update({status:'cancelled_by_client', cancelledAt:Date.now(), cancelledBy:'client_pending'}).then(function(){
+      alert('✅ Pending booking #'+id+' cancelled');
+      loadMyBookings();
+    });
+  } else {
+    alert('Demo: Pending booking '+id+' cancelled');
+  }
+}
+function requestRefundForBooking(id){
+  var reason = prompt('Enter reason for refund for booking #'+id+':');
+  if(!reason) return;
+  var account = prompt('Enter MoMo / Bank Account for refund:');
+  if(!account) return;
+  var accountName = prompt('Enter Account Name:');
+  if(!accountName) return;
+  if(window.db){
+    db.ref('refunds/'+id).set({bookingId:id, reason:reason, account:account, accountName:accountName, time:Date.now(), status:'refund_req'});
+    db.ref('bookings/'+id).update({status:'refund_req'});
+    alert('💸 Refund request submitted for #'+id+' - CEO will review');
+    loadMyBookings();
+  } else {
+    alert('Demo refund request for #'+id);
+  }
+}
+
 </script>
 </body>
 </html>
