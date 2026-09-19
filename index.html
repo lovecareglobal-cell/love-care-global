@@ -4,19 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
-<!-- FIREBASE CONFIG: Service: firebase-verification | Public Key: rJ6O0Qmnsx96892o5 | Template: Create in dashboard -->
-<link rel="icon" type="image/png" href="./Icon-512.png">
-<link rel="apple-touch-icon" href="./Icon-512.png">
-<link rel="manifest" href="./manifest.json">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"/>
-<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-<!-- Firebase Email Verification - No EmailJS needed -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+<script>emailjs.init("8iQY_irxfgwywlk7K");</script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
 *{box-sizing:border-box} body{margin:0;font-family:'Poppins',sans-serif;background:#f0fdf4;padding-bottom:115px}
@@ -621,23 +610,96 @@ function changeCountry(){ var sel=document.getElementById('countrySelect'); var 
 
 // ===== EMAIL VERIFICATION BEFORE BOOKING =====
 var pendingEmailCode = null;
+var pendingEmailExpiry = null;
+
 function isEmailVerified(){
-  return localStorage.getItem('verifiedClientEmail') && localStorage.getItem('emailVerified')==='true';
+  const verified = localStorage.getItem('verifiedClientEmail');
+  const expiry = localStorage.getItem('verifiedExpiry');
+  if(verified && expiry && Date.now() < parseInt(expiry)){
+    return true;
+  }
+  // 10 min expiry logic
+  if(expiry && Date.now() > parseInt(expiry)){
+    localStorage.removeItem('verifiedClientEmail');
+    localStorage.removeItem('verifiedExpiry');
+    return false;
+  }
+  return !!verified;
 }
+
 function checkEmailAndFindNurses(){
-  var ageCheck = document.getElementById('cAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book - Please confirm you are 18+'); return; }
+  var ageCheck = document.getElementById('cAgeCheck');
+  // if(ageCheck && !ageCheck.checked){ alert("Confirm 18+"); return; }
   if(!isEmailVerified()){
     document.getElementById('emailVerifyModal').classList.remove('hidden');
+    document.getElementById('emailVerifyModal').style.display='flex';
+    // auto send code if email exists
+    const emailInput = document.getElementById('clientEmail');
+    if(emailInput && emailInput.value.includes("@")){
+      sendRealCode();
+    }
     return;
   }
   findNursesUber();
 }
+
 function checkEmailAndBook(){
   if(!isEmailVerified()){
     document.getElementById('emailVerifyModal').classList.remove('hidden');
+    document.getElementById('emailVerifyModal').style.display='flex';
     return;
   }
   submitBooking();
+}
+
+// ==== REAL EMAILJS SENDER - 10 MIN EXPIRY ====
+function sendRealCode(){
+  const emailEl = document.getElementById('clientEmail');
+  const email = emailEl ? emailEl.value.trim() : "";
+  if(!email || !email.includes("@")){ alert("Enter valid client email first boss!"); return; }
+
+  pendingEmailCode = Math.floor(100000 + Math.random() * 900000).toString();
+  pendingEmailExpiry = Date.now() + 10*60*1000; // 10 min
+  localStorage.setItem('pendingCode', pendingEmailCode);
+  localStorage.setItem('pendingExpiry', pendingEmailExpiry);
+  localStorage.setItem('pendingEmail', email);
+
+  // Show sending...
+  const btn = document.getElementById('sendCodeBtn');
+  if(btn) btn.innerHTML = "Sending...";
+
+  emailjs.send("service_8ax6513", "template_YOUR_ID", {
+    to_email: email,
+    otp_code: pendingEmailCode
+  }).then(()=>{
+    if(btn) btn.innerHTML = "Code Sent ✓";
+    alert("Code "+pendingEmailCode+" sent to "+email+" ✅\nTell client check INBOX + SPAM!\nExpires in 10 minutes.");
+    document.getElementById('otpInputArea')?.classList.remove('hidden');
+  }).catch((err)=>{
+    if(btn) btn.innerHTML = "Retry Send";
+    alert("Failed boss: "+ (err.text || JSON.stringify(err)) + "\nCheck Template ID!");
+  });
+}
+
+function verifyRealCode(){
+  const inputEl = document.getElementById('emailCodeInput');
+  const input = inputEl ? inputEl.value.trim() : "";
+  const saved = localStorage.getItem('pendingCode');
+  const expiry = parseInt(localStorage.getItem('pendingExpiry')||"0");
+  const email = localStorage.getItem('pendingEmail');
+
+  if(!saved){ alert("No code sent yet! Click Send Code."); return; }
+  if(Date.now() > expiry){ alert("Code EXPIRED after 10min! Send new code boss."); return; }
+
+  if(input === saved){
+    localStorage.setItem('verifiedClientEmail', email);
+    localStorage.setItem('verifiedExpiry', (Date.now() + 10*60*1000).toString()); // 10 min verified session
+    alert("Email Verified & Saved! ✓ "+email);
+    document.getElementById('emailVerifyModal').style.display='none';
+    document.getElementById('emailVerifyModal').classList.add('hidden');
+  } else {
+    alert("Wrong code! Correct was "+saved+" - try again boss");
+  }
 }
 // ===== FIREBASE EMAIL VERIFICATION - NO FIREBASE NEEDED =====
 // Uses Firebase Realtime Database to store and verify codes
@@ -2724,5 +2786,48 @@ switchCeoTab = function(tab){
 </div>
 </div>
 
+<script>
+// === LOVE CARE GLOBAL - REAL EMAILJS VERIFY ===
+let LCG_OTP = "";
+
+function sendLCGCode(){
+  const e = document.getElementById("clientEmail") || document.querySelector('input[type="email"]');
+  const email = e ? e.value : "";
+  if(!email.includes("@")){ alert("Enter client email first!"); return; }
+  
+  LCG_OTP = Math.floor(100000 + Math.random() * 900000).toString();
+  localStorage.setItem("lcg_otp", LCG_OTP);
+  localStorage.setItem("lcg_otp_email", email);
+  localStorage.setItem("lcg_otp_time", Date.now());
+
+  // REPLACE template_b3x7j9k with your REAL template ID from EmailJS
+  emailjs.send("service_8ax6513", "template_yi4iwel", {
+    to_email: email,
+    otp_code: LCG_OTP
+  }).then(()=>{
+    alert("CODE SENT to "+email+" ✅\nCode: "+LCG_OTP+" (also emailed)\nCheck spam!");
+  }).catch((err)=>{
+    alert("Error: "+ (err.text || JSON.stringify(err)) + "\nMake sure Template ID is correct!");
+  });
+}
+
+function verifyLCGCode(){
+  const input = document.getElementById("otpInput") ? document.getElementById("otpInput").value : prompt("Enter code:");
+  const saved = localStorage.getItem("lcg_otp");
+  const savedTime = parseInt(localStorage.getItem("lcg_otp_time")||"0");
+  
+  if(Date.now() - savedTime > 10*60*1000){ alert("Code expired! Send new after 10min."); return; }
+  
+  if(input === saved){
+    alert("Email Verified & Saved Permanently! ✓");
+    localStorage.setItem("lcg_verified_email", localStorage.getItem("lcg_otp_email"));
+    localStorage.setItem("lcg_verified_18plus", "true");
+    // close modal if you have one
+    const m = document.getElementById("otpModal"); if(m) m.style.display="none";
+  } else {
+    alert("Wrong code boss! Try again.");
+  }
+}
+</script>
 </body>
 </html>
