@@ -2673,6 +2673,67 @@ window.confirmVerificationCode = function(){
     if(statusEl) statusEl.innerText='Wrong code. Expected '+saved+' you entered '+entered;
   }
 };
+  // ===== FIXED BY LCG - NURSE REGISTER & LOGIN =====
+function registerNurse(){
+  var nameEl=document.getElementById('nRegName');
+  var phoneCodeEl=document.getElementById('nRegPhoneCode');
+  var phoneEl=document.getElementById('nRegPhone');
+  var passEl=document.getElementById('nRegPass');
+  var locEl=document.getElementById('nRegLocation');
+  var expEl=document.getElementById('nRegExperience');
+  var specEl=document.getElementById('nRegSpecialty');
+  var ageCheck=document.getElementById('nRegAgeConfirm');
+  if(ageCheck && !ageCheck.checked){ alert('❌ You must confirm 18+ to register'); return; }
+  var name = nameEl ? nameEl.value.trim() : '';
+  var phone = phoneEl ? phoneEl.value.trim() : '';
+  var phoneCode = phoneCodeEl ? phoneCodeEl.value : '+233';
+  var pass = passEl ? passEl.value.trim() : '';
+  var loc = locEl ? locEl.value.trim() : '';
+  var exp = expEl ? expEl.value.trim() : '1';
+  var spec = specEl ? specEl.value : 'General Nurse';
+  if(!name || !phone || !pass){ alert('❌ Fill Name, Phone, Password'); return; }
+  var fullPhone = phoneCode + phone;
+  var cleanPhone = fullPhone.replace(/[^0-9]/g,'');
+  var lat = localStorage.getItem('clientLat') || 5.6037;
+  var lng = localStorage.getItem('clientLng') || -0.1870;
+  var nurseData = { name: name, phone: fullPhone, cleanPhone: cleanPhone, password: pass, location: loc || 'Accra', experience: exp, specialty: spec || 'General Nurse', lat: parseFloat(lat), lng: parseFloat(lng), onDuty: false, status: 'offline', verified: false, createdAt: Date.now(), role: 'nurse' };
+  var btn = document.querySelector('button[onclick="registerNurse()"]');
+  if(btn){ btn.innerText='⏳ Registering...'; btn.disabled=true; }
+  if(window.db){
+    db.ref('workers/'+cleanPhone).set(nurseData).then(function(){
+      alert('✅ Nurse Registered! Now login!'); localStorage.setItem('nursePhone', fullPhone); localStorage.setItem('nurseName', name);
+      if(btn){ btn.innerText='Register as Nurse'; btn.disabled=false; }
+      showPage('nurse-login');
+    }).catch(function(err){ alert('❌ Error: '+err.message); if(btn){ btn.innerText='Register as Nurse'; btn.disabled=false; } });
+  } else {
+    var existing = JSON.parse(localStorage.getItem('demoNurses')||'[]'); existing.push(nurseData); localStorage.setItem('demoNurses', JSON.stringify(existing));
+    alert('✅ Registered (Demo)!'); showPage('nurse-login'); if(btn){ btn.innerText='Register as Nurse'; btn.disabled=false; }
+  }
+}
+
+function loginNurse(){
+  var codeEl=document.getElementById('nurseLoginCode');
+  var phoneEl=document.getElementById('nurseLoginPhone');
+  var passEl=document.getElementById('nurseLoginPass');
+  var resultEl=document.getElementById('nurseLoginResult');
+  var phone = phoneEl ? phoneEl.value.trim() : '';
+  var code = codeEl ? codeEl.value : '+233';
+  var pass = passEl ? passEl.value.trim() : '';
+  if(!phone || !pass){ if(resultEl) resultEl.innerText='❌ Enter phone and password'; alert('❌ Enter phone and password'); return; }
+  var fullPhone = code + phone; var cleanPhone = fullPhone.replace(/[^0-9]/g,'');
+  var btn = document.querySelector('button[onclick="loginNurse()"]');
+  if(btn){ btn.innerText='⏳ Logging in...'; btn.disabled=true; }
+  if(resultEl) resultEl.innerText='⏳ Checking...';
+  if(window.db){
+    db.ref('workers/'+cleanPhone).once('value').then(function(snap){
+      var data = snap.val();
+      if(!data){ if(resultEl) resultEl.innerText='❌ Nurse not found'; alert('❌ Nurse not found. Register first!'); if(btn){ btn.innerText='Login as Nurse'; btn.disabled=false; } return; }
+      if(data.password !== pass){ if(resultEl) resultEl.innerText='❌ Wrong password'; alert('❌ Wrong password'); if(btn){ btn.innerText='Login as Nurse'; btn.disabled=false; } return; }
+      localStorage.setItem('nursePhone', data.phone || fullPhone); localStorage.setItem('nurseName', data.name); localStorage.setItem('isNurseLogged','true');
+      if(resultEl) resultEl.innerText='✅ Welcome '+data.name; alert('✅ Welcome '+data.name+'!'); showPage('nurse-dashboard'); if(btn){ btn.innerText='Login as Nurse'; btn.disabled=false; }
+    }).catch(function(err){ alert('❌ Error: '+err.message); if(btn){ btn.innerText='Login as Nurse'; btn.disabled=false; } });
+  }
+}
 </script>
 
 </body>
