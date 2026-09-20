@@ -779,218 +779,6 @@ function autoGPS(i,s){
 }
 
 function getFullPhone(c,p){var code=document.getElementById(c).value; var ph=document.getElementById(p).value.trim().replace(/^0+/,''); if(ph.startsWith('+')) return ph; return code+ph;}
-
-// ===== FIXED NURSE REGISTRATION & LOGIN - Added 2026-05-11 =====
-function showUploadStatus(msg, isError){
-  var box=document.getElementById('uploadStatusBox');
-  if(!box) return;
-  box.style.display='block';
-  box.innerHTML=msg;
-  box.style.background=isError?'#fee2e2':'#dcfce7';
-  box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
-  box.style.color=isError?'#991b1b':'#166534';
-}
-function uploadFileToStorage(file, path){
-  return new Promise(function(resolve){
-    if(!file){ resolve(null); return; }
-    try{
-      if(typeof firebase!== 'undefined' && firebase.storage){
-        var storageRef = firebase.storage().ref();
-        var safeName = file.name.replace(/[^a-zA-Z0-9.]/g,'_');
-        var fileRef = storageRef.child(path + '/' + Date.now() + '_' + safeName);
-        var task = fileRef.put(file);
-        task.on('state_changed', function(snap){
-          var pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
-          showUploadStatus('Uploading '+file.name+': '+pct+'%');
-        }, function(err){
-          console.warn('Storage upload failed, using link fallback', err);
-          resolve(null);
-        }, function(){
-          task.snapshot.ref.getDownloadURL().then(function(url){ resolve(url); }).catch(function(){ resolve(null); });
-        });
-      } else { resolve(null); }
-    }catch(e){ console.warn(e); resolve(null); }
-  });
-}
-async function registerNurse(){
-  try{
-    var nameEl=document.getElementById('nRegName');
-    var phoneEl=document.getElementById('nRegPhone');
-    var passEl=document.getElementById('nRegPass');
-    var locEl=document.getElementById('nRegLocation');
-    var expEl=document.getElementById('nRegExperience');
-    var specEl=document.getElementById('nRegSpecialty');
-    var careEl=document.getElementById('nRegCareMode');
-    var ageChk=document.getElementById('nRegAgeConfirm');
-    var name=nameEl? nameEl.value.trim() : '';
-    var phoneRaw=phoneEl? phoneEl.value.trim() : '';
-    var pass=passEl? passEl.value.trim() : '';
-    var location=locEl? locEl.value.trim() : '';
-    var experience=expEl? expEl.value.trim() : '3';
-    var specialty=specEl? specEl.value : '';
-    var careMode=careEl? careEl.value : 'both';
-    if(!ageChk || !ageChk.checked){ alert('You must confirm you are 18+ with valid ID'); return; }
-    if(name.length<3){ alert('Enter full name (min 3 chars)'); if(nameEl) nameEl.focus(); return; }
-    if(!phoneRaw){ alert('Enter phone number'); return; }
-    if(pass.length<4){ alert('Password must be at least 4 chars'); return; }
-    if(!location){ alert('Tap GPS button or enter location'); return; }
-    if(!specialty){ alert('Select specialty'); return; }
-    var fullPhone = (typeof getFullPhone==='function')? getFullPhone('nRegPhoneCode','nRegPhone') : phoneRaw;
-    var phoneKey = fullPhone.replace(/[^0-9]/g,'');
-    if(phoneKey.length<9){ alert('Invalid phone'); return; }
-    var regBtn = document.querySelector('button[type="button" id="registerNurseBtn" onclick="registerNurse()"]');
-    if(regBtn){ regBtn.disabled=true; regBtn.innerText='Registering...'; }
-    showUploadStatus('Registering '+name+'...');
-    var lat = window.nurseRegLat || parseFloat(localStorage.getItem('nurseRegLat')||'0') || 5.6037;
-    var lng = window.nurseRegLng || parseFloat(localStorage.getItem('nurseRegLng')||'0') || -0.1870;
-    var videoLink=document.getElementById('nRegVideo')? document.getElementById('nRegVideo').value.trim() : '';
-    var cvLink=document.getElementById('nRegCV')? document.getElementById('nRegCV').value.trim() : '';
-    var certLink=document.getElementById('nRegCertificate')? document.getElementById('nRegCertificate').value.trim() : '';
-    var idLink=document.getElementById('nRegID')? document.getElementById('nRegID').value.trim() : '';
-    var videoFile=document.getElementById('nRegVideoFile')? document.getElementById('nRegVideoFile').files[0] : null;
-    var cvFile=document.getElementById('nRegCVFile')? document.getElementById('nRegCVFile').files[0] : null;
-    var certFile=document.getElementById('nRegCertFile')? document.getElementById('nRegCertFile').files[0] : null;
-    var idFile=document.getElementById('nRegIDFile')? document.getElementById('nRegIDFile').files[0] : null;
-    var videoUrl=videoLink, cvUrl=cvLink, certUrl=certLink, idUrl=idLink;
-    try{
-      if(videoFile){ var u=await uploadFileToStorage(videoFile, 'nurse_videos/'+phoneKey); if(u) videoUrl=u; }
-      if(cvFile){ var u=await uploadFileToStorage(cvFile, 'nurse_cvs/'+phoneKey); if(u) cvUrl=u; }
-      if(certFile){ var u=await uploadFileToStorage(certFile, 'nurse_certs/'+phoneKey); if(u) certUrl=u; }
-      if(idFile){ var u=await uploadFileToStorage(idFile, 'nurse_ids/'+phoneKey); if(u) idUrl=u; }
-    }catch(e){ console.warn(e); }
-    var nurseObj={
-      id: phoneKey, name:name, phone:fullPhone, phoneKey:phoneKey, password:pass,
-      location:location, lat:lat, lng:lng, experience:experience, specialty:specialty, careMode:careMode,
-      videoUrl:videoUrl||'', cvUrl:cvUrl||'', certUrl:certUrl||'', idUrl:idUrl||'',
-      profileUrl:'./Icon-512.png', verified:false, onDuty:false, status:'pending_verification',
-      timestamp:Date.now(), createdAt:Date.now(), lastUpdate:Date.now()
-    };
-    var nurses=[]; try{ nurses=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){ nurses=[]; }
-    nurses=nurses.filter(function(n){ return (n.phoneKey||'').replace(/[^0-9]/g,'')!==phoneKey; });
-    nurses.push(nurseObj);
-    localStorage.setItem('nurses', JSON.stringify(nurses));
-    localStorage.setItem('nursePhone', fullPhone);
-    localStorage.setItem('nursePhoneKey', phoneKey);
-    if(window.db){ try{ await db.ref('workers/'+phoneKey).set(nurseObj); }catch(e){ console.warn('Firebase save failed', e); } }
-    showUploadStatus('✅ Registration successful! Redirecting to login...');
-    alert('✅ Registered! Name:'+name+' Phone:'+fullPhone+' Now please login.');
-    if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
-    if(typeof showPage==='function') showPage('nurse-login');
-    var lp=document.getElementById('nurseLoginPhone'); if(lp) lp.value=phoneRaw;
-  }catch(e){
-    console.error(e); alert('Registration failed: '+e.message);
-    var b=document.querySelector('button[type="button" id="registerNurseBtn" onclick="registerNurse()"]'); if(b){ b.disabled=false; b.innerText='Register as Nurse'; }
-    showUploadStatus('Error: '+e.message, true);
-  }
-}
-async function loginNurse(){
-  var phoneEl=document.getElementById('nurseLoginPhone');
-  var passEl=document.getElementById('nurseLoginPass');
-  var resultEl=document.getElementById('nurseLoginResult');
-  if(!phoneEl||!passEl){ alert('Form not found'); return; }
-  var phoneRaw=phoneEl.value.trim();
-  var pass=passEl.value.trim();
-  if(!phoneRaw||!pass){ if(resultEl) resultEl.innerText='Enter phone and password'; else alert('Enter phone and password'); return; }
-  var fullPhone=(typeof getFullPhone==='function')? getFullPhone('nurseLoginCode','nurseLoginPhone') : phoneRaw;
-  var phoneKey=fullPhone.replace(/[^0-9]/g,'');
-  if(resultEl) resultEl.innerText='Checking...';
-  var found=null;
-  try{
-    var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
-    found=nurses.find(function(n){
-      var k=(n.phoneKey||n.phone||'').replace(/[^0-9]/g,'');
-      return (k===phoneKey || k.slice(-9)===phoneKey.slice(-9)) && n.password===pass;
-    });
-  }catch(e){}
-  if(!found && window.db){
-    try{
-      var snap=await db.ref('workers/'+phoneKey).once('value');
-      var data=snap.val();
-      if(data && data.password===pass) found=data;
-      else {
-        var allSnap=await db.ref('workers').once('value');
-        var all=allSnap.val()||{};
-        Object.keys(all).forEach(function(k){
-          var w=all[k]; if(w && w.password===pass){
-            var wk=(w.phoneKey||k).replace(/[^0-9]/g,'');
-            if(wk===phoneKey || wk.slice(-9)===phoneKey.slice(-9)) found=w;
-          }
-        });
-      }
-    }catch(e){ console.warn(e); }
-  }
-  if(found){
-    localStorage.setItem('nursePhone', found.phone||fullPhone);
-    localStorage.setItem('nursePhoneKey', found.phoneKey||phoneKey);
-    localStorage.setItem('nurseName', found.name||'Nurse');
-    if(resultEl) resultEl.innerText='Success!';
-    var chatBtn=document.getElementById('nav-chat');
-    if(chatBtn){ chatBtn.classList.remove('hidden'); chatBtn.classList.add('show-for-staff'); chatBtn.style.display='flex'; }
-    if(typeof showPage==='function') showPage('nurse-dashboard');
-    alert('Welcome '+(found.name||'Nurse')+'! Logged in.');
-  }else{
-    if(resultEl) resultEl.innerText='Invalid phone or password. Did you register? Try phone without 0.';
-    else alert('Invalid login');
-  }
-}
-function logoutNurse(){
-  localStorage.removeItem('nursePhone'); localStorage.removeItem('nursePhoneKey');
-  var chatBtn=document.getElementById('nav-chat');
-  if(chatBtn && !localStorage.getItem('staffID') && localStorage.getItem('isCEOLogged')!=='true'){ chatBtn.classList.add('hidden'); chatBtn.classList.remove('show-for-staff'); }
-  if(typeof showPage==='function') showPage('nurse-login');
-}
-function openNurseSettings(){
-  var card=document.getElementById('nurseSettingsCard'); if(card) card.classList.remove('hidden');
-}
-async function saveNurseSettings(){
-  var phoneKey=localStorage.getItem('nursePhoneKey')||'';
-  if(!phoneKey){ alert('Login first'); return; }
-  var name=document.getElementById('nurseSetName')?.value.trim()||'';
-  var exp=document.getElementById('nurseSetExperience')?.value.trim()||'';
-  var spec=document.getElementById('nurseSetSpecialty')?.value||'';
-  var mode=document.getElementById('nurseSetCareMode')?.value||'both';
-  var updates={ name:name, experience:exp, specialty:spec, careMode:mode, lastUpdate:Date.now() };
-  var vFile=document.getElementById('nurseSetVideoFile')?.files[0];
-  var cvFile=document.getElementById('nurseSetCVFile')?.files[0];
-  var certFile=document.getElementById('nurseSetCertFile')?.files[0];
-  var idFile=document.getElementById('nurseSetIDFile')?.files[0];
-  var prog=document.getElementById('nurseSetUploadProgress'); if(prog) prog.innerHTML='Saving...';
-  try{
-    if(vFile){ var u=await uploadFileToStorage(vFile, 'nurse_videos/'+phoneKey); if(u) updates.videoUrl=u; }
-    if(cvFile){ var u=await uploadFileToStorage(cvFile, 'nurse_cvs/'+phoneKey); if(u) updates.cvUrl=u; }
-    if(certFile){ var u=await uploadFileToStorage(certFile, 'nurse_certs/'+phoneKey); if(u) updates.certUrl=u; }
-    if(idFile){ var u=await uploadFileToStorage(idFile, 'nurse_ids/'+phoneKey); if(u) updates.idUrl=u; }
-  }catch(e){}
-  try{
-    var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
-    var idx=nurses.findIndex(function(n){ return (n.phoneKey||'').replace(/[^0-9]/g,'')===phoneKey; });
-    if(idx>=0){ nurses[idx]={...nurses[idx], ...updates}; localStorage.setItem('nurses', JSON.stringify(nurses)); }
-  }catch(e){}
-  if(window.db){ try{ await db.ref('workers/'+phoneKey).update(updates); }catch(e){} }
-  if(prog) prog.innerHTML='Saved!'; alert('Settings saved!');
-}
-async function deleteNurseAccount(){
-  var reason=document.getElementById('nurseDeleteReason')?.value.trim()||'';
-  if(!reason){ alert('Enter reason'); return; }
-  if(!confirm('Delete permanently?')) return;
-  var phoneKey=localStorage.getItem('nursePhoneKey')||'';
-  var phone=localStorage.getItem('nursePhone')||phoneKey;
-  if(window.db){
-    try{
-      await db.ref('deletedNurses/'+phoneKey).set({phone:phone, phoneKey:phoneKey, reason:reason, deletedAt:Date.now()});
-      await db.ref('workers/'+phoneKey).remove();
-    }catch(e){}
-  }
-  try{
-    var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
-    nurses=nurses.filter(function(n){ return (n.phoneKey||'')!==phoneKey; });
-    localStorage.setItem('nurses', JSON.stringify(nurses));
-  }catch(e){}
-  localStorage.removeItem('nursePhone'); localStorage.removeItem('nursePhoneKey');
-  alert('Account deleted'); if(typeof showPage==='function') showPage('home');
-}
-function togglePayoutMethod(){}
-
 function getDistanceKm(a,b,c,d){if(!a||!b||!c||!d) return 9999; var R=6371; var dLat=(c-a)*Math.PI/180; var dLon=(d-b)*Math.PI/180; var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2); return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 // ===== GOOGLE LIVE + LIVE NAVIGATION - FIXED =====
 var userLiveMarker=null, userAccuracyCircle=null, watchId=null, liveRouteLine=null, liveNurseMarkers=[];
@@ -2887,13 +2675,188 @@ window.confirmVerificationCode = function(){
 };
 </script>
 
-
 <script>
-// Force global exposure - must be after registerNurse defined
-window.registerNurse = registerNurse;
-window.loginNurse = loginNurse;
-console.log('LOVE CARE FIX ACTIVE - registerNurse:', typeof registerNurse, 'loginNurse:', typeof loginNurse);
-</script>
+// === ULTIMATE FIX - OVERRIDES EVERYTHING ===
+window.showUploadStatus = function(msg, isError){
+  var box=document.getElementById('uploadStatusBox');
+  if(!box) return;
+  box.style.display='block';
+  box.innerHTML=msg;
+  box.style.background=isError?'#fee2e2':'#dcfce7';
+  box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
+  box.style.color=isError?'#991b1b':'#166534';
+};
 
+window.uploadFileToStorage = function(file, path){
+  return new Promise(function(resolve){
+    if(!file){ resolve(null); return; }
+    try{
+      if(typeof firebase!=='undefined' && firebase.storage){
+        var storageRef = firebase.storage().ref();
+        var safeName = file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+        var fileRef = storageRef.child(path + '/' + Date.now() + '_' + safeName);
+        var task = fileRef.put(file);
+        task.on('state_changed', function(snap){
+          var pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
+          window.showUploadStatus('Uploading '+file.name+': '+pct+'%');
+        }, function(err){
+          console.warn('Upload fail, using link', err);
+          resolve(null);
+        }, function(){
+          task.snapshot.ref.getDownloadURL().then(function(url){ resolve(url); }).catch(function(){ resolve(null); });
+        });
+      } else { resolve(null); }
+    }catch(e){ resolve(null); }
+  });
+};
+
+window.registerNurse = async function(){
+  console.log('registerNurse CLICKED');
+  try{
+    var nameEl=document.getElementById('nRegName');
+    var phoneEl=document.getElementById('nRegPhone');
+    var passEl=document.getElementById('nRegPass');
+    var locEl=document.getElementById('nRegLocation');
+    var expEl=document.getElementById('nRegExperience');
+    var specEl=document.getElementById('nRegSpecialty');
+    var careEl=document.getElementById('nRegCareMode');
+    var ageChk=document.getElementById('nRegAgeConfirm');
+    var name=nameEl? nameEl.value.trim() : '';
+    var phoneRaw=phoneEl? phoneEl.value.trim() : '';
+    var pass=passEl? passEl.value.trim() : '';
+    var location=locEl? locEl.value.trim() : '';
+    var experience=expEl? expEl.value.trim() : '3';
+    var specialty=specEl? specEl.value : '';
+    var careMode=careEl? careEl.value : 'both';
+    if(!ageChk || !ageChk.checked){ alert('❌ Tick 18+ checkbox'); return; }
+    if(name.length<3){ alert('❌ Enter full name'); return; }
+    if(!phoneRaw){ alert('❌ Enter phone'); return; }
+    if(pass.length<4){ alert('❌ Password min 4 chars'); return; }
+    if(!location){ alert('❌ Tap GPS or enter location'); return; }
+    if(!specialty){ alert('❌ Select specialty'); return; }
+    var fullPhone = (typeof getFullPhone==='function')? getFullPhone('nRegPhoneCode','nRegPhone') : phoneRaw;
+    var phoneKey = fullPhone.replace(/[^0-9]/g,'');
+    var btn=document.getElementById('registerNurseBtn');
+    if(btn){ btn.disabled=true; btn.innerText='⏳ Registering...'; }
+    window.showUploadStatus('⏳ Registering '+name+'...');
+    var lat = window.nurseRegLat || parseFloat(localStorage.getItem('nurseRegLat')||'0') || 5.6037;
+    var lng = window.nurseRegLng || parseFloat(localStorage.getItem('nurseRegLng')||'0') || -0.1870;
+    var videoLink=document.getElementById('nRegVideo')? document.getElementById('nRegVideo').value.trim() : '';
+    var cvLink=document.getElementById('nRegCV')? document.getElementById('nRegCV').value.trim() : '';
+    var certLink=document.getElementById('nRegCertificate')? document.getElementById('nRegCertificate').value.trim() : '';
+    var idLink=document.getElementById('nRegID')? document.getElementById('nRegID').value.trim() : '';
+    var videoFile=document.getElementById('nRegVideoFile')? document.getElementById('nRegVideoFile').files[0] : null;
+    var cvFile=document.getElementById('nRegCVFile')? document.getElementById('nRegCVFile').files[0] : null;
+    var certFile=document.getElementById('nRegCertFile')? document.getElementById('nRegCertFile').files[0] : null;
+    var idFile=document.getElementById('nRegIDFile')? document.getElementById('nRegIDFile').files[0] : null;
+    var videoUrl=videoLink, cvUrl=cvLink, certUrl=certLink, idUrl=idLink;
+    try{
+      if(videoFile){ var u=await window.uploadFileToStorage(videoFile, 'nurse_videos/'+phoneKey); if(u) videoUrl=u; }
+      if(cvFile){ var u=await window.uploadFileToStorage(cvFile, 'nurse_cvs/'+phoneKey); if(u) cvUrl=u; }
+      if(certFile){ var u=await window.uploadFileToStorage(certFile, 'nurse_certs/'+phoneKey); if(u) certUrl=u; }
+      if(idFile){ var u=await window.uploadFileToStorage(idFile, 'nurse_ids/'+phoneKey); if(u) idUrl=u; }
+    }catch(e){ console.warn(e); }
+    var nurseObj={
+      id:phoneKey, name:name, phone:fullPhone, phoneKey:phoneKey, password:pass,
+      location:location, lat:lat, lng:lng, experience:experience, specialty:specialty, careMode:careMode,
+      videoUrl:videoUrl||'', cvUrl:cvUrl||'', certUrl:certUrl||'', idUrl:idUrl||'',
+      profileUrl:'./Icon-512.png', verified:false, onDuty:false, status:'pending_verification',
+      timestamp:Date.now(), createdAt:Date.now(), lastUpdate:Date.now()
+    };
+    var nurses=[]; try{ nurses=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){ nurses=[]; }
+    nurses=nurses.filter(function(n){ return (n.phoneKey||'').replace(/[^0-9]/g,'')!==phoneKey; });
+    nurses.push(nurseObj);
+    localStorage.setItem('nurses', JSON.stringify(nurses));
+    localStorage.setItem('nursePhone', fullPhone);
+    localStorage.setItem('nursePhoneKey', phoneKey);
+    localStorage.setItem('nurseName', name);
+    if(window.db){
+      try{ await db.ref('workers/'+phoneKey).set(nurseObj); console.log('Firebase saved'); }catch(e){ console.warn('Firebase save failed - check rules', e); alert('Firebase Rules still blocking! But saved locally. Fix Rules to enable CEO view.'); }
+    }
+    window.showUploadStatus('✅ Registered! Redirecting to login...');
+    alert('✅ Registered! '+name+' - '+fullPhone+'\nNow login.');
+    if(btn){ btn.disabled=false; btn.innerText='Register as Nurse'; }
+    if(typeof showPage==='function') showPage('nurse-login');
+  }catch(e){
+    console.error(e); alert('Error: '+e.message);
+    var b=document.getElementById('registerNurseBtn'); if(b){ b.disabled=false; b.innerText='Register as Nurse'; }
+  }
+};
+
+window.loginNurse = async function(){
+  console.log('loginNurse CLICKED');
+  var phoneEl=document.getElementById('nurseLoginPhone');
+  var passEl=document.getElementById('nurseLoginPass');
+  var resultEl=document.getElementById('nurseLoginResult');
+  var phoneRaw=phoneEl? phoneEl.value.trim() : '';
+  var pass=passEl? passEl.value.trim() : '';
+  if(!phoneRaw||!pass){ if(resultEl) resultEl.innerText='Enter phone & password'; return; }
+  var fullPhone=(typeof getFullPhone==='function')? getFullPhone('nurseLoginCode','nurseLoginPhone') : phoneRaw;
+  var phoneKey=fullPhone.replace(/[^0-9]/g,'');
+  if(resultEl) resultEl.innerText='⏳ Checking...';
+  var found=null;
+  try{
+    var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
+    found=nurses.find(function(n){
+      var k=(n.phoneKey||n.phone||'').replace(/[^0-9]/g,'');
+      return (k===phoneKey || k.slice(-9)===phoneKey.slice(-9)) && n.password===pass;
+    });
+  }catch(e){}
+  if(!found && window.db){
+    try{
+      var snap=await db.ref('workers/'+phoneKey).once('value');
+      var data=snap.val();
+      if(data && data.password===pass) found=data;
+      else {
+        var allSnap=await db.ref('workers').once('value');
+        var all=allSnap.val()||{};
+        Object.keys(all).forEach(function(k){
+          var w=all[k]; if(w && w.password===pass){
+            var wk=(w.phoneKey||k).replace(/[^0-9]/g,'');
+            if(wk===phoneKey || wk.slice(-9)===phoneKey.slice(-9)) found=w;
+          }
+        });
+      }
+    }catch(e){ console.warn(e); }
+  }
+  if(found){
+    localStorage.setItem('nursePhone', found.phone||fullPhone);
+    localStorage.setItem('nursePhoneKey', found.phoneKey||phoneKey);
+    localStorage.setItem('nurseName', found.name||'Nurse');
+    if(resultEl) resultEl.innerText='✅ Success!';
+    var chatBtn=document.getElementById('nav-chat');
+    if(chatBtn){ chatBtn.classList.remove('hidden'); chatBtn.classList.add('show-for-staff'); chatBtn.style.display='flex'; }
+    if(typeof showPage==='function') showPage('nurse-dashboard');
+    alert('Welcome '+(found.name||'Nurse'));
+  }else{
+    if(resultEl) resultEl.innerText='❌ Invalid phone/password. Register first.';
+    else alert('Invalid login');
+  }
+};
+
+window.logoutNurse = function(){
+  localStorage.removeItem('nursePhone'); localStorage.removeItem('nursePhoneKey');
+  if(typeof showPage==='function') showPage('nurse-login');
+};
+
+// Force bind buttons after load
+setTimeout(function(){
+  var rb=document.getElementById('registerNurseBtn') || document.querySelector('button[onclick*=registerNurse]');
+  if(rb){
+    rb.type='button';
+    rb.style.pointerEvents='auto';
+    rb.style.opacity='1';
+    rb.onclick = function(e){ e.preventDefault(); window.registerNurse(); };
+    console.log('Register button bound');
+  }
+  var lb=document.getElementById('loginNurseBtn') || document.querySelector('button[onclick*=loginNurse]');
+  if(lb){
+    lb.type='button';
+    lb.style.pointerEvents='auto';
+    lb.onclick = function(e){ e.preventDefault(); window.loginNurse(); };
+    console.log('Login button bound');
+  }
+}, 800);
+</script>
 </body>
 </html>https://lovecareglobal-cell.github.io/love-care-global/
