@@ -156,7 +156,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="enterCodeArea" class="hidden">
 <p style="font-size:12px;font-weight:800;color:#111827">Enter 6-digit code sent to <span id="sentToEmail" style="color:#2563eb"></span></p>
 <p id="demoCodeDisplay" style="background:#fef3c7;padding:8px;border-radius:8px;font-weight:800;text-align:center;font-size:14px;border:2px dashed #f59e0b"></p>
-<input id="verifyCodeInput" placeholder="Enter 6-digit code" type="number" maxlength="6">
+<input id="verifyCodeInput" placeholder="Enter 6-digit code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6">
 <button class="btnSubmit" style="background:#16a34a" onclick="confirmVerificationCode()">✅ Verify & Continue Booking</button>
 <button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:6px" onclick="resendCode()">Resend Code</button>
 </div>
@@ -2809,16 +2809,16 @@ try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); console.
 
 
 window.sendVerificationCode = function(){
-  var emailEl=document.getElementById('cEmail')||document.getElementById('clientEmail');
-  var nameEl=document.getElementById('cName')||document.getElementById('clientName');
-  var phoneEl=document.getElementById('cPhone')||document.getElementById('clientPhone');
+  var emailEl=document.getElementById('verifyEmailInput')||document.getElementById('cEmail')||document.getElementById('clientEmail')||document.getElementById('cEmail');
+  var nameEl=document.getElementById('cName')||document.getElementById('clientName')||document.getElementById('verifyNameInput');
+  var phoneEl=document.getElementById('cPhone')||document.getElementById('clientPhone')||document.getElementById('verifyPhoneInput');
   var statusEl=document.getElementById('emailVerifyStatus');
   var btn=document.getElementById('sendCodeBtn');
   var email=emailEl?emailEl.value.trim():'';
   var name=nameEl?nameEl.value.trim():'Client';
   var phone=phoneEl?phoneEl.value.trim():'';
   
-  if(!email || !email.includes('@')){ alert('Enter valid email'); return; }
+  if(!email || !email.includes('@') || !email.includes('.')){ alert('Please enter valid email in the top field - e.g. you@gmail.com'); var top=document.getElementById('verifyEmailInput'); if(top) top.focus(); return; }
   var code = Math.floor(100000 + Math.random()*900000).toString();
   window.pendingEmailCode=code;
   localStorage.setItem('pendingEmailCode', code);
@@ -3026,6 +3026,103 @@ document.addEventListener('DOMContentLoaded', function(){
   updateChatCEOButton();
   if(document.getElementById('globalChatBox') && window.db) initGlobalChatListener();
 });
+</script>
+
+
+<script>
+// ===== ANNOUNCEMENT LIVE SYNC FIX - All phones listen to Firebase =====
+(function(){
+  function applyAnnouncement(data){
+    if(!data) return;
+    try{
+      var textEl=document.getElementById('announcementText');
+      if(textEl && data.text) textEl.innerText=data.text;
+      if(data.bg) document.documentElement.style.setProperty('--announce-bg', data.bg);
+      if(data.textColor) document.documentElement.style.setProperty('--announce-text', data.textColor);
+      if(data.border) document.documentElement.style.setProperty('--announce-border', data.border);
+      if(data.speed) document.documentElement.style.setProperty('--announce-speed', data.speed+'s');
+      // Also save to localStorage so offline works
+      if(data.text) localStorage.setItem('announcementText', data.text);
+      if(data.bg) localStorage.setItem('announceBg', data.bg);
+      if(data.textColor) localStorage.setItem('announceTextColor', data.textColor);
+      if(data.border) localStorage.setItem('announceBorder', data.border);
+      if(data.speed) localStorage.setItem('announceSpeed', data.speed);
+    }catch(e){ console.error('announce apply fail', e); }
+  }
+
+  function initAnnouncementSync(){
+    // 1. First apply from localStorage (instant)
+    try{
+      var t=localStorage.getItem('announcementText');
+      var bg=localStorage.getItem('announceBg');
+      var tc=localStorage.getItem('announceTextColor');
+      var bc=localStorage.getItem('announceBorder');
+      var sp=localStorage.getItem('announceSpeed');
+      if(t) document.getElementById('announcementText').innerText=t;
+      if(bg) document.documentElement.style.setProperty('--announce-bg', bg);
+      if(tc) document.documentElement.style.setProperty('--announce-text', tc);
+      if(bc) document.documentElement.style.setProperty('--announce-border', bc);
+      if(sp) document.documentElement.style.setProperty('--announce-speed', sp+'s');
+    }catch(e){}
+
+    // 2. Then listen to Firebase for CEO updates (live for all phones)
+    if(window.db){
+      db.ref('announcement').on('value', function(snap){
+        var data=snap.val();
+        if(data){
+          console.log('Live announcement update from CEO:', data);
+          applyAnnouncement(data);
+        }
+      });
+      // Also listen to settings/announcement fallback
+      db.ref('settings/announcement').on('value', function(snap){
+        var data=snap.val();
+        if(data) applyAnnouncement(data);
+      });
+    }
+  }
+
+  // Override saveAnnouncement to ensure it saves to both places + notifies
+  var originalSave = window.saveAnnouncement;
+  window.saveAnnouncement = function(){
+    var text=document.getElementById('announcementInput').value;
+    var bg=document.getElementById('announceBgColor').value;
+    var tc=document.getElementById('announceTextColor').value;
+    var bc=document.getElementById('announceBorderColor').value;
+    var speed=document.getElementById('announceSpeed').value;
+    
+    localStorage.setItem('announcementText', text);
+    localStorage.setItem('announceBg', bg);
+    localStorage.setItem('announceTextColor', tc);
+    localStorage.setItem('announceBorder', bc);
+    localStorage.setItem('announceSpeed', speed);
+    
+    // Apply live on CEO phone immediately
+    var el=document.getElementById('announcementText'); if(el) el.innerText=text;
+    document.documentElement.style.setProperty('--announce-bg', bg);
+    document.documentElement.style.setProperty('--announce-text', tc);
+    document.documentElement.style.setProperty('--announce-border', bc);
+    document.documentElement.style.setProperty('--announce-speed', speed+'s');
+    
+    // Save to Firebase for ALL phones
+    if(window.db){
+      var payload={text:text, bg:bg, textColor:tc, border:bc, speed:speed, updatedAt:Date.now(), updatedBy:'CEO'};
+      db.ref('announcement').set(payload).then(function(){
+        console.log('Announcement pushed to Firebase');
+      }).catch(function(err){
+        alert('Save failed (check Rules add announcement): '+err.message);
+      });
+      // Also save to settings for backup
+      db.ref('settings/announcement').set(payload);
+    }
+    alert('✅ Announcement LIVE for ALL phones!\n\n'+text);
+  };
+
+  document.addEventListener('DOMContentLoaded', initAnnouncementSync);
+  // Also init after Firebase loads
+  setTimeout(initAnnouncementSync, 1500);
+  setTimeout(initAnnouncementSync, 3000);
+})();
 </script>
 
 </body>
