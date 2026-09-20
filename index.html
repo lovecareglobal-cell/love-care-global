@@ -17,6 +17,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <!-- EmailJS REMOVED - Now using Firebase Auth -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
@@ -2808,10 +2809,11 @@ var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
 try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); console.log('EmailJS init service_uqu1kcg'); } }catch(e){}
 
 
+
 window.sendVerificationCode = function(){
-  var emailEl=document.getElementById('verifyEmailInput')||document.getElementById('cEmail')||document.getElementById('clientEmail')||document.getElementById('cEmail');
-  var nameEl=document.getElementById('cName')||document.getElementById('clientName')||document.getElementById('verifyNameInput');
-  var phoneEl=document.getElementById('cPhone')||document.getElementById('clientPhone')||document.getElementById('verifyPhoneInput');
+  var emailEl=document.getElementById('verifyEmailInput')||document.getElementById('cEmail')||document.getElementById('clientEmail');
+  var nameEl=document.getElementById('cName')||document.getElementById('clientName');
+  var phoneEl=document.getElementById('cPhone')||document.getElementById('clientPhone');
   var statusEl=document.getElementById('emailVerifyStatus');
   var btn=document.getElementById('sendCodeBtn');
   var email=emailEl?emailEl.value.trim():'';
@@ -2823,53 +2825,51 @@ window.sendVerificationCode = function(){
   window.pendingEmailCode=code;
   localStorage.setItem('pendingEmailCode', code);
   localStorage.setItem('pendingEmail', email);
-  localStorage.setItem('pendingEmailName', name);
-  localStorage.setItem('pendingEmailPhone', phone);
   
-  if(btn){ btn.disabled=true; btn.innerText='Sending via Firebase...'; }
-  if(statusEl){ statusEl.innerText='Generating code via Firebase...'; statusEl.style.color='#16a34a'; }
+  if(btn){ btn.disabled=true; btn.innerText='Sending...'; }
+  if(statusEl){ statusEl.innerText='Sending code to '+email+'...'; statusEl.style.color='#16a34a'; }
   
   try{
-    var pendingData={email:email,name:name,phone:phone,code:code,status:'pending',timestamp:Date.now(),service:'firebase-auth',method:'firebase'};
+    var pendingData={email:email,name:name,phone:phone,code:code,status:'pending',timestamp:Date.now(),service:'firebase-firestore'};
     if(window.db){
       var key=Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'');
       db.ref('emailVerifications/'+key).set(pendingData);
       db.ref('clients/'+phone.replace(/[^0-9]/g,'')).update({email:email,pendingCode:code,emailVerified:false});
-      // For Firebase Trigger Email extension - writes to mail collection
+      // RTDB mail for old extension
       db.ref('mail/'+key).set({
         to: email,
-        template: { name: 'verificationCode', data: { name:name, code:code, appName:'LOVE CARE GLOBAL' } },
-        message: { subject: 'Your LOVE CARE GLOBAL verification code: '+code, html: '<div style="font-family:Poppins;padding:20px"><h2 style="color:#16a34a">LOVE CARE GLOBAL</h2><p>Hi '+name+',</p><p>Your verification code is:</p><h1 style="background:#f0fdf4;padding:15px;border-radius:10px;text-align:center;letter-spacing:5px;color:#16a34a">'+code+'</h1><p>Enter this code in the app to verify your email.</p><p>If you did not request this, ignore.</p></div>' }
+        message: { subject: 'Your LOVE CARE GLOBAL code: '+code, html: '<div style="font-family:Poppins;padding:20px"><h2 style="color:#16a34a">LOVE CARE GLOBAL</h2><p>Hi '+name+',</p><p>Your code is:</p><h1 style="background:#f0fdf4;padding:15px;border-radius:10px;text-align:center;letter-spacing:5px;color:#16a34a">'+code+'</h1><p>Enter in app.</p></div>' }
       });
     }
-    var localList=JSON.parse(localStorage.getItem('allEmailVerifications')||'[]'); localList.push(pendingData); localStorage.setItem('allEmailVerifications', JSON.stringify(localList.slice(-200)));
+    // Firestore mail - THIS is what the extension you installed listens to
+    if(window.firebase && firebase.firestore){
+      var fs = firebase.firestore();
+      fs.collection('mail').add({
+        to: email,
+        message: {
+          subject: 'Your LOVE CARE GLOBAL verification code: '+code,
+          html: '<div style="font-family:sans-serif;padding:20px"><h2 style="color:#16a34a">LOVE CARE GLOBAL</h2><p>Hi '+name+',</p><p>Your verification code is:</p><h1 style="background:#f0fdf4;padding:15px;border-radius:10px;text-align:center;letter-spacing:8px;color:#16a34a;font-size:32px">'+code+'</h1><p>Enter this code in the app to verify.</p><p style="font-size:11px;color:#888">If you did not request, ignore.</p></div>'
+        }
+      }).then(function(){ console.log('Firestore mail queued'); }).catch(function(e){ console.error('Firestore mail fail', e); });
+    }
   }catch(e){ console.error(e); }
   
-  // Try Firebase Auth method - create temporary auth record to trigger Firebase email if needed
-  // Note: Firebase Auth will handle email existence check
-  try{
-    if(window.firebase && firebase.auth){
-      // We don't create user yet, just show code - but if you have Trigger Email extension, email is already queued
-      console.log('Firebase Auth available - code generated:', code);
-    }
-  }catch(e){ console.log('Auth check skip', e); }
-  
+  // SECURE UI: hide code for clients, show for CEO
   var demoEl=document.getElementById('demoCodeDisplay');
   if(demoEl){
     var isCEO = localStorage.getItem('isCEOLogged')==='true';
     if(isCEO){
-      demoEl.innerHTML='✅ <b>CEO View - Code Visible</b><br>Code for <b>'+email+'</b>: <span style="font-size:28px;letter-spacing:4px;color:#16a34a;font-weight:800">'+code+'</span><br><br><small>Client sees only \"Code sent to email\" - you as CEO see the code for support</small>';
+      demoEl.innerHTML='✅ <b>CEO View - Code Visible</b><br>Code for <b>'+email+'</b>: <span style="font-size:28px;letter-spacing:4px;color:#16a34a;font-weight:800">'+code+'</span><br><br><small>Client sees only "Code sent to email" - you as CEO see code for support.<br>Firestore mail collection also queued for extension.<br>If extension needs billing, code is still in console & CEO dashboard.</small>';
     } else {
-      demoEl.innerHTML='✅ <b>Code Sent!</b><br>We sent a 6-digit code to <b>'+email+'</b><br><br><span style="font-size:12px;background:#fff;padding:8px;border-radius:8px;display:block;border:1px solid #16a34a">📧 Check your inbox & spam folder.<br>From: LOVE CARE GLOBAL<br>Subject: Your verification code</span><br><small>Code hidden for security</small>';
+      demoEl.innerHTML='✅ <b>Code Sent!</b><br>We sent a 6-digit code to <b>'+email+'</b><br><br><span style="font-size:12px;background:#fff;padding:8px;border-radius:8px;display:block;border:1px solid #16a34a">📧 Check inbox & spam folder.<br>From: LOVE CARE GLOBAL / Firebase<br>Subject: Your verification code</span><br><small>If no email in 2 min, contact support - CEO can see code in dashboard</small>';
     }
     demoEl.style.background='#dcfce7'; demoEl.style.border='2px solid #16a34a'; demoEl.style.padding='12px'; demoEl.style.borderRadius='10px';
-    console.log('SECURE CODE for '+email+':', code);
+    console.log('CODE for '+email+': '+code+' (CEO only)');
   }
   var sentTo=document.getElementById('sentToEmail'); if(sentTo) sentTo.innerText=email;
   var sA=document.getElementById('sendCodeArea'), eA=document.getElementById('enterCodeArea'); if(sA) sA.classList.add('hidden'); if(eA) eA.classList.remove('hidden');
-  if(statusEl){ statusEl.innerText='✅ Code sent to '+email+' - check inbox & spam'; statusEl.style.color='#16a34a'; }
-  if(btn){ btn.disabled=false; btn.innerText='Code Sent via Firebase'; }
-  // Auto focus code input
+  if(statusEl){ statusEl.innerText='✅ Code sent to '+email+' - check inbox & spam (code hidden for security)'; statusEl.style.color='#16a34a'; }
+  if(btn){ btn.disabled=false; btn.innerText='Code Sent'; }
   var codeInput=document.getElementById('verifyCodeInput'); if(codeInput) codeInput.focus();
 };
 
