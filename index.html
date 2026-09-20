@@ -97,6 +97,109 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </style>
 </head>
 <body>
+
+<script>
+// INDEPENDENT FIX - runs first, cannot be broken by later errors
+(function(){
+  console.log('INDEPENDENT FIX LOADING');
+  function getVal(id){ var el=document.getElementById(id); return el? el.value.trim() : ''; }
+  function getFullPhoneSafe(codeId, phoneId){
+    try{
+      var codeEl=document.getElementById(codeId);
+      var phoneEl=document.getElementById(phoneId);
+      if(!codeEl || !phoneEl) return phoneEl? phoneEl.value.trim() : '';
+      var code=codeEl.value||'+233';
+      var ph=phoneEl.value.trim().replace(/^0+/,'');
+      if(ph.startsWith('+')) return ph;
+      return code+ph;
+    }catch(e){ return document.getElementById(phoneId)?.value.trim()||''; }
+  }
+  window.registerNurse = function(){
+    alert('🔥 BUTTON CLICKED - Register function started!');
+    var name=getVal('nRegName');
+    var phoneRaw=getVal('nRegPhone');
+    var pass=getVal('nRegPass');
+    var loc=getVal('nRegLocation');
+    var spec=getVal('nRegSpecialty');
+    var ageChk=document.getElementById('nRegAgeConfirm');
+    if(!ageChk || !ageChk.checked){ alert('❌ Please tick 18+ checkbox'); return; }
+    if(name.length<3){ alert('❌ Enter full name (at least 3 letters)'); return; }
+    if(!phoneRaw){ alert('❌ Enter phone number'); return; }
+    if(pass.length<4){ alert('❌ Password must be at least 4 characters'); return; }
+    if(!loc){ alert('❌ Tap GPS button or enter location'); return; }
+    if(!spec){ alert('❌ Select specialty'); return; }
+    var fullPhone=getFullPhoneSafe('nRegPhoneCode','nRegPhone');
+    var phoneKey=fullPhone.replace(/[^0-9]/g,'');
+    var nurseObj={ id:phoneKey, name:name, phone:fullPhone, phoneKey:phoneKey, password:pass, location:loc, specialty:spec, timestamp:Date.now() };
+    var nurses=[]; try{ nurses=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){}
+    nurses=nurses.filter(function(n){ return (n.phoneKey||'')!==phoneKey; });
+    nurses.push(nurseObj);
+    localStorage.setItem('nurses', JSON.stringify(nurses));
+    localStorage.setItem('nursePhone', fullPhone);
+    localStorage.setItem('nursePhoneKey', phoneKey);
+    // Try Firebase if available
+    if(window.db){
+      try{ db.ref('workers/'+phoneKey).set(nurseObj); }catch(e){ console.warn(e); }
+    }
+    alert('✅ SUCCESS! Registered: '+name+'\nPhone: '+fullPhone+'\n\nNow go to Login tab and login with same phone & password.');
+    if(typeof showPage==='function') showPage('nurse-login');
+  };
+  window.loginNurse = function(){
+    alert('🔥 LOGIN BUTTON CLICKED!');
+    var phoneRaw=getVal('nurseLoginPhone');
+    var pass=getVal('nurseLoginPass');
+    if(!phoneRaw){ alert('❌ Enter phone'); return; }
+    if(!pass){ alert('❌ Enter password'); return; }
+    var fullPhone=getFullPhoneSafe('nurseLoginCode','nurseLoginPhone');
+    var phoneKey=fullPhone.replace(/[^0-9]/g,'');
+    var nurses=[]; try{ nurses=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){}
+    var found=nurses.find(function(n){
+      var k=(n.phoneKey||n.phone||'').replace(/[^0-9]/g,'');
+      return (k===phoneKey || k.slice(-9)===phoneKey.slice(-9)) && n.password===pass;
+    });
+    if(found){
+      localStorage.setItem('nursePhone', found.phone||fullPhone);
+      localStorage.setItem('nursePhoneKey', found.phoneKey||phoneKey);
+      alert('✅ Welcome '+found.name+'! Login success. Going to dashboard.');
+      if(typeof showPage==='function') showPage('nurse-dashboard');
+    } else {
+      alert('❌ Invalid phone or password.\n\nDid you register? Check: \n- Use same phone you registered with\n- Password must match\n- Try without 0 at start');
+      var res=document.getElementById('nurseLoginResult');
+      if(res) res.innerText='Invalid - Register first';
+    }
+  };
+  // Force bind after DOM ready
+  function bindButtons(){
+    var regBtn=document.querySelector('#page-nurse-public .btnSubmit, button[onclick*="registerNurse"]');
+    var logBtn=document.querySelector('#page-nurse-login .btnSubmit, button[onclick*="loginNurse"]');
+    if(regBtn){
+      regBtn.type='button';
+      regBtn.style.pointerEvents='auto';
+      regBtn.style.cursor='pointer';
+      regBtn.style.opacity='1';
+      regBtn.style.zIndex='9999';
+      regBtn.style.position='relative';
+      regBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); window.registerNurse(); });
+      console.log('Reg button bound independently');
+    }
+    if(logBtn){
+      logBtn.type='button';
+      logBtn.style.pointerEvents='auto';
+      logBtn.style.cursor='pointer';
+      logBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); window.loginNurse(); });
+      console.log('Login button bound independently');
+    }
+  }
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', bindButtons);
+  } else {
+    bindButtons();
+  }
+  setTimeout(bindButtons, 1000);
+  setTimeout(bindButtons, 3000);
+})();
+</script>
+
 <div class="sosFloat" id="sosFloatBtn"><div class="sosPulse"></div><span style="position:relative;z-index:1">SOS</span></div>
 <div class="header"><div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer"><img src="./Icon-512.png" class="header-logo-img" style="background:white" onerror="this.style.display='none'"><div style="line-height:1"><b>LOVE CARE</b><br><span style="background:white;color:#16a34a;padding:2px 8px;border-radius:20px;font-size:8px;font-weight:800">GLOBAL HOME NURSING</span></div></div></div>
 <div class="announcementBar" id="announcementBar"><span id="announcementText">🔞 18+ ONLY - LOVE CARE GLOBAL - Flexible Hours - Live-in & Live-out - Professional English Nursing Services Worldwide - 18+ Only</span></div>
@@ -296,7 +399,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="uploadStatusBox" style="background:#dcfce7;border:2px solid #16a34a;border-radius:8px;padding:8px;margin-top:8px;font-size:11px;display:none"></div>
 </div>
 <select id="nRegCareMode"><option value="both">Both Live-in & Live-out</option><option value="liveout">Live-out Only</option><option value="livein">Live-in Only</option></select>
-<button class="btnSubmit" type="button" id="registerNurseBtn" onclick="registerNurse()">Register as Nurse</button>
+<button class="btnSubmit" type="button" id="registerNurseBtn" onclick="window.registerNurse()">Register as Nurse</button>
 <div style="text-align:center;margin-top:14px;border-top:2px dashed #16a34a;padding-top:12px">
 <p style="font-size:11px;color:#374151;margin:0 0 6px 0">Already have account?</p>
 <button class="btnSubmit" style="background:#2563eb;width:100%;padding:12px;font-size:13px" onclick="showPage('nurse-login')">🔑 Already Registered? Login Here</button>
@@ -317,7 +420,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </div>
 </div>
 
-<div id="page-nurse-login" class="page"><div class="card" style="margin:20px;border:3px solid #16a34a"><h2>Nurse Login</h2><div class="phoneRow"><select id="nurseLoginCode"></select><input id="nurseLoginPhone" placeholder="Phone"></div><input id="nurseLoginPass" type="password" placeholder="Password"><button class="btnSubmit" type="button" id="loginNurseBtn" onclick="loginNurse()">Login as Nurse</button><div id="nurseLoginResult" style="color:red;font-size:11px;margin-top:8px"></div></div></div>
+<div id="page-nurse-login" class="page"><div class="card" style="margin:20px;border:3px solid #16a34a"><h2>Nurse Login</h2><div class="phoneRow"><select id="nurseLoginCode"></select><input id="nurseLoginPhone" placeholder="Phone"></div><input id="nurseLoginPass" type="password" placeholder="Password"><button class="btnSubmit" type="button" id="loginNurseBtn" onclick="window.loginNurse()">Login as Nurse</button><div id="nurseLoginResult" style="color:red;font-size:11px;margin-top:8px"></div></div></div>
 <div id="page-nurse-dashboard" class="page">
 <div class="card" style="border:3px solid #2563eb"><h2>Nurse Dashboard</h2>
 <div style="display:flex;gap:5px;flex-wrap:wrap">
@@ -2675,188 +2778,5 @@ window.confirmVerificationCode = function(){
 };
 </script>
 
-<script>
-// === ULTIMATE FIX - OVERRIDES EVERYTHING ===
-window.showUploadStatus = function(msg, isError){
-  var box=document.getElementById('uploadStatusBox');
-  if(!box) return;
-  box.style.display='block';
-  box.innerHTML=msg;
-  box.style.background=isError?'#fee2e2':'#dcfce7';
-  box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
-  box.style.color=isError?'#991b1b':'#166534';
-};
-
-window.uploadFileToStorage = function(file, path){
-  return new Promise(function(resolve){
-    if(!file){ resolve(null); return; }
-    try{
-      if(typeof firebase!=='undefined' && firebase.storage){
-        var storageRef = firebase.storage().ref();
-        var safeName = file.name.replace(/[^a-zA-Z0-9.]/g,'_');
-        var fileRef = storageRef.child(path + '/' + Date.now() + '_' + safeName);
-        var task = fileRef.put(file);
-        task.on('state_changed', function(snap){
-          var pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
-          window.showUploadStatus('Uploading '+file.name+': '+pct+'%');
-        }, function(err){
-          console.warn('Upload fail, using link', err);
-          resolve(null);
-        }, function(){
-          task.snapshot.ref.getDownloadURL().then(function(url){ resolve(url); }).catch(function(){ resolve(null); });
-        });
-      } else { resolve(null); }
-    }catch(e){ resolve(null); }
-  });
-};
-
-window.registerNurse = async function(){
-  console.log('registerNurse CLICKED');
-  try{
-    var nameEl=document.getElementById('nRegName');
-    var phoneEl=document.getElementById('nRegPhone');
-    var passEl=document.getElementById('nRegPass');
-    var locEl=document.getElementById('nRegLocation');
-    var expEl=document.getElementById('nRegExperience');
-    var specEl=document.getElementById('nRegSpecialty');
-    var careEl=document.getElementById('nRegCareMode');
-    var ageChk=document.getElementById('nRegAgeConfirm');
-    var name=nameEl? nameEl.value.trim() : '';
-    var phoneRaw=phoneEl? phoneEl.value.trim() : '';
-    var pass=passEl? passEl.value.trim() : '';
-    var location=locEl? locEl.value.trim() : '';
-    var experience=expEl? expEl.value.trim() : '3';
-    var specialty=specEl? specEl.value : '';
-    var careMode=careEl? careEl.value : 'both';
-    if(!ageChk || !ageChk.checked){ alert('❌ Tick 18+ checkbox'); return; }
-    if(name.length<3){ alert('❌ Enter full name'); return; }
-    if(!phoneRaw){ alert('❌ Enter phone'); return; }
-    if(pass.length<4){ alert('❌ Password min 4 chars'); return; }
-    if(!location){ alert('❌ Tap GPS or enter location'); return; }
-    if(!specialty){ alert('❌ Select specialty'); return; }
-    var fullPhone = (typeof getFullPhone==='function')? getFullPhone('nRegPhoneCode','nRegPhone') : phoneRaw;
-    var phoneKey = fullPhone.replace(/[^0-9]/g,'');
-    var btn=document.getElementById('registerNurseBtn');
-    if(btn){ btn.disabled=true; btn.innerText='⏳ Registering...'; }
-    window.showUploadStatus('⏳ Registering '+name+'...');
-    var lat = window.nurseRegLat || parseFloat(localStorage.getItem('nurseRegLat')||'0') || 5.6037;
-    var lng = window.nurseRegLng || parseFloat(localStorage.getItem('nurseRegLng')||'0') || -0.1870;
-    var videoLink=document.getElementById('nRegVideo')? document.getElementById('nRegVideo').value.trim() : '';
-    var cvLink=document.getElementById('nRegCV')? document.getElementById('nRegCV').value.trim() : '';
-    var certLink=document.getElementById('nRegCertificate')? document.getElementById('nRegCertificate').value.trim() : '';
-    var idLink=document.getElementById('nRegID')? document.getElementById('nRegID').value.trim() : '';
-    var videoFile=document.getElementById('nRegVideoFile')? document.getElementById('nRegVideoFile').files[0] : null;
-    var cvFile=document.getElementById('nRegCVFile')? document.getElementById('nRegCVFile').files[0] : null;
-    var certFile=document.getElementById('nRegCertFile')? document.getElementById('nRegCertFile').files[0] : null;
-    var idFile=document.getElementById('nRegIDFile')? document.getElementById('nRegIDFile').files[0] : null;
-    var videoUrl=videoLink, cvUrl=cvLink, certUrl=certLink, idUrl=idLink;
-    try{
-      if(videoFile){ var u=await window.uploadFileToStorage(videoFile, 'nurse_videos/'+phoneKey); if(u) videoUrl=u; }
-      if(cvFile){ var u=await window.uploadFileToStorage(cvFile, 'nurse_cvs/'+phoneKey); if(u) cvUrl=u; }
-      if(certFile){ var u=await window.uploadFileToStorage(certFile, 'nurse_certs/'+phoneKey); if(u) certUrl=u; }
-      if(idFile){ var u=await window.uploadFileToStorage(idFile, 'nurse_ids/'+phoneKey); if(u) idUrl=u; }
-    }catch(e){ console.warn(e); }
-    var nurseObj={
-      id:phoneKey, name:name, phone:fullPhone, phoneKey:phoneKey, password:pass,
-      location:location, lat:lat, lng:lng, experience:experience, specialty:specialty, careMode:careMode,
-      videoUrl:videoUrl||'', cvUrl:cvUrl||'', certUrl:certUrl||'', idUrl:idUrl||'',
-      profileUrl:'./Icon-512.png', verified:false, onDuty:false, status:'pending_verification',
-      timestamp:Date.now(), createdAt:Date.now(), lastUpdate:Date.now()
-    };
-    var nurses=[]; try{ nurses=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){ nurses=[]; }
-    nurses=nurses.filter(function(n){ return (n.phoneKey||'').replace(/[^0-9]/g,'')!==phoneKey; });
-    nurses.push(nurseObj);
-    localStorage.setItem('nurses', JSON.stringify(nurses));
-    localStorage.setItem('nursePhone', fullPhone);
-    localStorage.setItem('nursePhoneKey', phoneKey);
-    localStorage.setItem('nurseName', name);
-    if(window.db){
-      try{ await db.ref('workers/'+phoneKey).set(nurseObj); console.log('Firebase saved'); }catch(e){ console.warn('Firebase save failed - check rules', e); alert('Firebase Rules still blocking! But saved locally. Fix Rules to enable CEO view.'); }
-    }
-    window.showUploadStatus('✅ Registered! Redirecting to login...');
-    alert('✅ Registered! '+name+' - '+fullPhone+'\nNow login.');
-    if(btn){ btn.disabled=false; btn.innerText='Register as Nurse'; }
-    if(typeof showPage==='function') showPage('nurse-login');
-  }catch(e){
-    console.error(e); alert('Error: '+e.message);
-    var b=document.getElementById('registerNurseBtn'); if(b){ b.disabled=false; b.innerText='Register as Nurse'; }
-  }
-};
-
-window.loginNurse = async function(){
-  console.log('loginNurse CLICKED');
-  var phoneEl=document.getElementById('nurseLoginPhone');
-  var passEl=document.getElementById('nurseLoginPass');
-  var resultEl=document.getElementById('nurseLoginResult');
-  var phoneRaw=phoneEl? phoneEl.value.trim() : '';
-  var pass=passEl? passEl.value.trim() : '';
-  if(!phoneRaw||!pass){ if(resultEl) resultEl.innerText='Enter phone & password'; return; }
-  var fullPhone=(typeof getFullPhone==='function')? getFullPhone('nurseLoginCode','nurseLoginPhone') : phoneRaw;
-  var phoneKey=fullPhone.replace(/[^0-9]/g,'');
-  if(resultEl) resultEl.innerText='⏳ Checking...';
-  var found=null;
-  try{
-    var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
-    found=nurses.find(function(n){
-      var k=(n.phoneKey||n.phone||'').replace(/[^0-9]/g,'');
-      return (k===phoneKey || k.slice(-9)===phoneKey.slice(-9)) && n.password===pass;
-    });
-  }catch(e){}
-  if(!found && window.db){
-    try{
-      var snap=await db.ref('workers/'+phoneKey).once('value');
-      var data=snap.val();
-      if(data && data.password===pass) found=data;
-      else {
-        var allSnap=await db.ref('workers').once('value');
-        var all=allSnap.val()||{};
-        Object.keys(all).forEach(function(k){
-          var w=all[k]; if(w && w.password===pass){
-            var wk=(w.phoneKey||k).replace(/[^0-9]/g,'');
-            if(wk===phoneKey || wk.slice(-9)===phoneKey.slice(-9)) found=w;
-          }
-        });
-      }
-    }catch(e){ console.warn(e); }
-  }
-  if(found){
-    localStorage.setItem('nursePhone', found.phone||fullPhone);
-    localStorage.setItem('nursePhoneKey', found.phoneKey||phoneKey);
-    localStorage.setItem('nurseName', found.name||'Nurse');
-    if(resultEl) resultEl.innerText='✅ Success!';
-    var chatBtn=document.getElementById('nav-chat');
-    if(chatBtn){ chatBtn.classList.remove('hidden'); chatBtn.classList.add('show-for-staff'); chatBtn.style.display='flex'; }
-    if(typeof showPage==='function') showPage('nurse-dashboard');
-    alert('Welcome '+(found.name||'Nurse'));
-  }else{
-    if(resultEl) resultEl.innerText='❌ Invalid phone/password. Register first.';
-    else alert('Invalid login');
-  }
-};
-
-window.logoutNurse = function(){
-  localStorage.removeItem('nursePhone'); localStorage.removeItem('nursePhoneKey');
-  if(typeof showPage==='function') showPage('nurse-login');
-};
-
-// Force bind buttons after load
-setTimeout(function(){
-  var rb=document.getElementById('registerNurseBtn') || document.querySelector('button[onclick*=registerNurse]');
-  if(rb){
-    rb.type='button';
-    rb.style.pointerEvents='auto';
-    rb.style.opacity='1';
-    rb.onclick = function(e){ e.preventDefault(); window.registerNurse(); };
-    console.log('Register button bound');
-  }
-  var lb=document.getElementById('loginNurseBtn') || document.querySelector('button[onclick*=loginNurse]');
-  if(lb){
-    lb.type='button';
-    lb.style.pointerEvents='auto';
-    lb.onclick = function(e){ e.preventDefault(); window.loginNurse(); };
-    console.log('Login button bound');
-  }
-}, 800);
-</script>
 </body>
 </html>https://lovecareglobal-cell.github.io/love-care-global/
