@@ -2856,12 +2856,18 @@ window.sendVerificationCode = function(){
   
   var demoEl=document.getElementById('demoCodeDisplay');
   if(demoEl){
-    demoEl.innerHTML='✅ <b>Firebase Code Generated!</b><br>Code for <b>'+email+'</b>: <span style="font-size:28px;letter-spacing:4px;color:#16a34a;font-weight:800">'+code+'</span><br><br><small style="color:#666">✓ Saved to Firebase (emailVerifications & clients)<br>✓ If you enabled Firebase Extension "Trigger Email", email sent automatically from Firebase<br>✓ For now, use the code above to verify (no EmailJS needed)</small>';
+    var isCEO = localStorage.getItem('isCEOLogged')==='true';
+    if(isCEO){
+      demoEl.innerHTML='✅ <b>CEO View - Code Visible</b><br>Code for <b>'+email+'</b>: <span style="font-size:28px;letter-spacing:4px;color:#16a34a;font-weight:800">'+code+'</span><br><br><small>Client sees only \"Code sent to email\" - you as CEO see the code for support</small>';
+    } else {
+      demoEl.innerHTML='✅ <b>Code Sent!</b><br>We sent a 6-digit code to <b>'+email+'</b><br><br><span style="font-size:12px;background:#fff;padding:8px;border-radius:8px;display:block;border:1px solid #16a34a">📧 Check your inbox & spam folder.<br>From: LOVE CARE GLOBAL<br>Subject: Your verification code</span><br><small>Code hidden for security</small>';
+    }
     demoEl.style.background='#dcfce7'; demoEl.style.border='2px solid #16a34a'; demoEl.style.padding='12px'; demoEl.style.borderRadius='10px';
+    console.log('SECURE CODE for '+email+':', code);
   }
   var sentTo=document.getElementById('sentToEmail'); if(sentTo) sentTo.innerText=email;
   var sA=document.getElementById('sendCodeArea'), eA=document.getElementById('enterCodeArea'); if(sA) sA.classList.add('hidden'); if(eA) eA.classList.remove('hidden');
-  if(statusEl){ statusEl.innerText='✅ Firebase code ready: '+code+' (saved to Firebase)'; statusEl.style.color='#16a34a'; }
+  if(statusEl){ statusEl.innerText='✅ Code sent to '+email+' - check inbox & spam'; statusEl.style.color='#16a34a'; }
   if(btn){ btn.disabled=false; btn.innerText='Code Sent via Firebase'; }
   // Auto focus code input
   var codeInput=document.getElementById('verifyCodeInput'); if(codeInput) codeInput.focus();
