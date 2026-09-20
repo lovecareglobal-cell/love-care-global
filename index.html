@@ -296,7 +296,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="uploadStatusBox" style="background:#dcfce7;border:2px solid #16a34a;border-radius:8px;padding:8px;margin-top:8px;font-size:11px;display:none"></div>
 </div>
 <select id="nRegCareMode"><option value="both">Both Live-in & Live-out</option><option value="liveout">Live-out Only</option><option value="livein">Live-in Only</option></select>
-<button class="btnSubmit" onclick="registerNurse()">Register as Nurse</button>
+<button class="btnSubmit" type="button" id="registerNurseBtn" onclick="registerNurse()">Register as Nurse</button>
 <div style="text-align:center;margin-top:14px;border-top:2px dashed #16a34a;padding-top:12px">
 <p style="font-size:11px;color:#374151;margin:0 0 6px 0">Already have account?</p>
 <button class="btnSubmit" style="background:#2563eb;width:100%;padding:12px;font-size:13px" onclick="showPage('nurse-login')">🔑 Already Registered? Login Here</button>
@@ -317,7 +317,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </div>
 </div>
 
-<div id="page-nurse-login" class="page"><div class="card" style="margin:20px;border:3px solid #16a34a"><h2>Nurse Login</h2><div class="phoneRow"><select id="nurseLoginCode"></select><input id="nurseLoginPhone" placeholder="Phone"></div><input id="nurseLoginPass" type="password" placeholder="Password"><button class="btnSubmit" onclick="loginNurse()">Login as Nurse</button><div id="nurseLoginResult" style="color:red;font-size:11px;margin-top:8px"></div></div></div>
+<div id="page-nurse-login" class="page"><div class="card" style="margin:20px;border:3px solid #16a34a"><h2>Nurse Login</h2><div class="phoneRow"><select id="nurseLoginCode"></select><input id="nurseLoginPhone" placeholder="Phone"></div><input id="nurseLoginPass" type="password" placeholder="Password"><button class="btnSubmit" type="button" id="loginNurseBtn" onclick="loginNurse()">Login as Nurse</button><div id="nurseLoginResult" style="color:red;font-size:11px;margin-top:8px"></div></div></div>
 <div id="page-nurse-dashboard" class="page">
 <div class="card" style="border:3px solid #2563eb"><h2>Nurse Dashboard</h2>
 <div style="display:flex;gap:5px;flex-wrap:wrap">
@@ -838,7 +838,7 @@ async function registerNurse(){
     var fullPhone = (typeof getFullPhone==='function')? getFullPhone('nRegPhoneCode','nRegPhone') : phoneRaw;
     var phoneKey = fullPhone.replace(/[^0-9]/g,'');
     if(phoneKey.length<9){ alert('Invalid phone'); return; }
-    var regBtn = document.querySelector('button[onclick="registerNurse()"]');
+    var regBtn = document.querySelector('button[type="button" id="registerNurseBtn" onclick="registerNurse()"]');
     if(regBtn){ regBtn.disabled=true; regBtn.innerText='Registering...'; }
     showUploadStatus('Registering '+name+'...');
     var lat = window.nurseRegLat || parseFloat(localStorage.getItem('nurseRegLat')||'0') || 5.6037;
@@ -879,7 +879,7 @@ async function registerNurse(){
     var lp=document.getElementById('nurseLoginPhone'); if(lp) lp.value=phoneRaw;
   }catch(e){
     console.error(e); alert('Registration failed: '+e.message);
-    var b=document.querySelector('button[onclick="registerNurse()"]'); if(b){ b.disabled=false; b.innerText='Register as Nurse'; }
+    var b=document.querySelector('button[type="button" id="registerNurseBtn" onclick="registerNurse()"]'); if(b){ b.disabled=false; b.innerText='Register as Nurse'; }
     showUploadStatus('Error: '+e.message, true);
   }
 }
@@ -2889,35 +2889,10 @@ window.confirmVerificationCode = function(){
 
 
 <script>
-// Extra safety: force attach listeners after DOM ready
-document.addEventListener('DOMContentLoaded', function(){
-  try{ if(typeof populatePhoneCodes==='function') populatePhoneCodes(); }catch(e){}
-  var regBtn = document.querySelector('button[onclick="registerNurse()"]');
-  if(regBtn){
-    regBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      console.log('Register button clicked via listener');
-      if(typeof registerNurse==='function') registerNurse();
-      else if(typeof window.registerNurse==='function') window.registerNurse();
-      else alert('registerNurse not found - file not updated');
-    });
-  }
-  var loginBtn = document.querySelector('button[onclick="loginNurse()"]');
-  if(loginBtn){
-    loginBtn.addEventListener('click', function(e){
-      e.preventDefault();
-      console.log('Login button clicked via listener');
-      if(typeof loginNurse==='function') loginNurse();
-      else if(typeof window.loginNurse==='function') window.loginNurse();
-      else alert('loginNurse not found');
-    });
-  }
-  // Also expose to window explicitly
-  if(typeof registerNurse==='function') window.registerNurse = registerNurse;
-  if(typeof loginNurse==='function') window.loginNurse = loginNurse;
-  if(typeof logoutNurse==='function') window.logoutNurse = logoutNurse;
-  console.log('Nurse auth fix loaded: ', typeof window.registerNurse, typeof window.loginNurse);
-});
+// Force global exposure - must be after registerNurse defined
+window.registerNurse = registerNurse;
+window.loginNurse = loginNurse;
+console.log('LOVE CARE FIX ACTIVE - registerNurse:', typeof registerNurse, 'loginNurse:', typeof loginNurse);
 </script>
 
 </body>
