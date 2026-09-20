@@ -2920,5 +2920,99 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 
+
+
+
+
+<script>
+// GROUP CHAT FIX V2
+window.sendGlobalChat = function(){
+  var input = document.getElementById('globalChatInput');
+  if(!input) return;
+  var text = input.value.trim();
+  if(!text) return;
+  var name = localStorage.getItem('nurseName') || localStorage.getItem('staffName') || localStorage.getItem('ceoID') || 'Staff';
+  if(localStorage.getItem('isCEOLogged')==='true') name='CEO';
+  var role = localStorage.getItem('isCEOLogged')==='true' ? 'CEO' : (localStorage.getItem('nurseID') ? 'NURSE' : 'STAFF');
+  var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || name;
+  if(!window.db){ alert('Firebase not connected'); return; }
+  var btn = document.querySelector('button[onclick="sendGlobalChat()"]');
+  var oldText = btn ? btn.innerText : 'Send';
+  if(btn){ btn.disabled=true; btn.innerText='Sending...'; }
+  var msgData = { name: name, message: text, text: text, role: role, senderID: myID, time: Date.now() };
+  var key = Date.now()+'_'+Math.random().toString(36).substr(2,5);
+  var updates = {};
+  updates['globalChat/'+key] = msgData;
+  updates['group_chat/'+key] = msgData;
+  db.ref().update(updates).then(function(){
+    input.value='';
+    if(btn){ btn.disabled=false; btn.innerText=oldText; }
+  }).catch(function(err){
+    alert('Send failed: '+err.message);
+    if(btn){ btn.disabled=false; btn.innerText='Send'; }
+  });
+};
+window.deleteGlobalChatMsg = function(key){
+  if(!confirm('Delete?')) return;
+  var u={}; u['globalChat/'+key]=null; u['group_chat/'+key]=null;
+  db.ref().update(u);
+};
+window.editGlobalChatMsg = function(key, oldText){
+  var newText = prompt('Edit:', oldText);
+  if(!newText) return;
+  newText=newText.trim();
+  var u={}; u['globalChat/'+key+'/message']=newText; u['globalChat/'+key+'/text']=newText; u['group_chat/'+key+'/message']=newText; u['group_chat/'+key+'/text']=newText;
+  db.ref().update(u);
+};
+window.clearGroupChat = function(){
+  if(localStorage.getItem('isCEOLogged')!=='true'){ alert('CEO only'); return; }
+  if(!confirm('CEO DELETE ALL?')) return;
+  var u={}; u['globalChat']=null; u['group_chat']=null;
+  db.ref().update(u).then(()=>{ alert('Cleared'); var b=document.getElementById('globalChatBox'); if(b) b.innerHTML=''; });
+};
+window.initGlobalChatListener = function(){
+  var box=document.getElementById('globalChatBox');
+  if(!box || !window.db) return;
+  box.innerHTML='';
+  db.ref('globalChat').off(); db.ref('group_chat').off();
+  var render = function(snap){
+    var d=snap.val(); if(!d) return;
+    var key=snap.key;
+    if(document.getElementById('msg-'+key)) return;
+    var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || '';
+    var isMe = d.senderID===myID || d.name===localStorage.getItem('nurseName');
+    var div=document.createElement('div');
+    div.id='msg-'+key;
+    div.className='chatMsg '+(isMe?'me':'other');
+    var t = d.time ? new Date(d.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
+    var safe = (d.message||d.text||'').replace(/</g,'&lt;');
+    var btns = isMe ? '<div style="margin-top:4px"><button onclick="editGlobalChatMsg(\''+key+'\',\''+(d.message||'').replace(/\'/g,"\\'")+'\')" style="font-size:9px">Edit</button> <button onclick="deleteGlobalChatMsg(\''+key+'\')" style="font-size:9px;color:red">Delete</button></div>' : '';
+    div.innerHTML='<div><span class="roleBadge role-'+(d.role||'STAFF')+'">'+(d.role||'STAFF')+'</span> <b style="font-size:10px">'+d.name+'</b> <span style="font-size:8px;color:#888">'+t+'</span></div><div>'+safe+'</div>'+btns;
+    box.appendChild(div);
+    box.scrollTop=box.scrollHeight;
+  };
+  db.ref('globalChat').limitToLast(100).on('child_added', render);
+  db.ref('group_chat').limitToLast(100).on('child_added', render);
+};
+window.updateChatCEOButton=function(){
+  var b=document.getElementById('masterClearBtn');
+  if(b){ if(localStorage.getItem('isCEOLogged')==='true') b.classList.remove('hidden'); else b.classList.add('hidden'); }
+};
+document.addEventListener('DOMContentLoaded', function(){
+  var orig=window.showPage;
+  window.showPage=function(id){
+    if(typeof orig==='function') orig(id);
+    else { document.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); var pg=document.getElementById('page-'+id); if(pg) pg.classList.add('active'); }
+    if(id==='group-chat'){ updateChatCEOButton(); initGlobalChatListener(); }
+  };
+  var sendBtn=document.querySelector('button[onclick="sendGlobalChat()"]');
+  if(sendBtn){ sendBtn.addEventListener('click', function(e){ e.preventDefault(); window.sendGlobalChat(); }); }
+  var inp=document.getElementById('globalChatInput');
+  if(inp){ inp.addEventListener('keypress', function(e){ if(e.key==='Enter'){ e.preventDefault(); window.sendGlobalChat(); } }); }
+  updateChatCEOButton();
+  if(document.getElementById('globalChatBox') && window.db) initGlobalChatListener();
+});
+</script>
+
 </body>
 </html>https://lovecareglobal-cell.github.io/love-care-global/
