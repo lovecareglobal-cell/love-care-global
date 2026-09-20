@@ -97,7 +97,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 .colorRow input[type="color"]{width:50px;height:36px;padding:2px}
 .colorRow input[type="range"]{flex:1}
 </style>
-</head>
+<style>#emailVerifyModal{display:none!important; visibility:hidden!important; opacity:0!important; pointer-events:none!important} .emailModal{display:none!important} #verifiedEmailBadge{display:none!important}</style></head>
 <body>
 <div class="sosFloat" id="sosFloatBtn"><div class="sosPulse"></div><span style="position:relative;z-index:1">SOS</span></div>
 <div class="header"><div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer"><img src="./Icon-512.png" class="header-logo-img" style="background:white" onerror="this.style.display='none'"><div style="line-height:1"><b>LOVE CARE</b><br><span style="background:white;color:#16a34a;padding:2px 8px;border-radius:20px;font-size:8px;font-weight:800">GLOBAL HOME NURSING</span></div></div></div>
@@ -395,7 +395,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <button id="staff-btn-emails" class="btnSmall" style="background:#16a34a;color:white;border:2px solid #eab308" onclick="switchStaffTab('emails')">📧 Email Verifications</button>
 </div>
 <div id="staff-tab-bookings" class="staff-tab card"><h2>1. Bookings (Staff can Confirm/Cancel)</h2><div id="staffBookingsList">Loading...</div></div>
-<div id="staff-tab-nurses" class="staff-tab card hidden"><h2>2. Nurses + Media Viewer</h2><div id="staffNursesList">Loading...</div><div id="staffNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:12px;padding:12px;margin-top:12px;background:#f5f3ff"><h3>🔍 Nurse Media Viewer</h3><div id="staffMediaViewerContent"></div><button class="btnSmall" style="background:#6b7280;color:white" onclick="document.getElementById('staffNurseMediaView').classList.add('hidden')">Close</button></div></div>
+<div id="staff-tab-nurses" class="staff-tab card hidden"><h2>2. Nurses + Media Viewer</h2><div id="staffNursesList">Loading...</div><div id="staffNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:16px;padding:12px;margin-top:12px;background:#f5f3ff;max-height:85vh;overflow-y:auto;position:relative"><div style="position:sticky;top:0;background:#f5f3ff;padding:8px 0;z-index:10;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">🔍 Nurse Media Viewer - Staff/Admin</h3><button class="btnSmall" style="background:#ef4444;color:white" onclick="document.getElementById('staffNurseMediaView').classList.add('hidden')">✕ Close</button></div><div id="staffMediaViewerContent"></div></div></div></div>
 <div id="staff-tab-clients" class="staff-tab card hidden"><h2>3. Clients</h2><div id="staffClientsList">Loading...</div></div>
 <div id="staff-tab-announce" class="staff-tab card hidden"><h2>4. Announcement Settings (View Only)</h2><div id="staffAnnounceView">Loading...</div><div style="margin-top:12px;padding:10px;background:#fffbeb;border:2px solid #eab308;border-radius:10px;font-size:11px">Staff can view announcement but only CEO can edit. Contact CEO to change announcement text, colors, speed, or hourly rates.</div></div>
 </div><div style="margin:20px;display:flex;gap:8px"><button class="btnSubmit" style="background:#16a34a;flex:1" onclick="showPage('home')">Home</button><button class="btnSubmit" style="background:#ef4444;flex:1" onclick="logoutStaff()">Logout</button></div></div>
@@ -440,7 +440,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div style="display:flex;gap:6px;margin-top:6px"><button class="btnSmall" style="background:#111827;color:white" onclick="loadCeoData()">🔄 Refresh</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="logoutCEO()">Logout</button></div>
 </div>
 <div id="ceo-tab-bookings" class="ceo-tab card"><h2>1. Bookings</h2><div id="ceoBookingsList">Loading...</div></div>
-<div id="ceo-tab-nurses" class="ceo-tab card hidden"><h2>2. Nurses + Video/CV</h2><div id="ceoNursesList">Loading...</div><div id="ceoMap" style="height:380px;border-radius:12px;border:2px solid #16a34a;margin-top:10px"></div><div id="ceoNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:12px;padding:12px;margin-top:12px;background:#f5f3ff"><h3>🔍 Nurse Media Viewer</h3><div id="mediaViewerContent"></div><button class="btnSmall" style="background:#6b7280;color:white" onclick="document.getElementById('ceoNurseMediaView').classList.add('hidden')">Close</button></div></div>
+<div id="ceo-tab-nurses" class="ceo-tab card hidden"><h2>2. Nurses + Video/CV</h2><div id="ceoNursesList">Loading...</div><div id="ceoMap" style="height:380px;border-radius:12px;border:2px solid #16a34a;margin-top:10px"></div><div id="ceoNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:16px;padding:12px;margin-top:12px;background:#f5f3ff;max-height:85vh;overflow-y:auto;position:relative"><div style="position:sticky;top:0;background:#f5f3ff;padding:8px 0;z-index:10;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">🔍 Nurse Media Viewer - CEO</h3><button class="btnSmall" style="background:#ef4444;color:white" onclick="document.getElementById('ceoNurseMediaView').classList.add('hidden')">✕ Close</button></div><div id="mediaViewerContent"></div></div></div>
 <div id="ceo-tab-clients" class="ceo-tab card hidden"><h2>3. Clients (Verified Emails)</h2><div id="ceoClientsList">Loading...</div></div>
 <div id="ceo-tab-payments" class="ceo-tab card hidden"><h2>4. Payments</h2><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px"><div style="background:#f0fdf4;padding:10px;border-radius:10px;border:2px solid #16a34a"><small>Total</small><br><b id="totalRevenue">0</b></div><div style="background:#fffbeb;padding:10px;border-radius:10px;border:2px solid #eab308"><small>Pending</small><br><b id="pendingRevenue">0</b></div></div><div id="ceoPaymentsList">Loading...</div></div>
 <div id="ceo-tab-payouts" class="ceo-tab hidden">
@@ -641,7 +641,7 @@ function validateBudgetLive(){
 }
 function changeCountry(){ var sel=document.getElementById('countrySelect'); var opt=sel.options[sel.selectedIndex]; var curr=opt.getAttribute('data-curr'); document.getElementById('currencyDisplay').innerText=curr; document.getElementById('cCurrency').value=curr; localStorage.setItem('selectedCountry',sel.value); calculateTotal(); }
 var pendingEmailCode = null;
-function isEmailVerified(){ return localStorage.getItem('verifiedClientEmail') && localStorage.getItem('emailVerified')==='true'; }
+function isEmailVerified(){ return true; } // FIXED: open access
 function checkEmailAndFindNurses(){
   var ageCheck = document.getElementById('cAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book'); return; }
   if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; }
@@ -792,9 +792,40 @@ function showUploadStatus(msg, isError){
   box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
   box.style.color=isError?'#991b1b':'#166534';
 }
+
+function showUploadStatus(msg, isError){
+  var box=document.getElementById('uploadStatusBox');
+  if(!box){ 
+    box=document.createElement('div');
+    box.id='uploadStatusBox';
+    box.style.cssText='position:fixed;bottom:120px;left:10px;right:10px;background:#dcfce7;border:2px solid #16a34a;border-radius:8px;padding:8px;font-size:11px;z-index:999999';
+    document.body.appendChild(box);
+  }
+  box.style.display='block';
+  box.innerHTML=msg;
+  box.style.background=isError?'#fee2e2':'#dcfce7';
+  box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
+}
+
 function uploadFileToStorage(file, path){
   return new Promise(function(resolve){
     if(!file){ resolve(null); return; }
+    var MAX_SIZE = 10 * 1024 * 1024; // 10MB max - videos larger will be skipped
+    if(file.size > MAX_SIZE){
+      showUploadStatus('⚠️ '+file.name+' is '+(file.size/1024/1024).toFixed(1)+'MB - too large, skipping. Please paste link instead or compress.', true);
+      console.warn('File too large, skipping:', file.name);
+      setTimeout(function(){ resolve(null); }, 800);
+      return;
+    }
+    // Timeout after 15 seconds
+    var timedOut=false;
+    var timeoutId = setTimeout(function(){
+      timedOut=true;
+      showUploadStatus('⏱️ Upload taking too long for '+file.name+' - Skipping, continuing with registration...', false);
+      console.warn('Upload timeout, resolving null for', file.name);
+      resolve(null);
+    }, 15000);
+
     try{
       if(typeof firebase!== 'undefined' && firebase.storage){
         var storageRef = firebase.storage().ref();
@@ -802,18 +833,53 @@ function uploadFileToStorage(file, path){
         var fileRef = storageRef.child(path + '/' + Date.now() + '_' + safeName);
         var task = fileRef.put(file);
         task.on('state_changed', function(snap){
+          if(timedOut) return;
           var pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
-          showUploadStatus('Uploading '+file.name+': '+pct+'%');
+          showUploadStatus('📤 Uploading '+file.name+': '+pct+'% - Please wait');
+          var progId = file.name.includes('video')?'videoUploadProgress': file.name.includes('cv')||file.name.endsWith('.pdf')?'cvUploadProgress':'';
+          var progEl = document.getElementById('videoUploadProgress') || document.getElementById('cvUploadProgress') || document.getElementById('certUploadProgress') || document.getElementById('idUploadProgress');
+          if(progEl) progEl.innerText = pct+'%';
         }, function(err){
-          console.warn('Storage upload failed, using link fallback', err);
+          if(timedOut) return;
+          clearTimeout(timeoutId);
+          console.warn('Storage upload failed:', err.code, err.message);
+          showUploadStatus('⚠️ Upload failed for '+file.name+' ('+err.code+') - Continuing with links if provided', true);
+          // If permission denied, inform user
+          if(err.code==='storage/unauthorized' || err.code==='storage/unknown'){
+            showUploadStatus('⚠️ Storage permission issue - Registration will continue with links. Contact CEO to enable Storage rules.', true);
+          }
           resolve(null);
         }, function(){
-          task.snapshot.ref.getDownloadURL().then(function(url){ resolve(url); }).catch(function(){ resolve(null); });
+          if(timedOut) return;
+          clearTimeout(timeoutId);
+          task.snapshot.ref.getDownloadURL().then(function(url){ 
+            showUploadStatus('✅ Uploaded '+file.name);
+            resolve(url); 
+          }).catch(function(){ 
+            resolve(null); 
+          });
         });
-      } else { resolve(null); }
-    }catch(e){ console.warn(e); resolve(null); }
+      } else { 
+        clearTimeout(timeoutId);
+        console.warn('Firebase storage not available');
+        resolve(null); 
+      }
+    }catch(e){ 
+      clearTimeout(timeoutId);
+      console.warn('Upload exception', e); 
+      resolve(null); 
+    }
   });
 }
+
+function uploadWithTimeout(file, path, ms){
+  ms = ms || 15000;
+  return Promise.race([
+    uploadFileToStorage(file, path),
+    new Promise(function(res){ setTimeout(function(){ res(null); }, ms); })
+  ]);
+}
+
 async function registerNurse(){
   try{
     var nameEl=document.getElementById('nRegName');
@@ -855,16 +921,24 @@ async function registerNurse(){
     var idFile=document.getElementById('nRegIDFile')? document.getElementById('nRegIDFile').files[0] : null;
     var videoUrl=videoLink, cvUrl=cvLink, certUrl=certLink, idUrl=idLink;
     try{
-      if(videoFile){ var u=await uploadFileToStorage(videoFile, 'nurse_videos/'+phoneKey); if(u) videoUrl=u; }
-      if(cvFile){ var u=await uploadFileToStorage(cvFile, 'nurse_cvs/'+phoneKey); if(u) cvUrl=u; }
-      if(certFile){ var u=await uploadFileToStorage(certFile, 'nurse_certs/'+phoneKey); if(u) certUrl=u; }
-      if(idFile){ var u=await uploadFileToStorage(idFile, 'nurse_ids/'+phoneKey); if(u) idUrl=u; }
-    }catch(e){ console.warn(e); }
+      showUploadStatus('📤 Processing uploads (max 15s per file) - Links work too!');
+      var tasks=[];
+      if(videoFile) tasks.push(uploadWithTimeout(videoFile, 'nurse_videos/'+phoneKey, 15000).then(function(u){ if(u) videoUrl=u; }).catch(function(){ }));
+      if(cvFile) tasks.push(uploadWithTimeout(cvFile, 'nurse_cvs/'+phoneKey, 15000).then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
+      if(certFile) tasks.push(uploadWithTimeout(certFile, 'nurse_certs/'+phoneKey, 15000).then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
+      if(idFile) tasks.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 15000).then(function(u){ if(u) idUrl=u; }).catch(function(){ }));
+      if(tasks.length>0){
+        await Promise.allSettled(tasks);
+        showUploadStatus('✅ Uploads done, saving profile...');
+      } else {
+        showUploadStatus('No files - saving with links...');
+      }
+    }catch(e){ console.warn('Upload batch error', e); showUploadStatus('Continuing without uploads...'); }
     var nurseObj={
       id: phoneKey, name:name, phone:fullPhone, phoneKey:phoneKey, password:pass,
       location:location, lat:lat, lng:lng, experience:experience, specialty:specialty, careMode:careMode,
       videoUrl:videoUrl||'', cvUrl:cvUrl||'', certUrl:certUrl||'', idUrl:idUrl||'',
-      profileUrl:'./Icon-512.png', verified:false, onDuty:false, status:'pending_verification',
+      profileUrl:'./Icon-512.png', verified:false, onDuty:false, status:'pending_approval', approvalStatus:'pending',
       timestamp:Date.now(), createdAt:Date.now(), lastUpdate:Date.now()
     };
     var nurses=[]; try{ nurses=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){ nurses=[]; }
@@ -874,11 +948,12 @@ async function registerNurse(){
     localStorage.setItem('nursePhone', fullPhone);
     localStorage.setItem('nursePhoneKey', phoneKey);
     if(window.db){ try{ await db.ref('workers/'+phoneKey).set(nurseObj); }catch(e){ console.warn('Firebase save failed', e); } }
-    showUploadStatus('✅ Registration successful! Redirecting to login...');
-    alert('✅ Registered! Name:'+name+' Phone:'+fullPhone+' Now please login.');
+    showUploadStatus('✅ Registration submitted! Waiting for CEO/Staff approval...');
+    alert('✅ Registered! Name:'+name+' Phone:'+fullPhone+'\n\n⏳ PENDING APPROVAL.\nCEO/Staff must approve before you can login.');
     if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
-    if(typeof showPage==='function') showPage('nurse-login');
-    var lp=document.getElementById('nurseLoginPhone'); if(lp) lp.value=phoneRaw;
+    if(typeof showPage==='function') showPage('home');
+    // Clear form
+    try{ document.getElementById('nRegName').value=''; document.getElementById('nRegPhone').value=''; }catch(e){}
   }catch(e){
     console.error(e); alert('Registration failed: '+e.message);
     var b=document.querySelector('button[onclick="registerNurse()"]'); if(b){ b.disabled=false; b.innerText='Register as Nurse'; }
@@ -922,6 +997,12 @@ async function loginNurse(){
     }catch(e){ console.warn(e); }
   }
   if(found){
+    var isApproved = found.verified===true || found.approvalStatus==='approved' || found.status==='approved';
+    if(!isApproved){
+      if(resultEl) resultEl.innerText='⏳ Pending CEO/Staff approval';
+      alert('⏳ ACCOUNT PENDING APPROVAL\nHi '+(found.name||'Nurse')+'! Waiting for CEO/Staff approval. Status: '+(found.status||'pending')+'\nContact CEO: 0544121814');
+      return;
+    }
     localStorage.setItem('nursePhone', found.phone||fullPhone);
     localStorage.setItem('nursePhoneKey', found.phoneKey||phoneKey);
     localStorage.setItem('nurseName', found.name||'Nurse');
@@ -958,11 +1039,13 @@ async function saveNurseSettings(){
   var idFile=document.getElementById('nurseSetIDFile')?.files[0];
   var prog=document.getElementById('nurseSetUploadProgress'); if(prog) prog.innerHTML='Saving...';
   try{
-    if(vFile){ var u=await uploadFileToStorage(vFile, 'nurse_videos/'+phoneKey); if(u) updates.videoUrl=u; }
-    if(cvFile){ var u=await uploadFileToStorage(cvFile, 'nurse_cvs/'+phoneKey); if(u) updates.cvUrl=u; }
-    if(certFile){ var u=await uploadFileToStorage(certFile, 'nurse_certs/'+phoneKey); if(u) updates.certUrl=u; }
-    if(idFile){ var u=await uploadFileToStorage(idFile, 'nurse_ids/'+phoneKey); if(u) updates.idUrl=u; }
-  }catch(e){}
+    var up=[];
+    if(vFile) up.push(uploadWithTimeout(vFile, 'nurse_videos/'+phoneKey, 15000).then(function(u){ if(u) updates.videoUrl=u; }));
+    if(cvFile) up.push(uploadWithTimeout(cvFile, 'nurse_cvs/'+phoneKey, 15000).then(function(u){ if(u) updates.cvUrl=u; }));
+    if(certFile) up.push(uploadWithTimeout(certFile, 'nurse_certs/'+phoneKey, 15000).then(function(u){ if(u) updates.certUrl=u; }));
+    if(idFile) up.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 15000).then(function(u){ if(u) updates.idUrl=u; }));
+    if(up.length) await Promise.allSettled(up);
+  }catch(e){ console.warn(e); }
   try{
     var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
     var idx=nurses.findIndex(function(n){ return (n.phoneKey||'').replace(/[^0-9]/g,'')===phoneKey; });
@@ -1062,7 +1145,15 @@ function showUserOnMap(lat,lng,accuracy){
 }
 
 function getAllNursesSource(){
-  if(allWorkers && allWorkers.length>0) return allWorkers; 
+  var src=[];
+  if(allWorkers && allWorkers.length>0) src=allWorkers; 
+  else { try{ src=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){ src=[]; } }
+  var isCEO = localStorage.getItem('isCEOLogged')==='true' || localStorage.getItem('staffID');
+  if(isCEO) return src;
+  return src.filter(function(n){ return n.verified===true || n.approvalStatus==='approved' || n.status==='approved'; });
+}
+function getAllNursesSourceUnfiltered(){
+  if(allWorkers && allWorkers.length>0) return allWorkers;
   try{return JSON.parse(localStorage.getItem('nurses')||'[]');}catch(e){return [];}
 }
 function renderNurseMarkers(list){
@@ -1260,7 +1351,7 @@ function submitBooking(){
   if(amount < calc.totalMin){ alert('❌ BLOCKED: Cannot pay below minimum rate. Offer '+amount+' is below legal total '+calc.totalMin+'. Increase to book.'); document.getElementById('legalWageMsg').innerHTML = 'BLOCKED: Offer below minimum<br>Min: '+calc.totalMin+' '+document.getElementById('cCurrency').value; document.getElementById('legalWagePopup').classList.remove('hidden'); return; }
   var cur=document.getElementById('cCurrency').value;
   var country = document.getElementById('countrySelect').value;
-  var verifiedEmail = localStorage.getItem('verifiedClientEmail') || document.getElementById('cEmail').value.trim();
+  var verifiedEmail = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || localStorage.getItem('verifiedClientEmail') || 'no-email@lovecare.com'; // FIXED: email optional
   var id=Date.now();
   var startTime = document.getElementById('cStartTime') ? document.getElementById('cStartTime').value : '';
   var endTime = document.getElementById('cEndTime') ? document.getElementById('cEndTime').value : '';
@@ -1804,44 +1895,167 @@ function loadCeoNurses(){
   db.ref('workers').once('value').then(function(snap){
     var all=Object.values(snap.val()||{});
     if(all.length===0){ el.innerHTML='No nurses yet'; return; }
-    var h='';
+    all.sort(function(a,b){
+      var aP = (a.approvalStatus==='pending' || a.status==='pending_approval' || !a.verified) ? 0 : 1;
+      var bP = (b.approvalStatus==='pending' || b.status==='pending_approval' || !b.verified) ? 0 : 1;
+      return aP - bP;
+    });
+    var pendingCount = all.filter(function(n){ return !n.verified && n.approvalStatus!=='rejected'; }).length;
+    var h='<div style="background:#fffbeb;border:2px solid #eab308;padding:10px;border-radius:10px;margin-bottom:10px"><b>📋 CEO Approval Panel - '+pendingCount+' Pending</b><br><small>Only APPROVED nurses can login and appear on client map</small></div>';
     all.forEach(function(n){
+      var isApproved = n.verified===true || n.approvalStatus==='approved' || n.status==='approved';
+      var isRejected = n.approvalStatus==='rejected' || n.status==='rejected';
+      var statusBadge = isApproved ? '<span style="background:#16a34a;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">✅ APPROVED</span>' : isRejected ? '<span style="background:#ef4444;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">❌ REJECTED</span>' : '<span style="background:#eab308;color:#111;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">⏳ PENDING APPROVAL</span>';
+      var borderColor = isApproved ? '#16a34a' : isRejected ? '#ef4444' : '#eab308';
+      var bgColor = isApproved ? '#f0fdf4' : isRejected ? '#fef2f2' : '#fffbeb';
+
       var mediaBtns='';
       if(n.videoUrl) mediaBtns+='<button class="btnSmall" style="background:#7c3aed;color:white" onclick="viewNurseMedia(\''+n.phone+'\',\'video\')">📹 Video</button>';
       if(n.cvUrl) mediaBtns+='<button class="btnSmall" style="background:#2563eb;color:white" onclick="viewNurseMedia(\''+n.phone+'\',\'cv\')">📄 CV</button>';
       if(n.certUrl) mediaBtns+='<button class="btnSmall" style="background:#eab308;color:#111" onclick="viewNurseMedia(\''+n.phone+'\',\'cert\')">🎓 Cert</button>';
       if(n.idUrl) mediaBtns+='<button class="btnSmall" style="background:#111827;color:white" onclick="viewNurseMedia(\''+n.phone+'\',\'id\')">🪪 ID</button>';
-      h+='<div style="border:3px solid #16a34a;border-radius:12px;padding:12px;margin:10px 0;background:#f0fdf4">'
-      +'<b>'+ (n.name||'Nurse') +'</b> - '+(n.phone||'')+'<br><small>'+(n.location||'')+' | '+ (n.specialty||'')+' | '+ (n.careMode||'both')+' | '+(n.experience||'')+' yrs | '+(n.onDuty?'🟢 ON DUTY':'🔴 OFF')+'</small><br>'
+      h+='<div style="border:3px solid '+borderColor+';border-radius:12px;padding:12px;margin:10px 0;background:'+bgColor+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center"><b>'+ (n.name||'Nurse') +'</b> '+statusBadge+'</div>'
+      + (n.phone||'')+'<br><small>'+(n.location||'')+' | '+ (n.specialty||'')+' | '+ (n.careMode||'both')+' | '+(n.experience||'')+' yrs | '+(n.onDuty?'🟢 ON DUTY':'🔴 OFF')+'</small><br>'
       +'<small>📍 '+(n.lat||'')+','+(n.lng||'')+' | Payout: '+(n.payoutMethod||'')+' '+(n.accountNumber||'')+'</small><br>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+mediaBtns
+      +'<button class="btnSmall" style="background:#7c3aed;color:white;border:2px solid #111;font-weight:800" onclick="viewAllNurseMedia(\''+n.phone+'\')">👁️ View ALL Uploads (Video+CV+Cert+ID)</button>'
       +'<button class="btnSmall" style="background:#ff6a00;color:white" onclick="openGoogleMapsLive('+(n.lat||5.6037)+','+(n.lng||-0.1870)+')">📍 Live Map</button>'
-      +'<button class="btnSmall" style="background:#ef4444;color:white" onclick="deleteNurse(\''+n.phone+'\')">🗑 Delete Nurse</button>'
-      +'<button class="btnSmall" style="background:#16a34a;color:white" onclick="verifyNurse(\''+n.phone+'\')">✅ Verify</button>'
+      +'<button class="btnSmall" style="background:#ef4444;color:white" onclick="deleteNurse(\''+n.phone+'\')">🗑 Delete</button>'
+      + (isApproved ? '<button class="btnSmall" style="background:#eab308;color:#111" onclick="unverifyNurse(\''+n.phone+'\')">⏳ Set Pending</button>' : '<button class="btnSmall" style="background:#16a34a;color:white;border:2px solid #111;font-weight:800" onclick="approveNurse(\''+n.phone+'\')">✅ APPROVE - Allow Login</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="rejectNurse(\''+n.phone+'\')">❌ REJECT</button>')
       +'</div></div>';
+      // Update opening div to use borderColor/bgColor
+
     });
     el.innerHTML=h;
     document.getElementById('statNurses').innerText=all.length;
   });
 }
+
 function viewNurseMedia(phone,type){
   var viewer=document.getElementById('ceoNurseMediaView');
   var content=document.getElementById('mediaViewerContent');
   if(!viewer||!content) return;
   viewer.classList.remove('hidden');
   content.innerHTML='⏳ Loading '+type+' for '+phone+'...';
-  if(!window.db){ content.innerHTML='Demo: '+type+' for '+phone+' would show here (video/CV from Firebase Storage)'; return; }
+  if(!window.db){ content.innerHTML='Demo: '+type+' for '+phone+' would show here'; return; }
   db.ref('workers/'+phone.replace(/[^0-9]/g,'')).once('value').then(function(snap){
     var n=snap.val()||{};
     var url = type==='video'?n.videoUrl : type==='cv'?n.cvUrl : type==='cert'?n.certUrl : n.idUrl;
-    if(!url){ content.innerHTML='No '+type+' uploaded for this nurse'; return; }
+    if(!url){ content.innerHTML='<div style="padding:12px;background:#fef3c7;border-radius:8px">❌ No '+type+' uploaded for this nurse<br><small>Phone: '+phone+'</small></div>'; return; }
     if(type==='video'){
-      content.innerHTML='<video controls style="width:100%;max-height:400px;border-radius:10px" src="'+url+'"></video><br><a href="'+url+'" target="_blank" style="color:#16a34a;font-weight:800">Open Video in New Tab</a>';
+      content.innerHTML='<div style="background:white;border-radius:12px;padding:12px"><h3 style="margin:0 0 8px 0">📹 Video Intro - '+(n.name||phone)+'</h3><video controls style="width:100%;max-height:400px;border-radius:10px;border:2px solid #16a34a" src="'+url+'"></video><br><div style="display:flex;gap:6px;margin-top:8px"><a href="'+url+'" target="_blank" style="flex:1;background:#16a34a;color:white;padding:10px;border-radius:8px;text-align:center;font-weight:800;text-decoration:none">▶️ Open Video New Tab</a><button class="btnSmall" style="background:#111827;color:white;flex:1" onclick="navigator.clipboard.writeText(\''+url+'\'); alert(\'Link copied\')">📋 Copy Link</button></div></div>';
     } else {
-      content.innerHTML='<iframe src="'+url+'" style="width:100%;height:500px;border-radius:10px;border:2px solid #16a34a"></iframe><br><a href="'+url+'" target="_blank" style="color:#16a34a;font-weight:800">Open '+type.toUpperCase()+' in New Tab</a>';
+      var label = type==='cv'?'📄 CV': type==='cert'?'🎓 Certificate':'🪪 ID Card';
+      content.innerHTML='<div style="background:white;border-radius:12px;padding:12px"><h3 style="margin:0 0 8px 0">'+label+' - '+(n.name||phone)+'</h3><iframe src="'+url+'" style="width:100%;height:500px;border-radius:10px;border:2px solid #16a34a"></iframe><br><div style="display:flex;gap:6px;margin-top:8px"><a href="'+url+'" target="_blank" style="flex:1;background:#2563eb;color:white;padding:10px;border-radius:8px;text-align:center;font-weight:800;text-decoration:none">📂 Open '+type.toUpperCase()+' New Tab</a><button class="btnSmall" style="background:#111827;color:white;flex:1" onclick="navigator.clipboard.writeText(\''+url+'\'); alert(\'Link copied\')">📋 Copy Link</button></div></div>';
     }
   });
 }
+
+function viewAllNurseMedia(phone){
+  // CEO - View ALL uploads at once
+  var viewer=document.getElementById('ceoNurseMediaView');
+  var content=document.getElementById('mediaViewerContent');
+  if(!viewer||!content){
+    viewer=document.getElementById('staffNurseMediaView');
+    content=document.getElementById('staffMediaViewerContent');
+  }
+  if(!viewer||!content) return;
+  viewer.classList.remove('hidden');
+  content.innerHTML='⏳ Loading ALL uploads for '+phone+'...';
+  if(!window.db){
+    content.innerHTML='<div style="padding:12px">Demo: All uploads for '+phone+'<br>Video, CV, Cert, ID would show here</div>';
+    return;
+  }
+  db.ref('workers/'+phone.replace(/[^0-9]/g,'')).once('value').then(function(snap){
+    var n=snap.val()||{};
+    var hasAny = n.videoUrl || n.cvUrl || n.certUrl || n.idUrl || n.video || n.cv || n.certificate || n.idCard;
+    if(!hasAny){
+      content.innerHTML='<div style="padding:16px;background:#fef3c7;border:2px solid #eab308;border-radius:12px;text-align:center"><b>❌ No uploads found</b><br><small>Nurse: '+(n.name||phone)+' - '+phone+'</small><br><small>They registered without files or links</small></div>';
+      return;
+    }
+    var h='<div style="background:#f0fdf4;border:3px solid #16a34a;border-radius:16px;padding:12px"><h2 style="margin:0 0 10px 0;color:#16a34a">👩‍⚕️ '+(n.name||'Nurse')+' - All Uploads</h2>';
+    h+='<div style="background:white;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px"><b>📞 '+ (n.phone||phone) +'</b> | '+(n.location||'')+' | '+(n.specialty||'')+' | '+(n.experience||'')+' yrs<br><small>Registered: '+(n.createdAt?new Date(n.createdAt).toLocaleString():'')+'</small> | Status: '+(n.approvalStatus||n.status||'pending')+'</div>';
+    
+    // Video
+    if(n.videoUrl || n.video){
+      var vUrl = n.videoUrl || n.video;
+      h+='<div style="background:white;border:2px solid #7c3aed;border-radius:12px;padding:10px;margin:10px 0"><h3 style="margin:0 0 6px 0;color:#7c3aed">📹 Video Intro</h3>';
+      if(vUrl.includes('youtube') || vUrl.includes('youtu.be')){
+        h+='<a href="'+vUrl+'" target="_blank" style="background:#7c3aed;color:white;padding:10px;border-radius:8px;display:block;text-align:center;font-weight:800;text-decoration:none">▶️ Watch YouTube Video</a>';
+      } else {
+        h+='<video controls style="width:100%;max-height:300px;border-radius:8px" src="'+vUrl+'"></video>';
+      }
+      h+='<div style="display:flex;gap:6px;margin-top:6px"><a href="'+vUrl+'" target="_blank" style="flex:1;background:#7c3aed;color:white;padding:8px;border-radius:6px;text-align:center;font-size:11px;font-weight:800;text-decoration:none">Open Video</a><button onclick="navigator.clipboard.writeText(\''+vUrl+'\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ccc;font-size:11px">Copy Link</button></div>';
+      h+='<small style="color:#6b7280;word-break:break-all">'+vUrl+'</small></div>';
+    } else {
+      h+='<div style="background:#fef2f2;border:2px dashed #ef4444;border-radius:12px;padding:10px;margin:10px 0;text-align:center;font-size:11px">❌ No Video uploaded</div>';
+    }
+    
+    // CV
+    if(n.cvUrl || n.cv){
+      var cvUrl = n.cvUrl || n.cv;
+      h+='<div style="background:white;border:2px solid #2563eb;border-radius:12px;padding:10px;margin:10px 0"><h3 style="margin:0 0 6px 0;color:#2563eb">📄 CV / Resume</h3><iframe src="'+cvUrl+'" style="width:100%;height:350px;border-radius:8px;border:1px solid #2563eb"></iframe><div style="display:flex;gap:6px;margin-top:6px"><a href="'+cvUrl+'" target="_blank" style="flex:1;background:#2563eb;color:white;padding:8px;border-radius:6px;text-align:center;font-size:11px;font-weight:800;text-decoration:none">Open CV</a><button onclick="navigator.clipboard.writeText(\''+cvUrl+'\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ccc;font-size:11px">Copy Link</button></div><small style="color:#6b7280;word-break:break-all">'+cvUrl+'</small></div>';
+    } else {
+      h+='<div style="background:#fef2f2;border:2px dashed #ef4444;border-radius:12px;padding:10px;margin:10px 0;text-align:center;font-size:11px">❌ No CV uploaded</div>';
+    }
+    
+    // Certificate
+    if(n.certUrl || n.certificate){
+      var cUrl = n.certUrl || n.certificate;
+      h+='<div style="background:white;border:2px solid #eab308;border-radius:12px;padding:10px;margin:10px 0"><h3 style="margin:0 0 6px 0;color:#92400e">🎓 Certificate</h3><iframe src="'+cUrl+'" style="width:100%;height:350px;border-radius:8px;border:1px solid #eab308"></iframe><div style="display:flex;gap:6px;margin-top:6px"><a href="'+cUrl+'" target="_blank" style="flex:1;background:#eab308;color:#111;padding:8px;border-radius:6px;text-align:center;font-size:11px;font-weight:800;text-decoration:none">Open Certificate</a><button onclick="navigator.clipboard.writeText(\''+cUrl+'\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ccc;font-size:11px">Copy Link</button></div><small style="color:#6b7280;word-break:break-all">'+cUrl+'</small></div>';
+    } else {
+      h+='<div style="background:#fef2f2;border:2px dashed #ef4444;border-radius:12px;padding:10px;margin:10px 0;text-align:center;font-size:11px">❌ No Certificate uploaded</div>';
+    }
+    
+    // ID
+    if(n.idUrl || n.idCard || n.id){
+      var idUrl = n.idUrl || n.idCard || n.id;
+      h+='<div style="background:white;border:2px solid #111827;border-radius:12px;padding:10px;margin:10px 0"><h3 style="margin:0 0 6px 0;color:#111827">🪪 ID Card</h3><iframe src="'+idUrl+'" style="width:100%;height:350px;border-radius:8px;border:1px solid #111827"></iframe><div style="display:flex;gap:6px;margin-top:6px"><a href="'+idUrl+'" target="_blank" style="flex:1;background:#111827;color:white;padding:8px;border-radius:6px;text-align:center;font-size:11px;font-weight:800;text-decoration:none">Open ID</a><button onclick="navigator.clipboard.writeText(\''+idUrl+'\')" style="flex:1;padding:8px;border-radius:6px;border:1px solid #ccc;font-size:11px">Copy Link</button></div><small style="color:#6b7280;word-break:break-all">'+idUrl+'</small></div>';
+    } else {
+      h+='<div style="background:#fef2f2;border:2px dashed #ef4444;border-radius:12px;padding:10px;margin:10px 0;text-align:center;font-size:11px">❌ No ID uploaded</div>';
+    }
+    
+    // Links if provided
+    if(n.video || n.cv || n.certificate || n.id){
+      h+='<div style="background:#eff6ff;border:2px solid #2563eb;border-radius:10px;padding:10px;margin-top:10px"><b>🔗 Links provided by nurse (if any):</b><br>';
+      if(n.video) h+='<small>Video Link: <a href="'+n.video+'" target="_blank">'+n.video+'</a></small><br>';
+      if(n.cv) h+='<small>CV Link: <a href="'+n.cv+'" target="_blank">'+n.cv+'</a></small><br>';
+      if(n.certificate) h+='<small>Cert Link: <a href="'+n.certificate+'" target="_blank">'+n.certificate+'</a></small><br>';
+      if(n.id) h+='<small>ID Link: <a href="'+n.id+'" target="_blank">'+n.id+'</a></small><br>';
+      h+='</div>';
+    }
+    
+    h+='<div style="display:flex;gap:6px;margin-top:12px"><button class="btnSmall" style="background:#16a34a;color:white;flex:1;padding:12px;font-size:12px;font-weight:800" onclick="approveNurse(\''+ (n.phone||phone) +'\')">✅ APPROVE Nurse</button><button class="btnSmall" style="background:#ef4444;color:white;flex:1;padding:12px" onclick="rejectNurse(\''+ (n.phone||phone) +'\')">❌ REJECT</button></div>';
+    h+='<button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:6px" onclick="document.getElementById(\'ceoNurseMediaView\').classList.add(\'hidden\'); var s=document.getElementById(\'staffNurseMediaView\'); if(s) s.classList.add(\'hidden\')">Close Viewer</button>';
+    h+='</div>';
+    content.innerHTML=h;
+  });
+}
+
+function viewStaffNurseMedia(phone,type){
+  // Staff uses same all-viewer
+  if(type==='all'){ viewAllNurseMedia(phone); return; }
+  var viewer=document.getElementById('staffNurseMediaView');
+  var content=document.getElementById('staffMediaViewerContent');
+  if(!viewer||!content){ viewNurseMedia(phone,type); return; }
+  viewer.classList.remove('hidden');
+  content.innerHTML='⏳ Loading '+type+' for '+phone+'...';
+  if(!window.db){ content.innerHTML='Demo'; return; }
+  db.ref('workers/'+phone.replace(/[^0-9]/g,'')).once('value').then(function(snap){
+    var n=snap.val()||{};
+    var url = type==='video'?n.videoUrl : type==='cv'?n.cvUrl : type==='cert'?n.certUrl : n.idUrl;
+    if(!url){ content.innerHTML='<div style="padding:12px;background:#fef3c7;border-radius:8px">❌ No '+type+'</div>'; return; }
+    if(type==='video'){
+      content.innerHTML='<div style="background:white;padding:12px;border-radius:12px"><h3>📹 Video - '+(n.name||phone)+'</h3><video controls style="width:100%;max-height:300px" src="'+url+'"></video><br><a href="'+url+'" target="_blank" style="background:#7c3aed;color:white;padding:8px 12px;border-radius:8px;display:inline-block;margin-top:8px;text-decoration:none">Open Video</a></div>';
+    } else {
+      content.innerHTML='<div style="background:white;padding:12px;border-radius:12px"><h3>'+type.toUpperCase()+' - '+(n.name||phone)+'</h3><iframe src="'+url+'" style="width:100%;height:400px"></iframe><br><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 12px;border-radius:8px;display:inline-block;margin-top:8px;text-decoration:none">Open '+type+'</a></div>';
+    }
+  });
+}
+
+function viewAllStaffMedia(phone){ viewAllNurseMedia(phone); }
+
 function deleteNurse(phone){
   if(!confirm('Delete nurse '+phone+'? This will move to Deleted Nurses for audit')) return;
   if(window.db){
@@ -1853,8 +2067,38 @@ function deleteNurse(phone){
   }
 }
 function verifyNurse(phone){
-  if(window.db){ db.ref('workers/'+phone.replace(/[^0-9]/g,'')).update({verified:true, verifiedAt:Date.now()}).then(function(){ alert('Nurse '+phone+' verified ✅'); loadCeoNurses(); }); }
+  if(window.db){ 
+    db.ref('workers/'+phone.replace(/[^0-9]/g,'')).update({verified:true, approvalStatus:'approved', status:'approved', verifiedAt:Date.now(), approvedAt:Date.now(), approvedBy: localStorage.getItem('ceoID')||localStorage.getItem('staffID')||'CEO'}).then(function(){ 
+      alert('✅ Nurse '+phone+' APPROVED - Can now login!'); 
+      loadCeoNurses(); 
+      if(typeof loadStaffNurses==='function') loadStaffNurses();
+      try{
+        var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
+        nurses.forEach(function(n){ if((n.phoneKey||n.phone||'').replace(/[^0-9]/g,'')===phone.replace(/[^0-9]/g,'')){ n.verified=true; n.approvalStatus='approved'; n.status='approved'; } });
+        localStorage.setItem('nurses', JSON.stringify(nurses));
+      }catch(e){}
+    }); 
+  }
 }
+function approveNurse(phone){ verifyNurse(phone); }
+function rejectNurse(phone){
+  if(!confirm('❌ REJECT nurse '+phone+'?')) return;
+  var reason = prompt('Reason for rejection:', 'Documents not clear');
+  if(window.db){
+    db.ref('workers/'+phone.replace(/[^0-9]/g,'')).update({verified:false, approvalStatus:'rejected', status:'rejected', rejectedAt:Date.now(), rejectionReason:reason||'No reason'}).then(function(){
+      alert('❌ Nurse '+phone+' REJECTED'); loadCeoNurses(); if(typeof loadStaffNurses==='function') loadStaffNurses();
+    });
+  }
+}
+function unverifyNurse(phone){
+  if(!confirm('Set '+phone+' back to PENDING?')) return;
+  if(window.db){
+    db.ref('workers/'+phone.replace(/[^0-9]/g,'')).update({verified:false, approvalStatus:'pending', status:'pending_approval'}).then(function(){
+      alert('⏳ Set to PENDING'); loadCeoNurses(); if(typeof loadStaffNurses==='function') loadStaffNurses();
+    });
+  }
+}
+
 
 function loadCeoClients(){
   var el=document.getElementById('ceoClientsList');
@@ -2019,8 +2263,20 @@ function loadCeoDeleted(){
   db.ref('deletedWorkers').once('value').then(function(snap){
     var all=Object.values(snap.val()||{}).reverse();
     if(all.length===0){ el.innerHTML='No deleted accounts'; return; }
-    var h='';
+    all.sort(function(a,b){
+      var aP = (a.approvalStatus==='pending' || a.status==='pending_approval' || !a.verified) ? 0 : 1;
+      var bP = (b.approvalStatus==='pending' || b.status==='pending_approval' || !b.verified) ? 0 : 1;
+      return aP - bP;
+    });
+    var pendingCount = all.filter(function(n){ return !n.verified && n.approvalStatus!=='rejected'; }).length;
+    var h='<div style="background:#fffbeb;border:2px solid #eab308;padding:10px;border-radius:10px;margin-bottom:10px"><b>📋 CEO Approval Panel - '+pendingCount+' Pending</b><br><small>Only APPROVED nurses can login and appear on client map</small></div>';
     all.forEach(function(n){
+      var isApproved = n.verified===true || n.approvalStatus==='approved' || n.status==='approved';
+      var isRejected = n.approvalStatus==='rejected' || n.status==='rejected';
+      var statusBadge = isApproved ? '<span style="background:#16a34a;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">✅ APPROVED</span>' : isRejected ? '<span style="background:#ef4444;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">❌ REJECTED</span>' : '<span style="background:#eab308;color:#111;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">⏳ PENDING APPROVAL</span>';
+      var borderColor = isApproved ? '#16a34a' : isRejected ? '#ef4444' : '#eab308';
+      var bgColor = isApproved ? '#f0fdf4' : isRejected ? '#fef2f2' : '#fffbeb';
+
       h+='<div style="border:3px solid #ef4444;border-radius:12px;padding:12px;margin:10px 0;background:#fef2f2"><b>'+(n.name||'')+'</b> - '+(n.phone||'')+'<br>Reason: <i>'+(n.deleteReason||n.reason||'No reason')+'</i><br>Deleted: '+new Date(n.deletedAt||Date.now()).toLocaleString()+'<br><small>Video: '+(n.videoUrl?'<a href="'+n.videoUrl+'" target="_blank">Link</a>':'none')+' | CV: '+(n.cvUrl?'<a href="'+n.cvUrl+'" target="_blank">Link</a>':'none')+'</small></div>';
     });
     el.innerHTML=h;
@@ -2115,8 +2371,20 @@ function loadStaffNurses(){
   if(!window.db){ el.innerHTML='Demo nurses - Connect Firebase'; return; }
   db.ref('workers').once('value').then(function(snap){
     var all=Object.values(snap.val()||{});
-    var h='';
+    all.sort(function(a,b){
+      var aP = (a.approvalStatus==='pending' || a.status==='pending_approval' || !a.verified) ? 0 : 1;
+      var bP = (b.approvalStatus==='pending' || b.status==='pending_approval' || !b.verified) ? 0 : 1;
+      return aP - bP;
+    });
+    var pendingCount = all.filter(function(n){ return !n.verified && n.approvalStatus!=='rejected'; }).length;
+    var h='<div style="background:#fffbeb;border:2px solid #eab308;padding:10px;border-radius:10px;margin-bottom:10px"><b>📋 CEO Approval Panel - '+pendingCount+' Pending</b><br><small>Only APPROVED nurses can login and appear on client map</small></div>';
     all.forEach(function(n){
+      var isApproved = n.verified===true || n.approvalStatus==='approved' || n.status==='approved';
+      var isRejected = n.approvalStatus==='rejected' || n.status==='rejected';
+      var statusBadge = isApproved ? '<span style="background:#16a34a;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">✅ APPROVED</span>' : isRejected ? '<span style="background:#ef4444;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">❌ REJECTED</span>' : '<span style="background:#eab308;color:#111;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">⏳ PENDING APPROVAL</span>';
+      var borderColor = isApproved ? '#16a34a' : isRejected ? '#ef4444' : '#eab308';
+      var bgColor = isApproved ? '#f0fdf4' : isRejected ? '#fef2f2' : '#fffbeb';
+
       h+='<div style="border:2px solid #16a34a;border-radius:10px;padding:10px;margin:8px 0;background:#f0fdf4"><b>'+(n.name||'')+'</b> - '+(n.phone||'')+'<br>'+(n.specialty||'')+' | '+(n.location||'')+'<br><button class="btnSmall" style="background:#7c3aed;color:white" onclick="viewNurseMedia(\''+n.phone+'\',\'video\')">View Media</button> <button class="btnSmall" style="background:#2563eb;color:white" onclick="openGoogleMapsLive('+(n.lat||5.6037)+','+(n.lng||-0.1870)+')">Map</button></div>';
     });
     el.innerHTML=h||'No nurses';
@@ -3142,5 +3410,31 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 
+
+<script>
+// ===== FINAL FIXES - Email open access + Upload timeout =====
+(function(){
+  window.isEmailVerified = function(){ return true; };
+  window.checkEmailAndFindNurses = function(){
+    var ageCheck = document.getElementById('cAgeConfirm');
+    if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book'); return; }
+    findNursesUber();
+  };
+  window.checkEmailAndBook = function(){ submitBooking(); };
+  // Hide modal forever
+  function killModal(){
+    var m=document.getElementById('emailVerifyModal');
+    if(m){ m.classList.add('hidden'); m.style.display='none'; m.style.visibility='hidden'; }
+  }
+  setInterval(killModal, 800);
+  document.addEventListener('DOMContentLoaded', function(){
+    killModal();
+    var ce=document.getElementById('cEmail');
+    if(ce){ ce.removeAttribute('required'); ce.placeholder='Email (Optional)'; ce.value=''; }
+  });
+  console.log('✅ Email gate removed, upload timeout fixed');
+})();
+</script>
 </body>
-</html>https://lovecareglobal-cell.github.io/love-care-global/
+
+</html>
