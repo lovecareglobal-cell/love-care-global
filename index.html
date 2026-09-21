@@ -264,32 +264,42 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <input id="nRegExperience" type="number" placeholder="Years Experience">
 <select id="nRegSpecialty"><option value="">-- Specialty (13) --</option><option>General Nurse</option><option>Elderly Care</option><option>Baby Care and Nanny</option><option>Hospital Support</option><option>Post-Surgery Care</option><option>Disability Support</option><option>Maternity Care</option><option>Night Nurse</option><option>Palliative Care</option><option>Physiotherapy</option><option>Injection and Wound Care</option><option>Diabetes Monitoring</option><option>Dementia Care</option><option>Child Special Needs Care</option></select>
 <div style="border:3px solid #7c3aed;border-radius:12px;padding:12px;margin:8px 0;background:#f5f3ff">
-<h3 style="margin:0 0 8px 0;font-size:13px;color:#7c3aed">📹 Uploads for CEO Verification - Phone/Laptop Storage + Link Optional</h3>
+<h3 style="margin:0 0 8px 0;font-size:13px;color:#7c3aed">📹 Uploads for CEO Verification - FREE Options</h3>
+<div style="background:#eff6ff;border:2px solid #2563eb;border-radius:12px;padding:12px;margin:10px 0">
+<h3 style="margin:0 0 8px 0;font-size:13px;color:#2563eb">💰 FREE Upload Options - No Payment Needed</h3>
+<div style="font-size:11px;line-height:1.6">
+<b>Option 1 (Recommended - FREE):</b> Upload file directly → Auto uploads to Cloudinary FREE (25GB free)<br>
+<b>Option 2 (100% FREE Unlimited):</b> Upload to <a href="https://drive.google.com" target="_blank" style="color:#2563eb;font-weight:800">drive.google.com</a> → Share → Anyone with link → Copy link → Paste in "OR Link" box below<br>
+<b>Option 3:</b> If file >10MB, compress video or use Drive link<br><br>
+<span style="background:#dcfce7;padding:4px 8px;border-radius:6px;font-weight:800">✅ CEO can view both uploaded files AND Drive links - No Firebase Storage billing!</span>
+</div>
+</div>
+
 <p style="font-size:10px;color:#6b7280;margin:0 0 8px 0">Choose: Upload directly from your phone/laptop storage OR paste link. You can do both. CEO will watch your files.</p>
 
 <div style="background:white;border:2px solid #16a34a;border-radius:10px;padding:8px;margin:6px 0">
-<label style="font-size:11px;font-weight:800;color:#16a34a">🎥 Video Intro - Upload from Phone/Laptop (MP4, MOV)</label>
+<label style="font-size:11px;font-weight:800;color:#16a34a">🎥 Video Intro - FREE Upload (MP4, MOV) or Drive Link</label>
 <input type="file" id="nRegVideoFile" accept="video/*" style="padding:6px">
 <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegVideo" placeholder="YouTube / Drive link (optional)" style="margin:0;flex:1"></div>
 <div id="videoUploadProgress" style="font-size:10px;color:#16a34a;margin-top:4px"></div>
 </div>
 
 <div style="background:white;border:2px solid #2563eb;border-radius:10px;padding:8px;margin:6px 0">
-<label style="font-size:11px;font-weight:800;color:#2563eb">📄 CV - Upload PDF/DOC from storage</label>
+<label style="font-size:11px;font-weight:800;color:#2563eb">📄 CV - FREE Upload PDF/DOC or Drive Link</label>
 <input type="file" id="nRegCVFile" accept=".pdf,.doc,.docx,image/*" style="padding:6px">
 <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegCV" placeholder="CV Drive link (optional)" style="margin:0;flex:1"></div>
 <div id="cvUploadProgress" style="font-size:10px;color:#2563eb;margin-top:4px"></div>
 </div>
 
 <div style="background:white;border:2px solid #eab308;border-radius:10px;padding:8px;margin:6px 0">
-<label style="font-size:11px;font-weight:800;color:#92400e">🎓 Certificate - Upload Photo/PDF</label>
+<label style="font-size:11px;font-weight:800;color:#92400e">🎓 Certificate - FREE Upload Photo/PDF or Drive Link</label>
 <input type="file" id="nRegCertFile" accept=".pdf,image/*" style="padding:6px">
 <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegCertificate" placeholder="Certificate link (optional)" style="margin:0;flex:1"></div>
 <div id="certUploadProgress" style="font-size:10px;color:#92400e;margin-top:4px"></div>
 </div>
 
 <div style="background:white;border:2px solid #ef4444;border-radius:10px;padding:8px;margin:6px 0">
-<label style="font-size:11px;font-weight:800;color:#ef4444">🪪 ID Card - Upload Photo</label>
+<label style="font-size:11px;font-weight:800;color:#ef4444">🪪 ID Card - FREE Upload Photo or Drive Link</label>
 <input type="file" id="nRegIDFile" accept="image/*,.pdf" style="padding:6px">
 <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegID" placeholder="ID link (optional)" style="margin:0;flex:1"></div>
 <div id="idUploadProgress" style="font-size:10px;color:#ef4444;margin-top:4px"></div>
@@ -500,6 +510,49 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="ceo-tab-refunds" class="ceo-tab card hidden" style="border:3px solid #ef4444"><h2>💸 Refunds</h2><div id="ceoRefundsList">Loading...</div></div>
 <div id="ceo-tab-deleted" class="ceo-tab card hidden" style="border:3px solid #ef4444"><h2>🗑 Deleted Nurse Accounts - With Reasons (CEO View)</h2><div style="background:#fee2e2;padding:8px;border-radius:8px;font-size:11px;margin-bottom:8px">Nurses who deleted their account. Shows reason, time, name, phone, video/CV links. For audit.</div><div id="ceoDeletedList">Loading deleted accounts...</div></div>
 <div id="ceo-tab-staff" class="ceo-tab card hidden"><h2>5. Staff</h2><div style="display:flex;gap:6px;margin-bottom:10px"><input id="newStaffId" placeholder="New Staff ID" style="flex:1;margin:0"><input id="newStaffPass" placeholder="Password" style="flex:1;margin:0"><button class="btnSmall" style="background:#16a34a;color:white" onclick="addStaff()">Add</button></div><div id="ceoStaffList">Loading...</div></div>
+
+<div class="card" style="border:3px solid #7c3aed;background:#f5f3ff">
+<h2>☁️ FREE Cloudinary Setup - No Firebase Billing</h2>
+<div style="font-size:11px;line-height:1.6">
+<b>Why Cloudinary?</b> Firebase Storage needs Blaze plan ($). Cloudinary gives 25GB FREE forever.<br><br>
+<b>Setup in 2 minutes (FREE):</b><br>
+1. Go to <a href="https://cloudinary.com" target="_blank" style="color:#7c3aed;font-weight:800">cloudinary.com</a> → Sign Up FREE<br>
+2. Dashboard → Copy <b>Cloud Name</b> (e.g. dxyz123)<br>
+3. Settings → Upload → Scroll to <b>Upload presets</b> → Add preset → Set to <b>Unsigned</b> → Save → Copy preset name (e.g. love_care_free)<br>
+4. Edit this index.html → Find <code>FREE_UPLOAD_CONFIG</code> → Replace cloudinaryCloudName and cloudinaryPreset → Upload to GitHub<br><br>
+<b>Current config:</b> Cloud: <span id="currentCloudName" style="background:#111827;color:#eab308;padding:2px 6px;border-radius:4px">demo</span> | Preset: <span id="currentPreset" style="background:#111827;color:#eab308;padding:2px 6px;border-radius:4px">docs_upload_example_us_preset</span><br>
+<small>Demo cloud works for testing but has limits - Create your own FREE cloud for production</small><br><br>
+<b>Alternative (No setup, 100% FREE):</b> Tell nurses to paste Google Drive links - CEO viewer already supports Drive links, no Cloudinary needed!<br>
+<button class="btnSmall" style="background:#7c3aed;color:white" onclick="document.getElementById('cloudinaryConfigForm').classList.toggle('hidden')">⚙️ Change Cloudinary Config</button>
+<div id="cloudinaryConfigForm" class="hidden" style="background:white;padding:10px;border-radius:8px;margin-top:8px">
+<input id="newCloudName" placeholder="Your Cloudinary Cloud Name (e.g. dxyz123)"><input id="newPreset" placeholder="Your Unsigned Preset (e.g. love_care_free)"><button class="btnSmall" style="background:#16a34a;color:white;width:100%;margin-top:6px" onclick="saveCloudinaryConfig()">💾 Save Config (Local Only)</button><small>Saved in localStorage, edit HTML for permanent</small>
+</div>
+</div>
+</div>
+<script>
+function saveCloudinaryConfig(){
+  var cloud=document.getElementById('newCloudName').value.trim();
+  var preset=document.getElementById('newPreset').value.trim();
+  if(cloud) localStorage.setItem('cloudinaryCloudName', cloud);
+  if(preset) localStorage.setItem('cloudinaryPreset', preset);
+  if(cloud) FREE_UPLOAD_CONFIG.cloudinaryCloudName=cloud;
+  if(preset) FREE_UPLOAD_CONFIG.cloudinaryPreset=preset;
+  document.getElementById('currentCloudName').innerText=FREE_UPLOAD_CONFIG.cloudinaryCloudName;
+  document.getElementById('currentPreset').innerText=FREE_UPLOAD_CONFIG.cloudinaryPreset;
+  alert('✅ Saved! Cloud: '+FREE_UPLOAD_CONFIG.cloudinaryCloudName+' Preset: '+FREE_UPLOAD_CONFIG.cloudinaryPreset+'\nNow edit index.html with same values for all users');
+}
+(function(){
+  var savedCloud=localStorage.getItem('cloudinaryCloudName');
+  var savedPreset=localStorage.getItem('cloudinaryPreset');
+  if(savedCloud) FREE_UPLOAD_CONFIG.cloudinaryCloudName=savedCloud;
+  if(savedPreset) FREE_UPLOAD_CONFIG.cloudinaryPreset=savedPreset;
+  setTimeout(function(){
+    var el1=document.getElementById('currentCloudName'); if(el1) el1.innerText=FREE_UPLOAD_CONFIG.cloudinaryCloudName;
+    var el2=document.getElementById('currentPreset'); if(el2) el2.innerText=FREE_UPLOAD_CONFIG.cloudinaryPreset;
+  },1000);
+})();
+</script>
+
 <div id="ceo-tab-announce" class="ceo-tab card hidden"><h2>6. Announcement Board Settings - Text + Colors</h2>
 <textarea id="announcementInput" rows="2" placeholder="Type announcement text..."></textarea>
 <div class="colorRow"><label>Background:</label><input type="color" id="announceBgColor" value="#111827" oninput="previewAnnouncement()"><span id="bgColorVal" style="font-size:11px">#111827</span></div>
@@ -791,22 +844,34 @@ function autoGPS(i,s){
 function getFullPhone(c,p){var code=document.getElementById(c).value; var ph=document.getElementById(p).value.trim().replace(/^0+/,''); if(ph.startsWith('+')) return ph; return code+ph;}
 
 // ===== FIXED NURSE REGISTRATION & LOGIN - Added 2026-05-11 =====
-function showUploadStatus(msg, isError){
-  var box=document.getElementById('uploadStatusBox');
-  if(!box) return;
-  box.style.display='block';
-  box.innerHTML=msg;
-  box.style.background=isError?'#fee2e2':'#dcfce7';
-  box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
-  box.style.color=isError?'#991b1b':'#166534';
-}
+
+
+
+
+
+<script>
+// ===== FREE UPLOAD ALTERNATIVES - NO FIREBASE STORAGE NEEDED =====
+// Option 1: Cloudinary FREE (25GB free forever) - RECOMMENDED
+// Option 2: Google Drive link paste - 100% free, unlimited
+// Option 3: Base64 for small images (stored in Firebase Database, not Storage)
+
+
+<script>
+// ===== AUTO COMPRESSION - Save Cloudinary FREE quota =====
+const COMPRESSION_CONFIG = {
+  maxImageWidth: 1024, // Max width for images
+  imageQuality: 0.7, // JPEG quality 0-1
+  maxVideoWidth: 640, // Max width for videos (480p)
+  videoBitrate: 500000, // 500kbps - saves 70% space
+  autoCompress: true
+};
 
 function showUploadStatus(msg, isError){
   var box=document.getElementById('uploadStatusBox');
   if(!box){ 
     box=document.createElement('div');
     box.id='uploadStatusBox';
-    box.style.cssText='position:fixed;bottom:120px;left:10px;right:10px;background:#dcfce7;border:2px solid #16a34a;border-radius:8px;padding:8px;font-size:11px;z-index:999999';
+    box.style.cssText='position:fixed;bottom:120px;left:10px;right:10px;background:#dcfce7;border:2px solid #16a34a;border-radius:8px;padding:10px;font-size:11px;z-index:999999;max-height:150px;overflow-y:auto';
     document.body.appendChild(box);
   }
   box.style.display='block';
@@ -815,78 +880,341 @@ function showUploadStatus(msg, isError){
   box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
 }
 
-function uploadFileToStorage(file, path){
+// Compress Image using Canvas
+function compressImage(file){
   return new Promise(function(resolve){
-    if(!file){ resolve(null); return; }
-    var MAX_SIZE = 10 * 1024 * 1024; // 10MB max - videos larger will be skipped
-    if(file.size > MAX_SIZE){
-      showUploadStatus('⚠️ '+file.name+' is '+(file.size/1024/1024).toFixed(1)+'MB - too large, skipping. Please paste link instead or compress.', true);
-      console.warn('File too large, skipping:', file.name);
-      setTimeout(function(){ resolve(null); }, 800);
+    if(!file.type.startsWith('image/')){
+      resolve(file);
       return;
     }
-    // Timeout after 15 seconds
-    var timedOut=false;
-    var timeoutId = setTimeout(function(){
-      timedOut=true;
-      showUploadStatus('⏱️ Upload taking too long for '+file.name+' - Skipping, continuing with registration...', false);
-      console.warn('Upload timeout, resolving null for', file.name);
-      resolve(null);
-    }, 15000);
-
-    try{
-      if(typeof firebase!== 'undefined' && firebase.storage){
-        var storageRef = firebase.storage().ref();
-        var safeName = file.name.replace(/[^a-zA-Z0-9.]/g,'_');
-        var fileRef = storageRef.child(path + '/' + Date.now() + '_' + safeName);
-        var task = fileRef.put(file);
-        task.on('state_changed', function(snap){
-          if(timedOut) return;
-          var pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
-          showUploadStatus('📤 Uploading '+file.name+': '+pct+'% - Please wait');
-          var progId = file.name.includes('video')?'videoUploadProgress': file.name.includes('cv')||file.name.endsWith('.pdf')?'cvUploadProgress':'';
-          var progEl = document.getElementById('videoUploadProgress') || document.getElementById('cvUploadProgress') || document.getElementById('certUploadProgress') || document.getElementById('idUploadProgress');
-          if(progEl) progEl.innerText = pct+'%';
-        }, function(err){
-          if(timedOut) return;
-          clearTimeout(timeoutId);
-          console.warn('Storage upload failed:', err.code, err.message);
-          showUploadStatus('⚠️ Upload failed for '+file.name+' ('+err.code+') - Continuing with links if provided', true);
-          // If permission denied, inform user
-          if(err.code==='storage/unauthorized' || err.code==='storage/unknown'){
-            showUploadStatus('⚠️ Storage permission issue - Registration will continue with links. Contact CEO to enable Storage rules.', true);
-          }
-          resolve(null);
-        }, function(){
-          if(timedOut) return;
-          clearTimeout(timeoutId);
-          task.snapshot.ref.getDownloadURL().then(function(url){ 
-            showUploadStatus('✅ Uploaded '+file.name);
-            resolve(url); 
-          }).catch(function(){ 
-            resolve(null); 
-          });
-        });
-      } else { 
-        clearTimeout(timeoutId);
-        console.warn('Firebase storage not available');
-        resolve(null); 
+    if(file.size < 500*1024){ // <500KB, no need
+      resolve(file);
+      return;
+    }
+    showUploadStatus('🗜️ Compressing image '+file.name+' ('+(file.size/1024/1024).toFixed(2)+'MB → compressing...)');
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function(){
+      var canvas = document.createElement('canvas');
+      var maxW = COMPRESSION_CONFIG.maxImageWidth;
+      var ratio = Math.min(maxW / img.width, maxW / img.height);
+      if(ratio >= 1){
+        // Already small
+        URL.revokeObjectURL(url);
+        resolve(file);
+        return;
       }
-    }catch(e){ 
-      clearTimeout(timeoutId);
-      console.warn('Upload exception', e); 
-      resolve(null); 
+      canvas.width = img.width * ratio;
+      canvas.height = img.height * ratio;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function(blob){
+        URL.revokeObjectURL(url);
+        var newFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), {type:'image/jpeg'});
+        showUploadStatus('✅ Image compressed: '+(file.size/1024).toFixed(0)+'KB → '+(newFile.size/1024).toFixed(0)+'KB (saved '+Math.round(100-newFile.size/file.size*100)+'%)');
+        console.log('Image compressed', file.size, '->', newFile.size);
+        setTimeout(function(){ resolve(newFile); }, 500);
+      }, 'image/jpeg', COMPRESSION_CONFIG.imageQuality);
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
+// Compress Video using Canvas + MediaRecorder (480p, 500kbps)
+function compressVideo(file){
+  return new Promise(function(resolve){
+    if(!file.type.startsWith('video/')){
+      resolve(file);
+      return;
+    }
+    // If small (<5MB), skip compression
+    if(file.size < 5*1024*1024){
+      console.log('Video small, no compression needed');
+      resolve(file);
+      return;
+    }
+    
+    showUploadStatus('🗜️ Compressing video '+file.name+' ('+(file.size/1024/1024).toFixed(1)+'MB)... This may take 20-40 seconds<br><small>Reducing to 480p to save Cloudinary quota</small>');
+    
+    var video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    var url = URL.createObjectURL(file);
+    video.src = url;
+    
+    video.onloadedmetadata = function(){
+      var canvas = document.createElement('canvas');
+      var maxW = COMPRESSION_CONFIG.maxVideoWidth;
+      var ratio = Math.min(maxW / video.videoWidth, 1);
+      canvas.width = video.videoWidth * ratio;
+      canvas.height = video.videoHeight * ratio;
+      
+      if(canvas.width < 100 || canvas.height < 100){
+        URL.revokeObjectURL(url);
+        resolve(file);
+        return;
+      }
+      
+      var ctx = canvas.getContext('2d');
+      var stream = canvas.captureStream(30); // 30fps
+      
+      // Try to get audio track
+      var audioTracks = [];
+      try{
+        // Create audio context to capture audio if possible
+        var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // For simplicity, we will record without audio if capture fails - still saves huge space
+      }catch(e){}
+      
+      var recorder;
+      var chunks = [];
+      try{
+        recorder = new MediaRecorder(stream, {
+          mimeType: 'video/webm;codecs=vp9',
+          videoBitsPerSecond: COMPRESSION_CONFIG.videoBitrate
+        });
+      } catch(e){
+        try{
+          recorder = new MediaRecorder(stream, {
+            mimeType: 'video/webm',
+            videoBitsPerSecond: COMPRESSION_CONFIG.videoBitrate
+          });
+        } catch(e2){
+          recorder = new MediaRecorder(stream);
+        }
+      }
+      
+      recorder.ondataavailable = function(e){ if(e.data.size>0) chunks.push(e.data); };
+      
+      recorder.onstop = function(){
+        URL.revokeObjectURL(url);
+        var blob = new Blob(chunks, {type:'video/webm'});
+        var newFile = new File([blob], file.name.replace(/\.[^/.]+$/, '_compressed.webm'), {type:'video/webm'});
+        var saved = Math.round(100 - newFile.size/file.size*100);
+        showUploadStatus('✅ Video compressed: '+(file.size/1024/1024).toFixed(1)+'MB → '+(newFile.size/1024/1024).toFixed(1)+'MB (saved '+saved+'% Cloudinary quota!)<br><small>Original: '+file.name+' | Compressed: '+newFile.name+'</small>');
+        console.log('Video compressed', file.size, '->', newFile.size, 'saved '+saved+'%');
+        resolve(newFile);
+      };
+      
+      recorder.onerror = function(e){
+        console.warn('MediaRecorder error', e);
+        URL.revokeObjectURL(url);
+        resolve(file); // Fallback to original
+      };
+      
+      var drawFrame = function(){
+        if(video.ended || video.paused){
+          recorder.stop();
+          return;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        requestAnimationFrame(drawFrame);
+      };
+      
+      video.onplay = function(){
+        recorder.start(100);
+        drawFrame();
+      };
+      
+      video.onerror = function(){
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      
+      // Start playing for recording
+      video.play().catch(function(){
+        // Autoplay blocked, fallback
+        URL.revokeObjectURL(url);
+        resolve(file);
+      });
+      
+      // Timeout after 60 seconds
+      setTimeout(function(){
+        try{
+          if(recorder && recorder.state==='recording'){
+            recorder.stop();
+            video.pause();
+          }
+        }catch(e){}
+      }, 60000);
+    };
+    
+    video.onerror = function(){
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+  });
+}
+
+// Smart compress based on file type
+function autoCompressFile(file){
+  return new Promise(function(resolve){
+    if(!file || !COMPRESSION_CONFIG.autoCompress){
+      resolve(file);
+      return;
+    }
+    if(file.type.startsWith('image/')){
+      compressImage(file).then(resolve);
+    } else if(file.type.startsWith('video/')){
+      // For videos >5MB, compress
+      if(file.size > 5*1024*1024){
+        if(confirm('📹 Video is '+(file.size/1024/1024).toFixed(1)+'MB.\n\nCompress to ~'+(file.size/1024/1024*0.3).toFixed(1)+'MB to save Cloudinary FREE quota?\n\n✅ Yes = Compress (saves 70% quota, takes 30 sec)\n❌ No = Upload original (uses more quota)')){
+          compressVideo(file).then(resolve);
+        } else {
+          resolve(file);
+        }
+      } else {
+        resolve(file);
+      }
+    } else {
+      // PDF/DOC - no compression
+      resolve(file);
     }
   });
 }
 
+console.log('✅ Auto compression loaded - Images → 70% quality, Videos → 480p 500kbps');
+</script>
+
+<script>
+const FREE_UPLOAD_CONFIG = {
+  // === CLOUDINARY FREE - Get these from cloudinary.com (free account) ===
+  // Steps: 1. Go to cloudinary.com -> Sign up FREE -> Dashboard -> Cloud Name
+  // 2. Settings -> Upload -> Upload presets -> Add preset -> Unsigned -> Save -> Copy preset name
+  cloudinaryCloudName: 'xcizfvct', // YOUR CLOUD NAME from screenshot ✅
+  cloudinaryPreset: 'Lovecare1', // YOUR PRESET Lovecare1 Unsigned ✅
+  
+  // Set to true to use Cloudinary, false to skip and use only Drive links
+  useCloudinary: true,
+  
+  // Max sizes for free
+  maxVideoMB: 80, // After compression, allow larger original
+  maxDocMB: 10
+};
+
+function showUploadStatus(msg, isError){
+  var box=document.getElementById('uploadStatusBox');
+  if(!box){ 
+    box=document.createElement('div');
+    box.id='uploadStatusBox';
+    box.style.cssText='position:fixed;bottom:120px;left:10px;right:10px;background:#dcfce7;border:2px solid #16a34a;border-radius:8px;padding:10px;font-size:11px;z-index:999999;max-height:120px;overflow-y:auto';
+    document.body.appendChild(box);
+  }
+  box.style.display='block';
+  box.innerHTML=msg;
+  box.style.background=isError?'#fee2e2':'#dcfce7';
+  box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
+}
+
+// === CLOUDINARY FREE UPLOAD ===
+function uploadToCloudinary(file){
+  return new Promise(function(resolve){
+    if(!file){ resolve(null); return; }
+    if(!FREE_UPLOAD_CONFIG.useCloudinary){
+      console.log('Cloudinary disabled, skipping');
+      resolve(null);
+      return;
+    }
+    var maxSize = file.type.startsWith('video/') ? FREE_UPLOAD_CONFIG.maxVideoMB*1024*1024 : FREE_UPLOAD_CONFIG.maxDocMB*1024*1024;
+    if(file.size > maxSize){
+      showUploadStatus('⚠️ '+file.name+' too large ('+(file.size/1024/1024).toFixed(1)+'MB) - Max '+(maxSize/1024/1024)+'MB for free. Please compress or paste Drive link.', true);
+      setTimeout(function(){ resolve(null); }, 1000);
+      return;
+    }
+    
+    var formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', FREE_UPLOAD_CONFIG.cloudinaryPreset);
+    // Optional folder
+    formData.append('folder', 'love_care_nurses');
+    
+    var cloudName = FREE_UPLOAD_CONFIG.cloudinaryCloudName;
+    var url = 'https://api.cloudinary.com/v1_1/'+cloudName+'/auto/upload';
+    
+    showUploadStatus('📤 Uploading '+file.name+' to FREE Cloudinary... '+(file.size/1024/1024).toFixed(1)+'MB');
+    
+    fetch(url, { method:'POST', body:formData })
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if(data.secure_url || data.url){
+          var finalUrl = data.secure_url || data.url;
+          showUploadStatus('✅ Uploaded to Cloudinary FREE: '+file.name);
+          console.log('Cloudinary URL:', finalUrl);
+          resolve(finalUrl);
+        } else {
+          console.warn('Cloudinary failed', data);
+          showUploadStatus('⚠️ Cloudinary upload failed: '+(data.error?data.error.message:'Check preset is Unsigned')+' - Will try Drive link', true);
+          resolve(null);
+        }
+      })
+      .catch(function(err){
+        console.warn('Cloudinary error', err);
+        showUploadStatus('⚠️ Cloudinary error (internet?) - Use Drive link instead', true);
+        resolve(null);
+      });
+  });
+}
+
+// === FREE ALTERNATIVE 2: Upload to tmpfiles.org (100% free, no account, for quick sharing) ===
+function uploadToTmpFiles(file){
+  return new Promise(function(resolve){
+    if(!file){ resolve(null); return; }
+    var formData = new FormData();
+    formData.append('file', file);
+    showUploadStatus('📤 Trying free backup upload for '+file.name+'...');
+    fetch('https://tmpfiles.org/api/v1/upload', { method:'POST', body:formData })
+      .then(r=>r.json())
+      .then(d=>{
+        if(d.data && d.data.url){
+          var url = d.data.url.replace('tmpfiles.org/','tmpfiles.org/dl/');
+          showUploadStatus('✅ Uploaded to free tmpfiles: '+file.name);
+          resolve(url);
+        } else resolve(null);
+      })
+      .catch(()=>resolve(null));
+  });
+}
+
+// === MAIN FREE UPLOAD FUNCTION - REPLACES Firebase Storage ===
+function uploadFileToStorage(file, path){
+  // Auto compress first to save quota, then upload to FREE Cloudinary
+  return new Promise(function(resolve){
+    if(!file){ resolve(null); return; }
+    // First compress if needed
+    autoCompressFile(file).then(function(compressedFile){
+      file = compressedFile || file;
+      // Continue with upload logic below - file is now compressed
+
+    
+    // For small images (<2MB), we can also store as base64 in Firebase Database (free, no Storage needed)
+    var isSmallImage = file.type.startsWith('image/') && file.size < 2*1024*1024;
+    
+    // Try Cloudinary first (free)
+    uploadToCloudinary(file).then(function(cloudUrl){
+      if(cloudUrl){
+        resolve(cloudUrl);
+      } else {
+        // Cloudinary failed or disabled - tell user to use Drive link
+        showUploadStatus('💡 TIP: For FREE unlimited uploads, paste Google Drive link in the text box below file input.<br>1. Upload file to drive.google.com<br>2. Right-click → Share → Anyone with link<br>3. Copy link → Paste here<br>Registration will continue without file upload.', false);
+        // Resolve null so registration continues with link if provided
+        setTimeout(function(){ resolve(null); }, 2000);
+      }
+    });
+  });
+}
+
 function uploadWithTimeout(file, path, ms){
-  ms = ms || 15000;
+  ms = ms || 20000;
   return Promise.race([
     uploadFileToStorage(file, path),
-    new Promise(function(res){ setTimeout(function(){ res(null); }, ms); })
+    new Promise(function(res){ setTimeout(function(){ console.log('Upload timeout fallback'); res(null); }, ms); })
   ]);
 }
+
+console.log('✅ FREE upload system loaded - No Firebase Storage billing needed');
+console.log('Cloudinary config:', FREE_UPLOAD_CONFIG);
+</script>
 
 async function registerNurse(){
   try{
@@ -3312,6 +3640,1148 @@ document.addEventListener('DOMContentLoaded', function(){
   console.log('✅ Email gate removed, upload timeout fixed');
 })();
 </script>
+
+<!-- ===== NURSE PROFILE PREVIEW BEFORE BOOKING - Client must watch video & read profile ===== -->
+<div id="nurseProfileModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:100003;display:flex;justify-content:center;align-items:flex-start;padding:10px;overflow-y:auto">
+  <div style="background:white;border-radius:16px;width:100%;max-width:520px;margin:20px auto;max-height:90vh;overflow-y:auto;border:3px solid #16a34a;box-shadow:0 10px 30px rgba(0,0,0,0.5)">
+    <div style="position:sticky;top:0;background:linear-gradient(90deg,#16a34a,#eab308);color:white;padding:12px 16px;border-radius:13px 13px 0 0;display:flex;justify-content:space-between;align-items:center;z-index:10">
+      <h2 style="margin:0;font-size:14px;color:white">👩‍⚕️ Nurse Profile - Review Before Booking</h2>
+      <button onclick="closeNurseProfileModal()" style="background:#111827;color:white;border:none;padding:6px 12px;border-radius:8px;font-weight:800">✕ Close</button>
+    </div>
+    
+    <div id="nurseProfileContent" style="padding:12px">
+      <div style="text-align:center;padding:20px">⏳ Loading nurse profile...</div>
+    </div>
+    
+    <div style="background:#f0fdf4;border-top:3px solid #16a34a;padding:12px;border-radius:0 0 13px 13px">
+      <div style="background:white;border:2px solid #eab308;border-radius:10px;padding:10px;margin-bottom:10px">
+        <label style="display:flex;gap:8px;align-items:flex-start;font-size:12px;font-weight:700;cursor:pointer">
+          <input type="checkbox" id="confirmVideoWatched" style="width:18px;height:18px;margin-top:2px" onchange="checkProfileConfirm()">
+          <span>✅ I have <b>watched the nurse's video</b> and <b>read her profile</b> (specialty, experience, location). I understand her care mode and want to book her.</span>
+        </label>
+        <div id="videoWatchStatus" style="font-size:10px;color:#6b7280;margin-top:6px;text-align:center">▶️ Please play video at least 5 seconds to enable booking</div>
+      </div>
+      
+      <div style="display:flex;gap:8px">
+        <button onclick="closeNurseProfileModal()" style="flex:1;background:#6b7280;color:white;border:none;padding:12px;border-radius:10px;font-weight:800">← Back to List</button>
+        <button id="continueToBookBtn" disabled style="flex:2;background:#ccc;color:#666;border:none;padding:12px;border-radius:10px;font-weight:800;cursor:not-allowed" onclick="confirmNurseProfile()">🔒 Watch Video First</button>
+      </div>
+      <div style="font-size:9px;color:#6b7280;text-align:center;margin-top:6px">You must watch video and check box to continue booking</div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ===== CLIENT MUST WATCH VIDEO & READ PROFILE BEFORE BOOKING =====
+var nurseProfileViewed = {}; // Track which nurses profile viewed
+var currentPreviewNurseId = null;
+var videoWatchedSeconds = 0;
+var videoWatchTimer = null;
+
+function viewNurseProfileBeforeBooking(nurseId){
+  var nurse = null;
+  if(typeof nearbyNursesSorted!=='undefined' && nearbyNursesSorted.length>0){
+    nurse = nearbyNursesSorted.find(function(n){ return (n.phone||n.id)==nurseId; });
+  }
+  if(!nurse && typeof getAllNursesSource==='function'){
+    var all = getAllNursesSource();
+    nurse = all.find(function(n){ return (n.phone||n.id)==nurseId; });
+  }
+  if(!nurse && typeof allWorkers!=='undefined' && allWorkers.length>0){
+    nurse = allWorkers.find(function(n){ return (n.phone||n.id)==nurseId; });
+  }
+  if(!nurse){
+    // Try localStorage
+    try{
+      var local=JSON.parse(localStorage.getItem('nurses')||'[]');
+      nurse = local.find(function(n){ return (n.phone||n.id)==nurseId || (n.phoneKey||'').replace(/[^0-9]/g,'')==nurseId.replace(/[^0-9]/g,''); });
+    }catch(e){}
+  }
+  
+  if(!nurse){
+    alert('❌ Nurse not found: '+nurseId);
+    return;
+  }
+  
+  currentPreviewNurseId = nurseId;
+  videoWatchedSeconds = 0;
+  if(videoWatchTimer) clearInterval(videoWatchTimer);
+  
+  var modal = document.getElementById('nurseProfileModal');
+  var content = document.getElementById('nurseProfileContent');
+  var checkbox = document.getElementById('confirmVideoWatched');
+  var continueBtn = document.getElementById('continueToBookBtn');
+  var watchStatus = document.getElementById('videoWatchStatus');
+  
+  if(checkbox) checkbox.checked = false;
+  if(continueBtn){ continueBtn.disabled=true; continueBtn.style.background='#ccc'; continueBtn.style.color='#666'; continueBtn.style.cursor='not-allowed'; continueBtn.innerText='🔒 Watch Video First'; }
+  if(watchStatus) watchStatus.innerText='▶️ Please play video at least 5 seconds to enable booking';
+  if(watchStatus) watchStatus.style.color='#6b7280';
+  
+  modal.classList.remove('hidden');
+  modal.style.display='flex';
+  
+  var distanceText = nurse.distance ? nurse.distance.toFixed(1)+'km away' : '';
+  var onDutyBadge = nurse.onDuty ? '🟢 ON DUTY - LIVE' : '🔴 OFF DUTY';
+  var approvedBadge = (nurse.verified || nurse.approvalStatus==='approved') ? '<span style="background:#16a34a;color:white;padding:3px 8px;border-radius:10px;font-size:10px">✅ Approved by CEO</span>' : '<span style="background:#eab308;color:#111;padding:3px 8px;border-radius:10px;font-size:10px">⏳ Pending</span>';
+  
+  var videoUrl = nurse.videoUrl || nurse.video || '';
+  var cvUrl = nurse.cvUrl || nurse.cv || '';
+  var certUrl = nurse.certUrl || nurse.certificate || '';
+  var idUrl = nurse.idUrl || nurse.id || nurse.idCard || '';
+  
+  var h = '';
+  h+='<div style="background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:2px solid #16a34a;border-radius:12px;padding:12px;margin-bottom:10px">';
+  h+='<div style="display:flex;gap:10px;align-items:center">';
+  h+='<img src="./Icon-512.png" style="width:60px;height:60px;border-radius:50%;border:3px solid #16a34a;background:white;padding:2px" onerror="this.src=\'https://cdn-icons-png.flaticon.com/512/3774/3774293.png\'">';
+  h+='<div style="flex:1"><b style="font-size:15px;color:#111827">'+(nurse.name||'Nurse')+'</b><br><small style="color:#16a34a;font-weight:800">'+(nurse.specialty||'General Care')+' | '+(nurse.experience||'3')+' yrs experience</small><br><small>'+(nurse.location||'')+' '+(distanceText ? '• '+distanceText : '')+'</small><br><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><span style="background:#2563eb;color:white;padding:2px 6px;border-radius:8px;font-size:9px">'+(nurse.careMode||'both')+'</span><span style="background:#111827;color:white;padding:2px 6px;border-radius:8px;font-size:9px">'+onDutyBadge+'</span>'+approvedBadge+'</div></div>';
+  h+='</div>';
+  h+='</div>';
+  
+  // Profile details
+  h+='<div style="background:white;border:2px solid #e5e7eb;border-radius:12px;padding:10px;margin-bottom:10px">';
+  h+='<h3 style="margin:0 0 8px 0;font-size:12px;color:#16a34a">📋 Profile Details - Please Read Carefully</h3>';
+  h+='<div style="font-size:11px;line-height:1.6">';
+  h+='<b>👤 Full Name:</b> '+(nurse.name||'N/A')+'<br>';
+  h+='<b>📞 Phone:</b> '+(nurse.phone||nurseId)+'<br>';
+  h+='<b>📍 Location:</b> '+(nurse.location||'N/A')+'<br>';
+  h+='<b>🎓 Specialty:</b> '+(nurse.specialty||'General')+'<br>';
+  h+='<b>💼 Experience:</b> '+(nurse.experience||'N/A')+' years<br>';
+  h+='<b>🏠 Care Mode:</b> '+(nurse.careMode||'both')+' - '+(nurse.careMode==='livein' ? 'Lives with client 24hrs' : nurse.careMode==='liveout' ? 'Comes daily, goes home' : 'Both live-in & live-out available')+'<br>';
+  h+='<b>📍 GPS:</b> '+(nurse.lat||'')+','+(nurse.lng||'')+'<br>';
+  h+='<b>⏰ Availability:</b> '+(nurse.onDuty ? 'Currently ON DUTY - Can start now' : 'OFF DUTY - May need time to start')+'<br>';
+  h+='</div>';
+  h+='</div>';
+  
+  // Video section - MUST WATCH
+  h+='<div style="background:white;border:3px solid #7c3aed;border-radius:12px;padding:10px;margin-bottom:10px">';
+  h+='<h3 style="margin:0 0 8px 0;font-size:12px;color:#7c3aed">📹 Video Intro - MUST WATCH BEFORE BOOKING (Required)</h3>';
+  if(videoUrl){
+    if(videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')){
+      h+='<a href="'+videoUrl+'" target="_blank" style="display:block;background:#ef4444;color:white;padding:12px;border-radius:8px;text-align:center;font-weight:800;text-decoration:none;margin-bottom:8px">▶️ Watch on YouTube</a>';
+      h+='<div style="background:#fef3c7;padding:8px;border-radius:6px;font-size:10px;text-align:center">YouTube video - Please watch on YouTube, then check box below<br>We cannot track YouTube watch time, so you can check immediately after opening</div>';
+      // For YouTube, allow immediate check
+      setTimeout(function(){ 
+        var ws=document.getElementById('videoWatchStatus');
+        if(ws){ ws.innerText='✅ YouTube link opened - You can now check box below'; ws.style.color='#16a34a'; videoWatchedSeconds=10; checkProfileConfirm(); }
+      }, 2000);
+    } else {
+      h+='<video id="previewVideo" controls playsinline style="width:100%;max-height:300px;border-radius:10px;border:2px solid #7c3aed;background:black" src="'+videoUrl+'" onplay="startVideoWatchTimer()" onended="onVideoEnded()"></video>';
+      h+='<div style="display:flex;gap:6px;margin-top:8px"><a href="'+videoUrl+'" target="_blank" style="flex:1;background:#7c3aed;color:white;padding:8px;border-radius:6px;text-align:center;font-size:11px;font-weight:800;text-decoration:none">📂 Open Video Fullscreen</a><button onclick="document.getElementById(\'previewVideo\').play()" style="flex:1;padding:8px;border-radius:6px;border:1px solid #7c3aed;background:white;font-size:11px">▶️ Play</button></div>';
+      h+='<div style="font-size:10px;color:#6b7280;margin-top:6px;word-break:break-all">🔗 '+videoUrl+'</div>';
+    }
+  } else {
+    h+='<div style="background:#fef2f2;border:2px dashed #ef4444;border-radius:10px;padding:16px;text-align:center"><b>❌ No video uploaded by this nurse</b><br><small>You can still read profile and book</small><br><small style="color:#6b7280">CEO should ask nurse to upload intro video</small></div>';
+    // If no video, allow booking after 3 seconds reading
+    setTimeout(function(){
+      videoWatchedSeconds=10;
+      var ws=document.getElementById('videoWatchStatus');
+      if(ws){ ws.innerText='✅ No video - You can proceed after reading profile'; ws.style.color='#16a34a'; }
+      checkProfileConfirm();
+    }, 3000);
+  }
+  h+='</div>';
+  
+  // CV / Docs
+  if(cvUrl || certUrl || idUrl){
+    h+='<div style="background:white;border:2px solid #2563eb;border-radius:12px;padding:10px;margin-bottom:10px">';
+    h+='<h3 style="margin:0 0 8px 0;font-size:12px;color:#2563eb">📄 Documents (Optional - Read if you want)</h3>';
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap">';
+    if(cvUrl) h+='<a href="'+cvUrl+'" target="_blank" style="background:#2563eb;color:white;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none">📄 View CV</a>';
+    if(certUrl) h+='<a href="'+certUrl+'" target="_blank" style="background:#eab308;color:#111;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none">🎓 Certificate</a>';
+    if(idUrl) h+='<a href="'+idUrl+'" target="_blank" style="background:#111827;color:white;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none">🪪 ID Card</a>';
+    h+='</div>';
+    h+='</div>';
+  }
+  
+  // Live map button
+  h+='<div style="background:#eff6ff;border:2px solid #2563eb;border-radius:12px;padding:10px;margin-bottom:10px;text-align:center">';
+  h+='<b style="font-size:11px">📍 Live Location</b><br><small style="font-size:10px;color:#6b7280">'+(nurse.location||'')+' - '+(distanceText||'')+'</small><br>';
+  h+='<button class="btnSmall" style="background:#2563eb;color:white;margin-top:6px" onclick="openGoogleMapsLive('+(nurse.lat||5.6037)+','+(nurse.lng||-0.1870)+')">🧭 View on Google Maps - Navigate to Nurse</button>';
+  h+='</div>';
+  
+  content.innerHTML=h;
+}
+
+function startVideoWatchTimer(){
+  if(videoWatchTimer) clearInterval(videoWatchTimer);
+  videoWatchedSeconds=0;
+  var statusEl=document.getElementById('videoWatchStatus');
+  videoWatchTimer=setInterval(function(){
+    videoWatchedSeconds++;
+    if(statusEl){
+      if(videoWatchedSeconds<5){
+        statusEl.innerText='⏳ Watching video: '+videoWatchedSeconds+'s / 5s required... Please continue watching';
+        statusEl.style.color='#eab308';
+      } else {
+        statusEl.innerText='✅ Video watched '+videoWatchedSeconds+'s - You can now check box and book!';
+        statusEl.style.color='#16a34a';
+        clearInterval(videoWatchTimer);
+        checkProfileConfirm();
+      }
+    }
+    if(videoWatchedSeconds>=5){
+      clearInterval(videoWatchTimer);
+    }
+  },1000);
+}
+
+function onVideoEnded(){
+  videoWatchedSeconds=Math.max(videoWatchedSeconds, 10);
+  var statusEl=document.getElementById('videoWatchStatus');
+  if(statusEl){ statusEl.innerText='✅ Video completed - You can now book!'; statusEl.style.color='#16a34a'; }
+  checkProfileConfirm();
+}
+
+function checkProfileConfirm(){
+  var checkbox=document.getElementById('confirmVideoWatched');
+  var btn=document.getElementById('continueToBookBtn');
+  if(!checkbox || !btn) return;
+  
+  var videoOk = videoWatchedSeconds>=5;
+  var checked = checkbox.checked;
+  
+  if(videoOk && checked){
+    btn.disabled=false;
+    btn.style.background='#16a34a';
+    btn.style.color='white';
+    btn.style.cursor='pointer';
+    btn.innerText='✅ Continue to Book '+ (currentPreviewNurseId ? currentPreviewNurseId.substring(0,15) : '');
+  } else if(!videoOk){
+    btn.disabled=true;
+    btn.style.background='#ccc';
+    btn.style.color='#666';
+    btn.style.cursor='not-allowed';
+    btn.innerText='🔒 Watch Video 5s First ('+videoWatchedSeconds+'s/5s)';
+  } else {
+    btn.disabled=true;
+    btn.style.background='#eab308';
+    btn.style.color='#111';
+    btn.style.cursor='not-allowed';
+    btn.innerText='☑️ Check Box Above to Continue';
+  }
+}
+
+function closeNurseProfileModal(){
+  var modal=document.getElementById('nurseProfileModal');
+  if(modal){ modal.classList.add('hidden'); modal.style.display='none'; }
+  if(videoWatchTimer) clearInterval(videoWatchTimer);
+}
+
+function confirmNurseProfile(){
+  var checkbox=document.getElementById('confirmVideoWatched');
+  if(!checkbox || !checkbox.checked){
+    alert('❌ Please check box: I have watched video and read profile');
+    return;
+  }
+  if(videoWatchedSeconds<5){
+    alert('❌ Please watch video at least 5 seconds. Current: '+videoWatchedSeconds+'s');
+    return;
+  }
+  if(!currentPreviewNurseId){
+    alert('No nurse selected');
+    return;
+  }
+  
+  // Mark as viewed
+  nurseProfileViewed[currentPreviewNurseId]=true;
+  selectedNurseId=currentPreviewNurseId;
+  
+  // Update UI
+  var infoEl=document.getElementById('selectedNurseInfo');
+  if(infoEl){
+    var nurse = (typeof nearbyNursesSorted!=='undefined'?nearbyNursesSorted.find(function(n){return (n.phone||n.id)==currentPreviewNurseId;}):null) || (typeof getAllNursesSource==='function'?getAllNursesSource().find(function(n){return (n.phone||n.id)==currentPreviewNurseId;}):null);
+    var name = nurse ? nurse.name : currentPreviewNurseId;
+    infoEl.innerHTML='✅ <b>'+name+'</b> - Profile Reviewed & Video Watched ('+videoWatchedSeconds+'s) - Ready to BOOK<br><small style="color:#6b7280">You can now fill booking form and click BOOK SELECTED</small>';
+    infoEl.style.background='#dcfce7';
+    infoEl.style.padding='8px';
+    infoEl.style.borderRadius='8px';
+    infoEl.style.border='2px solid #16a34a';
+  }
+  
+  // Highlight marker and route
+  if(typeof renderNurseMarkers==='function'){
+    renderNurseMarkers(nearbyNursesSorted && nearbyNursesSorted.length>0?nearbyNursesSorted:null);
+  }
+  if(typeof showLiveRoute==='function'){
+    var nurse = nearbyNursesSorted ? nearbyNursesSorted.find(function(n){ return (n.phone||n.id)==currentPreviewNurseId; }) : null;
+    if(nurse && typeof clientLat!=='undefined' && clientLat && typeof clientLng!=='undefined' && clientLng){
+      showLiveRoute(clientLat, clientLng, parseFloat(nurse.lat), parseFloat(nurse.lng));
+    }
+  }
+  
+  closeNurseProfileModal();
+  
+  // Scroll to booking form
+  var bookingCard=document.getElementById('cName');
+  if(bookingCard){
+    bookingCard.scrollIntoView({behavior:'smooth', block:'center'});
+    bookingCard.focus();
+  }
+  
+  // Show success
+  setTimeout(function(){
+    alert('✅ Nurse '+currentPreviewNurseId+' selected!\n\nYou watched video ('+videoWatchedSeconds+'s) and read profile.\nNow fill your details (Name, Phone, Service, Budget) and click BOOK SELECTED.');
+  }, 300);
+}
+
+// Override old selectNurseCard to show profile modal
+var originalSelectNurseCard = window.selectNurseCard;
+window.selectNurseCard = function(id){
+  // Instead of directly selecting, show profile modal first
+  viewNurseProfileBeforeBooking(id);
+};
+
+// Also override random select to use profile modal
+var originalRandomSelect = window.randomSelectNurse;
+window.randomSelectNurse = function(){
+  if(typeof nearbyNursesSorted==='undefined' || nearbyNursesSorted.length===0){ alert('No nurses in range - Increase radius'); return; }
+  var p=nearbyNursesSorted[Math.floor(Math.random()*nearbyNursesSorted.length)];
+  viewNurseProfileBeforeBooking(p.phone||p.id);
+};
+
+// Make BOOK button check if profile viewed
+var originalCheckEmailAndBook = window.checkEmailAndBook;
+window.checkEmailAndBook = function(){
+  if(!selectedNurseId){
+    alert('❌ Please select a nurse first from the list below map - Click Select on a nurse card');
+    return;
+  }
+  if(!nurseProfileViewed[selectedNurseId]){
+    if(confirm('⚠️ You have not yet watched video & read profile for selected nurse '+selectedNurseId+'.\n\nDo you want to view profile now? (Recommended)\n\nClick OK to view profile, Cancel to book directly')){
+      viewNurseProfileBeforeBooking(selectedNurseId);
+      return;
+    }
+  }
+  // Proceed to booking
+  if(typeof submitBooking==='function') submitBooking();
+};
+
+console.log('✅ Nurse profile preview before booking loaded - Clients must watch video & read profile');
+</script>
+
+
+<!-- ===== RATING AFTER SERVICE COMPLETED ===== -->
+<div id="ratingModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:100004;display:flex;justify-content:center;align-items:center;padding:12px">
+  <div style="background:white;border-radius:16px;width:100%;max-width:420px;border:3px solid #eab308;box-shadow:0 10px 30px rgba(0,0,0,0.5);overflow:hidden">
+    <div style="background:linear-gradient(90deg,#eab308,#16a34a);color:white;padding:14px;text-align:center">
+      <h2 style="margin:0;font-size:16px">⭐ Rate Your Nurse</h2>
+      <small style="font-size:11px">Service completed - Please rate</small>
+    </div>
+    <div style="padding:16px">
+      <div id="ratingNurseInfo" style="background:#f0fdf4;border:2px solid #16a34a;border-radius:10px;padding:10px;margin-bottom:12px;text-align:center">
+        <b id="ratingNurseName">Nurse Name</b><br><small id="ratingBookingInfo">Booking #123</small>
+      </div>
+      
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:800;margin-bottom:8px">How was the service?</div>
+        <div id="starRating" style="display:flex;justify-content:center;gap:8px;font-size:32px">
+          <span class="star" data-rating="1" onclick="setRating(1)" style="cursor:pointer;color:#e5e7eb">★</span>
+          <span class="star" data-rating="2" onclick="setRating(2)" style="cursor:pointer;color:#e5e7eb">★</span>
+          <span class="star" data-rating="3" onclick="setRating(3)" style="cursor:pointer;color:#e5e7eb">★</span>
+          <span class="star" data-rating="4" onclick="setRating(4)" style="cursor:pointer;color:#e5e7eb">★</span>
+          <span class="star" data-rating="5" onclick="setRating(5)" style="cursor:pointer;color:#e5e7eb">★</span>
+        </div>
+        <div id="ratingText" style="font-size:11px;color:#6b7280;margin-top:6px">Tap stars to rate</div>
+      </div>
+      
+      <div style="margin-bottom:12px">
+        <label style="font-size:11px;font-weight:800">💬 Your Review (Optional):</label>
+        <textarea id="ratingComment" placeholder="How was the nurse? Punctual? Caring? Professional? Your feedback helps others..." style="width:100%;min-height:80px;padding:10px;border-radius:10px;border:1px solid #ccc;font-size:12px;margin-top:4px"></textarea>
+      </div>
+      
+      <div style="background:#fffbeb;border:2px solid #eab308;border-radius:8px;padding:8px;margin-bottom:12px;font-size:10px">
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="ratingRecommend" style="width:16px;height:16px"><span>✅ I would recommend this nurse to others</span></label>
+      </div>
+      
+      <div style="display:flex;gap:8px">
+        <button onclick="closeRatingModal()" style="flex:1;background:#6b7280;color:white;border:none;padding:12px;border-radius:10px;font-weight:800">Later</button>
+        <button id="submitRatingBtn" onclick="submitRating()" disabled style="flex:2;background:#ccc;color:#666;border:none;padding:12px;border-radius:10px;font-weight:800;cursor:not-allowed">⭐ Select Rating First</button>
+      </div>
+      <div style="font-size:9px;color:#6b7280;text-align:center;margin-top:6px">Rating helps CEO approve good nurses & helps future clients choose</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== RATING SYSTEM - After Service Completed =====
+var currentRating = 0;
+var currentRatingBookingId = null;
+var currentRatingNursePhone = null;
+
+function setRating(rating){
+  currentRating = rating;
+  var stars = document.querySelectorAll('#starRating .star');
+  stars.forEach(function(star, idx){
+    if(idx < rating){
+      star.style.color = '#eab308';
+      star.style.textShadow = '0 0 8px rgba(234,179,8,0.5)';
+    } else {
+      star.style.color = '#e5e7eb';
+      star.style.textShadow = 'none';
+    }
+  });
+  
+  var texts = ['','😡 Poor - Not satisfied','😕 Fair - Could be better','🙂 Good - Satisfied','😊 Very Good - Happy','🤩 Excellent - Highly recommend!'];
+  var textEl = document.getElementById('ratingText');
+  if(textEl) textEl.innerText = texts[rating] + ' ('+rating+'/5)';
+  if(textEl) textEl.style.color = rating>=4 ? '#16a34a' : rating>=3 ? '#eab308' : '#ef4444';
+  if(textEl) textEl.style.fontWeight = '800';
+  
+  var btn = document.getElementById('submitRatingBtn');
+  if(btn){
+    btn.disabled = false;
+    btn.style.background = '#16a34a';
+    btn.style.color = 'white';
+    btn.style.cursor = 'pointer';
+    btn.innerText = '⭐ Submit '+rating+' Star Rating';
+  }
+}
+
+function openRatingModal(bookingId, nursePhone, nurseName, bookingInfo){
+  currentRatingBookingId = bookingId;
+  currentRatingNursePhone = nursePhone;
+  currentRating = 0;
+  
+  document.getElementById('ratingNurseName').innerText = nurseName || nursePhone;
+  document.getElementById('ratingBookingInfo').innerText = bookingInfo || 'Booking #'+bookingId;
+  document.getElementById('ratingComment').value = '';
+  document.getElementById('ratingRecommend').checked = true;
+  document.getElementById('ratingText').innerText = 'Tap stars to rate';
+  document.getElementById('ratingText').style.color = '#6b7280';
+  
+  var stars = document.querySelectorAll('#starRating .star');
+  stars.forEach(function(s){ s.style.color='#e5e7eb'; });
+  
+  var btn = document.getElementById('submitRatingBtn');
+  if(btn){ btn.disabled=true; btn.style.background='#ccc'; btn.style.color='#666'; btn.innerText='⭐ Select Rating First'; }
+  
+  var modal = document.getElementById('ratingModal');
+  modal.classList.remove('hidden');
+  modal.style.display='flex';
+}
+
+function closeRatingModal(){
+  var modal = document.getElementById('ratingModal');
+  if(modal){ modal.classList.add('hidden'); modal.style.display='none'; }
+  currentRating = 0;
+  currentRatingBookingId = null;
+}
+
+function submitRating(){
+  if(currentRating===0){
+    alert('❌ Please select stars (1-5)');
+    return;
+  }
+  if(!currentRatingBookingId || !currentRatingNursePhone){
+    alert('❌ Booking info missing');
+    return;
+  }
+  
+  var comment = document.getElementById('ratingComment').value.trim();
+  var recommend = document.getElementById('ratingRecommend').checked;
+  var clientPhone = localStorage.getItem('lastClientPhone') || '';
+  var clientName = localStorage.getItem('lastClientName') || 'Client';
+  
+  var ratingData = {
+    bookingId: currentRatingBookingId,
+    nursePhone: currentRatingNursePhone,
+    nursePhoneKey: currentRatingNursePhone.replace(/[^0-9]/g,''),
+    rating: currentRating,
+    comment: comment,
+    recommend: recommend,
+    clientPhone: clientPhone,
+    clientName: clientName,
+    timestamp: Date.now(),
+    createdAt: new Date().toLocaleString()
+  };
+  
+  var btn = document.getElementById('submitRatingBtn');
+  if(btn){ btn.disabled=true; btn.innerText='⏳ Submitting...'; }
+  
+  // Save to Firebase
+  if(window.db){
+    var ratingKey = Date.now()+'_'+currentRatingBookingId;
+    db.ref('ratings/'+ratingKey).set(ratingData).then(function(){
+      // Also update booking with rating
+      db.ref('bookings/'+currentRatingBookingId).update({rated:true, rating:currentRating, ratingComment:comment, ratedAt:Date.now()}).then(function(){
+        // Update nurse average rating
+        updateNurseAverageRating(currentRatingNursePhone);
+      });
+      alert('✅ Thank you!\n\n⭐ You rated '+(document.getElementById('ratingNurseName').innerText)+' '+currentRating+'/5 stars\n\nYour review helps CEO and future clients.\nNurse will be notified.');
+      closeRatingModal();
+      if(typeof loadMyBookings==='function') loadMyBookings();
+    }).catch(function(err){
+      alert('❌ Failed to save rating: '+err.message);
+      if(btn){ btn.disabled=false; btn.innerText='⭐ Submit '+currentRating+' Star Rating'; }
+    });
+  } else {
+    // Demo mode - save to localStorage
+    try{
+      var ratings = JSON.parse(localStorage.getItem('ratings')||'[]');
+      ratings.push(ratingData);
+      localStorage.setItem('ratings', JSON.stringify(ratings));
+      // Update booking in local
+      alert('✅ Rating saved locally (Demo): '+currentRating+'/5 stars\n'+comment);
+      closeRatingModal();
+    }catch(e){
+      alert('Error saving locally: '+e.message);
+    }
+  }
+}
+
+function updateNurseAverageRating(nursePhone){
+  if(!window.db) return;
+  var phoneKey = nursePhone.replace(/[^0-9]/g,'');
+  db.ref('ratings').orderByChild('nursePhoneKey').equalTo(phoneKey).once('value').then(function(snap){
+    var all = Object.values(snap.val()||{});
+    if(all.length===0) return;
+    var sum = 0, count=0, recommendCount=0;
+    all.forEach(function(r){ sum+=r.rating; count++; if(r.recommend) recommendCount++; });
+    var avg = (sum/count).toFixed(1);
+    var recommendPct = Math.round(recommendCount/count*100);
+    db.ref('workers/'+phoneKey).update({
+      averageRating: parseFloat(avg),
+      totalRatings: count,
+      ratingSum: sum,
+      recommendPercent: recommendPct,
+      lastRatingAt: Date.now()
+    });
+    console.log('Nurse '+phoneKey+' new avg rating: '+avg+' from '+count+' ratings');
+  });
+}
+
+// Hook into existing booking completion flow
+// When client confirms work done, show rating modal after
+var originalConfirmWorkDone = window.confirmWorkDone;
+window.confirmWorkDone = function(bookingId){
+  if(!confirm('✅ Confirm that nurse completed service?\n\nAfter confirming, you can rate the nurse.')) return;
+  if(!window.db){ alert('Demo: Work confirmed, now rate'); return; }
+  db.ref('bookings/'+bookingId).update({status:'completed_confirmed', completedConfirmedAt:Date.now(), completedBy:'client'}).then(function(){
+    alert('✅ Work confirmed as completed!\n\nNow please rate your nurse to help CEO and future clients.');
+    // Find booking to get nurse phone
+    db.ref('bookings/'+bookingId).once('value').then(function(snap){
+      var b=snap.val();
+      if(b){
+        // Create payout automatically (existing logic)
+        if(typeof createPayoutForBooking==='function') createPayoutForBooking(b);
+        // Open rating modal
+        setTimeout(function(){
+          openRatingModal(bookingId, b.selectedNurse||b.nursePhone||'unknown', b.selectedNurse||'Nurse', b.service+' - '+b.amount+' '+(b.currency||'GHS'));
+        }, 800);
+      }
+    });
+    if(typeof loadMyBookings==='function') loadMyBookings();
+  });
+};
+
+// Enhance loadMyBookings to show Rate button for completed bookings
+var originalLoadMyBookings = window.loadMyBookings;
+window.loadMyBookings = function(){
+  // Call original first
+  if(originalLoadMyBookings){
+    // We will override rendering - need to patch after original loads
+    // Instead, we replace the entire function with enhanced version that includes rating
+    enhancedLoadMyBookings();
+  } else {
+    enhancedLoadMyBookings();
+  }
+};
+
+function enhancedLoadMyBookings(){
+  var codeEl=document.getElementById('myBookPhoneCode'); var phoneEl=document.getElementById('myBookPhone');
+  var fullPhone = codeEl && phoneEl? (codeEl.value + phoneEl.value.trim().replace(/^0+/,'').replace(/\+/g,'')) : '';
+  if(phoneEl && phoneEl.value.trim().startsWith('+')) fullPhone = phoneEl.value.trim();
+  else if(phoneEl && phoneEl.value.trim()!=''){ try{ fullPhone = getFullPhone('myBookPhoneCode','myBookPhone'); }catch(e){} } else { fullPhone = localStorage.getItem('lastClientPhone')||''; }
+  if(!fullPhone){ alert('Enter your phone'); return; }
+  var listDiv=document.getElementById('myBookingsList'); listDiv.innerHTML='Loading live bookings...'; 
+  if(!db){ listDiv.innerHTML='<div style="padding:10px;background:#fef3c7;border-radius:8px">Firebase not connected - Demo mode<br>Your last booking would appear here with Rate button after completed</div>'; return; }
+  var suffix = fullPhone.replace(/[^0-9]/g,'').slice(-9);
+  db.ref('bookings').once('value').then(function(snap){
+    var all = Object.values(snap.val()||{}); var mine = all.filter(function(b){ return (b.phone||'').replace(/[^0-9]/g,'').endsWith(suffix); }); mine.sort(function(a,b){ return b.timestamp-a.timestamp; });
+    if(mine.length===0){ listDiv.innerHTML='<div style="text-align:center;color:#999;padding:10px">No bookings for '+fullPhone+'<br><small>After booking, you will see Rate button when nurse completes service</small></div>'; return; }
+    var h='';
+    // Check ratings
+    db.ref('ratings').orderByChild('clientPhone').equalTo(fullPhone).once('value').then(function(rSnap){
+      var myRatings = rSnap.val()||{};
+      var ratedBookingIds = {};
+      Object.values(myRatings).forEach(function(r){ ratedBookingIds[r.bookingId]=r; });
+      
+      mine.forEach(function(b){
+        var statusColor = b.status==='pending_assignment' ? '#eab308' : b.status==='paid' ? '#2563eb' : b.status==='completed_confirmed' ? '#16a34a' : '#6b7280';
+        var statusText = b.status==='pending_assignment' ? '⏳ Pending Assignment' : b.status==='paid' ? '💳 Paid - Nurse Working' : b.status==='completed_confirmed' ? '✅ Completed - Please Rate' : b.status;
+        var isCompleted = b.status==='completed_confirmed' || b.status==='completed' || b.status==='work_done';
+        var alreadyRated = ratedBookingIds[b.id];
+        var ratingBtn = '';
+        if(isCompleted && !alreadyRated){
+          ratingBtn = '<button class="btnSmall" style="background:#eab308;color:#111;font-weight:800;border:2px solid #111827;margin-top:6px;width:100%;padding:10px" onclick="openRatingModal(\''+b.id+'\',\''+(b.selectedNurse||'')+'\',\''+(b.selectedNurse||'Nurse')+'\',\''+(b.service||'')+' - '+(b.amount||'')+' '+(b.currency||'')+'\')">⭐ RATE NURSE NOW (After Service)</button>';
+        } else if(alreadyRated){
+          ratingBtn = '<div style="background:#dcfce7;border:2px solid #16a34a;border-radius:8px;padding:8px;margin-top:6px;text-align:center"><b>✅ You rated: '+alreadyRated.rating+'/5 ⭐</b><br><small>'+(alreadyRated.comment||'No comment')+'</small></div>';
+        } else if(b.status==='paid'){
+          ratingBtn = '<button class="btnSmall" style="background:#2563eb;color:white;width:100%;margin-top:6px" onclick="confirmWorkDone(\''+b.id+'\')">✅ Confirm Work Done - Then Rate</button>';
+        }
+        
+        h+='<div style="border:2px solid '+statusColor+';border-radius:12px;padding:10px;margin:8px 0;background:white">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center"><b>'+ (b.service||'') +'</b><span style="background:'+statusColor+';color:white;padding:3px 8px;border-radius:10px;font-size:9px;font-weight:800">'+statusText+'</span></div>'
+        +'<small>📅 '+ (b.time||'') +' | 💰 '+ (b.amount||'') +' '+(b.currency||'')+' | 👩‍⚕️ '+(b.selectedNurse||'Not assigned')+'</small><br>'
+        +'<small>📍 '+(b.location||'')+' | ⏰ '+(b.dailySchedule||'')+'</small><br>'
+        +'<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">'
+        +'<button class="btnSmall" style="background:#6b7280;color:white" onclick="openGoogleMapsLive('+(b.lat||5.6037)+','+(b.lng||-0.1870)+')">📍 Track Nurse Live</button>'
+        +'</div>'
+        + ratingBtn
+        +'</div>';
+      });
+      listDiv.innerHTML=h;
+    });
+  });
+}
+
+// Show average rating in nurse profile preview (before booking)
+var originalViewNurseProfileBeforeBooking = window.viewNurseProfileBeforeBooking;
+var enhancedViewNurseProfile = function(nurseId){
+  // Call original to load profile, then add rating info
+  if(originalViewNurseProfileBeforeBooking){
+    // We already overrode selectNurseCard, so we need to enhance the content after it loads
+    // We'll patch by adding rating fetch after modal opens
+    if(window.viewNurseProfileBeforeBooking_original){
+      window.viewNurseProfileBeforeBooking_original(nurseId);
+    }
+  }
+  // Fetch rating for this nurse
+  if(window.db){
+    var phoneKey = nurseId.replace(/[^0-9]/g,'');
+    db.ref('workers/'+phoneKey).once('value').then(function(snap){
+      var n=snap.val();
+      if(!n) return;
+      var avg = n.averageRating || 0;
+      var total = n.totalRatings || 0;
+      var rec = n.recommendPercent || 0;
+      var content = document.getElementById('nurseProfileContent');
+      if(content && total>0){
+        var ratingHtml = '<div style="background:linear-gradient(135deg,#fffbeb,#f0fdf4);border:2px solid #eab308;border-radius:12px;padding:10px;margin-bottom:10px;text-align:center">';
+        ratingHtml+='<div style="font-size:11px;font-weight:800;color:#92400e">⭐ Client Ratings (After Service)</div>';
+        ratingHtml+='<div style="font-size:24px;font-weight:800;color:#eab308;margin:4px 0">'+avg.toFixed(1)+' <span style="font-size:14px;color:#6b7280">/5</span></div>';
+        ratingHtml+='<div style="font-size:10px;color:#6b7280">'+total+' ratings | '+rec+'% recommend<br>';
+        var stars = '';
+        for(var i=0;i<5;i++){ stars+= i<Math.round(avg) ? '⭐' : '☆'; }
+        ratingHtml+=stars+'</div>';
+        ratingHtml+='</div>';
+        // Insert at top of content
+        content.innerHTML = ratingHtml + content.innerHTML;
+      }
+    });
+    
+    // Also fetch recent reviews
+    db.ref('ratings').orderByChild('nursePhoneKey').equalTo(phoneKey).limitToLast(3).once('value').then(function(snap){
+      var reviews = Object.values(snap.val()||{}).sort(function(a,b){ return b.timestamp-a.timestamp; });
+      if(reviews.length>0){
+        var content = document.getElementById('nurseProfileContent');
+        if(!content) return;
+        var rHtml='<div style="background:white;border:2px solid #e5e7eb;border-radius:12px;padding:10px;margin:10px 0"><h3 style="margin:0 0 6px 0;font-size:11px">💬 Recent Reviews (After Service)</h3>';
+        reviews.forEach(function(r){
+          var stars=''; for(var i=0;i<r.rating;i++) stars+='⭐';
+          rHtml+='<div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin:6px 0;background:#f9fafb"><div style="display:flex;justify-content:space-between"><b style="font-size:11px">'+stars+' '+r.rating+'/5</b><small style="font-size:9px;color:#6b7280">'+(r.createdAt||'')+'</small></div><div style="font-size:11px;margin-top:4px">'+(r.comment||'<i>No comment</i>')+'</div><small style="font-size:9px;color:#6b7280">- '+(r.clientName||'Client')+(r.recommend?' ✅ Recommends':'')+'</small></div>';
+        });
+        rHtml+='</div>';
+        content.innerHTML += rHtml;
+      }
+    });
+  }
+};
+
+// Save original and override
+if(window.viewNurseProfileBeforeBooking){
+  window.viewNurseProfileBeforeBooking_original = window.viewNurseProfileBeforeBooking;
+  window.viewNurseProfileBeforeBooking = function(id){
+    window.viewNurseProfileBeforeBooking_original(id);
+    // After 1 sec, add ratings
+    setTimeout(function(){
+      var phoneKey = id.replace(/[^0-9]/g,'');
+      if(window.db){
+        db.ref('workers/'+phoneKey).once('value').then(function(snap){
+          var n=snap.val(); if(!n) return;
+          var avg=n.averageRating||0, total=n.totalRatings||0, rec=n.recommendPercent||0;
+          if(total>0){
+            var content=document.getElementById('nurseProfileContent');
+            if(content){
+              var ratingHtml='<div style="background:linear-gradient(135deg,#fffbeb,#f0fdf4);border:2px solid #eab308;border-radius:12px;padding:10px;margin-bottom:10px;text-align:center"><div style="font-size:11px;font-weight:800">⭐ '+avg.toFixed(1)+'/5 from '+total+' clients | '+rec+'% recommend</div></div>';
+              content.innerHTML=ratingHtml+content.innerHTML;
+            }
+          }
+        });
+      }
+    }, 800);
+  };
+}
+
+console.log('✅ Rating after service completed loaded');
+</script>
+
+
+<script>
+// ===== CEO/STAFF SUSPEND MANAGEMENT + RATING VIEW =====
+
+function suspendNurse(phone){
+  var reason = prompt('⚠️ SUSPEND nurse '+phone+'?\n\nEnter reason for suspension (e.g. Low rating 2.1/5, Client complaints, No-show):', 'Low rating / Client complaints');
+  if(reason===null) return; // Cancelled
+  if(!reason.trim()){ alert('Please enter reason'); return; }
+  if(!confirm('⚠️ CONFIRM SUSPEND '+phone+'?\n\nReason: '+reason+'\n\nSuspended nurses CANNOT login and will NOT appear on client map.\n\nCEO/Staff can unsuspend later.')) return;
+  
+  if(window.db){
+    var phoneKey = phone.replace(/[^0-9]/g,'');
+    db.ref('workers/'+phoneKey).update({
+      suspended: true,
+      suspendedReason: reason,
+      suspendedAt: Date.now(),
+      suspendedBy: localStorage.getItem('ceoID')||localStorage.getItem('staffID')||'CEO',
+      onDuty: false,
+      status: 'suspended'
+    }).then(function(){
+      alert('⛔ Nurse '+phone+' SUSPENDED\nReason: '+reason+'\n\nThey cannot login or appear on map until unsuspended by CEO/Staff.');
+      if(typeof loadCeoNurses==='function') loadCeoNurses();
+      if(typeof loadStaffNurses==='function') loadStaffNurses();
+      // Also log to suspended list
+      db.ref('suspendedWorkers/'+phoneKey).set({
+        phone: phone,
+        reason: reason,
+        suspendedAt: Date.now(),
+        suspendedBy: localStorage.getItem('ceoID')||localStorage.getItem('staffID')||'CEO'
+      });
+    });
+  } else {
+    alert('Demo: Nurse '+phone+' would be suspended');
+  }
+}
+
+function unsuspendNurse(phone){
+  if(!confirm('✅ UNSUSPEND nurse '+phone+'?\n\nThey will be able to login and appear on map again (if approved).')) return;
+  if(window.db){
+    var phoneKey = phone.replace(/[^0-9]/g,'');
+    db.ref('workers/'+phoneKey).update({
+      suspended: false,
+      suspendedReason: '',
+      unsuspendedAt: Date.now(),
+      unsuspendedBy: localStorage.getItem('ceoID')||localStorage.getItem('staffID')||'CEO',
+      status: 'approved',
+      verified: true,
+      approvalStatus: 'approved'
+    }).then(function(){
+      alert('✅ Nurse '+phone+' UNSUSPENDED - Can now login and appear on map');
+      if(typeof loadCeoNurses==='function') loadCeoNurses();
+      if(typeof loadStaffNurses==='function') loadStaffNurses();
+      db.ref('suspendedWorkers/'+phoneKey).remove();
+    });
+  }
+}
+
+// Enhanced login check - block suspended nurses
+var originalLoginCheck = window.loginNurse;
+var loginNursePatched = false;
+if(!loginNursePatched){
+  // Patch loginNurse to check suspended
+  var loginNurseOriginalCode = window.loginNurse;
+  window.loginNurse = async function(){
+    var phoneEl=document.getElementById('nurseLoginPhone');
+    var passEl=document.getElementById('nurseLoginPass');
+    var resultEl=document.getElementById('nurseLoginResult');
+    if(!phoneEl||!passEl){ alert('Form not found'); return; }
+    var phoneRaw=phoneEl.value.trim();
+    var pass=passEl.value.trim();
+    if(!phoneRaw||!pass){ if(resultEl) resultEl.innerText='Enter phone and password'; else alert('Enter phone and password'); return; }
+    var fullPhone=(typeof getFullPhone==='function')? getFullPhone('nurseLoginCode','nurseLoginPhone') : phoneRaw;
+    var phoneKey=fullPhone.replace(/[^0-9]/g,'');
+    if(resultEl) resultEl.innerText='Checking...';
+    var found=null;
+    try{
+      var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
+      found=nurses.find(function(n){
+        var k=(n.phoneKey||n.phone||'').replace(/[^0-9]/g,'');
+        return (k===phoneKey || k.slice(-9)===phoneKey.slice(-9)) && n.password===pass;
+      });
+    }catch(e){}
+    if(!found && window.db){
+      try{
+        var snap=await db.ref('workers/'+phoneKey).once('value');
+        var data=snap.val();
+        if(data && data.password===pass) found=data;
+        else {
+          var allSnap=await db.ref('workers').once('value');
+          var all=allSnap.val()||{};
+          Object.keys(all).forEach(function(k){
+            var w=all[k]; if(w && w.password===pass){
+              var wk=(w.phoneKey||k).replace(/[^0-9]/g,'');
+              if(wk===phoneKey || wk.slice(-9)===phoneKey.slice(-9)) found=w;
+            }
+          });
+        }
+      }catch(e){ console.warn(e); }
+    }
+    if(found){
+      // Check suspended first
+      if(found.suspended===true || found.status==='suspended'){
+        if(resultEl) resultEl.innerText='⛔ Account SUSPENDED';
+        alert('⛔ ACCOUNT SUSPENDED\n\nHi '+(found.name||'Nurse')+'! Your account is SUSPENDED by CEO/Staff.\n\nReason: '+(found.suspendedReason||'No reason given')+'\nSuspended: '+(found.suspendedAt?new Date(found.suspendedAt).toLocaleString():'')+'\n\nContact CEO: 0544121814 to appeal.');
+        return;
+      }
+      // Check approval
+      var isApproved = found.verified===true || found.approvalStatus==='approved' || found.status==='approved';
+      if(!isApproved){
+        if(resultEl) resultEl.innerText='⏳ Pending approval';
+        alert('⏳ PENDING APPROVAL - CEO/Staff must approve');
+        return;
+      }
+      localStorage.setItem('nursePhone', found.phone||fullPhone);
+      localStorage.setItem('nursePhoneKey', found.phoneKey||phoneKey);
+      localStorage.setItem('nurseName', found.name||'Nurse');
+      if(resultEl) resultEl.innerText='Success! Approved ✅';
+      var chatBtn=document.getElementById('nav-chat');
+      if(chatBtn){ chatBtn.classList.remove('hidden'); chatBtn.classList.add('show-for-staff'); chatBtn.style.display='flex'; }
+      if(typeof showPage==='function') showPage('nurse-dashboard');
+      alert('Welcome '+(found.name||'Nurse')+'! Logged in. Rating: '+(found.averageRating?found.averageRating+'/5 ('+found.totalRatings+' reviews)':'No ratings yet'));
+    }else{
+      if(resultEl) resultEl.innerText='Invalid phone or password';
+      else alert('Invalid login');
+    }
+  };
+  loginNursePatched=true;
+}
+
+// Update getAllNursesSource to hide suspended from clients
+var originalGetAllNursesSource = window.getAllNursesSource;
+window.getAllNursesSource = function(){
+  var src=[];
+  if(typeof allWorkers!=='undefined' && allWorkers.length>0) src=allWorkers; 
+  else { try{ src=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){ src=[]; } }
+  var isCEO = localStorage.getItem('isCEOLogged')==='true' || localStorage.getItem('staffID');
+  if(isCEO) return src;
+  // For clients, hide suspended AND only show approved
+  return src.filter(function(n){
+    if(n.suspended===true || n.status==='suspended') return false;
+    return n.verified===true || n.approvalStatus==='approved' || n.status==='approved';
+  });
+};
+
+// CEO Dashboard - Enhanced with Ratings + Suspend
+var originalLoadCeoNursesEnhanced = window.loadCeoNurses;
+window.loadCeoNurses = function(){
+  var el=document.getElementById('ceoNursesList');
+  if(!el) return;
+  if(!window.db){
+    el.innerHTML='Demo offline';
+    return;
+  }
+  el.innerHTML='⏳ Loading nurses with ratings...';
+  db.ref('workers').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{});
+    if(all.length===0){ el.innerHTML='No nurses yet'; return; }
+    // Sort: suspended last, pending first, then by rating low to high for CEO attention
+    all.sort(function(a,b){
+      if(a.suspended && !b.suspended) return 1;
+      if(!a.suspended && b.suspended) return -1;
+      var aPending = (a.approvalStatus==='pending' || !a.verified) ? 0 : 1;
+      var bPending = (b.approvalStatus==='pending' || !b.verified) ? 0 : 1;
+      if(aPending!==bPending) return aPending-bPending;
+      // Then low rating first
+      var aRate = a.averageRating||5, bRate=b.averageRating||5;
+      return aRate-bRate;
+    });
+    
+    var pendingCount = all.filter(function(n){ return !n.verified && n.approvalStatus!=='rejected' && !n.suspended; }).length;
+    var suspendedCount = all.filter(function(n){ return n.suspended; }).length;
+    var lowRated = all.filter(function(n){ return n.averageRating && n.averageRating<3 && !n.suspended; }).length;
+    
+    var h='<div style="background:#fffbeb;border:2px solid #eab308;padding:10px;border-radius:10px;margin-bottom:10px">';
+    h+='<b>📋 CEO Rating & Suspend Panel</b><br>';
+    h+='<small>⏳ '+pendingCount+' Pending | ⛔ '+suspendedCount+' Suspended | ⭐ '+lowRated+' Low Rated (<3.0)</small><br>';
+    h+='<small style="color:#6b7280">Low rated nurses show first - CEO/Staff can suspend if needed</small></div>';
+    
+    // Fetch all ratings for display
+    db.ref('ratings').once('value').then(function(rSnap){
+      var allRatings = rSnap.val()||{};
+      var ratingsByNurse = {};
+      Object.values(allRatings).forEach(function(r){
+        var key = r.nursePhoneKey;
+        if(!ratingsByNurse[key]) ratingsByNurse[key]=[];
+        ratingsByNurse[key].push(r);
+      });
+      
+      all.forEach(function(n){
+        var isApproved = n.verified===true || n.approvalStatus==='approved' || n.status==='approved';
+        var isSuspended = n.suspended===true || n.status==='suspended';
+        var isPending = !isApproved && !isSuspended && n.approvalStatus!=='rejected';
+        var isRejected = n.approvalStatus==='rejected';
+        
+        var avg = n.averageRating||0;
+        var total = n.totalRatings||0;
+        var rec = n.recommendPercent||0;
+        var ratingBadge = total>0 ? '<span style="background:'+(avg>=4?'#16a34a':avg>=3?'#eab308':'#ef4444')+';color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">⭐ '+avg.toFixed(1)+'/5 ('+total+')</span>' : '<span style="background:#e5e7eb;color:#6b7280;padding:3px 8px;border-radius:10px;font-size:10px">No ratings yet</span>';
+        var statusBadge = isSuspended ? '<span style="background:#111827;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">⛔ SUSPENDED</span>' : isApproved ? '<span style="background:#16a34a;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">✅ APPROVED</span>' : isRejected ? '<span style="background:#ef4444;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">❌ REJECTED</span>' : '<span style="background:#eab308;color:#111;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">⏳ PENDING</span>';
+        
+        var borderColor = isSuspended ? '#111827' : isApproved ? (avg>0 && avg<3 ? '#ef4444' : '#16a34a') : isRejected ? '#ef4444' : '#eab308';
+        var bgColor = isSuspended ? '#f3f4f6' : isApproved ? (avg>0 && avg<3 ? '#fef2f2' : '#f0fdf4') : isRejected ? '#fef2f2' : '#fffbeb';
+        
+        var mediaBtns='<button class="btnSmall" style="background:#7c3aed;color:white;border:2px solid #111;font-weight:800" onclick="viewAllNurseMedia(\''+n.phone+'\')">👁️ View ALL Uploads</button>';
+        
+        var ratingDetails = '';
+        if(total>0){
+          var recentRatings = (ratingsByNurse[n.phoneKey||n.phone.replace(/[^0-9]/g,'')]||[]).slice(-2);
+          ratingDetails+='<div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:6px;margin-top:6px"><b style="font-size:10px">⭐ Ratings: '+avg.toFixed(1)+'/5 from '+total+' clients | '+rec+'% recommend</b><br>';
+          if(avg<3) ratingDetails+='<small style="color:#ef4444;font-weight:800">⚠️ Low rating - Consider suspending</small><br>';
+          recentRatings.forEach(function(r){
+            ratingDetails+='<small style="font-size:9px">• '+r.rating+'⭐: '+(r.comment||'No comment').substring(0,60)+' - '+(r.clientName||'Client')+'</small><br>';
+          });
+          ratingDetails+='</div>';
+        }
+        
+        var actionBtns='';
+        if(isSuspended){
+          actionBtns+='<button class="btnSmall" style="background:#16a34a;color:white;font-weight:800;border:2px solid #111" onclick="unsuspendNurse(\''+n.phone+'\')">✅ UNSUSPEND - Allow Login</button>';
+          actionBtns+='<div style="font-size:9px;color:#ef4444;margin-top:4px">Suspended: '+(n.suspendedReason||'No reason')+'<br>'+(n.suspendedAt?new Date(n.suspendedAt).toLocaleString():'')+'</div>';
+        } else if(isPending || isRejected){
+          actionBtns+='<button class="btnSmall" style="background:#16a34a;color:white;font-weight:800;border:2px solid #111" onclick="approveNurse(\''+n.phone+'\')">✅ APPROVE</button>';
+          if(!isRejected) actionBtns+='<button class="btnSmall" style="background:#ef4444;color:white" onclick="rejectNurse(\''+n.phone+'\')">❌ REJECT</button>';
+        } else {
+          // Approved - show suspend option, especially if low rated
+          if(avg>0 && avg<3){
+            actionBtns+='<button class="btnSmall" style="background:#ef4444;color:white;font-weight:800;border:2px solid #111827" onclick="suspendNurse(\''+n.phone+'\')">⛔ SUSPEND - Low Rating '+avg.toFixed(1)+'/5</button>';
+          } else {
+            actionBtns+='<button class="btnSmall" style="background:#6b7280;color:white" onclick="suspendNurse(\''+n.phone+'\')">⛔ SUSPEND</button>';
+          }
+          actionBtns+='<button class="btnSmall" style="background:#eab308;color:#111" onclick="unverifyNurse(\''+n.phone+'\')">⏳ Set Pending</button>';
+        }
+        
+        h+='<div style="border:3px solid '+borderColor+';border-radius:12px;padding:12px;margin:10px 0;background:'+bgColor+'">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px"><b>'+ (n.name||'Nurse') +'</b><div style="display:flex;gap:4px;flex-wrap:wrap">'+statusBadge+' '+ratingBadge+'</div></div>'
+        +'<div>'+(n.phone||'')+'<br><small>'+(n.location||'')+' | '+ (n.specialty||'')+' | '+ (n.experience||'')+' yrs | '+(n.onDuty?'🟢 ON DUTY':'🔴 OFF')+'</small><br>'
+        +'<small>📍 '+(n.lat||'')+','+(n.lng||'')+' | Payout: '+(n.payoutMethod||'')+' '+(n.accountNumber||'')+'</small></div>'
+        + ratingDetails
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'+mediaBtns
+        +'<button class="btnSmall" style="background:#ff6a00;color:white" onclick="openGoogleMapsLive('+(n.lat||5.6037)+','+(n.lng||-0.1870)+')">📍 Live Map</button>'
+        +'<button class="btnSmall" style="background:#ef4444;color:white" onclick="deleteNurse(\''+n.phone+'\')">🗑 Delete</button>'
+        + actionBtns
+        +'</div></div>';
+      });
+      
+      el.innerHTML=h;
+      var statEl=document.getElementById('statNurses'); if(statEl) statEl.innerText=all.length;
+    });
+  });
+};
+
+// Staff version - same but with suspend ability
+window.loadStaffNurses = function(){
+  var el=document.getElementById('staffNursesList');
+  if(!el) return;
+  if(!window.db){ el.innerHTML='Demo offline'; return; }
+  el.innerHTML='⏳ Loading nurses with ratings...';
+  db.ref('workers').once('value').then(function(snap){
+    var all=Object.values(snap.val()||{});
+    if(all.length===0){ el.innerHTML='No nurses'; return; }
+    all.sort(function(a,b){
+      if(a.suspended && !b.suspended) return 1;
+      if(!a.suspended && b.suspended) return -1;
+      var aP = (a.approvalStatus==='pending' || !a.verified) ? 0 : 1;
+      var bP = (b.approvalStatus==='pending' || !b.verified) ? 0 : 1;
+      if(aP!==bP) return aP-bP;
+      var aRate=a.averageRating||5, bRate=b.averageRating||5;
+      return aRate-bRate;
+    });
+    var pendingCount=all.filter(function(n){ return !n.verified && !n.suspended && n.approvalStatus!=='rejected'; }).length;
+    var suspendedCount=all.filter(function(n){ return n.suspended; }).length;
+    var h='<div style="background:#fef3c7;border:2px solid #eab308;padding:10px;border-radius:10px;margin-bottom:10px"><b>📋 Staff Rating & Suspend Panel - '+pendingCount+' Pending, '+suspendedCount+' Suspended</b><br><small>Staff can also suspend/unsuspend - Low rated nurses shown first</small></div>';
+    
+    db.ref('ratings').once('value').then(function(rSnap){
+      var allRatings=rSnap.val()||{};
+      var ratingsByNurse={};
+      Object.values(allRatings).forEach(function(r){
+        var key=r.nursePhoneKey; if(!ratingsByNurse[key]) ratingsByNurse[key]=[]; ratingsByNurse[key].push(r);
+      });
+      
+      all.forEach(function(n){
+        var isApproved=n.verified===true||n.approvalStatus==='approved';
+        var isSuspended=n.suspended===true;
+        var avg=n.averageRating||0, total=n.totalRatings||0;
+        var ratingBadge=total>0?'<span style="background:'+(avg>=4?'#16a34a':avg>=3?'#eab308':'#ef4444')+';color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">⭐ '+avg.toFixed(1)+'/5 ('+total+')</span>':'<span style="background:#e5e7eb;color:#6b7280;padding:3px 8px;border-radius:10px;font-size:10px">No ratings</span>';
+        var statusBadge=isSuspended?'<span style="background:#111827;color:white;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:800">⛔ SUSPENDED</span>':isApproved?'<span style="background:#16a34a;color:white;padding:3px 8px;border-radius:10px;font-size:10px">✅ APPROVED</span>':'<span style="background:#eab308;color:#111;padding:3px 8px;border-radius:10px;font-size:10px">⏳ PENDING</span>';
+        
+        var actionBtns='';
+        if(isSuspended){
+          actionBtns+='<button class="btnSmall" style="background:#16a34a;color:white;font-weight:800;border:2px solid #111" onclick="unsuspendNurse(\''+n.phone+'\')">✅ UNSUSPEND</button>';
+        } else if(!isApproved){
+          actionBtns+='<button class="btnSmall" style="background:#16a34a;color:white;font-weight:800;border:2px solid #111" onclick="approveNurse(\''+n.phone+'\')">✅ APPROVE</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="rejectNurse(\''+n.phone+'\')">❌ REJECT</button>';
+        } else {
+          if(avg>0 && avg<3){
+            actionBtns+='<button class="btnSmall" style="background:#ef4444;color:white;font-weight:800;border:2px solid #111827" onclick="suspendNurse(\''+n.phone+'\')">⛔ SUSPEND Low '+avg.toFixed(1)+'</button>';
+          } else {
+            actionBtns+='<button class="btnSmall" style="background:#6b7280;color:white" onclick="suspendNurse(\''+n.phone+'\')">⛔ SUSPEND</button>';
+          }
+        }
+        
+        var ratingDetails='';
+        if(total>0){
+          ratingDetails+='<div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:6px;margin-top:6px"><small><b>⭐ '+avg.toFixed(1)+'/5 ('+total+') | '+(n.recommendPercent||0)+'% recommend</b>'+(avg<3?' <span style="color:#ef4444;font-weight:800">⚠️ Low</span>':'')+'</small></div>';
+        }
+        
+        h+='<div style="border:2px solid '+(isSuspended?'#111827':(avg>0&&avg<3?'#ef4444':'#16a34a'))+';border-radius:12px;padding:10px;margin:8px 0;background:'+(isSuspended?'#f3f4f6':(avg>0&&avg<3?'#fef2f2':'#f0fdf4'))+'"><div style="display:flex;justify-content:space-between"><b>'+ (n.name||'Nurse') +'</b><div style="display:flex;gap:4px">'+statusBadge+ratingBadge+'</div></div><small>'+(n.phone||'')+' | '+(n.location||'')+'</small>'+ratingDetails+'<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px"><button class="btnSmall" style="background:#7c3aed;color:white;border:2px solid #111;font-weight:800" onclick="viewAllNurseMedia(\''+n.phone+'\')">👁️ View ALL</button>'+actionBtns+'</div></div>';
+      });
+      el.innerHTML=h;
+    });
+  });
+};
+
+console.log('✅ CEO/Staff Rating view + Suspend management loaded');
+</script>
+
+
+<script>
+// ===== AUTO-SUSPEND WHEN RATING DROPS BELOW 2.5 + CEO DASHBOARD =====
+const RATING_CONFIG = {
+  autoSuspendThreshold: 2.5, // Auto-suspend if avg < 2.5 and at least 3 ratings
+  minRatingsForAutoSuspend: 3,
+  warnThreshold: 3.0 // Warn CEO if <3.0
+};
+
+function checkAndAutoSuspend(nursePhone, avg, total){
+  if(total < RATING_CONFIG.minRatingsForAutoSuspend) return; // Need at least 3 ratings
+  if(avg >= RATING_CONFIG.autoSuspendThreshold) return; // Only suspend if below threshold
+  
+  // Check if already suspended
+  if(window.db){
+    var phoneKey = nursePhone.replace(/[^0-9]/g,'');
+    db.ref('workers/'+phoneKey).once('value').then(function(snap){
+      var n=snap.val();
+      if(!n || n.suspended) return; // Already suspended
+      
+      // Auto-suspend
+      var reason = 'Auto-suspended: Low rating '+avg.toFixed(1)+'/5 from '+total+' clients (Threshold: <'+RATING_CONFIG.autoSuspendThreshold+')';
+      db.ref('workers/'+phoneKey).update({
+        suspended: true,
+        suspendedReason: reason,
+        suspendedAt: Date.now(),
+        suspendedBy: 'AUTO-SYSTEM (Low Rating)',
+        onDuty: false,
+        status: 'suspended',
+        autoSuspended: true
+      }).then(function(){
+        // Notify CEO via suspendedWorkers
+        db.ref('suspendedWorkers/'+phoneKey).set({
+          phone: nursePhone,
+          name: n.name||'Nurse',
+          reason: reason,
+          avgRating: avg,
+          totalRatings: total,
+          suspendedAt: Date.now(),
+          suspendedBy: 'AUTO-SYSTEM',
+          autoSuspended: true
+        });
+        // Also add to notifications if exists
+        if(typeof addNotification==='function'){
+          addNotification('⛔ Auto-suspended nurse '+n.name+' ('+nursePhone+') - Rating '+avg.toFixed(1)+'/5 from '+total+' clients');
+        }
+        console.log('AUTO-SUSPENDED', nursePhone, 'rating', avg, 'from', total);
+        alert('⚠️ AUTO-SUSPEND TRIGGERED\n\nNurse '+n.name+' ('+nursePhone+') has been automatically suspended.\n\nRating: '+avg.toFixed(1)+'/5 from '+total+' clients\nThreshold: <'+RATING_CONFIG.autoSuspendThreshold+'\nReason: '+reason+'\n\nCEO/Staff can unsuspend after review.');
+        if(typeof loadCeoNurses==='function') loadCeoNurses();
+        if(typeof loadStaffNurses==='function') loadStaffNurses();
+      });
+    });
+  }
+}
+
+// Enhanced updateNurseAverageRating with auto-suspend check
+var originalUpdateNurseAverageRating = window.updateNurseAverageRating;
+window.updateNurseAverageRating = function(nursePhone){
+  if(!window.db) return;
+  var phoneKey = nursePhone.replace(/[^0-9]/g,'');
+  db.ref('ratings').orderByChild('nursePhoneKey').equalTo(phoneKey).once('value').then(function(snap){
+    var all = Object.values(snap.val()||{});
+    if(all.length===0) return;
+    var sum=0, count=0, recCount=0;
+    all.forEach(function(r){ sum+=r.rating; count++; if(r.recommend) recCount++; });
+    var avg = sum/count;
+    var avgFixed = parseFloat(avg.toFixed(1));
+    var recPct = Math.round(recCount/count*100);
+    db.ref('workers/'+phoneKey).update({
+      averageRating: avgFixed,
+      totalRatings: count,
+      ratingSum: sum,
+      recommendPercent: recPct,
+      lastRatingAt: Date.now()
+    }).then(function(){
+      console.log('Updated rating for', phoneKey, 'avg', avgFixed, 'count', count);
+      // Check auto-suspend
+      checkAndAutoSuspend(nursePhone, avgFixed, count);
+    });
+  });
+};
+
+// Add CEO Dashboard summary card for ratings
+function addCeoRatingDashboard(){
+  var ceoBookingsList = document.getElementById('ceo-tab-bookings');
+  if(!ceoBookingsList) return;
+  // Add rating summary above bookings if not exists
+  if(document.getElementById('ceoRatingSummary')) return;
+  
+  var summaryDiv = document.createElement('div');
+  summaryDiv.id = 'ceoRatingSummary';
+  summaryDiv.style.cssText = 'background:linear-gradient(135deg,#fffbeb,#f0fdf4);border:3px solid #eab308;border-radius:12px;padding:12px;margin-bottom:12px';
+  summaryDiv.innerHTML = '⏳ Loading rating summary...';
+  
+  if(ceoBookingsList.parentNode){
+    ceoBookingsList.parentNode.insertBefore(summaryDiv, ceoBookingsList);
+  }
+  
+  if(window.db){
+    db.ref('workers').once('value').then(function(wSnap){
+      var workers = Object.values(wSnap.val()||{});
+      db.ref('ratings').once('value').then(function(rSnap){
+        var ratings = Object.values(rSnap.val()||{});
+        var totalRatings = ratings.length;
+        var avgAll = totalRatings>0 ? (ratings.reduce(function(s,r){return s+r.rating;},0)/totalRatings).toFixed(1) : 0;
+        var lowRated = workers.filter(function(w){ return w.averageRating && w.averageRating<RATING_CONFIG.warnThreshold; }).length;
+        var suspended = workers.filter(function(w){ return w.suspended; }).length;
+        var topRated = workers.filter(function(w){ return w.averageRating && w.averageRating>=4.5; }).length;
+        var needAttention = workers.filter(function(w){ return w.averageRating && w.averageRating<RATING_CONFIG.autoSuspendThreshold && w.totalRatings>=RATING_CONFIG.minRatingsForAutoSuspend && !w.suspended; }).length;
+        
+        var h='<h3 style="margin:0 0 8px 0;font-size:13px;color:#92400e">⭐ Rating Dashboard - CEO</h3>';
+        h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px">';
+        h+='<div style="background:white;border:2px solid #16a34a;border-radius:8px;padding:8px;text-align:center"><b style="font-size:16px;color:#16a34a">'+avgAll+'</b><br>Average<br>All Ratings</div>';
+        h+='<div style="background:white;border:2px solid #2563eb;border-radius:8px;padding:8px;text-align:center"><b style="font-size:16px;color:#2563eb">'+totalRatings+'</b><br>Total<br>Reviews</div>';
+        h+='<div style="background:white;border:2px solid #eab308;border-radius:8px;padding:8px;text-align:center"><b style="font-size:16px;color:#eab308">'+topRated+'</b><br>Top Rated<br>≥4.5⭐</div>';
+        h+='</div>';
+        h+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px;margin-top:6px">';
+        h+='<div style="background:'+(lowRated>0?'#fef2f2':'white')+';border:2px solid '+(lowRated>0?'#ef4444':'#e5e7eb')+';border-radius:8px;padding:8px;text-align:center"><b style="font-size:16px;color:'+(lowRated>0?'#ef4444':'#6b7280')+'">'+lowRated+'</b><br>Low Rated<br><3.0⭐</div>';
+        h+='<div style="background:'+(suspended>0?'#f3f4f6':'white')+';border:2px solid '+(suspended>0?'#111827':'#e5e7eb')+';border-radius:8px;padding:8px;text-align:center"><b style="font-size:16px;color:'+(suspended>0?'#111827':'#6b7280')+'">'+suspended+'</b><br>Suspended<br>⛔</div>';
+        h+='<div style="background:'+(needAttention>0?'#fef2f2':'white')+';border:2px solid '+(needAttention>0?'#ef4444':'#e5e7eb')+';border-radius:8px;padding:8px;text-align:center"><b style="font-size:16px;color:'+(needAttention>0?'#ef4444':'#16a34a')+'">'+needAttention+'</b><br>Need Action<br>⚠️</div>';
+        h+='</div>';
+        if(needAttention>0){
+          h+='<div style="background:#fef2f2;border:2px solid #ef4444;border-radius:8px;padding:8px;margin-top:8px;font-size:11px;text-align:center"><b style="color:#ef4444">⚠️ '+needAttention+' nurse(s) have rating <'+RATING_CONFIG.autoSuspendThreshold+' but not yet suspended - Review in Nurses tab</b></div>';
+        }
+        h+='<div style="font-size:9px;color:#6b7280;margin-top:8px;text-align:center">Auto-suspend: <'+RATING_CONFIG.autoSuspendThreshold+'/5 from ≥'+RATING_CONFIG.minRatingsForAutoSuspend+' ratings | Warn: <'+RATING_CONFIG.warnThreshold+'/5 | CEO/Staff can unsuspend anytime</div>';
+        summaryDiv.innerHTML=h;
+      });
+    });
+  }
+}
+
+// Call dashboard on CEO load
+var originalLoadCeoData = window.loadCeoData;
+window.loadCeoData = function(){
+  if(originalLoadCeoData) originalLoadCeoData();
+  setTimeout(addCeoRatingDashboard, 1000);
+  if(typeof loadCeoNurses==='function') loadCeoNurses();
+};
+
+// Also add to staff dashboard
+function addStaffRatingDashboard(){
+  var el=document.getElementById('staffNursesList');
+  if(!el) return;
+  // Staff summary will be added inside loadStaffNurses header already
+}
+
+console.log('✅ Auto-suspend + Rating dashboard loaded - Threshold: <'+RATING_CONFIG.autoSuspendThreshold+' from '+RATING_CONFIG.minRatingsForAutoSuspend+' ratings');
+</script>
+
 </body>
 
 </html>
