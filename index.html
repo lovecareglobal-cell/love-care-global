@@ -4076,6 +4076,170 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 })();
 </script>
 
+
+<script>
+// ===== REGISTRATION FIX V3 - FAST, NO HANG =====
+(function(){
+  function showStatus(msg, isError){
+    var box=document.getElementById('uploadStatusBox');
+    if(!box){
+      box=document.createElement('div');
+      box.id='uploadStatusBox';
+      box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 16px;border-radius:12px;z-index:999999;font-size:12px;max-width:90%;box-shadow:0 4px 12px rgba(0,0,0,.3)';
+      document.body.appendChild(box);
+    }
+    box.style.display='block';
+    box.style.background = isError ? '#ef4444' : '#111827';
+    box.innerHTML = msg;
+    if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 5000);
+  }
+
+  // Cloudinary fast upload with 8s timeout
+  function cloudUpload(file, folder){
+    return new Promise(function(resolve){
+      if(!file){ resolve(null); return; }
+      if(file.size > 10*1024*1024){ 
+        showStatus('⚠️ '+file.name+' too large (>10MB), use Drive link instead', true);
+        resolve(null); return;
+      }
+      var cloudName = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.cloudinaryCloudName) ? FREE_UPLOAD_CONFIG.cloudinaryCloudName : 'xcizfvct';
+      var preset = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.cloudinaryPreset) ? FREE_UPLOAD_CONFIG.cloudinaryPreset : 'Lovecare1';
+      var url='https://api.cloudinary.com/v1_1/'+cloudName+'/auto/upload';
+      var fd=new FormData();
+      fd.append('file', file);
+      fd.append('upload_preset', preset);
+      if(folder) fd.append('folder', folder);
+      
+      var timedOut=false;
+      var timer=setTimeout(function(){ timedOut=true; console.warn('Cloudinary timeout', file.name); resolve(null); }, 12000);
+      
+      fetch(url,{method:'POST', body:fd}).then(function(r){ return r.json(); }).then(function(d){
+        clearTimeout(timer);
+        if(timedOut) return;
+        if(d.secure_url){ 
+          showStatus('✅ Uploaded '+file.name);
+          resolve(d.secure_url); 
+        } else { 
+          console.warn('Cloudinary failed', d); 
+          resolve(null); 
+        }
+      }).catch(function(err){
+        clearTimeout(timer);
+        console.warn('Cloudinary error', err);
+        resolve(null);
+      });
+    });
+  }
+
+  // Override registerNurse with fast version
+  window.registerNurse = async function(){
+    var regBtn = document.querySelector('button[onclick="registerNurse()"]');
+    try{
+      var nameEl=document.getElementById('nRegName');
+      var phoneEl=document.getElementById('nRegPhone');
+      var passEl=document.getElementById('nRegPass');
+      var locEl=document.getElementById('nRegLocation');
+      var expEl=document.getElementById('nRegExperience');
+      var specEl=document.getElementById('nRegSpecialty');
+      var careEl=document.getElementById('nRegCareMode');
+      var ageChk=document.getElementById('nRegAgeConfirm');
+      var name=nameEl? nameEl.value.trim() : '';
+      var phoneRaw=phoneEl? phoneEl.value.trim() : '';
+      var pass=passEl? passEl.value.trim() : '';
+      var location=locEl? locEl.value.trim() : '';
+      var experience=expEl? expEl.value.trim() : '3';
+      var specialty=specEl? specEl.value : '';
+      var careMode=careEl? careEl.value : 'both';
+      if(!ageChk || !ageChk.checked){ alert('You must confirm you are 18+ with valid ID'); return; }
+      if(name.length<3){ alert('Enter full name (min 3 chars)'); return; }
+      if(!phoneRaw){ alert('Enter phone'); return; }
+      if(pass.length<4){ alert('Password min 4'); return; }
+      if(!location){ alert('Tap GPS or enter location'); return; }
+      if(!specialty){ alert('Select specialty'); return; }
+      var fullPhone = (typeof getFullPhone==='function')? getFullPhone('nRegPhoneCode','nRegPhone') : phoneRaw;
+      var phoneKey = fullPhone.replace(/[^0-9]/g,'');
+      if(phoneKey.length<9){ alert('Invalid phone'); return; }
+
+      if(regBtn){ regBtn.disabled=true; regBtn.innerText='⏳ Registering... Wait 5s'; }
+      showStatus('⏳ Registering '+name+'...');
+
+      var lat = window.nurseRegLat || parseFloat(localStorage.getItem('nurseRegLat')||'0') || 5.6037;
+      var lng = window.nurseRegLng || parseFloat(localStorage.getItem('nurseRegLng')||'0') || -0.1870;
+
+      var videoLink=document.getElementById('nRegVideo')? document.getElementById('nRegVideo').value.trim() : '';
+      var cvLink=document.getElementById('nRegCV')? document.getElementById('nRegCV').value.trim() : '';
+      var certLink=document.getElementById('nRegCertificate')? document.getElementById('nRegCertificate').value.trim() : '';
+      var idLink=document.getElementById('nRegID')? document.getElementById('nRegID').value.trim() : '';
+
+      var videoFile=document.getElementById('nRegVideoFile')? document.getElementById('nRegVideoFile').files[0] : null;
+      var cvFile=document.getElementById('nRegCVFile')? document.getElementById('nRegCVFile').files[0] : null;
+      var certFile=document.getElementById('nRegCertFile')? document.getElementById('nRegCertFile').files[0] : null;
+      var idFile=document.getElementById('nRegIDFile')? document.getElementById('nRegIDFile').files[0] : null;
+
+      var videoUrl=videoLink, cvUrl=cvLink, certUrl=certLink, idUrl=idLink;
+
+      // FAST CLOUDINARY UPLOADS - all in parallel, max 12s total
+      var tasks=[];
+      if(videoFile){ tasks.push(cloudUpload(videoFile, 'nurse_videos').then(function(u){ if(u) videoUrl=u; })); }
+      if(cvFile){ tasks.push(cloudUpload(cvFile, 'nurse_cvs').then(function(u){ if(u) cvUrl=u; })); }
+      if(certFile){ tasks.push(cloudUpload(certFile, 'nurse_certs').then(function(u){ if(u) certUrl=u; })); }
+      if(idFile){ tasks.push(cloudUpload(idFile, 'nurse_ids').then(function(u){ if(u) idUrl=u; })); }
+
+      if(tasks.length>0){
+        showStatus('📤 Uploading '+tasks.length+' file(s) to Cloudinary (max 12s)...');
+        // Wait max 13 seconds for all
+        await Promise.race([
+          Promise.allSettled(tasks),
+          new Promise(function(r){ setTimeout(r, 13000); })
+        ]);
+      }
+
+      var nurseObj={
+        id: phoneKey, name:name, phone:fullPhone, phoneKey:phoneKey, password:pass,
+        location:location, lat:lat, lng:lng, experience:experience, specialty:specialty, careMode:careMode,
+        videoUrl:videoUrl||'', cvUrl:cvUrl||'', certUrl:certUrl||'', idUrl:idUrl||'',
+        profileUrl:'./Icon-512.png', photoUrl:'./Icon-512.png',
+        verified:false, onDuty:false, status:'pending_approval', approvalStatus:'pending',
+        timestamp:Date.now(), createdAt:Date.now(), lastUpdate:Date.now()
+      };
+
+      // Save locally instantly
+      var nurses=[]; try{ nurses=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){}
+      nurses=nurses.filter(function(n){ return (n.phoneKey||'').replace(/[^0-9]/g,'')!==phoneKey; });
+      nurses.push(nurseObj);
+      localStorage.setItem('nurses', JSON.stringify(nurses));
+      localStorage.setItem('nursePhone', fullPhone);
+      localStorage.setItem('nursePhoneKey', phoneKey);
+
+      // Save to Firebase (no file upload, just data - fast)
+      if(window.db){
+        try{
+          await Promise.race([
+            db.ref('workers/'+phoneKey).set(nurseObj),
+            new Promise(function(r){ setTimeout(function(){ r(); }, 5000); }) // timeout 5s
+          ]);
+        }catch(e){ console.warn('Firebase save failed but local saved', e); }
+      }
+
+      showStatus('✅ Registration submitted! Pending approval');
+      alert('✅ Registered!\nName: '+name+'\nPhone: '+fullPhone+'\n\n⏳ PENDING APPROVAL.\nCEO must approve before login.\n\nYour files: '+(videoUrl?' Video✅':'')+(cvUrl?' CV✅':'')+(certUrl?' Cert✅':'')+(idUrl?' ID✅':'')+'\nIf some missing, you can still be approved - add Drive links later.');
+
+      if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
+      if(typeof showPage==='function') showPage('home');
+      try{ document.getElementById('nRegName').value=''; document.getElementById('nRegPhone').value=''; document.getElementById('nRegPass').value=''; }catch(e){}
+
+    }catch(e){
+      console.error('Registration error', e);
+      alert('Registration failed: '+e.message+'\nTry again with smaller files or just Drive links.');
+      if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
+      showStatus('❌ Failed: '+e.message, true);
+    }
+  };
+
+  console.log('✅ REGISTRATION FIX V3 APPLIED - Fast Cloudinary, no Firebase Storage hang');
+})();
+</script>
+
 </body>
 
 </html>
