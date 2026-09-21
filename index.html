@@ -3372,16 +3372,68 @@ function showUploadStatus(msg, isError){
 function uploadToCloudinary(file, folder){
   return new Promise(function(resolve){
     if(!file || !FREE_UPLOAD_CONFIG.useCloudinary){ resolve(null); return; }
-    var url='https://api.cloudinary.com/v1_1/'+FREE_UPLOAD_CONFIG.cloudinaryCloudName+'/upload';
+    // FIXED: use /auto/upload for PDFs + public access
+    var url='https://api.cloudinary.com/v1_1/'+FREE_UPLOAD_CONFIG.cloudinaryCloudName+'/auto/upload';
     var fd=new FormData();
     fd.append('file', file);
     fd.append('upload_preset', FREE_UPLOAD_CONFIG.cloudinaryPreset);
+    fd.append('resource_type', 'auto');
+    fd.append('type', 'upload');
+    fd.append('access_mode', 'public');
     if(folder) fd.append('folder', folder);
+    // keep original filename for CVs
+    fd.append('public_id', (folder?folder+'/':'') + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
+    console.log('Uploading to Cloudinary auto:', file.name, file.type);
     fetch(url,{method:'POST', body:fd}).then(function(r){return r.json();}).then(function(d){
-      if(d.secure_url) resolve(d.secure_url); else { console.warn('Cloudinary fail', d); resolve(null); }
-    }).catch(function(){ resolve(null); });
+      console.log('Cloudinary response:', d);
+      if(d.secure_url){
+        resolve(d.secure_url);
+      } else {
+        console.warn('Cloudinary fail', d);
+        var errMsg = d.error ? d.error.message : 'unknown';
+        showUploadStatus('❌ Upload failed ('+errMsg+') - Check preset Lovecare1 is Public & allows raw', true);
+        resolve(null);
+      }
+    }).catch(function(err){ console.warn('Cloudinary error', err); resolve(null); });
   });
 }
+
+// FIXED CV / CERT upload handlers
+document.addEventListener('DOMContentLoaded', function(){
+  var cvInput = document.getElementById('nRegCVFile');
+  if(cvInput){
+    cvInput.addEventListener('change', async function(e){
+      var file = e.target.files[0]; if(!file) return;
+      var prog = document.getElementById('cvUploadProgress');
+      if(prog) prog.textContent = '⏳ Uploading '+file.name+' ('+(file.size/1024/1024).toFixed(2)+'MB)...';
+      var url = await uploadToCloudinary(file, 'nurse_cvs');
+      if(url){
+        var linkInput = document.getElementById('nRegCV');
+        if(linkInput) linkInput.value = url;
+        if(prog) prog.innerHTML = '✅ Uploaded: <a href="'+url+'" target="_blank">View CV</a> - '+url;
+      } else {
+        if(prog) prog.textContent = '❌ Failed - set Lovecare1 preset to Public & Unsigned, allow resource_type auto';
+      }
+    });
+  }
+  var certInput = document.getElementById('nRegCertFile');
+  if(certInput){
+    certInput.addEventListener('change', async function(e){
+      var file = e.target.files[0]; if(!file) return;
+      var prog = document.getElementById('certUploadProgress');
+      if(prog) prog.textContent = '⏳ Uploading '+file.name+'...';
+      var url = await uploadToCloudinary(file, 'nurse_certificates');
+      if(url){
+        var linkInput = document.getElementById('nRegCertificate');
+        if(linkInput) linkInput.value = url;
+        if(prog) prog.innerHTML = '✅ Uploaded: <a href="'+url+'" target="_blank">View Cert</a>';
+      } else {
+        if(prog) prog.textContent = '❌ Failed - check preset';
+      }
+    });
+  }
+});
+
 
 function uploadToMyDrive(file){
   return new Promise(function(resolve){
