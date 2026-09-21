@@ -97,7 +97,29 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 .colorRow input[type="color"]{width:50px;height:36px;padding:2px}
 .colorRow input[type="range"]{flex:1}
 </style>
-<style>#emailVerifyModal{display:none!important; visibility:hidden!important; opacity:0!important; pointer-events:none!important} .emailModal{display:none!important} #verifiedEmailBadge{display:none!important}</style></head>
+<style>#emailVerifyModal{display:none!important; visibility:hidden!important; opacity:0!important; pointer-events:none!important} .emailModal{display:none!important} #verifiedEmailBadge{display:none!important}</style>
+<style>
+/* Hide nurse phone numbers from client view */
+.client-hide-phone .nurse-phone,
+.client-hide-phone [id*="phone"],
+.client-hide-phone [class*="phone"],
+#page-client-map .nurse-phone,
+#page-client-map .phone-number,
+.client-view .phone,
+.nurse-card .phone-field {
+  display: none !important;
+}
+.phone-hidden-badge {
+  background: #fef3c7;
+  border: 1px solid #eab308;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  color: #92400e;
+}
+</style>
+
+</head>
 <body>
 <div class="sosFloat" id="sosFloatBtn"><div class="sosPulse"></div><span style="position:relative;z-index:1">SOS</span></div>
 <div class="header"><div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer"><img src="./Icon-512.png" class="header-logo-img" style="background:white" onerror="this.style.display='none'"><div style="line-height:1"><b>LOVE CARE</b><br><span style="background:white;color:#16a34a;padding:2px 8px;border-radius:20px;font-size:8px;font-weight:800">GLOBAL HOME NURSING</span></div></div></div>
@@ -3654,6 +3676,139 @@ window.uploadFileToStorage = async function(file, path){
 })();
 
 console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CONFIG.folderId+' + Draggable SOS + Ratings + Watch 5s');
+</script>
+
+
+<script>
+// ===== HIDE NURSE PHONE FROM CLIENTS ✅ =====
+(function(){
+  function hideNursePhonesForClients(){
+    var isClientPage = document.getElementById('page-client-map') && document.getElementById('page-client-map').classList.contains('active');
+    var isClient = localStorage.getItem('userRole')==='client' || localStorage.getItem('isClientLogged')==='true' || isClientPage || window.location.hash.includes('client');
+    
+    // Always hide phone for client role, but show for CEO/Staff
+    var isCEO = localStorage.getItem('isCEOLogged')==='true' || localStorage.getItem('userRole')==='CEO';
+    var isStaff = localStorage.getItem('isStaffLogged')==='true' || localStorage.getItem('userRole')==='STAFF';
+    var isNurse = localStorage.getItem('isNurseLogged')==='true';
+    
+    // If CEO/Staff/Nurse, show phones - don't hide
+    if(isCEO || isStaff) {
+      console.log('CEO/Staff view - phones visible');
+      return;
+    }
+    
+    // For clients - hide phones
+    // Hide elements containing phone numbers
+    var selectors = [
+      '[id*="nursePhone"]',
+      '[class*="nursePhone"]',
+      '.nurse-phone',
+      '.phone-number',
+      '[data-phone]',
+      'a[href^="tel:"]'
+    ];
+    
+    selectors.forEach(function(sel){
+      document.querySelectorAll(sel).forEach(function(el){
+        // Check if inside client map or nurse card
+        var isInClientContext = el.closest('#page-client-map') || el.closest('.nurse-card') || el.closest('#nurseList') || el.closest('.uber-card');
+        if(isInClientContext || !isCEO && !isStaff){
+          // Don't remove, just hide or mask
+          if(el.tagName==='A' && el.href.startsWith('tel:')){
+            // Replace tel link with masked message for clients
+            if(!el.getAttribute('data-original-tel')){
+              el.setAttribute('data-original-tel', el.href);
+              el.setAttribute('data-original-text', el.textContent);
+            }
+            el.textContent='🔒 Phone hidden - Book to contact';
+            el.href='javascript:void(0)';
+            el.style.background='#fef3c7';
+            el.style.padding='4px 8px';
+            el.style.borderRadius='8px';
+            el.style.fontSize='10px';
+            el.onclick=function(e){ 
+              e.preventDefault(); 
+              alert('🔒 Nurse phone hidden for privacy\n\nBook the nurse to contact via platform chat.\nCEO/Staff can see phone numbers.'); 
+            };
+          } else {
+            // Mask phone number display
+            var text=el.textContent||'';
+            // If looks like phone (contains 7+ digits)
+            if(/\d{7,}/.test(text) && text.length<20){
+              if(!el.getAttribute('data-original-phone')){
+                el.setAttribute('data-original-phone', text);
+              }
+              el.textContent='🔒 Hidden - Book to contact';
+              el.classList.add('phone-hidden-badge');
+              el.style.display='inline-block';
+            }
+          }
+        }
+      });
+    });
+    
+    // Also hide phone in nurse detail modals for clients
+    var detailPhoneEls=document.querySelectorAll('#nurseDetails [id*="phone"], #nurseDetails [class*="phone"], .nurse-modal [id*="phone"]');
+    detailPhoneEls.forEach(function(el){
+      if(!isCEO && !isStaff){
+        if(!el.getAttribute('data-original-phone')){
+          el.setAttribute('data-original-phone', el.textContent);
+        }
+        el.textContent='🔒 Phone hidden - Book to contact via platform';
+        el.style.background='#fef3c7';
+        el.style.padding='6px 10px';
+        el.style.borderRadius='8px';
+        el.style.fontSize='11px';
+      }
+    });
+  }
+  
+  // Override functions that display nurse info to hide phone for clients
+  function patchNurseDisplayFunctions(){
+    // Patch viewNurseProfile if exists
+    var originalFunctions=['viewNurseProfile','openNurseProfile','showNurseDetails','displayNurses','renderNurseCard','createNurseCard'];
+    originalFunctions.forEach(function(fnName){
+      if(window[fnName]){
+        var orig=window[fnName];
+        window[fnName]=function(){
+          var result=orig.apply(this, arguments);
+          setTimeout(hideNursePhonesForClients, 100);
+          setTimeout(hideNursePhonesForClients, 500);
+          setTimeout(hideNursePhonesForClients, 1500);
+          return result;
+        };
+      }
+    });
+  }
+  
+  // Run on page changes
+  document.addEventListener('DOMContentLoaded', function(){
+    patchNurseDisplayFunctions();
+    hideNursePhonesForClients();
+    setInterval(hideNursePhonesForClients, 2000); // Keep checking
+  });
+  
+  // Also hide when showing pages
+  var origShowPage=window.showPage;
+  window.showPage=function(id){
+    if(typeof origShowPage==='function') origShowPage(id);
+    else {
+      document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+      var pg=document.getElementById('page-'+id) || document.getElementById(id);
+      if(pg) pg.classList.add('active');
+    }
+    setTimeout(hideNursePhonesForClients, 200);
+    setTimeout(hideNursePhonesForClients, 800);
+  };
+  
+  // Initial
+  setTimeout(function(){
+    patchNurseDisplayFunctions();
+    hideNursePhonesForClients();
+  }, 1000);
+  
+  console.log('✅ Nurse phones hidden from clients - CEO/Staff can still see');
+})();
 </script>
 
 </body>
