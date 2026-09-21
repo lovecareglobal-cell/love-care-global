@@ -3336,115 +3336,57 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 <script>
-// ===== ALL CHANGES INTEGRATED - CLOUDINARY + DRIVE + DRAGGABLE SOS + RATINGS =====
-console.log('Integrating all changes...');
-
-// 1. CLOUDINARY + DRIVE CONFIG (YOUR CONFIGS) ✅
-const DRIVE_CONFIG = {
-  enabled: true,
-  autoUploadThresholdMB: 10,
-  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbxm4t3VxizQIc6p9Qnnt5ZQsSAhaF1LoY4KT0uIERvtLtSnTFJ3Zl4LiAu7gTJgBU6C/exec',
-  folderId: '11znPiPtpYQ3tpb6WpxYmQE0v-AmfYt8G',
-  folderUrl: 'https://drive.google.com/drive/folders/11znPiPtpYQ3tpb6WpxYmQE0v-AmfYt8G'
-};
+// ====== LOVCARE - FINAL FIX - NO MORE 401 ======
 const FREE_UPLOAD_CONFIG = {
   cloudinaryCloudName: 'xcizfvct',
   cloudinaryPreset: 'Lovecare1',
   useCloudinary: true
 };
 
-// 2. SMART UPLOAD - Small -> Cloudinary, Big -> Drive
 function showUploadStatus(msg, isError){
-  var box=document.getElementById('uploadStatusBox');
+  var box = document.getElementById('uploadStatusBox');
   if(!box){
-    box=document.createElement('div');
-    box.id='uploadStatusBox';
-    box.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#dcfce7;border:2px solid #16a34a;border-radius:12px;padding:12px 18px;font-size:12px;z-index:9999999;text-align:center;max-width:90%;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
+    box = document.createElement('div');
+    box.id = 'uploadStatusBox';
+    box.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:15px 20px;background:white;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.2);z-index:99999;font-family:sans-serif;font-size:14px;';
     document.body.appendChild(box);
   }
-  box.style.display='block';
-  box.innerHTML=msg;
-  box.style.background=isError?'#fee2e2':'#dcfce7';
-  box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
-  if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 6000);
-}
-
-
-function getCloudConfig(){
-  var cfg = (typeof FREE_UPLOAD_CONFIG!=='undefined') ? FREE_UPLOAD_CONFIG : {};
-  return {
-    cloudName: cfg.cloudinaryCloudName || 'xcizfvct',
-    preset: cfg.cloudinaryPreset || 'Lovecare1'
-  };
+  box.style.display = 'block';
+  box.innerHTML = msg;
+  box.style.background = isError ? '#fee2e2' : '#d4edda';
+  box.style.border = '2px solid ' + (isError ? '#ef4444' : '#22c55e');
+  if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 3000);
 }
 
 function uploadToCloudinary(file, folder){
   return new Promise(function(resolve){
-    if(!file){
-      resolve(null); return;
-    }
-    var cfg = getCloudConfig();
-    if(!cfg.cloudName || !cfg.preset){
-      console.warn('Missing cloudinary config');
-      resolve(null); return;
-    }
-    var isPDF = (file.type && file.type.toLowerCase().includes('pdf')) || (file.name && file.name.toLowerCase().endsWith('.pdf'));
-    // IMPORTANT: PDFs must use raw endpoint, otherwise Cloudinary returns JSON error when viewed as image
-    var resource = isPDF ? 'raw' : 'auto';
-    var url = 'https://api.cloudinary.com/v1_1/' + cfg.cloudName + '/' + resource + '/upload';
+    if(!file){ resolve(null); return; }
+    
+    var name = file.name.toLowerCase();
+    var isPDF = file.type === 'application/pdf' || name.endsWith('.pdf') || name.endsWith('.doc') || name.endsWith('.docx');
+    var resource = isPDF ? 'raw' : 'image';
+    
     var fd = new FormData();
     fd.append('file', file);
-    fd.append('upload_preset', cfg.preset);
-    // For unsigned presets, do NOT send resource_type param when using raw endpoint - endpoint already defines it
-    // But some presets require explicit resource_type
-    if(resource === 'auto'){
-      fd.append('resource_type', 'auto');
-    }
-    if(folder) fd.append('folder', folder);
-    // Do NOT send public_id with extension for raw - let Cloudinary generate it to avoid block
-    // If we send public_id, keep it simple without special chars
-    var cleanName = (Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_')).replace(/\.pdf$/i,'');
-    if(isPDF){
-      // keep .pdf extension in public_id for raw is okay, but we strip to be safe and let format preserved
-      fd.append('public_id', (folder?folder+'/':'') + cleanName);
-    } else {
-      fd.append('public_id', (folder?folder+'/':'') + cleanName);
-    }
-
-    console.log('Uploading to Cloudinary ['+resource+']:', file.name, file.type, folder);
-    fetch(url,{method:'POST', body:fd}).then(function(r){ return r.json(); }).then(function(d){
-      console.log('Cloudinary response ['+resource+']:', d);
-      if(d.secure_url){
-        // For raw, ensure URL is raw/upload not image/upload
-        var finalUrl = d.secure_url;
-        // If PDF but URL came back as image/upload (means auto detected as image - wrong), fix to raw if possible
-        // Actually if uploaded as auto, Cloudinary may still return image/upload for PDF -> that causes JSON error on view. Force raw check
-        if(isPDF && finalUrl.includes('/image/upload/')){
-          // Try to replace with /raw/upload/ - this often works if file was stored as raw
-          finalUrl = finalUrl.replace('/image/upload/', '/raw/upload/');
-        }
-        resolve(finalUrl);
-      } else {
-        console.warn('Cloudinary fail', d);
-        var errMsg = d.error ? d.error.message : JSON.stringify(d);
-        // Show clear instruction if preset blocks raw
-        if(errMsg.toLowerCase().includes('resource') || errMsg.toLowerCase().includes('raw') || errMsg.toLowerCase().includes('not allowed')){
-          if(typeof showUploadStatus === 'function'){
-            showUploadStatus('❌ PDF upload blocked: Your preset "'+cfg.preset+'" must allow RAW files. Go to Cloudinary > Settings > Upload > Upload Presets > '+cfg.preset+' > Set Resource Type = Auto, Allow Unsigned = Yes. Error: '+errMsg, true);
-          }
-        } else {
-          if(typeof showUploadStatus === 'function'){
-            showUploadStatus('❌ Upload failed ('+errMsg+')', true);
-          }
-        }
-        resolve(null);
-      }
-    }).catch(function(err){
-      console.warn('Cloudinary error', err);
-      resolve(null);
-    });
-  });
-}
+    fd.append('upload_preset', FREE_UPLOAD_CONFIG.cloudinaryPreset);
+    fd.append('folder', folder);
+    
+    var url = 'https://api.cloudinary.com/v1_1/' + FREE_UPLOAD_CONFIG.cloudinaryCloudName + '/' + resource + '/upload';
+    
+    showUploadStatus('⏳ Uploading ' + file.name + '...', false);
+    console.log('Uploading to:', url);
+    
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url);
+    
+    xhr.onload = function(){
+      try{
+        var d = JSON.parse(xhr.responseText);
+        if(d.secure_url){
+          console.log('✅ SUCCESS:', d.secure_url);
+          showUploadStatus('✅ Uploaded: ' + file.name, false);
+          resolve(d.secure_url);
+        }else
 
 // Keep backward compatible cloudUpload alias used in REGISTRATION FIX V3
 function cloudUpload(file, folder){
