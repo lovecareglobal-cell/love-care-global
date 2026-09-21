@@ -3455,21 +3455,41 @@ function cloudUpload(file, folder){
 
 // FIXED CV / CERT upload handlers
 document.addEventListener('DOMContentLoaded', function(){
-  var cvInput = document.getElementById('nRegCVFile');
-  if(cvInput){
-    cvInput.addEventListener('change', async function(e){
-      var file = e.target.files[0]; if(!file) return;
-      var prog = document.getElementById('cvUploadProgress');
-      if(prog) prog.textContent = '⏳ Uploading '+file.name+' ('+(file.size/1024/1024).toFixed(2)+'MB)...';
-      var url = await uploadToCloudinary(file, 'nurse_cvs');
-      if(url){
-        var linkInput = document.getElementById('nRegCV');
-        if(linkInput) linkInput.value = url;
-        if(prog) prog.innerHTML = '✅ Uploaded: <a href="'+url+'" target="_blank">View CV</a> - '+url;
-      } else {
-        if(prog) prog.textContent = '❌ Failed - set Lovecare1 preset to Public & Unsigned, allow resource_type auto';
-      }
+  async function uploadToCloudinary(file, folder){
+  try {
+    var isPDF = file.name.toLowerCase().endsWith('.pdf');
+    var resource = isPDF ? 'raw' : 'image';
+    
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', 'Lovecare1');
+    // Don't append resource_type if your preset is Auto - let URL handle it
+    
+    var cloudName = 'xcizfvct';
+    var uploadUrl = `https://api.cloudinary.com/v1_1/xcizfvct/${resource}/upload`
+    
+    console.log('Uploading to Cloudinary ['+resource+']: ' + file.name);
+    
+    var res = await fetch(uploadUrl, {
+      method: 'POST',
+      body: fd
     });
+    
+    var d = await res.json();
+    
+    if(d.secure_url){
+      var finalUrl = d.secure_url;
+      console.log('Cloudinary response ['+resource+']: ' + finalUrl);
+      return finalUrl;
+    } else {
+      console.warn('Cloudinary fail', d);
+      return null;
+    }
+  } catch(e){
+    console.error(e);
+    return null;
+  }
+}
   }
   var certInput = document.getElementById('nRegCertFile');
   if(certInput){
