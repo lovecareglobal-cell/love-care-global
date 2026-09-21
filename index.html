@@ -4240,6 +4240,158 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 })();
 </script>
 
+
+<script>
+// ===== SEPARATED UPLOADS VIEWER V4 - VIDEO/PDF/PHOTO SEPARATE =====
+(function(){
+  function cleanPhone(p){ return (p||'').toString().replace(/[^0-9]/g,''); }
+
+  function isDriveLink(url){ return url && (url.includes('drive.google.com')||url.includes('docs.google.com')); }
+  function getDriveFileId(url){
+    if(!url) return null;
+    var m = url.match(/\/d\/([^\/\?]+)/); if(m) return m[1];
+    m = url.match(/[?&]id=([^&]+)/); if(m) return m[1];
+    return null;
+  }
+  function getDrivePreview(url){
+    var id=getDriveFileId(url); return id ? 'https://drive.google.com/file/d/'+id+'/preview' : url;
+  }
+  function getDriveDownload(url){
+    var id=getDriveFileId(url); return id ? 'https://drive.google.com/uc?export=download&id='+id : url;
+  }
+
+  function renderVideoSection(label, url, icon, borderColor, bgColor){
+    if(!url) return '<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:12px 0;background:'+bgColor+'"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">'+icon+' '+label+'</b><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT UPLOADED</span></div><div style="padding:20px;text-align:center;color:#6b7280;font-size:12px">Nurse did not upload '+label+'</div></div>';
+    var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open Video</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
+    html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
+    if(isDriveLink(url)){
+      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:480px;border:3px solid '+borderColor+';border-radius:12px" allow="autoplay"></iframe><div style="font-size:10px;color:#6b7280;margin-top:6px">📁 Google Drive Video - If not loading, click Open Video</div>';
+    } else {
+      html+='<video src="'+url+'" controls playsinline controlsList="nodownload" preload="metadata" style="width:100%;max-height:500px;border-radius:12px;background:#000;border:3px solid '+borderColor+'" poster="./Icon-512.png"></video><div style="font-size:10px;color:#16a34a;margin-top:6px">▶️ Tap play to watch - If not loading, click Open Video</div>';
+    }
+    html+='</div>'; return html;
+  }
+
+  function renderPdfSection(label, url, icon, borderColor, bgColor){
+    if(!url) return '<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:12px 0;background:'+bgColor+'"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">'+icon+' '+label+'</b><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT UPLOADED</span></div><div style="padding:20px;text-align:center;color:#6b7280;font-size:12px">Nurse did not upload '+label+'</div></div>';
+    var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open PDF</a><a href="'+(isDriveLink(url)?getDriveDownload(url):url)+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download PDF</a></div></div>';
+    html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
+    if(isDriveLink(url)){
+      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
+    } else {
+      // For Cloudinary PDFs, direct iframe works, plus Google Docs viewer as fallback button
+      html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px;background:white" type="application/pdf"></iframe>';
+      html+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><a href="https://docs.google.com/gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="flex:1;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-decoration:none;text-align:center;font-size:11px;font-weight:800">📄 Open in Google PDF Viewer (if blank above)</a></div>';
+    }
+    html+='<div style="font-size:10px;color:#6b7280;margin-top:6px">📄 PDF Document - If preview blank, click Open PDF</div>';
+    html+='</div>'; return html;
+  }
+
+  function renderPhotoSection(label, url, icon, borderColor, bgColor){
+    if(!url) return '<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:12px 0;background:'+bgColor+'"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">'+icon+' '+label+'</b><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT UPLOADED</span></div></div>';
+    var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open Image</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
+    html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
+    if(isDriveLink(url)){
+      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:550px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
+    } else {
+      html+='<img src="'+url+'" style="width:100%;max-height:700px;object-fit:contain;border-radius:12px;border:3px solid '+borderColor+';background:#fff" loading="lazy" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\'"><div style="display:none;padding:30px;text-align:center;background:#fef3c7;border-radius:12px">⚠️ Image failed to load<br><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:10px">Open Image</a></div>';
+    }
+    html+='</div>'; return html;
+  }
+
+  window.showSeparatedNurseMedia = function(nurse, filterType){
+    var ceoView=document.getElementById('ceoNurseMediaView');
+    var ceoContent=document.getElementById('mediaViewerContent');
+    var staffView=document.getElementById('staffNurseMediaView');
+    var staffContent=document.getElementById('staffMediaViewerContent');
+    var viewers=[];
+    if(ceoView&&ceoContent) viewers.push({view:ceoView,content:ceoContent});
+    if(staffView&&staffContent) viewers.push({view:staffView,content:staffContent});
+    if(viewers.length===0){ alert('Viewer not found'); return; }
+
+    var profileUrl=nurse.profileUrl||nurse.photoUrl||'';
+    var videoUrl=nurse.videoUrl||nurse.videoLink||'';
+    var cvUrl=nurse.cvUrl||nurse.cvLink||'';
+    var certUrl=nurse.certUrl||nurse.certificateUrl||nurse.certLink||'';
+    var idUrl=nurse.idUrl||nurse.idCardUrl||nurse.idLink||'';
+
+    var header='<div style="background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:3px solid #16a34a;border-radius:16px;padding:16px;margin-bottom:16px">'
+      +'<div style="display:flex;gap:14px;align-items:center">'
+      +(profileUrl?'<img src="'+profileUrl+'" style="width:80px;height:80px;border-radius:50%;border:4px solid #16a34a;object-fit:cover" onerror="this.src=\'./Icon-512.png\'">':'<div style="width:80px;height:80px;border-radius:50%;background:#16a34a;color:white;display:flex;align-items:center;justify-content:center;font-size:32px">👩‍⚕️</div>')
+      +'<div><b style="font-size:18px;color:#111827">'+(nurse.name||'Nurse')+'</b><br><small style="color:#374151">'+(nurse.phone||'')+' | '+(nurse.specialty||'')+' | '+(nurse.location||'')+'</small><br><small style="color:#6b7280">Exp: '+(nurse.experience||'?')+' yrs | '+(nurse.careMode||'both')+' | '+(nurse.onDuty?'🟢 ON DUTY':'🔴 OFF')+' | 📍 '+(nurse.lat||'')+','+(nurse.lng||'')+'</small><br>'
+      +'<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><span style="background:#16a34a;color:white;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:800">'+(nurse.approvalStatus||nurse.status||'pending')+'</span><span style="background:#7c3aed;color:white;padding:3px 10px;border-radius:20px;font-size:10px">ID: '+(nurse.phoneKey||nurse.id||'')+'</span></div></div></div></div>';
+
+    var body='';
+    if(!filterType || filterType==='all'){
+      body+='<div style="background:#111827;color:white;padding:12px;border-radius:12px;text-align:center;font-weight:800;margin-bottom:12px">👁️ ALL UPLOADS - SEPARATED BY TYPE</div>';
+      body+=renderVideoSection('Introduction Video', videoUrl, '📹', '#7c3aed', '#f5f3ff');
+      body+=renderPdfSection('CV / Resume (PDF)', cvUrl, '📄', '#2563eb', '#eff6ff');
+      body+=renderPhotoSection('Profile Photo', profileUrl, '👤', '#16a34a', '#f0fdf4');
+      body+=renderPdfSection('Certificate (PDF)', certUrl, '🎓', '#eab308', '#fffbeb');
+      body+=renderPhotoSection('ID Card (Photo)', idUrl, '🪪', '#111827', '#f9fafb');
+    } else if(filterType==='video'){
+      body+=renderVideoSection('Introduction Video', videoUrl, '📹', '#7c3aed', '#f5f3ff');
+    } else if(filterType==='cv'){
+      body+=renderPdfSection('CV / Resume (PDF)', cvUrl, '📄', '#2563eb', '#eff6ff');
+    } else if(filterType==='cert'){
+      body+=renderPdfSection('Certificate (PDF)', certUrl, '🎓', '#eab308', '#fffbeb');
+    } else if(filterType==='id'){
+      body+=renderPhotoSection('ID Card (Photo)', idUrl, '🪪', '#111827', '#f9fafb');
+    } else if(filterType==='photo' || filterType==='profile'){
+      body+=renderPhotoSection('Profile Photo', profileUrl, '👤', '#16a34a', '#f0fdf4');
+    }
+
+    viewers.forEach(function(t){
+      t.content.innerHTML=header+body;
+      t.view.classList.remove('hidden');
+      t.view.style.display='block';
+      setTimeout(function(){ t.view.scrollIntoView({behavior:'smooth',block:'start'}); },150);
+    });
+  };
+
+  // Override old functions
+  var oldViewMedia = window.viewNurseMedia;
+  window.viewNurseMedia = function(phone, type){
+    if(!phone){ alert('Invalid phone'); return; }
+    var phoneKey=cleanPhone(phone);
+    var ceoView=document.getElementById('ceoNurseMediaView');
+    var staffView=document.getElementById('staffNurseMediaView');
+    if(ceoView){ ceoView.classList.remove('hidden'); ceoView.style.display='block'; document.getElementById('mediaViewerContent').innerHTML='<div style="padding:30px;text-align:center">⏳ Loading '+phone+'...<br><small>Separating Video / CV / Certificate / ID</small></div>'; }
+    if(staffView){ staffView.classList.remove('hidden'); staffView.style.display='block'; var sc=document.getElementById('staffMediaViewerContent'); if(sc) sc.innerHTML='<div style="padding:30px;text-align:center">⏳ Loading '+phone+'...</div>'; }
+
+    if(window.db){
+      db.ref('workers/'+phoneKey).once('value').then(function(snap){
+        var data=snap.val();
+        if(data){ window.showSeparatedNurseMedia(data, type); }
+        else {
+          db.ref('workers/'+phone).once('value').then(function(s2){
+            var d2=s2.val();
+            if(d2){ window.showSeparatedNurseMedia(d2, type); return; }
+            try{
+              var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
+              var found=nurses.find(function(n){ return cleanPhone(n.phone||n.phoneKey||'')===phoneKey; });
+              if(found) window.showSeparatedNurseMedia(found, type); else alert('❌ Nurse not found: '+phone);
+            }catch(e){ alert('❌ Not found'); }
+          });
+        }
+      });
+    } else {
+      try{
+        var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
+        var found=nurses.find(function(n){ return cleanPhone(n.phone||'')===phoneKey; });
+        if(found) window.showSeparatedNurseMedia(found, type); else alert('No local data');
+      }catch(e){ alert('Error'); }
+    }
+  };
+  window.viewAllNurseMedia = function(phone){ window.viewNurseMedia(phone,'all'); };
+
+  console.log('✅ SEPARATED VIEWER V4 APPLIED - Video→video player, CV→PDF, Cert→PDF, ID→photo');
+})();
+</script>
+
 </body>
 
 </html>
