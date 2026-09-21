@@ -3312,6 +3312,350 @@ document.addEventListener('DOMContentLoaded', function(){
   console.log('✅ Email gate removed, upload timeout fixed');
 })();
 </script>
+
+<script>
+// ===== ALL CHANGES INTEGRATED - CLOUDINARY + DRIVE + DRAGGABLE SOS + RATINGS =====
+console.log('Integrating all changes...');
+
+// 1. CLOUDINARY + DRIVE CONFIG (YOUR CONFIGS) ✅
+const DRIVE_CONFIG = {
+  enabled: true,
+  autoUploadThresholdMB: 10,
+  appsScriptUrl: 'https://script.google.com/macros/s/AKfycbxm4t3VxizQIc6p9Qnnt5ZQsSAhaF1LoY4KT0uIERvtLtSnTFJ3Zl4LiAu7gTJgBU6C/exec',
+  folderId: '11znPiPtpYQ3tpb6WpxYmQE0v-AmfYt8G',
+  folderUrl: 'https://drive.google.com/drive/folders/11znPiPtpYQ3tpb6WpxYmQE0v-AmfYt8G'
+};
+const FREE_UPLOAD_CONFIG = {
+  cloudinaryCloudName: 'xcizfvct',
+  cloudinaryPreset: 'Lovecare1',
+  useCloudinary: true
+};
+
+// 2. SMART UPLOAD - Small -> Cloudinary, Big -> Drive
+function showUploadStatus(msg, isError){
+  var box=document.getElementById('uploadStatusBox');
+  if(!box){
+    box=document.createElement('div');
+    box.id='uploadStatusBox';
+    box.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#dcfce7;border:2px solid #16a34a;border-radius:12px;padding:12px 18px;font-size:12px;z-index:9999999;text-align:center;max-width:90%;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
+    document.body.appendChild(box);
+  }
+  box.style.display='block';
+  box.innerHTML=msg;
+  box.style.background=isError?'#fee2e2':'#dcfce7';
+  box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
+  if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 6000);
+}
+
+function uploadToCloudinary(file, folder){
+  return new Promise(function(resolve){
+    if(!file || !FREE_UPLOAD_CONFIG.useCloudinary){ resolve(null); return; }
+    var url='https://api.cloudinary.com/v1_1/'+FREE_UPLOAD_CONFIG.cloudinaryCloudName+'/upload';
+    var fd=new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', FREE_UPLOAD_CONFIG.cloudinaryPreset);
+    if(folder) fd.append('folder', folder);
+    fetch(url,{method:'POST', body:fd}).then(function(r){return r.json();}).then(function(d){
+      if(d.secure_url) resolve(d.secure_url); else { console.warn('Cloudinary fail', d); resolve(null); }
+    }).catch(function(){ resolve(null); });
+  });
+}
+
+function uploadToMyDrive(file){
+  return new Promise(function(resolve){
+    if(!DRIVE_CONFIG.enabled) { resolve(null); return; }
+    var sizeMB=file.size/(1024*1024);
+    if(sizeMB < DRIVE_CONFIG.autoUploadThresholdMB){ resolve(null); return; }
+    showUploadStatus('📤 Big file ('+sizeMB.toFixed(1)+'MB) → Uploading to your Drive: LOVECARE UPLOADED PHOTOS...');
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var b64=e.target.result.split(',')[1];
+      var fd=new FormData();
+      fd.append('fileName', Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
+      fd.append('mimeType', file.type);
+      fd.append('fileData', b64);
+      fd.append('folderId', DRIVE_CONFIG.folderId);
+      fd.append('originalName', file.name);
+      fetch(DRIVE_CONFIG.appsScriptUrl,{method:'POST', body:fd}).then(function(r){return r.json();}).then(function(d){
+        if(d.success && d.fileUrl){ showUploadStatus('✅ Uploaded to Drive: '+file.name+' ('+sizeMB.toFixed(1)+'MB)'); resolve(d.fileUrl); }
+        else { console.warn('Drive fail', d); resolve(null); }
+      }).catch(function(err){ console.warn('Drive error', err); resolve(null); });
+    };
+    reader.onerror=function(){ resolve(null); };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Override uploadFileToStorage if exists, else create
+window.uploadFileToStorage = async function(file, path){
+  if(!file) return null;
+  var sizeMB=file.size/(1024*1024);
+  if(sizeMB > DRIVE_CONFIG.autoUploadThresholdMB){
+    var driveUrl=await uploadToMyDrive(file);
+    if(driveUrl) return driveUrl;
+  }
+  var folder=(path||'').split('/')[0]||'lovecare';
+  var cloudUrl=await uploadToCloudinary(file, folder);
+  if(cloudUrl) return cloudUrl;
+  // Fallback to Firebase if both fail (original logic)
+  if(window.uploadToFirebaseStorage){
+    return await window.uploadToFirebaseStorage(file, path);
+  }
+  return null;
+};
+
+// 3. DRAGGABLE SOS - Can be dragged anywhere + saves position
+(function(){
+  function initDraggableSOS(){
+    var sos=document.querySelector('.sosFloat') || document.getElementById('sosButton') || document.getElementById('sosBtn');
+    if(!sos) return;
+    sos.style.touchAction='none';
+    sos.style.cursor='grab';
+    var isDragging=false, hasMoved=false, startX, startY, initLeft, initTop, curX, curY;
+    function getPos(e){ if(e.touches && e.touches[0]) return {x:e.touches[0].clientX, y:e.touches[0].clientY}; return {x:e.clientX, y:e.clientY}; }
+    function onStart(e){
+      isDragging=true; hasMoved=false;
+      sos.classList.add('dragging');
+      sos.style.cursor='grabbing';
+      sos.style.transition='none';
+      var p=getPos(e);
+      startX=p.x; startY=p.y;
+      var rect=sos.getBoundingClientRect();
+      initLeft=rect.left; initTop=rect.top;
+      curX=initLeft; curY=initTop;
+      e.preventDefault();
+    }
+    function onMove(e){
+      if(!isDragging) return;
+      var p=getPos(e);
+      var dx=p.x-startX, dy=p.y-startY;
+      if(Math.abs(dx)>4 || Math.abs(dy)>4) hasMoved=true;
+      curX=initLeft+dx; curY=initTop+dy;
+      curX=Math.max(5, Math.min(window.innerWidth-75, curX));
+      curY=Math.max(5, Math.min(window.innerHeight-75, curY));
+      sos.style.left=curX+'px'; sos.style.top=curY+'px'; sos.style.right='auto'; sos.style.bottom='auto';
+      e.preventDefault();
+    }
+    function onEnd(e){
+      if(!isDragging) return;
+      isDragging=false;
+      sos.classList.remove('dragging');
+      sos.style.cursor='grab';
+      sos.style.transition='box-shadow 0.2s';
+      localStorage.setItem('sosPosX', curX);
+      localStorage.setItem('sosPosY', curY);
+      if(hasMoved){ e.preventDefault(); e.stopPropagation(); }
+    }
+    sos.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    sos.addEventListener('touchstart', onStart, {passive:false});
+    document.addEventListener('touchmove', onMove, {passive:false});
+    document.addEventListener('touchend', onEnd, {passive:false});
+    sos.addEventListener('click', function(e){ if(hasMoved){ e.stopPropagation(); e.preventDefault(); hasMoved=false; } });
+    var sx=localStorage.getItem('sosPosX'), sy=localStorage.getItem('sosPosY');
+    if(sx && sy){ sos.style.left=sx+'px'; sos.style.top=sy+'px'; sos.style.right='auto'; sos.style.bottom='auto'; }
+    console.log('✅ Draggable SOS ready - Drag anywhere');
+  }
+  document.addEventListener('DOMContentLoaded', initDraggableSOS);
+  setTimeout(initDraggableSOS, 1500);
+})();
+
+// 4. CLIENT MUST WATCH VIDEO 5s + READ PROFILE BEFORE BOOKING
+(function(){
+  window.nurseVideoWatched={};
+  window.nurseProfileRead={};
+  
+  // Hook into existing viewNurse or openNurseModal functions
+  var originalViewNurse = window.viewNurseProfile || window.openNurseProfile || window.showNurseDetails;
+  
+  window.enforceWatchAndRead = function(nurseId){
+    if(!window.nurseVideoWatched[nurseId]) window.nurseVideoWatched[nurseId]=false;
+    if(!window.nurseProfileRead[nurseId]) window.nurseProfileRead[nurseId]=false;
+    
+    // Find video element and add 5s watch listener
+    setTimeout(function(){
+      var videos=document.querySelectorAll('video');
+      videos.forEach(function(v){
+        var hasListener=v.getAttribute('data-watch-listener');
+        if(!hasListener){
+          v.setAttribute('data-watch-listener','true');
+          v.addEventListener('timeupdate', function(){
+            if(v.currentTime>=5){
+              window.nurseVideoWatched[nurseId]=true;
+              var badge=document.getElementById('videoWatchBadge-'+nurseId);
+              if(badge) badge.innerHTML='✅ Video watched 5s';
+              checkBookingAllowed(nurseId);
+            }
+          });
+        }
+      });
+      
+      // Profile read - scroll to bottom or 8 seconds reading
+      var profileBox=document.getElementById('nurseProfileBox') || document.querySelector('.nurse-details') || document.body;
+      if(profileBox){
+        var readTimer=setTimeout(function(){
+          window.nurseProfileRead[nurseId]=true;
+          var badge2=document.getElementById('profileReadBadge-'+nurseId);
+          if(badge2) badge2.innerHTML='✅ Profile read';
+          checkBookingAllowed(nurseId);
+        }, 8000);
+      }
+    }, 800);
+  };
+  
+  window.checkBookingAllowed=function(nurseId){
+    var btn=document.getElementById('bookBtn-'+nurseId) || document.querySelector('[id*="book"][id*="'+nurseId+'"]') || document.querySelector('button[onclick*="book"][onclick*="'+nurseId+'"]');
+    var watched=window.nurseVideoWatched[nurseId];
+    var read=window.nurseProfileRead[nurseId];
+    if(btn){
+      if(watched && read){
+        btn.disabled=false;
+        btn.style.opacity='1';
+        btn.title='Ready to book';
+      } else {
+        btn.disabled=true;
+        btn.style.opacity='0.5';
+        var msg='';
+        if(!watched) msg+='Watch video 5s ';
+        if(!read) msg+='Read profile 8s';
+        btn.title=msg;
+      }
+    }
+  };
+  
+  // Inject badges into nurse cards when viewed
+  window.injectWatchBadges=function(nurseId){
+    var container=document.getElementById('nurseDetailContainer') || document.querySelector('.nurse-modal') || document.body;
+    // Add badges if not exist
+    if(!document.getElementById('videoWatchBadge-'+nurseId)){
+      var badgeHtml='<div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap"><span id="videoWatchBadge-'+nurseId+'" style="font-size:10px;background:#fef3c7;padding:4px 8px;border-radius:8px;border:1px solid #eab308">⏳ Watch video 5s</span><span id="profileReadBadge-'+nurseId+'" style="font-size:10px;background:#fef3c7;padding:4px 8px;border-radius:8px;border:1px solid #eab308">⏳ Read profile 8s</span><span style="font-size:10px;background:#dcfce7;padding:4px 8px;border-radius:8px">🔒 Book unlocks after both</span></div>';
+      // Try to insert at top of nurse detail
+      var target=document.querySelector('#nurseDetails') || document.querySelector('.nurse-info') || container;
+      if(target) target.insertAdjacentHTML('afterbegin', badgeHtml);
+    }
+    window.enforceWatchAndRead(nurseId);
+  };
+})();
+
+// 5. RATING SYSTEM - After service completed + CEO sees ratings + Suspend/Unsuspend + Auto-suspend <2.5 from 3+ clients
+(function(){
+  // Save rating
+  window.submitNurseRating=function(bookingId, nurseId, rating, comment){
+    if(!window.db) { alert('Database not ready'); return; }
+    var ratingData={
+      bookingId: bookingId,
+      nurseId: nurseId,
+      rating: parseFloat(rating),
+      comment: comment||'',
+      createdAt: Date.now(),
+      clientId: localStorage.getItem('clientId')||'anonymous',
+      clientName: localStorage.getItem('clientName')||'Client'
+    };
+    db.ref('ratings/'+bookingId).set(ratingData).then(function(){
+      // Update nurse average
+      db.ref('ratings').orderByChild('nurseId').equalTo(nurseId).once('value', function(snap){
+        var all=snap.val();
+        if(all){
+          var sum=0, count=0;
+          Object.values(all).forEach(function(r){ sum+=r.rating; count++; });
+          var avg=sum/count;
+          db.ref('nurses/'+nurseId+'/ratingAvg').set(avg);
+          db.ref('nurses/'+nurseId+'/ratingCount').set(count);
+          db.ref('nurses/'+nurseId+'/ratingSum').set(sum);
+          
+          // Auto-suspend if <2.5 from 3+ clients
+          if(avg<2.5 && count>=3){
+            db.ref('nurses/'+nurseId+'/suspended').set(true);
+            db.ref('nurses/'+nurseId+'/suspendReason').set('Auto-suspended: Rating '+avg.toFixed(1)+'/5 from '+count+' clients (<2.5)');
+            db.ref('nurses/'+nurseId+'/suspendedAt').set(Date.now());
+            console.log('Auto-suspended nurse', nurseId, 'avg', avg);
+          }
+        }
+      });
+      alert('✅ Rating submitted: '+rating+'/5');
+      if(window.loadBookings) window.loadBookings();
+    });
+  };
+  
+  // CEO/Staff suspend/unsuspend
+  window.suspendNurse=function(nurseId, reason){
+    if(!window.db) return;
+    var r=reason||prompt('Suspend reason:')||'Suspended by CEO/Staff';
+    db.ref('nurses/'+nurseId+'/suspended').set(true);
+    db.ref('nurses/'+nurseId+'/suspendReason').set(r);
+    db.ref('nurses/'+nurseId+'/suspendedAt').set(Date.now());
+    alert('✅ Nurse suspended');
+  };
+  
+  window.unsuspendNurse=function(nurseId){
+    if(!window.db) return;
+    db.ref('nurses/'+nurseId+'/suspended').set(false);
+    db.ref('nurses/'+nurseId+'/suspendReason').set('');
+    db.ref('nurses/'+nurseId+'/unsuspendedAt').set(Date.now());
+    alert('✅ Nurse unsuspended');
+  };
+  
+  // Show rating UI after service completed
+  window.showRatingForBooking=function(bookingId, nurseId, nurseName){
+    var html='<div id="ratingModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999999;display:flex;align-items:center;justify-content:center;padding:20px"><div style="background:white;border-radius:16px;padding:20px;max-width:400px;width:100%"><h3 style="color:#16a34a;margin:0 0 10px 0">⭐ Rate '+ (nurseName||'Nurse')+'</h3><p style="font-size:12px;color:#6b7280">Service completed - Please rate</p><div style="display:flex;gap:6px;justify-content:center;margin:12px 0"><button onclick="setTempRating(1)" class="rateStar" data-r="1" style="font-size:28px;background:none;border:none;cursor:pointer">☆</button><button onclick="setTempRating(2)" class="rateStar" data-r="2" style="font-size:28px;background:none;border:none;cursor:pointer">☆</button><button onclick="setTempRating(3)" class="rateStar" data-r="3" style="font-size:28px;background:none;border:none;cursor:pointer">☆</button><button onclick="setTempRating(4)" class="rateStar" data-r="4" style="font-size:28px;background:none;border:none;cursor:pointer">☆</button><button onclick="setTempRating(5)" class="rateStar" data-r="5" style="font-size:28px;background:none;border:none;cursor:pointer">☆</button></div><textarea id="ratingComment" placeholder="Comment (optional)" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;font-size:12px" rows="3"></textarea><div style="display:flex;gap:8px;margin-top:12px"><button onclick="confirmRating(\''+bookingId+'\',\''+nurseId+'\')" style="flex:1;background:#16a34a;color:white;border:none;padding:12px;border-radius:10px;font-weight:800">Submit Rating</button><button onclick="document.getElementById(\'ratingModal\').remove()" style="flex:1;background:#e5e7eb;color:#111;border:none;padding:12px;border-radius:10px;font-weight:800">Skip</button></div></div></div>';
+    document.body.insertAdjacentHTML('beforeend', html);
+  };
+  
+  window.tempRating=0;
+  window.setTempRating=function(r){
+    window.tempRating=r;
+    document.querySelectorAll('.rateStar').forEach(function(s){
+      var v=parseInt(s.getAttribute('data-r'));
+      s.innerHTML=v<=r?'★':'☆';
+      s.style.color=v<=r?'#eab308':'#ccc';
+    });
+  };
+  window.confirmRating=function(bId, nId){
+    if(!window.tempRating){ alert('Please select stars'); return; }
+    var comment=document.getElementById('ratingComment').value;
+    window.submitNurseRating(bId, nId, window.tempRating, comment);
+    var m=document.getElementById('ratingModal'); if(m) m.remove();
+  };
+  
+  // Auto-check completed bookings for rating
+  window.checkCompletedForRating=function(){
+    if(!window.db) return;
+    var clientId=localStorage.getItem('clientId');
+    if(!clientId) return;
+    db.ref('bookings').orderByChild('clientId').equalTo(clientId).once('value', function(snap){
+      var bookings=snap.val();
+      if(!bookings) return;
+      Object.entries(bookings).forEach(function([bid, b]){
+        if(b.status==='completed' && !b.rated){
+          // Show rating if not yet rated
+          setTimeout(function(){ window.showRatingForBooking(bid, b.nurseId, b.nurseName); }, 1500);
+        }
+      });
+    });
+  };
+  
+  // CEO rating dashboard hook
+  window.loadNurseRatingsForCEO=function(nurseId){
+    if(!window.db) return;
+    db.ref('ratings').orderByChild('nurseId').equalTo(nurseId).once('value', function(snap){
+      var ratings=snap.val();
+      if(!ratings){ alert('No ratings yet'); return; }
+      var list=Object.values(ratings);
+      var avg=(list.reduce(function(s,r){return s+r.rating;},0)/list.length).toFixed(1);
+      var msg='⭐ Ratings for nurse '+nurseId+'\nAvg: '+avg+'/5 from '+list.length+' clients\n\n';
+      list.forEach(function(r){ msg+=r.rating+'/5 - '+(r.comment||'No comment')+'\n'; });
+      alert(msg);
+    });
+  };
+  
+  setTimeout(function(){ window.checkCompletedForRating(); }, 3000);
+  console.log('✅ Rating system loaded - After service, CEO sees ratings, auto-suspend <2.5 from 3+ clients');
+})();
+
+console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CONFIG.folderId+' + Draggable SOS + Ratings + Watch 5s');
+</script>
+
 </body>
 
 </html>
