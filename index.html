@@ -3371,7 +3371,9 @@ function uploadToCloudinary(file, folder){
     fd.append('upload_preset', FREE_UPLOAD_CONFIG.cloudinaryPreset);
     fd.append('folder', folder);
     
-    var url = 'https://api.cloudinary.com/v1_1/' + FREE_UPLOAD_CONFIG.cloudinaryCloudName + '/' + resource + '/upload';
+    var isPDF = file.name.toLowerCase().endsWith('.pdf');
+var resource = isPDF ? 'raw' : 'image';
+var url = 'https://api.cloudinary.com/v1_1/xcizfvct/'+resource+'/upload';
     
     showUploadStatus('⏳ Uploading ' + file.name + '...', false);
     console.log('Uploading to:', url);
@@ -4730,7 +4732,9 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
       return;
     }
     var cfg=getCloudConfig();
-    var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/auto/upload';
+var isPDF = file.name.toLowerCase().endsWith('.pdf');
+var resource = isPDF ? 'raw' : 'image';
+var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
     var fd=new FormData();
     fd.append('file', file);
     fd.append('upload_preset', cfg.preset);
