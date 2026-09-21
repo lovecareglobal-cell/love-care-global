@@ -3813,189 +3813,266 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 
 
 <script>
-// ===== FIX: CEO & STAFF CAN VIEW NURSE UPLOADS - ADDED 2026 =====
+// ===== COMPLETE FIX V2 - DELETE + MEDIA VIEWER + PHONE HIDE =====
 (function(){
   function cleanPhone(p){ return (p||'').toString().replace(/[^0-9]/g,''); }
-  
-  function isDriveLink(url){
-    if(!url) return false;
-    return url.includes('drive.google.com') || url.includes('docs.google.com');
+  function isClientRole(){
+    try{
+      return localStorage.getItem('userRole')==='client' || localStorage.getItem('isClientLogged')==='true' 
+        || (document.getElementById('page-client-map') && document.getElementById('page-client-map').classList.contains('active'))
+        || window.location.hash.includes('client');
+    }catch(e){ return false; }
   }
+  function isCEORole(){
+    return localStorage.getItem('isCEOLogged')==='true' || localStorage.getItem('userRole')==='CEO';
+  }
+  function isStaffRole(){
+    return localStorage.getItem('isStaffLogged')==='true' || localStorage.getItem('userRole')==='STAFF';
+  }
+
+  // ---- DELETE FIXES ----
+  window.deleteNurse = function(phone){
+    if(!phone){ alert('Invalid nurse phone'); return; }
+    if(!confirm('🗑 Delete nurse '+phone+' permanently? This will remove all uploads.')) return;
+    var phoneKey = cleanPhone(phone);
+    var statusEl = document.getElementById('ceoNursesList') || document.getElementById('staffNursesList');
+    if(statusEl) statusEl.innerHTML = '<div style="padding:12px;background:#fef3c7;border-radius:10px">⏳ Deleting '+phone+'...</div>' + statusEl.innerHTML;
+    
+    var afterDelete = function(){
+      alert('✅ Nurse '+phone+' deleted');
+      try{ if(typeof loadCeoNurses==='function') loadCeoNurses(); }catch(e){}
+      try{ if(typeof loadStaffNurses==='function') loadStaffNurses(); }catch(e){}
+      try{
+        var nurses = JSON.parse(localStorage.getItem('nurses')||'[]');
+        nurses = nurses.filter(function(n){ return cleanPhone(n.phone||n.phoneKey||'')!==phoneKey; });
+        localStorage.setItem('nurses', JSON.stringify(nurses));
+      }catch(e){}
+    };
+
+    if(window.db && window.db.ref){
+      // Also log to deletedNurses for audit
+      db.ref('deletedNurses/'+phoneKey).set({phone:phone, phoneKey:phoneKey, deletedAt:Date.now(), deletedBy: localStorage.getItem('ceoID')||localStorage.getItem('staffID')||'CEO', reason:'Deleted by CEO/Staff'}).then(function(){
+        return db.ref('workers/'+phoneKey).remove();
+      }).then(afterDelete).catch(function(err){
+        console.error(err);
+        alert('Delete error: '+err.message+' Trying local delete');
+        afterDelete();
+      });
+    } else {
+      afterDelete();
+    }
+  };
+
+  window.deleteBooking = function(id){
+    if(!confirm('🗑 Delete booking #'+id+' permanently?')) return;
+    if(window.db){
+      db.ref('bookings/'+id).remove().then(function(){
+        alert('✅ Booking deleted');
+        try{ if(typeof loadCeoPayments==='function') loadCeoPayments(); }catch(e){}
+        try{ if(typeof loadCeoClients==='function') loadCeoClients(); }catch(e){}
+        try{ if(typeof loadStaffClients==='function') loadStaffClients(); }catch(e){}
+      }).catch(function(e){ alert('Delete failed: '+e.message); });
+    } else {
+      alert('Demo mode - booking would be deleted');
+    }
+  };
+
+  // Also fix deleteBooking from CEO Payments if using numeric id in table
+  window.deleteClientBooking = window.deleteBooking;
+
+  // ---- MEDIA VIEWER FIXES (Handles Cloudinary PDFs as PDF not image) ----
+  function isDriveLink(url){ return url && (url.includes('drive.google.com')||url.includes('docs.google.com')); }
   function getDriveFileId(url){
     if(!url) return null;
-    try{
-      var m = url.match(/\/d\/([^\/\?]+)/);
-      if(m) return m[1];
-      m = url.match(/[?&]id=([^&]+)/);
-      if(m) return m[1];
-      m = url.match(/\/file\/d\/([^\/]+)/);
-      if(m) return m[1];
-      return null;
-    }catch(e){ return null; }
+    var m = url.match(/\/d\/([^\/\?]+)/); if(m) return m[1];
+    m = url.match(/[?&]id=([^&]+)/); if(m) return m[1];
+    return null;
   }
-  function getDrivePreviewUrl(url){
-    var id = getDriveFileId(url);
-    if(!id) return url;
-    return 'https://drive.google.com/file/d/'+id+'/preview';
+  function getDrivePreview(url){
+    var id=getDriveFileId(url); return id ? 'https://drive.google.com/file/d/'+id+'/preview' : url;
   }
-  function getDriveDownloadUrl(url){
-    var id = getDriveFileId(url);
-    if(!id) return url;
-    return 'https://drive.google.com/uc?export=download&id='+id;
+  function getDriveDownload(url){
+    var id=getDriveFileId(url); return id ? 'https://drive.google.com/uc?export=download&id='+id : url;
+  }
+  function isPdfUrl(u){
+    if(!u) return false;
+    return /\.pdf($|\?|#)/i.test(u) || u.includes('nurse_cvs') || u.includes('_cvs/');
   }
   function isVideoUrl(u){
-    if(!u) return false;
-    if(isDriveLink(u)) return false; // Drive handles own preview
-    return /\.(mp4|mov|webm|mkv|avi|m4v)($|\?)/i.test(u) || u.includes('video') || u.includes('cloudinary') && u.includes('/video/');
+    if(!u) return false; if(isDriveLink(u)) return false;
+    return /\.(mp4|mov|webm|mkv|avi)($|\?)/i.test(u) || (u.includes('cloudinary') && u.includes('/video/')) || u.includes('nurse_videos');
   }
   function isImageUrl(u){
-    if(!u) return false;
-    if(isDriveLink(u)) return false;
-    return /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i.test(u) || u.includes('image') || u.includes('cloudinary') && u.includes('/image/');
+    if(!u) return false; if(isDriveLink(u) || isPdfUrl(u) || isVideoUrl(u)) return false;
+    return /\.(jpg|jpeg|png|gif|webp|bmp)($|\?|#)/i.test(u) || u.includes('/image/') || u.includes('nurse_ids') || u.includes('profile');
   }
   function renderSingleMedia(label, url){
-    if(!url) return '<div style="padding:10px;background:#fee2e2;border-radius:8px;margin:8px 0">❌ No '+label+' uploaded</div>';
-    var safeUrl = url.trim();
-    var html = '<div style="border:2px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;background:white">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="color:#111827;font-size:13px">'+label+'</b><div style="display:flex;gap:6px"><a href="'+safeUrl+'" target="_blank" style="background:#2563eb;color:white;padding:6px 10px;border-radius:6px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open</a>';
-    if(isDriveLink(safeUrl)){
-      html += '<a href="'+getDriveDownloadUrl(safeUrl)+'" target="_blank" style="background:#16a34a;color:white;padding:6px 10px;border-radius:6px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a>';
-    }
-    html += '</div></div>';
-    html += '<div style="font-size:10px;color:#6b7280;word-break:break-all;margin-bottom:8px">'+safeUrl+'</div>';
-    
-    if(isDriveLink(safeUrl)){
-      html += '<iframe src="'+getDrivePreviewUrl(safeUrl)+'" style="width:100%;height:420px;border:2px solid #16a34a;border-radius:10px" allow="autoplay"></iframe>';
-      html += '<div style="font-size:10px;color:#16a34a;margin-top:6px">📁 Google Drive Preview - If not loading, click Open</div>';
-    } else if(isVideoUrl(safeUrl) || safeUrl.includes('.mp4') || safeUrl.includes('video')){
-      html += '<video src="'+safeUrl+'" controls playsinline style="width:100%;max-height:480px;border-radius:10px;background:black;border:2px solid #7c3aed"></video>';
-    } else if(isImageUrl(safeUrl) || safeUrl.match(/\.(jpg|jpeg|png|webp)/i)){
-      html += '<img src="'+safeUrl+'" style="width:100%;max-height:600px;object-fit:contain;border-radius:10px;border:2px solid #16a34a" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\'"><div style="display:none;padding:20px;text-align:center;background:#fef3c7;border-radius:10px">⚠️ Image failed to load, use Open button</div>';
+    if(!url) return '<div style="padding:10px;background:#fee2e2;border-radius:10px;margin:8px 0;font-size:12px">❌ No '+label+' uploaded</div>';
+    var safe = url.trim();
+    var html='<div style="border:2px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;background:white">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px"><b style="color:#111827;font-size:13px">'+label+'</b><div style="display:flex;gap:6px"><a href="'+safe+'" target="_blank" style="background:#2563eb;color:white;padding:6px 12px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open</a><a href="'+(isDriveLink(safe)?getDriveDownload(safe):safe)+'" download target="_blank" style="background:#16a34a;color:white;padding:6px 12px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
+    html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:8px">'+safe+'</div>';
+    if(isDriveLink(safe)){
+      html+='<iframe src="'+getDrivePreview(safe)+'" style="width:100%;height:480px;border:2px solid #16a34a;border-radius:10px" allow="autoplay"></iframe>';
+    } else if(isVideoUrl(safe)){
+      html+='<video src="'+safe+'" controls playsinline controlsList="nodownload" style="width:100%;max-height:480px;border-radius:12px;background:#000;border:2px solid #7c3aed"></video>';
+    } else if(isPdfUrl(safe)){
+      // Use Cloudinary / Google Docs viewer for PDFs
+      if(safe.includes('cloudinary')){
+        html+='<iframe src="'+safe+'" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe><div style="font-size:10px;color:#2563eb;margin-top:4px">📄 PDF from Cloudinary - If blank, click Open</div>';
+      } else {
+        html+='<iframe src="https://docs.google.com/gview?url='+encodeURIComponent(safe)+'&embedded=true" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe>';
+      }
+    } else if(isImageUrl(safe)){
+      html+='<img src="'+safe+'" style="width:100%;max-height:650px;object-fit:contain;border-radius:12px;border:2px solid #16a34a;background:#f9fafb" loading="lazy" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\'"><div style="display:none;padding:20px;text-align:center;background:#fef3c7;border-radius:10px">⚠️ Image failed to load - Tap Open button<br><small>'+safe+'</small></div>';
     } else {
-      // PDF or other doc - try iframe
-      html += '<iframe src="'+safeUrl+'" style="width:100%;height:500px;border:2px solid #2563eb;border-radius:10px"></iframe><div style="font-size:10px;color:#6b7280;margin-top:6px">📄 Document preview - If not loading, click Open</div>';
+      // Fallback: try iframe
+      html+='<iframe src="'+safe+'" style="width:100%;height:500px;border:2px solid #6b7280;border-radius:10px"></iframe><div style="font-size:10px;color:#6b7280;margin-top:4px">If not loading, use Open button</div>';
     }
-    html += '</div>';
-    return html;
+    html+='</div>'; return html;
   }
-
   function showInViewer(nurse, filterType){
-    var ceoView = document.getElementById('ceoNurseMediaView');
-    var ceoContent = document.getElementById('mediaViewerContent');
-    var staffView = document.getElementById('staffNurseMediaView');
-    var staffContent = document.getElementById('staffMediaViewerContent');
+    var ceoView=document.getElementById('ceoNurseMediaView');
+    var ceoContent=document.getElementById('mediaViewerContent');
+    var staffView=document.getElementById('staffNurseMediaView');
+    var staffContent=document.getElementById('staffMediaViewerContent');
+    var viewers=[];
+    if(ceoView&&ceoContent) viewers.push({view:ceoView,content:ceoContent});
+    if(staffView&&staffContent) viewers.push({view:staffView,content:staffContent});
+    if(viewers.length===0){ alert('Viewer not found'); return; }
+
+    var profileUrl=nurse.profileUrl||nurse.photoUrl||'';
+    var videoUrl=nurse.videoUrl||nurse.videoLink||'';
+    var cvUrl=nurse.cvUrl||nurse.cvLink||'';
+    var certUrl=nurse.certUrl||nurse.certificateUrl||nurse.certLink||'';
+    var idUrl=nurse.idUrl||nurse.idCardUrl||nurse.idLink||'';
     
-    // Decide which viewers to show (both CEO and staff if both exist)
-    var targetViewers = [];
-    var isCEOLogged = localStorage.getItem('isCEOLogged')==='true' || localStorage.getItem('userRole')==='CEO';
-    var isStaffLogged = localStorage.getItem('isStaffLogged')==='true' || localStorage.getItem('userRole')==='STAFF';
-    
-    // Always try to show CEO viewer if it exists and CEO is logged or we are in CEO tab
-    if(ceoView && ceoContent){
-      targetViewers.push({view: ceoView, content: ceoContent});
-    }
-    if(staffView && staffContent){
-      targetViewers.push({view: staffView, content: staffContent});
-    }
-    // If no logged role detected, show whichever is visible
-    if(targetViewers.length===0){
-      if(ceoView && ceoContent) targetViewers.push({view: ceoView, content: ceoContent});
-      if(staffView && staffContent) targetViewers.push({view: staffView, content: staffContent});
-    }
-    if(targetViewers.length===0){
-      alert('Media viewer not found');
-      return;
-    }
+    var header='<div style="background:#f0fdf4;border:3px solid #16a34a;border-radius:14px;padding:14px;margin-bottom:14px"><div style="display:flex;gap:12px;align-items:center">'+(profileUrl?'<img src="'+profileUrl+'" style="width:70px;height:70px;border-radius:50%;border:3px solid #16a34a;object-fit:cover" onerror="this.src=\'./Icon-512.png\'">':'<div style="width:70px;height:70px;border-radius:50%;background:#16a34a;color:white;display:flex;align-items:center;justify-content:center;font-size:30px">👩‍⚕️</div>')+'<div><b style="font-size:16px">'+(nurse.name||'Nurse')+'</b><br><small>'+(nurse.phone||'')+' | '+(nurse.specialty||'')+' | '+(nurse.location||'')+'</small><br><small>Exp: '+(nurse.experience||'?')+' yrs | Mode: '+(nurse.careMode||'both')+' | '+(nurse.onDuty?'🟢 ON DUTY':'🔴 OFF')+'</small></div></div></div>';
 
-    var profileUrl = nurse.profileUrl || nurse.photoUrl || nurse.avatarUrl || '';
-    var videoUrl = nurse.videoUrl || nurse.videoLink || '';
-    var cvUrl = nurse.cvUrl || nurse.cvLink || '';
-    var certUrl = nurse.certUrl || nurse.certificateUrl || nurse.certLink || '';
-    var idUrl = nurse.idUrl || nurse.idCardUrl || nurse.idLink || '';
-
-    var header = '<div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:12px;margin-bottom:12px">'
-      + '<div style="display:flex;gap:12px;align-items:center">'
-      + (profileUrl ? '<img src="'+profileUrl+'" style="width:70px;height:70px;border-radius:50%;border:3px solid #16a34a;object-fit:cover" onerror="this.src=\'./Icon-512.png\'">' : '<div style="width:70px;height:70px;border-radius:50%;background:#16a34a;color:white;display:flex;align-items:center;justify-content:center;font-weight:800">👩‍⚕️</div>')
-      + '<div><b style="font-size:15px">'+(nurse.name||'Nurse')+'</b><br><small>'+(nurse.phone||'')+' | '+(nurse.specialty||'')+' | '+(nurse.location||'')+'</small><br><small>Exp: '+(nurse.experience||'?')+' yrs | '+(nurse.careMode||'both')+' | '+(nurse.onDuty?'🟢 ON DUTY':'🔴 OFF')+'</small><br>'
-      + '<small>📍 '+(nurse.lat||'')+','+(nurse.lng||'')+'</small></div></div></div>';
-
-    var body = '';
-    if(!filterType || filterType==='all'){
-      body += '<h4 style="margin:10px 0 0 0;color:#111827">👁️ All Uploads</h4>';
-      body += renderSingleMedia('👤 Profile Photo', profileUrl);
-      body += renderSingleMedia('📹 Introduction Video', videoUrl);
-      body += renderSingleMedia('📄 CV / Resume', cvUrl);
-      body += renderSingleMedia('🎓 Certificate', certUrl);
-      body += renderSingleMedia('🪪 ID Card', idUrl);
+    var body='';
+    if(!filterType||filterType==='all'){
+      body+='<h3 style="margin:8px 0;color:#111827">👁️ ALL Uploads - Full View</h3>';
+      body+=renderSingleMedia('👤 Profile Photo',profileUrl);
+      body+=renderSingleMedia('📹 Introduction Video',videoUrl);
+      body+=renderSingleMedia('📄 CV / Resume',cvUrl);
+      body+=renderSingleMedia('🎓 Certificate',certUrl);
+      body+=renderSingleMedia('🪪 ID Card',idUrl);
     } else {
-      var map = {video: ['📹 Video', videoUrl], cv: ['📄 CV', cvUrl], cert: ['🎓 Certificate', certUrl], id: ['🪪 ID Card', idUrl], photo: ['👤 Photo', profileUrl], profile: ['👤 Profile', profileUrl]};
-      var item = map[filterType] || [filterType, ''];
-      body += renderSingleMedia(item[0], item[1]);
+      var map={video:['📹 Introduction Video',videoUrl], cv:['📄 CV / Resume',cvUrl], cert:['🎓 Certificate',certUrl], id:['🪪 ID Card',idUrl], photo:['👤 Profile Photo',profileUrl], profile:['👤 Profile Photo',profileUrl]};
+      var it=map[filterType]||[filterType,''];
+      body+=renderSingleMedia(it[0],it[1]);
     }
 
-    targetViewers.forEach(function(t){
-      t.content.innerHTML = header + body;
+    viewers.forEach(function(t){
+      t.content.innerHTML=header+body;
       t.view.classList.remove('hidden');
-      t.view.style.display = 'block';
-      t.view.scrollIntoView({behavior:'smooth', block:'start'});
+      t.view.style.display='block';
+      setTimeout(function(){ t.view.scrollIntoView({behavior:'smooth',block:'start'}); },100);
     });
   }
 
-  window.viewNurseMedia = function(phone, type){
+  window.viewNurseMedia=function(phone,type){
     if(!phone){ alert('Invalid phone'); return; }
-    var phoneKey = cleanPhone(phone);
-    var contentEl = document.getElementById('mediaViewerContent') || document.getElementById('staffMediaViewerContent');
-    if(contentEl) contentEl.innerHTML = '<div style="padding:20px;text-align:center">⏳ Loading media for '+phone+'...</div>';
-    var ceoView = document.getElementById('ceoNurseMediaView');
-    var staffView = document.getElementById('staffNurseMediaView');
-    if(ceoView){ ceoView.classList.remove('hidden'); ceoView.style.display='block'; }
-    if(staffView){ staffView.classList.remove('hidden'); staffView.style.display='block'; }
+    var phoneKey=cleanPhone(phone);
+    var ceoView=document.getElementById('ceoNurseMediaView');
+    var staffView=document.getElementById('staffNurseMediaView');
+    if(ceoView){ ceoView.classList.remove('hidden'); ceoView.style.display='block'; document.getElementById('mediaViewerContent').innerHTML='<div style="padding:20px;text-align:center">⏳ Loading '+phone+'...</div>'; }
+    if(staffView){ staffView.classList.remove('hidden'); staffView.style.display='block'; var sc=document.getElementById('staffMediaViewerContent'); if(sc) sc.innerHTML='<div style="padding:20px;text-align:center">⏳ Loading '+phone+'...</div>'; }
 
     if(window.db){
       db.ref('workers/'+phoneKey).once('value').then(function(snap){
-        var data = snap.val();
-        if(!data){
-          // try full phone key without cleaning
-          return db.ref('workers/'+phone).once('value').then(function(s2){
-            var d2 = s2.val();
-            if(d2) { showInViewer(d2, type); }
-            else {
-              // fallback to localStorage
-              try{
-                var nurses = JSON.parse(localStorage.getItem('nurses')||'[]');
-                var found = nurses.find(function(n){ return cleanPhone(n.phone||n.phoneKey||'')===phoneKey; });
-                if(found) showInViewer(found, type);
-                else alert('❌ Nurse data not found for '+phone);
-              }catch(e){ alert('❌ Nurse not found'); }
-            }
+        var data=snap.val();
+        if(data){ showInViewer(data,type); }
+        else {
+          // try exact phone
+          db.ref('workers/'+phone).once('value').then(function(s2){
+            var d2=s2.val();
+            if(d2){ showInViewer(d2,type); return; }
+            try{
+              var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
+              var found=nurses.find(function(n){ return cleanPhone(n.phone||n.phoneKey||'')===phoneKey; });
+              if(found) showInViewer(found,type); else alert('❌ Nurse not found in Firebase: '+phone);
+            }catch(e){ alert('❌ Not found'); }
           });
         }
-        showInViewer(data, type);
-      }).catch(function(err){
-        console.error('Firebase load error', err);
-        try{
-          var nurses = JSON.parse(localStorage.getItem('nurses')||'[]');
-          var found = nurses.find(function(n){ return cleanPhone(n.phone||'')===phoneKey || n.phone===phone; });
-          if(found) showInViewer(found, type);
-          else alert('Error loading: '+err.message);
-        }catch(e){ alert('Error: '+err.message); }
       });
     } else {
       try{
-        var nurses = JSON.parse(localStorage.getItem('nurses')||'[]');
-        var found = nurses.find(function(n){ return cleanPhone(n.phone||'')===phoneKey || n.phone===phone; });
-        if(found) showInViewer(found, type);
-        else alert('❌ No local data, Firebase not connected');
-      }catch(e){ alert('Error loading nurse'); }
+        var nurses=JSON.parse(localStorage.getItem('nurses')||'[]');
+        var found=nurses.find(function(n){ return cleanPhone(n.phone||'')===phoneKey; });
+        if(found) showInViewer(found,type); else alert('No local data');
+      }catch(e){ alert('Error'); }
     }
   };
+  window.viewAllNurseMedia=function(phone){ window.viewNurseMedia(phone,'all'); };
 
-  window.viewAllNurseMedia = function(phone){
-    window.viewNurseMedia(phone, 'all');
+  // ---- PHONE HIDE FOR CLIENTS - STRONG FIX ----
+  function hidePhonesForClients(){
+    if(isCEORole()||isStaffRole()) return; // CEO/Staff can see
+    // If not client, don't hide aggressively
+    if(!isClientRole()){
+      // Still check if on client map page
+      var clientPage=document.getElementById('page-client-map')||document.getElementById('page-home');
+      if(!clientPage || !clientPage.classList.contains('active')) return;
+    }
+    // Hide all phone patterns
+    document.querySelectorAll('*').forEach(function(el){
+      // Skip script/style
+      if(el.tagName==='SCRIPT'||el.tagName==='STYLE'||el.children.length>0) return;
+      var txt=el.textContent||'';
+      // Ghana phone pattern +233... or 0...
+      if(/\+233\d{9}|0\d{9,10}/.test(txt) && txt.length<30 && (el.closest('.uber-card')||el.closest('#loveCareLiveList')||el.closest('.nurse-card')||el.closest('#nurseDetails'))){
+        if(!el.getAttribute('data-orig-phone')){
+          el.setAttribute('data-orig-phone',txt);
+        }
+        if(!el.closest('#ceoNursesList') && !el.closest('#staffNursesList')){
+          el.textContent='🔒 Phone hidden - Book to contact';
+          el.style.background='#fef3c7'; el.style.padding='4px 8px'; el.style.borderRadius='8px'; el.style.fontSize='10px'; el.style.display='inline-block';
+        }
+      }
+    });
+    // Specifically hide tel links for clients
+    document.querySelectorAll('a[href^="tel:"]').forEach(function(a){
+      if(a.closest('#ceoNursesList')||a.closest('#staffNursesList')) return;
+      if(!a.getAttribute('data-orig-tel')){
+        a.setAttribute('data-orig-tel',a.href);
+        a.setAttribute('data-orig-text',a.textContent);
+      }
+      a.textContent='🔒 Hidden - Book to contact';
+      a.href='javascript:void(0)';
+      a.onclick=function(e){ e.preventDefault(); alert('🔒 Phone hidden for privacy\nBook the nurse via platform. CEO/Staff can see phones.'); };
+    });
+  }
+
+  // Patch selectNurseCard and renderNearbyList to hide phone for clients
+  var origSelectNurseCard = window.selectNurseCard;
+  if(origSelectNurseCard){
+    window.selectNurseCard = function(id){
+      var res = origSelectNurseCard.apply(this, arguments);
+      setTimeout(hidePhonesForClients, 200);
+      setTimeout(hidePhonesForClients, 800);
+      return res;
+    };
+  }
+
+  // Override the detail card creation to mask phone
+  setInterval(hidePhonesForClients, 1500);
+  document.addEventListener('DOMContentLoaded', function(){ hidePhonesForClients(); });
+
+  // Run on page show
+  var origShowPage = window.showPage;
+  window.showPage = function(id){
+    if(typeof origShowPage==='function') origShowPage(id);
+    else {
+      document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+      var pg=document.getElementById('page-'+id)||document.getElementById(id);
+      if(pg) pg.classList.add('active');
+    }
+    setTimeout(hidePhonesForClients, 300);
+    setTimeout(hidePhonesForClients, 1000);
   };
 
-  // Override delete to confirm but keep same
-  console.log('✅ FIXED: CEO/Staff can now view nurse uploads - viewNurseMedia & viewAllNurseMedia added');
+  console.log('✅ V2 FIX APPLIED: Delete works + Media Viewer fixed (PDF/Video) + Phone hidden for clients');
 })();
 </script>
 
