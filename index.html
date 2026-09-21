@@ -3359,36 +3359,46 @@ function showUploadStatus(msg, isError){
 }
 
 function uploadToCloudinary(file, folder){
-  return new Promise(function(resolve){
+  return new Promise(function(resolve, reject){
     if(!file){ resolve(null); return; }
-    
-    var name = file.name.toLowerCase();
-    var isPDF = file.type === 'application/pdf' || name.endsWith('.pdf') || name.endsWith('.doc') || name.endsWith('.docx');
+
+    var isPDF = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
     var resource = isPDF ? 'raw' : 'image';
-    
+
     var fd = new FormData();
     fd.append('file', file);
-    fd.append('upload_preset', FREE_UPLOAD_CONFIG.cloudinaryPreset);
+    fd.append('upload_preset', FREE_UPLOAD_PRESET);
     fd.append('folder', folder);
-    
-    var isPDF = file.name.toLowerCase().endsWith('.pdf');
-var resource = isPDF ? 'raw' : 'image';
-var url = 'https://api.cloudinary.com/v1_1/xcizfvct/'+resource+'/upload';
-    
-    showUploadStatus('⏳ Uploading ' + file.name + '...', false);
+    fd.append('access_mode', 'public');
+
+    var url = 'https://api.cloudinary.com/v1_1/xcizfvct/'+resource+'/upload';
+
+    showUploadStatus('⏳ Uploading ' + file.name);
     console.log('Uploading to:', url);
-    
+
     var xhr = new XMLHttpRequest();
     xhr.open('POST', url);
-    
+
     xhr.onload = function(){
       try{
         var d = JSON.parse(xhr.responseText);
         if(d.secure_url){
           console.log('✅ SUCCESS:', d.secure_url);
-          showUploadStatus('✅ Uploaded: ' + file.name, false);
+          showUploadStatus('✅ Uploaded: ' + file.name);
           resolve(d.secure_url);
-        }else
+        } else {
+          console.error('❌ Failed:', d);
+          showUploadStatus('❌ Failed: ' + (d.error ? d.error.message : 'Unknown'));
+          reject(d);
+        }
+      } catch(e){
+        reject(e);
+      }
+    };
+    xhr.onerror = function(){ reject('Network error'); };
+    xhr.send(fd);
+  });
+}
 
 // Keep backward compatible cloudUpload alias used in REGISTRATION FIX V3
 function cloudUpload(file, folder){
@@ -4739,6 +4749,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
     fd.append('file', file);
     fd.append('upload_preset', cfg.preset);
     if(folder) fd.append('folder', folder);
+    fd.append('access_mode', 'public');
 
     var xhr = new XMLHttpRequest();
     xhr.open('POST', url, true);
