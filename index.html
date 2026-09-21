@@ -4932,6 +4932,146 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 })();
 </script>
 
+
+<script>
+// ===== PDF VIEWER FIX V7 - Force Google Docs Viewer for PDFs =====
+(function(){
+  function isDriveLink(url){ return url && (url.includes('drive.google.com')||url.includes('docs.google.com')); }
+  function getDriveFileId(url){
+    if(!url) return null;
+    var m = url.match(/\/d\/([^\/\?]+)/); if(m) return m[1];
+    m = url.match(/[?&]id=([^&]+)/); if(m) return m[1];
+    return null;
+  }
+  function getDrivePreview(url){ var id=getDriveFileId(url); return id ? 'https://drive.google.com/file/d/'+id+'/preview' : url; }
+  function getDriveDownload(url){ var id=getDriveFileId(url); return id ? 'https://drive.google.com/uc?export=download&id='+id : url; }
+
+  // Override renderPdfSection globally
+  window.renderPdfSectionFixed = function(label, urls, icon, borderColor, bgColor){
+    if(!urls || urls.length===0 || !urls[0]) {
+      return '<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:12px 0;background:'+bgColor+'"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+icon+' '+label+'</b><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT FOUND</span></div><div style="padding:12px;background:#fee2e2;border-radius:8px;margin-top:8px;font-size:11px">No URL for '+label+' found. Nurse needs to re-upload PDF.</div></div>';
+    }
+    var url=urls[0];
+    var encoded = encodeURIComponent(url);
+    var gviewUrl = 'https://docs.google.com/gview?url='+encoded+'&embedded=true';
+    
+    var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px;flex-wrap:wrap"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open PDF</a><a href="'+(isDriveLink(url)?getDriveDownload(url):url)+'" target="_blank" download style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download PDF</a></div></div>';
+    html+='<div style="font-size:9px;color:#6b7280;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px;border:1px solid #e5e7eb">'+url+'</div>';
+    
+    if(isDriveLink(url)){
+      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white" allow="autoplay"></iframe>';
+      html+='<div style="font-size:11px;color:#16a34a;margin-top:6px;background:#f0fdf4;padding:8px;border-radius:8px">✅ Google Drive PDF Viewer - Scroll to read, pinch to zoom. If blank, click Open PDF.</div>';
+    } else {
+      // For Cloudinary PDFs, use Google Docs viewer - most reliable
+      html+='<div style="background:#111827;color:white;padding:8px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:8px;text-align:center">📄 PDF Preview (Google Docs Viewer - Best for Cloudinary PDFs)</div>';
+      html+='<iframe src="'+gviewUrl+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white"></iframe>';
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'
+        +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:12px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:12px">🔗 Open Direct in New Tab<br><small style="font-weight:400">Best quality</small></a>'
+        +'<a href="https://docs.google.com/gview?url='+encoded+'" target="_blank" style="background:#7c3aed;color:white;padding:12px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:12px">📄 Open in Google Viewer<br><small style="font-weight:400">If preview blank</small></a>'
+        +'</div>';
+      html+='<div style="font-size:11px;color:#6b7280;margin-top:8px;background:#fffbeb;padding:8px;border-radius:8px;border:1px solid #eab308">💡 Tip: If PDF shows "No preview" or blank, click <b>Open PDF</b> - Cloudinary PDFs open best directly. Google viewer sometimes needs 5 seconds to load.</div>';
+    }
+    html+='</div>'; 
+    return html;
+  };
+
+  // Patch showSeparatedNurseMedia to use fixed PDF renderer
+  var originalShowSeparated = window.showSeparatedNurseMedia;
+  window.showSeparatedNurseMedia = function(nurse, filterType){
+    var ceoView=document.getElementById('ceoNurseMediaView');
+    var ceoContent=document.getElementById('mediaViewerContent');
+    var staffView=document.getElementById('staffNurseMediaView');
+    var staffContent=document.getElementById('staffMediaViewerContent');
+    var viewers=[];
+    if(ceoView&&ceoContent) viewers.push({view:ceoView,content:ceoContent});
+    if(staffView&&staffContent) viewers.push({view:staffView,content:staffContent});
+    if(viewers.length===0) return;
+
+    // Re-scan uploads
+    function findAllUploads(nurse){
+      var result = {profile:[], video:[], cv:[], cert:[], id:[], other:[]};
+      if(!nurse) return result;
+      function addUrl(key, val){
+        if(!val || typeof val!=='string') return;
+        val=val.trim(); if(!val.startsWith('http')) return; if(val.length<15) return;
+        var lowKey=(key||'').toLowerCase(); var lowVal=val.toLowerCase();
+        if(lowKey.includes('video') || lowVal.includes('nurse_videos') || lowVal.includes('/video/')){ if(!result.video.includes(val)) result.video.push(val); }
+        else if(lowKey.includes('cv') || lowVal.includes('nurse_cvs') || lowVal.includes('_cvs')){ if(!result.cv.includes(val)) result.cv.push(val); }
+        else if(lowKey.includes('cert') || lowVal.includes('nurse_certs') || lowVal.includes('_certs')){ if(!result.cert.includes(val)) result.cert.push(val); }
+        else if(lowKey.includes('idurl') || lowKey.includes('id_card') || lowVal.includes('nurse_ids') || lowVal.includes('_ids')){ if(!result.id.includes(val)) result.id.push(val); }
+        else if(lowKey.includes('profile') || lowKey.includes('photo') || lowKey.includes('avatar')){ if(!result.profile.includes(val)) result.profile.push(val); }
+        else if(lowVal.includes('cloudinary') || lowVal.includes('drive.google')){ result.other.push(val); }
+      }
+      for(var k in nurse){ if(!nurse.hasOwnProperty(k)) continue; var v=nurse[k]; if(typeof v==='string') addUrl(k, v); else if(typeof v==='object' && v!==null){ for(var kk in v){ if(typeof v[kk]==='string') addUrl(k+'_'+kk, v[kk]); } } }
+      return result;
+    }
+
+    var found = findAllUploads(nurse);
+    if(nurse.videoUrl && !found.video.includes(nurse.videoUrl)) found.video.unshift(nurse.videoUrl);
+    if(nurse.cvUrl && !found.cv.includes(nurse.cvUrl)) found.cv.unshift(nurse.cvUrl);
+    if(nurse.certUrl && !found.cert.includes(nurse.certUrl)) found.cert.unshift(nurse.certUrl);
+    if(nurse.idUrl && !found.id.includes(nurse.idUrl)) found.id.unshift(nurse.idUrl);
+    if(nurse.profileUrl && !found.profile.includes(nurse.profileUrl)) found.profile.unshift(nurse.profileUrl);
+
+    var header='<div style="background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:3px solid #16a34a;border-radius:16px;padding:16px;margin-bottom:16px"><div style="display:flex;gap:14px;align-items:center">'+((found.profile[0]||'')?'<img src="'+found.profile[0]+'" style="width:80px;height:80px;border-radius:50%;border:4px solid #16a34a;object-fit:cover">':'<div style="width:80px;height:80px;border-radius:50%;background:#16a34a;color:white;display:flex;align-items:center;justify-content:center;font-size:32px">👩‍⚕️</div>')+'<div><b style="font-size:18px">'+(nurse.name||'Nurse')+'</b><br><small>'+(nurse.phone||'')+' | '+(nurse.specialty||'')+'</small><br><small>Video('+found.video.length+') CV('+found.cv.length+') Cert('+found.cert.length+') ID('+found.id.length+')</small></div></div></div>';
+
+    function renderVideoSection(urls){
+      if(!urls[0]) return '<div style="border:3px solid #7c3aed;border-radius:14px;padding:14px;margin:12px 0;background:#f5f3ff"><b>📹 Introduction Video</b><br><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT FOUND</span></div>';
+      var url=urls[0];
+      var h='<div style="border:3px solid #7c3aed;border-radius:14px;padding:14px;margin:14px 0;background:#f5f3ff"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b>📹 Introduction Video</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open Video</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div><div style="font-size:9px;word-break:break-all;background:white;padding:6px;border-radius:6px;margin-bottom:10px">'+url+'</div>';
+      if(isDriveLink(url)) h+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:480px;border:3px solid #7c3aed;border-radius:12px"></iframe>';
+      else h+='<video src="'+url+'" controls playsinline style="width:100%;max-height:500px;border-radius:12px;background:#000;border:3px solid #7c3aed"></video>';
+      h+='</div>'; return h;
+    }
+    function renderPhotoSection(label, urls, icon, border, bg){
+      if(!urls[0]) return '<div style="border:3px solid '+border+';border-radius:14px;padding:14px;margin:12px 0;background:'+bg+'"><b>'+icon+' '+label+'</b> <span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT FOUND</span></div>';
+      var url=urls[0];
+      var h='<div style="border:3px solid '+border+';border-radius:14px;padding:14px;margin:14px 0;background:'+bg+'"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b>'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div><div style="font-size:9px;word-break:break-all;background:white;padding:6px;border-radius:6px;margin-bottom:10px">'+url+'</div>';
+      if(isDriveLink(url)) h+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:550px;border:3px solid '+border+';border-radius:12px"></iframe>';
+      else h+='<img src="'+url+'" style="width:100%;max-height:700px;object-fit:contain;border-radius:12px;border:3px solid '+border+';background:#fff">';
+      h+='</div>'; return h;
+    }
+
+    var body='';
+    if(!filterType || filterType==='all'){
+      body+='<div style="background:#111827;color:white;padding:10px;border-radius:10px;text-align:center;font-weight:800">👁️ SEPARATED - Video / CV PDF / Cert PDF / ID Photo</div>';
+      body+=renderVideoSection(found.video);
+      body+=window.renderPdfSectionFixed('CV / Resume (PDF)', found.cv, '📄', '#2563eb', '#eff6ff');
+      body+=window.renderPdfSectionFixed('Certificate (PDF)', found.cert, '🎓', '#eab308', '#fffbeb');
+      body+=renderPhotoSection('ID Card (Photo)', found.id, '🪪', '#111827', '#f9fafb');
+      body+=renderPhotoSection('Profile Photo', found.profile, '👤', '#16a34a', '#f0fdf4');
+      
+      // Restore tool
+      var phoneKey=(nurse.phoneKey||nurse.phone||'').replace(/[^0-9]/g,'');
+      body+='<div style="border:3px dashed #ef4444;border-radius:14px;padding:14px;margin-top:16px;background:#fef2f2"><h3 style="margin:0 0 8px 0;color:#ef4444">🛠️ CEO Restore - Paste missing PDF links</h3>'
+        +'<label style="font-size:11px;font-weight:800">📹 Video URL:</label><input id="restoreVideo_'+phoneKey+'" value="'+(found.video[0]||'')+'" placeholder="https://..." style="margin-bottom:6px">'
+        +'<label style="font-size:11px;font-weight:800">📄 CV PDF URL:</label><input id="restoreCV_'+phoneKey+'" value="'+(found.cv[0]||'')+'" placeholder="https://...pdf" style="margin-bottom:6px">'
+        +'<label style="font-size:11px;font-weight:800">🎓 Cert PDF URL:</label><input id="restoreCert_'+phoneKey+'" value="'+(found.cert[0]||'')+'" placeholder="https://..." style="margin-bottom:6px">'
+        +'<label style="font-size:11px;font-weight:800">🪪 ID URL:</label><input id="restoreID_'+phoneKey+'" value="'+(found.id[0]||'')+'" placeholder="https://..." style="margin-bottom:8px">'
+        +'<button class="btnSmall" style="background:#16a34a;color:white;width:100%;padding:12px;font-weight:800" onclick="ceoRestoreNurseMedia(\''+phoneKey+'\')">💾 Save to Firebase</button><div id="restoreResult_'+phoneKey+'" style="font-size:11px;margin-top:6px"></div></div>';
+    } else if(filterType==='video'){
+      body+=renderVideoSection(found.video);
+    } else if(filterType==='cv'){
+      body+=window.renderPdfSectionFixed('CV / Resume (PDF)', found.cv, '📄', '#2563eb', '#eff6ff');
+    } else if(filterType==='cert'){
+      body+=window.renderPdfSectionFixed('Certificate (PDF)', found.cert, '🎓', '#eab308', '#fffbeb');
+    } else if(filterType==='id'){
+      body+=renderPhotoSection('ID Card', found.id, '🪪', '#111827', '#f9fafb');
+    }
+
+    viewers.forEach(function(t){
+      t.content.innerHTML=header+body;
+      t.view.classList.remove('hidden');
+      t.view.style.display='block';
+      setTimeout(function(){ t.view.scrollIntoView({behavior:'smooth'}); },150);
+    });
+  };
+
+  console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Cloudinary PDFs');
+})();
+</script>
+
 </body>
 
 </html>
