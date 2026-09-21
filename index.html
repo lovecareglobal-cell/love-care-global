@@ -4646,6 +4646,292 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 })();
 </script>
 
+
+<script>
+// ===== AUTO UPLOAD FIX V6 - Uploads instantly when file selected =====
+(function(){
+  function showStatus(msg, isError){
+    var box=document.getElementById('uploadStatusBox');
+    if(!box){
+      box=document.createElement('div');
+      box.id='uploadStatusBox';
+      box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:12px 16px;border-radius:12px;z-index:999999;font-size:12px;max-width:92%;box-shadow:0 4px 16px rgba(0,0,0,.4);text-align:center';
+      document.body.appendChild(box);
+    }
+    box.style.display='block';
+    box.style.background = isError ? '#ef4444' : '#16a34a';
+    box.innerHTML = msg;
+    if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 4000);
+  }
+
+  function getCloudConfig(){
+    var cloudName = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.cloudinaryCloudName) ? FREE_UPLOAD_CONFIG.cloudinaryCloudName : 'xcizfvct';
+    var preset = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.cloudinaryPreset) ? FREE_UPLOAD_CONFIG.cloudinaryPreset : 'Lovecare1';
+    return {cloudName: cloudName, preset: preset};
+  }
+
+  // Auto upload to Cloudinary
+  function autoUploadFile(file, folder, onProgress, onDone){
+    if(!file){ onDone(null); return; }
+    if(file.size > 15*1024*1024){
+      showStatus('⚠️ '+file.name+' too big ('+(file.size/1024/1024).toFixed(1)+'MB) - compress or use Drive link', true);
+      onDone(null);
+      return;
+    }
+    var cfg=getCloudConfig();
+    var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/auto/upload';
+    var fd=new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', cfg.preset);
+    if(folder) fd.append('folder', folder);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    
+    xhr.upload.onprogress = function(e){
+      if(e.lengthComputable){
+        var pct=Math.round((e.loaded/e.total)*100);
+        if(onProgress) onProgress(pct);
+      }
+    };
+    
+    xhr.onload = function(){
+      try{
+        var res=JSON.parse(xhr.responseText);
+        if(res.secure_url){
+          showStatus('✅ Auto-uploaded: '+file.name);
+          onDone(res.secure_url, res);
+        } else {
+          console.warn('Cloudinary fail', res);
+          showStatus('⚠️ Upload failed: '+(res.error?.message||'check preset Lovecare1 is unsigned'), true);
+          onDone(null);
+        }
+      }catch(e){
+        showStatus('⚠️ Upload error for '+file.name, true);
+        onDone(null);
+      }
+    };
+    xhr.onerror = function(){
+      showStatus('⚠️ Network error uploading '+file.name, true);
+      onDone(null);
+    };
+    xhr.send(fd);
+  }
+
+  // Setup auto-upload for each input
+  function setupAutoUpload(fileInputId, linkInputId, progressId, folder, previewId, type){
+    var fileEl=document.getElementById(fileInputId);
+    var linkEl=document.getElementById(linkInputId);
+    var progEl=document.getElementById(progressId);
+    if(!fileEl) return;
+
+    // Create preview container if not exists
+    var previewContainer = null;
+    if(previewId){
+      previewContainer = document.getElementById(previewId);
+      if(!previewContainer){
+        previewContainer=document.createElement('div');
+        previewContainer.id=previewId;
+        previewContainer.style.cssText='margin-top:8px;border:2px dashed #16a34a;border-radius:10px;padding:8px;display:none;background:#f0fdf4';
+        fileEl.parentNode.appendChild(previewContainer);
+      }
+    }
+
+    fileEl.addEventListener('change', function(){
+      var file=this.files[0];
+      if(!file) return;
+      
+      showStatus('📤 Auto-uploading '+file.name+' to '+folder+'...');
+      if(progEl){ progEl.style.display='block'; progEl.innerText='⏳ 0% uploading '+file.name+'...'; progEl.style.color='#16a34a'; progEl.style.fontWeight='800'; }
+      if(previewContainer){ previewContainer.style.display='block'; previewContainer.innerHTML='<div style="font-size:11px;text-align:center">⏳ Uploading '+file.name+'...</div>'; }
+
+      autoUploadFile(file, folder, function(pct){
+        if(progEl) progEl.innerText='📤 '+pct+'% - '+file.name;
+        if(previewContainer) previewContainer.innerHTML='<div style="font-size:11px;text-align:center"><div style="background:#e5e7eb;border-radius:10px;height:8px;overflow:hidden;margin:6px 0"><div style="width:'+pct+'%;height:100%;background:#16a34a"></div></div>'+pct+'% uploading...</div>';
+      }, function(uploadedUrl, fullRes){
+        if(progEl){
+          if(uploadedUrl){
+            progEl.innerHTML='✅ <a href="'+uploadedUrl+'" target="_blank" style="color:#16a34a">Uploaded! Tap to view</a> - '+file.name;
+            progEl.style.color='#16a34a';
+          } else {
+            progEl.innerHTML='❌ Failed - paste Drive link in box below';
+            progEl.style.color='#ef4444';
+          }
+        }
+        
+        if(uploadedUrl){
+          // Auto-fill link input
+          if(linkEl){ linkEl.value=uploadedUrl; linkEl.style.background='#dcfce7'; linkEl.style.border='2px solid #16a34a'; }
+          // Store for registration
+          fileEl.setAttribute('data-uploaded-url', uploadedUrl);
+          
+          // Show preview
+          if(previewContainer){
+            var previewHtml='';
+            if(type==='video'){
+              previewHtml='<div style="font-size:11px;font-weight:800;color:#7c3aed;margin-bottom:6px">📹 Video Preview (auto-uploaded):</div><video src="'+uploadedUrl+'" controls style="width:100%;max-height:200px;border-radius:8px;background:#000"></video><div style="font-size:10px;word-break:break-all;margin-top:4px;color:#6b7280">'+uploadedUrl+'</div>';
+            } else if(type==='pdf'){
+              previewHtml='<div style="font-size:11px;font-weight:800;color:#2563eb;margin-bottom:6px">📄 PDF Preview (auto-uploaded):</div><div style="background:white;padding:8px;border-radius:8px;font-size:11px">✅ PDF uploaded<br><a href="'+uploadedUrl+'" target="_blank" style="color:#2563eb;font-weight:800">🔗 Open PDF</a><div style="font-size:9px;word-break:break-all;margin-top:4px;color:#9ca3af">'+uploadedUrl+'</div></div>';
+            } else {
+              previewHtml='<div style="font-size:11px;font-weight:800;color:#111827;margin-bottom:6px">🪪 Image Preview (auto-uploaded):</div><img src="'+uploadedUrl+'" style="width:100%;max-height:250px;object-fit:contain;border-radius:8px;border:2px solid #16a34a;background:white" onerror="this.style.display=\'none\'"><div style="font-size:9px;word-break:break-all;margin-top:4px;color:#9ca3af">'+uploadedUrl+'</div>';
+            }
+            previewContainer.innerHTML=previewHtml;
+            previewContainer.style.display='block';
+          }
+        } else {
+          if(previewContainer){
+            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Auto-upload failed<br><small>Paste Google Drive link below instead</small></div>';
+            previewContainer.style.display='block';
+          }
+        }
+      });
+    });
+  }
+
+  // Initialize when DOM ready
+  function initAutoUpload(){
+    // Video: nRegVideoFile -> nRegVideo
+    setupAutoUpload('nRegVideoFile', 'nRegVideo', 'videoUploadProgress', 'nurse_videos', 'videoPreviewBox', 'video');
+    // CV: nRegCVFile -> nRegCV
+    setupAutoUpload('nRegCVFile', 'nRegCV', 'cvUploadProgress', 'nurse_cvs', 'cvPreviewBox', 'pdf');
+    // Certificate: nRegCertFile -> nRegCertificate
+    setupAutoUpload('nRegCertFile', 'nRegCertificate', 'certUploadProgress', 'nurse_certs', 'certPreviewBox', 'pdf');
+    // ID Card: nRegIDFile -> nRegID
+    setupAutoUpload('nRegIDFile', 'nRegID', 'idUploadProgress', 'nurse_ids', 'idPreviewBox', 'image');
+
+    // Also try to find other possible IDs (profile photo)
+    var profileFile = document.getElementById('nRegProfileFile') || document.getElementById('nRegPhotoFile');
+    if(profileFile){
+      setupAutoUpload(profileFile.id, 'nRegProfileLink', 'profileUploadProgress', 'nurse_profiles', 'profilePreviewBox', 'image');
+    }
+
+    console.log('✅ AUTO UPLOAD V6 READY - Select file = instant Cloudinary upload');
+  }
+
+  // Override registerNurse to use auto-uploaded URLs first
+  var originalRegister = window.registerNurse;
+  // Our V3 already has fast version, but enhance to prefer data-uploaded-url
+  window.registerNurse = async function(){
+    // If auto-uploaded URLs exist, use them directly (no re-upload)
+    var videoFileEl=document.getElementById('nRegVideoFile');
+    var cvFileEl=document.getElementById('nRegCVFile');
+    var certFileEl=document.getElementById('nRegCertFile');
+    var idFileEl=document.getElementById('nRegIDFile');
+
+    // Show message that we use auto-uploaded URLs
+    var autoUrls = [];
+    if(videoFileEl && videoFileEl.getAttribute('data-uploaded-url')) autoUrls.push('Video');
+    if(cvFileEl && cvFileEl.getAttribute('data-uploaded-url')) autoUrls.push('CV');
+    if(certFileEl && certFileEl.getAttribute('data-uploaded-url')) autoUrls.push('Cert');
+    if(idFileEl && idFileEl.getAttribute('data-uploaded-url')) autoUrls.push('ID');
+
+    if(autoUrls.length>0){
+      showStatus('✅ Using auto-uploaded: '+autoUrls.join(', ')+' - Saving profile...');
+    }
+
+    // Call the existing fast register (V3) which will now find URLs in link inputs
+    // But first, ensure link inputs have auto-uploaded URLs
+    if(videoFileEl && videoFileEl.getAttribute('data-uploaded-url')){
+      var ve=document.getElementById('nRegVideo'); if(ve) ve.value=videoFileEl.getAttribute('data-uploaded-url');
+    }
+    if(cvFileEl && cvFileEl.getAttribute('data-uploaded-url')){
+      var ce=document.getElementById('nRegCV'); if(ce) ce.value=cvFileEl.getAttribute('data-uploaded-url');
+    }
+    if(certFileEl && certFileEl.getAttribute('data-uploaded-url')){
+      var certe=document.getElementById('nRegCertificate'); if(certe) certe.value=certFileEl.getAttribute('data-uploaded-url');
+    }
+    if(idFileEl && idFileEl.getAttribute('data-uploaded-url')){
+      var ide=document.getElementById('nRegID'); if(ide) ide.value=idFileEl.getAttribute('data-uploaded-url');
+    }
+
+    // Now call original fast register if exists, otherwise our V3 is already in window.registerNurse - need to avoid recursion
+    // So we directly run the fast logic again (duplicate of V3 but simplified to use link inputs only, no re-upload)
+    try{
+      var nameEl=document.getElementById('nRegName');
+      var phoneEl=document.getElementById('nRegPhone');
+      var passEl=document.getElementById('nRegPass');
+      var locEl=document.getElementById('nRegLocation');
+      var expEl=document.getElementById('nRegExperience');
+      var specEl=document.getElementById('nRegSpecialty');
+      var careEl=document.getElementById('nRegCareMode');
+      var ageChk=document.getElementById('nRegAgeConfirm');
+      var name=nameEl? nameEl.value.trim() : '';
+      var phoneRaw=phoneEl? phoneEl.value.trim() : '';
+      var pass=passEl? passEl.value.trim() : '';
+      var location=locEl? locEl.value.trim() : '';
+      var experience=expEl? expEl.value.trim() : '3';
+      var specialty=specEl? specEl.value : '';
+      var careMode=careEl? careEl.value : 'both';
+      if(!ageChk || !ageChk.checked){ alert('Confirm 18+'); return; }
+      if(name.length<3){ alert('Enter full name'); return; }
+      if(!phoneRaw){ alert('Enter phone'); return; }
+      if(pass.length<4){ alert('Password min 4'); return; }
+      if(!location){ alert('Tap GPS or enter location'); return; }
+      if(!specialty){ alert('Select specialty'); return; }
+      var fullPhone = (typeof getFullPhone==='function')? getFullPhone('nRegPhoneCode','nRegPhone') : phoneRaw;
+      var phoneKey = fullPhone.replace(/[^0-9]/g,'');
+      if(phoneKey.length<9){ alert('Invalid phone'); return; }
+
+      var regBtn = document.querySelector('button[onclick="registerNurse()"]');
+      if(regBtn){ regBtn.disabled=true; regBtn.innerText='⏳ Saving...'; }
+
+      var lat = window.nurseRegLat || parseFloat(localStorage.getItem('nurseRegLat')||'0') || 5.6037;
+      var lng = window.nurseRegLng || parseFloat(localStorage.getItem('nurseRegLng')||'0') || -0.1870;
+
+      var videoUrl=document.getElementById('nRegVideo')? document.getElementById('nRegVideo').value.trim() : '';
+      var cvUrl=document.getElementById('nRegCV')? document.getElementById('nRegCV').value.trim() : '';
+      var certUrl=document.getElementById('nRegCertificate')? document.getElementById('nRegCertificate').value.trim() : '';
+      var idUrl=document.getElementById('nRegID')? document.getElementById('nRegID').value.trim() : '';
+
+      // If still no URL but file selected and not auto-uploaded (network failed), try one last upload
+      // But don't hang - use data-uploaded-url if exists, else leave empty and CEO can restore later
+
+      var nurseObj={
+        id: phoneKey, name:name, phone:fullPhone, phoneKey:phoneKey, password:pass,
+        location:location, lat:lat, lng:lng, experience:experience, specialty:specialty, careMode:careMode,
+        videoUrl:videoUrl||'', cvUrl:cvUrl||'', certUrl:certUrl||'', idUrl:idUrl||'',
+        profileUrl:'./Icon-512.png', photoUrl:'./Icon-512.png',
+        verified:false, onDuty:false, status:'pending_approval', approvalStatus:'pending',
+        timestamp:Date.now(), createdAt:Date.now(), lastUpdate:Date.now()
+      };
+
+      var nurses=[]; try{ nurses=JSON.parse(localStorage.getItem('nurses')||'[]'); }catch(e){}
+      nurses=nurses.filter(function(n){ return (n.phoneKey||'').replace(/[^0-9]/g,'')!==phoneKey; });
+      nurses.push(nurseObj);
+      localStorage.setItem('nurses', JSON.stringify(nurses));
+      localStorage.setItem('nursePhone', fullPhone);
+      localStorage.setItem('nursePhoneKey', phoneKey);
+
+      if(window.db){
+        try{
+          await Promise.race([
+            db.ref('workers/'+phoneKey).set(nurseObj),
+            new Promise(function(r){ setTimeout(r, 4000); })
+          ]);
+        }catch(e){ console.warn('Firebase save failed', e); }
+      }
+
+      showStatus('✅ Registered! Pending CEO approval - Files: '+(videoUrl?' Video✅':' Video❌')+(cvUrl?' CV✅':' CV❌')+(certUrl?' Cert✅':' Cert❌')+(idUrl?' ID✅':' ID❌'));
+      alert('✅ Registered!\n'+name+' - '+fullPhone+'\n\nFiles saved:\n'+(videoUrl?'✅ Video: '+videoUrl+'\n':'❌ Video not uploaded\n')+(cvUrl?'✅ CV: '+cvUrl+'\n':'❌ CV not uploaded\n')+(certUrl?'✅ Cert: '+certUrl+'\n':'❌ Cert not uploaded\n')+(idUrl?'✅ ID: '+idUrl:'❌ ID not uploaded')+'\n\n⏳ Pending CEO approval');
+
+      if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
+      if(typeof showPage==='function') showPage('home');
+      try{ document.getElementById('nRegName').value=''; document.getElementById('nRegPhone').value=''; }catch(e){}
+
+    }catch(e){
+      console.error(e); alert('Failed: '+e.message);
+      var b=document.querySelector('button[onclick="registerNurse()"]'); if(b){ b.disabled=false; b.innerText='Register as Nurse'; }
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', initAutoUpload);
+  setTimeout(initAutoUpload, 1000);
+  setTimeout(initAutoUpload, 3000);
+
+  console.log('✅ AUTO UPLOAD V6 APPLIED - File select = instant upload + preview');
+})();
+</script>
+
 </body>
 
 </html>
