@@ -954,8 +954,8 @@ async function registerNurse(){
       showUploadStatus('📤 Processing uploads (max 15s per file) - Links work too!');
       var tasks=[];
       if(videoFile) tasks.push(uploadWithTimeout(videoFile, 'nurse_videos/'+phoneKey, 15000).then(function(u){ if(u) videoUrl=u; }).catch(function(){ }));
-      if(cvFile) tasks.push(uploadWithTimeout(cvFile, 'nurse_cvs/'+phoneKey, 15000).then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
-      if(certFile) tasks.push(uploadWithTimeout(certFile, 'nurse_certs/'+phoneKey, 15000).then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
+      if(cvFile) tasks.push(uploadToCloudinary(cvFile, 'nurse_cvs').then(function(u){ if(u) cvUrl=u; }).then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
+      if(certFile) tasks.push(uploadToCloudinary(certFile, 'nurse_certs').then(function(u){ if(u) certUrl=u; }).then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
       if(idFile) tasks.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 15000).then(function(u){ if(u) idUrl=u; }).catch(function(){ }));
       if(tasks.length>0){
         await Promise.allSettled(tasks);
@@ -3369,34 +3369,89 @@ function showUploadStatus(msg, isError){
   if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 6000);
 }
 
+
+function getCloudConfig(){
+  var cfg = (typeof FREE_UPLOAD_CONFIG!=='undefined') ? FREE_UPLOAD_CONFIG : {};
+  return {
+    cloudName: cfg.cloudinaryCloudName || 'xcizfvct',
+    preset: cfg.cloudinaryPreset || 'Lovecare1'
+  };
+}
+
 function uploadToCloudinary(file, folder){
   return new Promise(function(resolve){
-    if(!file || !FREE_UPLOAD_CONFIG.useCloudinary){ resolve(null); return; }
-    // FIXED: use /auto/upload for PDFs + public access
-    var url='https://api.cloudinary.com/v1_1/'+FREE_UPLOAD_CONFIG.cloudinaryCloudName+'/auto/upload';
-    var fd=new FormData();
+    if(!file){
+      resolve(null); return;
+    }
+    var cfg = getCloudConfig();
+    if(!cfg.cloudName || !cfg.preset){
+      console.warn('Missing cloudinary config');
+      resolve(null); return;
+    }
+    var isPDF = (file.type && file.type.toLowerCase().includes('pdf')) || (file.name && file.name.toLowerCase().endsWith('.pdf'));
+    // IMPORTANT: PDFs must use raw endpoint, otherwise Cloudinary returns JSON error when viewed as image
+    var resource = isPDF ? 'raw' : 'auto';
+    var url = 'https://api.cloudinary.com/v1_1/' + cfg.cloudName + '/' + resource + '/upload';
+    var fd = new FormData();
     fd.append('file', file);
-    fd.append('upload_preset', FREE_UPLOAD_CONFIG.cloudinaryPreset);
-    fd.append('resource_type', 'auto');
-    fd.append('type', 'upload');
-    fd.append('access_mode', 'public');
+    fd.append('upload_preset', cfg.preset);
+    // For unsigned presets, do NOT send resource_type param when using raw endpoint - endpoint already defines it
+    // But some presets require explicit resource_type
+    if(resource === 'auto'){
+      fd.append('resource_type', 'auto');
+    }
     if(folder) fd.append('folder', folder);
-    // keep original filename for CVs
-    fd.append('public_id', (folder?folder+'/':'') + Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
-    console.log('Uploading to Cloudinary auto:', file.name, file.type);
-    fetch(url,{method:'POST', body:fd}).then(function(r){return r.json();}).then(function(d){
-      console.log('Cloudinary response:', d);
+    // Do NOT send public_id with extension for raw - let Cloudinary generate it to avoid block
+    // If we send public_id, keep it simple without special chars
+    var cleanName = (Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_')).replace(/\.pdf$/i,'');
+    if(isPDF){
+      // keep .pdf extension in public_id for raw is okay, but we strip to be safe and let format preserved
+      fd.append('public_id', (folder?folder+'/':'') + cleanName);
+    } else {
+      fd.append('public_id', (folder?folder+'/':'') + cleanName);
+    }
+
+    console.log('Uploading to Cloudinary ['+resource+']:', file.name, file.type, folder);
+    fetch(url,{method:'POST', body:fd}).then(function(r){ return r.json(); }).then(function(d){
+      console.log('Cloudinary response ['+resource+']:', d);
       if(d.secure_url){
-        resolve(d.secure_url);
+        // For raw, ensure URL is raw/upload not image/upload
+        var finalUrl = d.secure_url;
+        // If PDF but URL came back as image/upload (means auto detected as image - wrong), fix to raw if possible
+        // Actually if uploaded as auto, Cloudinary may still return image/upload for PDF -> that causes JSON error on view. Force raw check
+        if(isPDF && finalUrl.includes('/image/upload/')){
+          // Try to replace with /raw/upload/ - this often works if file was stored as raw
+          finalUrl = finalUrl.replace('/image/upload/', '/raw/upload/');
+        }
+        resolve(finalUrl);
       } else {
         console.warn('Cloudinary fail', d);
-        var errMsg = d.error ? d.error.message : 'unknown';
-        showUploadStatus('❌ Upload failed ('+errMsg+') - Check preset Lovecare1 is Public & allows raw', true);
+        var errMsg = d.error ? d.error.message : JSON.stringify(d);
+        // Show clear instruction if preset blocks raw
+        if(errMsg.toLowerCase().includes('resource') || errMsg.toLowerCase().includes('raw') || errMsg.toLowerCase().includes('not allowed')){
+          if(typeof showUploadStatus === 'function'){
+            showUploadStatus('❌ PDF upload blocked: Your preset "'+cfg.preset+'" must allow RAW files. Go to Cloudinary > Settings > Upload > Upload Presets > '+cfg.preset+' > Set Resource Type = Auto, Allow Unsigned = Yes. Error: '+errMsg, true);
+          }
+        } else {
+          if(typeof showUploadStatus === 'function'){
+            showUploadStatus('❌ Upload failed ('+errMsg+')', true);
+          }
+        }
         resolve(null);
       }
-    }).catch(function(err){ console.warn('Cloudinary error', err); resolve(null); });
+    }).catch(function(err){
+      console.warn('Cloudinary error', err);
+      resolve(null);
+    });
   });
 }
+
+// Keep backward compatible cloudUpload alias used in REGISTRATION FIX V3
+function cloudUpload(file, folder){
+  return uploadToCloudinary(file, folder);
+}
+
+
 
 // FIXED CV / CERT upload handlers
 document.addEventListener('DOMContentLoaded', function(){
@@ -4147,25 +4202,7 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
   }
 
   // Cloudinary fast upload with 8s timeout
-  function cloudUpload(file, folder){
-    return new Promise(function(resolve){
-      if(!file){ resolve(null); return; }
-      if(file.size > 10*1024*1024){ 
-        showStatus('⚠️ '+file.name+' too large (>10MB), use Drive link instead', true);
-        resolve(null); return;
-      }
-      var cloudName = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.cloudinaryCloudName) ? FREE_UPLOAD_CONFIG.cloudinaryCloudName : 'xcizfvct';
-      var preset = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.cloudinaryPreset) ? FREE_UPLOAD_CONFIG.cloudinaryPreset : 'Lovecare1';
-      var url='https://api.cloudinary.com/v1_1/'+cloudName+'/auto/upload';
-      var fd=new FormData();
-      fd.append('file', file);
-      fd.append('upload_preset', preset);
-      if(folder) fd.append('folder', folder);
-      
-      var timedOut=false;
-      var timer=setTimeout(function(){ timedOut=true; console.warn('Cloudinary timeout', file.name); resolve(null); }, 12000);
-      
-      fetch(url,{method:'POST', body:fd}).then(function(r){ return r.json(); }).then(function(d){
+  ).then(function(r){ return r.json(); }).then(function(d){
         clearTimeout(timer);
         if(timedOut) return;
         if(d.secure_url){ 
@@ -4999,34 +5036,9 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
   function getDriveDownload(url){ var id=getDriveFileId(url); return id ? 'https://drive.google.com/uc?export=download&id='+id : url; }
 
   // Override renderPdfSection globally
-  window.renderPdfSectionFixed = function(label, urls, icon, borderColor, bgColor){
-    if(!urls || urls.length===0 || !urls[0]) {
-      return '<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:12px 0;background:'+bgColor+'"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+icon+' '+label+'</b><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT FOUND</span></div><div style="padding:12px;background:#fee2e2;border-radius:8px;margin-top:8px;font-size:11px">No URL for '+label+' found. Nurse needs to re-upload PDF.</div></div>';
-    }
-    var url=urls[0];
-    var encoded = encodeURIComponent(url);
-    var gviewUrl = 'https://docs.google.com/gview?url='+encoded+'&embedded=true';
-    
-    var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px;flex-wrap:wrap"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open PDF</a><a href="'+(isDriveLink(url)?getDriveDownload(url):url)+'" target="_blank" download style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download PDF</a></div></div>';
-    html+='<div style="font-size:9px;color:#6b7280;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px;border:1px solid #e5e7eb">'+url+'</div>';
-    
-    if(isDriveLink(url)){
-      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white" allow="autoplay"></iframe>';
-      html+='<div style="font-size:11px;color:#16a34a;margin-top:6px;background:#f0fdf4;padding:8px;border-radius:8px">✅ Google Drive PDF Viewer - Scroll to read, pinch to zoom. If blank, click Open PDF.</div>';
-    } else {
-      // For Cloudinary PDFs, use Google Docs viewer - most reliable
-      html+='<div style="background:#111827;color:white;padding:8px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:8px;text-align:center">📄 PDF Preview (Google Docs Viewer - Best for Cloudinary PDFs)</div>';
-      html+='<iframe src="'+gviewUrl+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white"></iframe>';
-      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">'
-        +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:12px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:12px">🔗 Open Direct in New Tab<br><small style="font-weight:400">Best quality</small></a>'
-        +'<a href="https://docs.google.com/gview?url='+encoded+'" target="_blank" style="background:#7c3aed;color:white;padding:12px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:12px">📄 Open in Google Viewer<br><small style="font-weight:400">If preview blank</small></a>'
-        +'</div>';
-      html+='<div style="font-size:11px;color:#6b7280;margin-top:8px;background:#fffbeb;padding:8px;border-radius:8px;border:1px solid #eab308">💡 Tip: If PDF shows "No preview" or blank, click <b>Open PDF</b> - Cloudinary PDFs open best directly. Google viewer sometimes needs 5 seconds to load.</div>';
-    }
-    html+='</div>'; 
-    return html;
-  };
+  window.
+  window.renderPdfSection = window.renderPdfSectionFixed;
+
 
   // Patch showSeparatedNurseMedia to use fixed PDF renderer
   var originalShowSeparated = window.showSeparatedNurseMedia;
@@ -5120,7 +5132,45 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
     });
   };
 
-  console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Cloudinary PDFs');
+  window.renderPdfSectionFixed = function(label, urls, icon, borderColor, bgColor){
+    if(!urls || urls.length===0 || !urls[0]) {
+      return '<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:12px 0;background:'+bgColor+'"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+icon+' '+label+'</b><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT FOUND</span></div><div style="padding:12px;background:#fee2e2;border-radius:8px;margin-top:8px;font-size:11px">No URL for '+label+' found. Nurse needs to re-upload PDF.</div></div>';
+    }
+    var url = (urls[0]||'').trim();
+    // FIX: If url looks like JSON error (starts with { ), show friendly error instead of JSON words
+    if(url.startsWith('{') || url.includes('"error"') || url.length>500 && url.includes('error')){
+      return '<div style="border:3px solid #ef4444;border-radius:14px;padding:14px;margin:12px 0;background:#fef2f2"><b>'+icon+' '+label+' - ❌ Cloudinary Blocked</b><div style="background:white;padding:10px;border-radius:8px;margin-top:8px;font-size:11px;color:#b91c1c;word-break:break-word">Cloudinary returned JSON error instead of PDF. This means your upload preset "Lovecare1" is set to IMAGE only. Fix: Go to Cloudinary Dashboard > Settings > Upload > Upload Presets > Lovecare1 > Set "Resource Type" to "Auto" or "Raw" and save. Then nurse must re-upload.<br><br>Raw error: '+url.substring(0,400)+'</div></div>';
+    }
+    // Normalize Cloudinary URL: if it's image/upload but ends with .pdf, convert to raw/upload to avoid JSON block
+    if(url.includes('cloudinary') && url.includes('/image/upload/') && url.toLowerCase().includes('.pdf')){
+      url = url.replace('/image/upload/', '/raw/upload/');
+    }
+    var encoded = encodeURIComponent(url);
+    var gviewUrl = 'https://docs.google.com/gview?url='+encoded+'&embedded=true';
+    var pdfJsUrl = 'https://mozilla.github.io/pdf.js/web/viewer.html?file='+encoded;
+    
+    var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px;flex-wrap:wrap"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open PDF</a><a href="'+url+'" target="_blank" download style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
+    html+='<div style="font-size:9px;color:#6b7280;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px;border:1px solid #e5e7eb">'+url+'</div>';
+    
+    if(typeof isDriveLink !== "undefined" && isDriveLink(url)){
+      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white" allow="autoplay"></iframe>';
+    } else {
+      html+='<div style="background:#111827;color:white;padding:8px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:8px;text-align:center">📄 PDF Preview - CEO can open directly (fixed for Cloudinary RAW)</div>';
+      // Use direct embed for Cloudinary raw - works if public, plus gview fallback
+      html+='<object data="'+url+'" type="application/pdf" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white"><iframe src="'+gviewUrl+'" style="width:100%;height:700px;border:none"></iframe></object>';
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">'
+        +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:10px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:11px">🔗 Open Direct<br><small>Best</small></a>'
+        +'<a href="'+gviewUrl+'" target="_blank" style="background:#7c3aed;color:white;padding:10px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:11px">📄 Google Viewer<br><small>If blank</small></a>'
+        +'<a href="'+pdfJsUrl+'" target="_blank" style="background:#111827;color:white;padding:10px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:11px">🔍 PDF.js Viewer<br><small>Backup</small></a>'
+        +'</div>';
+    }
+    html+='</div>'; 
+    return html;
+  };
+  window.renderPdfSection = window.renderPdfSectionFixed;
+
+console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Cloudinary PDFs');
 })();
 </script>
 
