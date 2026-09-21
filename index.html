@@ -3811,6 +3811,194 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 })();
 </script>
 
+
+<script>
+// ===== FIX: CEO & STAFF CAN VIEW NURSE UPLOADS - ADDED 2026 =====
+(function(){
+  function cleanPhone(p){ return (p||'').toString().replace(/[^0-9]/g,''); }
+  
+  function isDriveLink(url){
+    if(!url) return false;
+    return url.includes('drive.google.com') || url.includes('docs.google.com');
+  }
+  function getDriveFileId(url){
+    if(!url) return null;
+    try{
+      var m = url.match(/\/d\/([^\/\?]+)/);
+      if(m) return m[1];
+      m = url.match(/[?&]id=([^&]+)/);
+      if(m) return m[1];
+      m = url.match(/\/file\/d\/([^\/]+)/);
+      if(m) return m[1];
+      return null;
+    }catch(e){ return null; }
+  }
+  function getDrivePreviewUrl(url){
+    var id = getDriveFileId(url);
+    if(!id) return url;
+    return 'https://drive.google.com/file/d/'+id+'/preview';
+  }
+  function getDriveDownloadUrl(url){
+    var id = getDriveFileId(url);
+    if(!id) return url;
+    return 'https://drive.google.com/uc?export=download&id='+id;
+  }
+  function isVideoUrl(u){
+    if(!u) return false;
+    if(isDriveLink(u)) return false; // Drive handles own preview
+    return /\.(mp4|mov|webm|mkv|avi|m4v)($|\?)/i.test(u) || u.includes('video') || u.includes('cloudinary') && u.includes('/video/');
+  }
+  function isImageUrl(u){
+    if(!u) return false;
+    if(isDriveLink(u)) return false;
+    return /\.(jpg|jpeg|png|gif|webp|bmp)($|\?)/i.test(u) || u.includes('image') || u.includes('cloudinary') && u.includes('/image/');
+  }
+  function renderSingleMedia(label, url){
+    if(!url) return '<div style="padding:10px;background:#fee2e2;border-radius:8px;margin:8px 0">❌ No '+label+' uploaded</div>';
+    var safeUrl = url.trim();
+    var html = '<div style="border:2px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;background:white">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="color:#111827;font-size:13px">'+label+'</b><div style="display:flex;gap:6px"><a href="'+safeUrl+'" target="_blank" style="background:#2563eb;color:white;padding:6px 10px;border-radius:6px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open</a>';
+    if(isDriveLink(safeUrl)){
+      html += '<a href="'+getDriveDownloadUrl(safeUrl)+'" target="_blank" style="background:#16a34a;color:white;padding:6px 10px;border-radius:6px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a>';
+    }
+    html += '</div></div>';
+    html += '<div style="font-size:10px;color:#6b7280;word-break:break-all;margin-bottom:8px">'+safeUrl+'</div>';
+    
+    if(isDriveLink(safeUrl)){
+      html += '<iframe src="'+getDrivePreviewUrl(safeUrl)+'" style="width:100%;height:420px;border:2px solid #16a34a;border-radius:10px" allow="autoplay"></iframe>';
+      html += '<div style="font-size:10px;color:#16a34a;margin-top:6px">📁 Google Drive Preview - If not loading, click Open</div>';
+    } else if(isVideoUrl(safeUrl) || safeUrl.includes('.mp4') || safeUrl.includes('video')){
+      html += '<video src="'+safeUrl+'" controls playsinline style="width:100%;max-height:480px;border-radius:10px;background:black;border:2px solid #7c3aed"></video>';
+    } else if(isImageUrl(safeUrl) || safeUrl.match(/\.(jpg|jpeg|png|webp)/i)){
+      html += '<img src="'+safeUrl+'" style="width:100%;max-height:600px;object-fit:contain;border-radius:10px;border:2px solid #16a34a" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\'"><div style="display:none;padding:20px;text-align:center;background:#fef3c7;border-radius:10px">⚠️ Image failed to load, use Open button</div>';
+    } else {
+      // PDF or other doc - try iframe
+      html += '<iframe src="'+safeUrl+'" style="width:100%;height:500px;border:2px solid #2563eb;border-radius:10px"></iframe><div style="font-size:10px;color:#6b7280;margin-top:6px">📄 Document preview - If not loading, click Open</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function showInViewer(nurse, filterType){
+    var ceoView = document.getElementById('ceoNurseMediaView');
+    var ceoContent = document.getElementById('mediaViewerContent');
+    var staffView = document.getElementById('staffNurseMediaView');
+    var staffContent = document.getElementById('staffMediaViewerContent');
+    
+    // Decide which viewers to show (both CEO and staff if both exist)
+    var targetViewers = [];
+    var isCEOLogged = localStorage.getItem('isCEOLogged')==='true' || localStorage.getItem('userRole')==='CEO';
+    var isStaffLogged = localStorage.getItem('isStaffLogged')==='true' || localStorage.getItem('userRole')==='STAFF';
+    
+    // Always try to show CEO viewer if it exists and CEO is logged or we are in CEO tab
+    if(ceoView && ceoContent){
+      targetViewers.push({view: ceoView, content: ceoContent});
+    }
+    if(staffView && staffContent){
+      targetViewers.push({view: staffView, content: staffContent});
+    }
+    // If no logged role detected, show whichever is visible
+    if(targetViewers.length===0){
+      if(ceoView && ceoContent) targetViewers.push({view: ceoView, content: ceoContent});
+      if(staffView && staffContent) targetViewers.push({view: staffView, content: staffContent});
+    }
+    if(targetViewers.length===0){
+      alert('Media viewer not found');
+      return;
+    }
+
+    var profileUrl = nurse.profileUrl || nurse.photoUrl || nurse.avatarUrl || '';
+    var videoUrl = nurse.videoUrl || nurse.videoLink || '';
+    var cvUrl = nurse.cvUrl || nurse.cvLink || '';
+    var certUrl = nurse.certUrl || nurse.certificateUrl || nurse.certLink || '';
+    var idUrl = nurse.idUrl || nurse.idCardUrl || nurse.idLink || '';
+
+    var header = '<div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:12px;margin-bottom:12px">'
+      + '<div style="display:flex;gap:12px;align-items:center">'
+      + (profileUrl ? '<img src="'+profileUrl+'" style="width:70px;height:70px;border-radius:50%;border:3px solid #16a34a;object-fit:cover" onerror="this.src=\'./Icon-512.png\'">' : '<div style="width:70px;height:70px;border-radius:50%;background:#16a34a;color:white;display:flex;align-items:center;justify-content:center;font-weight:800">👩‍⚕️</div>')
+      + '<div><b style="font-size:15px">'+(nurse.name||'Nurse')+'</b><br><small>'+(nurse.phone||'')+' | '+(nurse.specialty||'')+' | '+(nurse.location||'')+'</small><br><small>Exp: '+(nurse.experience||'?')+' yrs | '+(nurse.careMode||'both')+' | '+(nurse.onDuty?'🟢 ON DUTY':'🔴 OFF')+'</small><br>'
+      + '<small>📍 '+(nurse.lat||'')+','+(nurse.lng||'')+'</small></div></div></div>';
+
+    var body = '';
+    if(!filterType || filterType==='all'){
+      body += '<h4 style="margin:10px 0 0 0;color:#111827">👁️ All Uploads</h4>';
+      body += renderSingleMedia('👤 Profile Photo', profileUrl);
+      body += renderSingleMedia('📹 Introduction Video', videoUrl);
+      body += renderSingleMedia('📄 CV / Resume', cvUrl);
+      body += renderSingleMedia('🎓 Certificate', certUrl);
+      body += renderSingleMedia('🪪 ID Card', idUrl);
+    } else {
+      var map = {video: ['📹 Video', videoUrl], cv: ['📄 CV', cvUrl], cert: ['🎓 Certificate', certUrl], id: ['🪪 ID Card', idUrl], photo: ['👤 Photo', profileUrl], profile: ['👤 Profile', profileUrl]};
+      var item = map[filterType] || [filterType, ''];
+      body += renderSingleMedia(item[0], item[1]);
+    }
+
+    targetViewers.forEach(function(t){
+      t.content.innerHTML = header + body;
+      t.view.classList.remove('hidden');
+      t.view.style.display = 'block';
+      t.view.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  }
+
+  window.viewNurseMedia = function(phone, type){
+    if(!phone){ alert('Invalid phone'); return; }
+    var phoneKey = cleanPhone(phone);
+    var contentEl = document.getElementById('mediaViewerContent') || document.getElementById('staffMediaViewerContent');
+    if(contentEl) contentEl.innerHTML = '<div style="padding:20px;text-align:center">⏳ Loading media for '+phone+'...</div>';
+    var ceoView = document.getElementById('ceoNurseMediaView');
+    var staffView = document.getElementById('staffNurseMediaView');
+    if(ceoView){ ceoView.classList.remove('hidden'); ceoView.style.display='block'; }
+    if(staffView){ staffView.classList.remove('hidden'); staffView.style.display='block'; }
+
+    if(window.db){
+      db.ref('workers/'+phoneKey).once('value').then(function(snap){
+        var data = snap.val();
+        if(!data){
+          // try full phone key without cleaning
+          return db.ref('workers/'+phone).once('value').then(function(s2){
+            var d2 = s2.val();
+            if(d2) { showInViewer(d2, type); }
+            else {
+              // fallback to localStorage
+              try{
+                var nurses = JSON.parse(localStorage.getItem('nurses')||'[]');
+                var found = nurses.find(function(n){ return cleanPhone(n.phone||n.phoneKey||'')===phoneKey; });
+                if(found) showInViewer(found, type);
+                else alert('❌ Nurse data not found for '+phone);
+              }catch(e){ alert('❌ Nurse not found'); }
+            }
+          });
+        }
+        showInViewer(data, type);
+      }).catch(function(err){
+        console.error('Firebase load error', err);
+        try{
+          var nurses = JSON.parse(localStorage.getItem('nurses')||'[]');
+          var found = nurses.find(function(n){ return cleanPhone(n.phone||'')===phoneKey || n.phone===phone; });
+          if(found) showInViewer(found, type);
+          else alert('Error loading: '+err.message);
+        }catch(e){ alert('Error: '+err.message); }
+      });
+    } else {
+      try{
+        var nurses = JSON.parse(localStorage.getItem('nurses')||'[]');
+        var found = nurses.find(function(n){ return cleanPhone(n.phone||'')===phoneKey || n.phone===phone; });
+        if(found) showInViewer(found, type);
+        else alert('❌ No local data, Firebase not connected');
+      }catch(e){ alert('Error loading nurse'); }
+    }
+  };
+
+  window.viewAllNurseMedia = function(phone){
+    window.viewNurseMedia(phone, 'all');
+  };
+
+  // Override delete to confirm but keep same
+  console.log('✅ FIXED: CEO/Staff can now view nurse uploads - viewNurseMedia & viewAllNurseMedia added');
+})();
+</script>
+
 </body>
 
 </html>
