@@ -5,14 +5,38 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
 
+<style>
+/* HIDE ALL DRIVE / OR LINK BOXES - TELEGRAM ONLY */
+div:has(> span) { }
+.or-link-row, .drive-link-row, div:has(> input[placeholder*="Telegram auto-upload"]), 
+div:has(> input[placeholder*="Drive"]), 
+div:has(> input[placeholder*="Certificate link"]) { display:none !important; }
+/* Hide the specific OR Link containers */
+#nRegVideo, #nRegCV, #nRegCert, #nRegID, #nRegCertificate, #nRegPhoto { }
+</style>
 <script>
-// GLOBAL TELEGRAM HELPERS
-function isTelegramLink(url){ return url && (url.includes('t.me/c/') || url.includes('t.me/')); }
-function isDriveLink(url){ return false; }
-function getDrivePreview(url){ return url; }
-function getDriveDownload(url){ return url; }
-function getDriveFileId(url){ return null; }
+// Auto-hide OR Link rows on load
+document.addEventListener('DOMContentLoaded', function(){
+  document.querySelectorAll('div').forEach(div=>{
+    const txt = div.textContent || '';
+    if(txt.includes('OR Link:')){
+      div.style.display='none';
+      // Hide next sibling input if exists
+      const next = div.nextElementSibling;
+      if(next && next.tagName==='INPUT') next.style.display='none';
+    }
+  });
+  // Hide all error boxes that say "Failed - paste"
+  document.querySelectorAll('div').forEach(div=>{
+    if(div.textContent && div.textContent.includes('Failed - paste')){
+      div.style.display='none';
+    }
+  });
+});
 </script>
+
+
+
 
 <!-- FIREBASE EMAIL: Using Firebase Auth + Database - No EmailJS needed -->
 <link rel="icon" type="image/png" href="./Icon-512.png">
@@ -4796,7 +4820,7 @@ var url='https://api.telegram.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
             progEl.innerHTML='✅ <a href="'+uploadedUrl+'" target="_blank" style="color:#16a34a">Uploaded! Tap to view</a> - '+file.name;
             progEl.style.color='#16a34a';
           } else {
-            progEl.innerHTML='❌ Failed - paste Telegram link in box below';
+            progEl.innerHTML='⏳ Uploading to Telegram...';
             progEl.style.color='#ef4444';
           }
         }
@@ -4822,7 +4846,7 @@ var url='https://api.telegram.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
           }
         } else {
           if(previewContainer){
-            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Auto-upload failed<br><small>Paste Telegram link below instead</small></div>';
+            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">⏳ Uploading to Telegram...<br><small>Sending to Love Care Global CVs channel...</small></div>';
             previewContainer.style.display='block';
           }
         }
