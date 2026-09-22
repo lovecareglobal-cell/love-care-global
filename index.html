@@ -119,6 +119,16 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 }
 </style>
 
+
+<style>
+/* BUTTON FIX CSS */
+.bottomNav, .bottomNav button { pointer-events: auto !important; touch-action: manipulation !important; }
+.bottomNav button { cursor: pointer !important; user-select: none; -webkit-user-select: none; }
+button { cursor: pointer !important; }
+.sosFloat { pointer-events: auto !important; }
+.page { pointer-events: auto; }
+</style>
+
 </head>
 <body>
 <div class="sosFloat" id="sosFloatBtn"><div class="sosPulse"></div><span style="position:relative;z-index:1">SOS</span></div>
@@ -553,12 +563,12 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <p style="font-size:10px;color:#9ca3af">© 2026 LOVE CARE GLOBAL</p>
 </footer>
 
-<div class="bottomNav">
-<button id="nav-home" class="active" onclick="showPage('home')"><span>🏠</span><span>Home</span></button>
-<button id="nav-nurse" onclick="showPage('nurse-public')"><span>👩⚕</span><span>Join</span></button>
-<button id="nav-book" onclick="showPage('booking-public')"><span>💡</span><span>Help</span></button>
-<button id="nav-login" onclick="showPage('nurse-login')"><span>🔑</span><span>Login</span></button>
-<button id="nav-chat" onclick="showPage('group-chat')" class="hidden" style="background:#fef2f2;border:2px solid #ef4444;display:none"><span>💬</span><span>Group</span></button>
+<div class="bottomNav" style="pointer-events:auto;">
+<button type="button" id="nav-home" class="active" onclick="window.showPage('home')"><span>🏠</span><span>Home</span></button>
+<button type="button" id="nav-nurse" onclick="window.showPage('nurse-public')"><span>👩⚕</span><span>Join</span></button>
+<button type="button" id="nav-book" onclick="window.showPage('booking-public')"><span>💡</span><span>Help</span></button>
+<button type="button" id="nav-login" onclick="window.showPage('nurse-login')"><span>🔑</span><span>Login</span></button>
+<button type="button" id="nav-chat" onclick="window.showPage('group-chat')" class="hidden" style="background:#fef2f2;border:2px solid #ef4444;display:none"><span>💬</span><span>Group</span></button>
 </div>
 
 <script>
@@ -765,17 +775,34 @@ var countryCodes=[{c:'Ghana',code:'+233',flag:'🇬🇭'},{c:'Nigeria',code:'+23
 function populatePhoneCodes(){var html='';countryCodes.forEach(o=>{html+=`<option value="${o.code}">${o.flag} ${o.code} ${o.c}</option>`;});['cPhoneCode','nRegPhoneCode','nurseLoginCode','myBookPhoneCode'].forEach(id=>{var el=document.getElementById(id); if(el) el.innerHTML=html;});}
 try{firebase.initializeApp(firebaseConfig);db=firebase.database();}catch(e){}
 function showPage(id){
-if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
-if(id==='staff-dashboard' &&!localStorage.getItem('staffID')) id='staff-login';
-if(id==='nurse-dashboard' &&!localStorage.getItem('nursePhone')) id='nurse-login';
-document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
-var el=document.getElementById('page-'+id); if(el){el.classList.add('active');el.style.display='block';}
-document.querySelectorAll('.bottomNav button').forEach(b=>b.classList.remove('active'));
-var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
-var nid=map[id]; if(nid){var nb=document.getElementById(nid); if(nb) nb.classList.add('active');}
-window.scrollTo(0,0);
-if(id==='home') setTimeout(()=>{if(!uberMap)initUberMap();else{uberMap.invalidateSize();}},300);
+  try{
+    console.log('showPage called:', id);
+    if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
+    if(id==='staff-dashboard' && !localStorage.getItem('staffID')) id='staff-login';
+    if(id==='nurse-dashboard' && !localStorage.getItem('nursePhone')) id='nurse-login';
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); p.style.display='none'; });
+    var el=document.getElementById('page-'+id); 
+    if(el){ el.classList.add('active'); el.style.display='block'; }
+    else { console.warn('Page not found: page-'+id); }
+    document.querySelectorAll('.bottomNav button').forEach(function(b){ b.classList.remove('active'); });
+    var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
+    var nid=map[id]; if(nid){ var nb=document.getElementById(nid); if(nb) nb.classList.add('active'); }
+    window.scrollTo(0,0);
+    if(id==='home'){
+      setTimeout(function(){
+        try{
+          if(typeof uberMap==='undefined' || !uberMap){ if(typeof initUberMap==='function') initUberMap(); }
+          else if(uberMap.invalidateSize){ uberMap.invalidateSize(); }
+        }catch(e){ console.error('Map init error', e); }
+      },300);
+    }
+  }catch(e){
+    console.error('showPage error', e);
+    alert('Navigation error: '+e.message);
+  }
 }
+window.showPage = showPage;
+
 function autoGPS(i,s){
   var se=document.getElementById(s); 
   var ie=document.getElementById(i);
@@ -2873,7 +2900,7 @@ function resendCode(){ document.getElementById('sendCodeArea').classList.remove(
   function startDrag(e){
     var p=getPos(e); startX=p.x; startY=p.y;
     var r=sosBtn.getBoundingClientRect(); initialLeft=r.left; initialTop=r.top;
-    isDragging=true; hasMoved=false; sosBtn.classList.add('dragging'); sosBtn.style.transition='none'; e.preventDefault();
+    isDragging=true; hasMoved=false; sosBtn.classList.add('dragging'); sosBtn.style.transition='none'; if(e.target===sosBtn || sosBtn.contains(e.target)) e.preventDefault();
   }
   function onDrag(e){
     if(!isDragging) return;
@@ -5099,6 +5126,56 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
 
 console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Cloudinary PDFs');
 })();
+</script>
+
+
+<script>
+// ===== BUTTON FIX - Ensure all buttons work even if inline onclick fails =====
+document.addEventListener('DOMContentLoaded', function(){
+  console.log('Button fix init');
+  // Ensure bottomNav has pointer-events
+  var nav = document.querySelector('.bottomNav');
+  if(nav){ nav.style.pointerEvents='auto'; nav.style.zIndex='99999'; }
+  document.querySelectorAll('.bottomNav button').forEach(function(btn){
+    btn.style.pointerEvents='auto';
+    btn.style.cursor='pointer';
+    btn.type='button';
+    // Add explicit listener as fallback
+    if(!btn.dataset.fixed){
+      btn.dataset.fixed='true';
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var id = this.id.replace('nav-','');
+        var map = {'home':'home','nurse':'nurse-public','book':'booking-public','login':'nurse-login','chat':'group-chat'};
+        var page = map[id] || this.getAttribute('data-page') || id;
+        // Try to get page from onclick attribute
+        var oc = this.getAttribute('onclick')||'';
+        var m = oc.match(/showPage\('([^']+)'\)/);
+        if(m) page = m[1];
+        console.log('BottomNav clicked fallback:', id, '->', page);
+        if(window.showPage) window.showPage(page);
+      });
+    }
+  });
+  // Fix all btnSubmit and btnSmall to be type=button to prevent form submit
+  document.querySelectorAll('button').forEach(function(b){
+    if(!b.type) b.type='button';
+    b.style.pointerEvents='auto';
+    b.style.touchAction='manipulation';
+  });
+  // Fix SOS to not block clicks
+  var sos = document.getElementById('sosFloatBtn');
+  if(sos){
+    sos.style.pointerEvents='auto';
+    sos.style.touchAction='none';
+  }
+  console.log('✅ Button fix applied - all buttons should now respond');
+});
+
+// Also add global error handler to show JS errors
+window.addEventListener('error', function(e){
+  console.error('Global JS error:', e.message, e.filename, e.lineno);
+});
 </script>
 
 </body>
