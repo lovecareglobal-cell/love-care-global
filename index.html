@@ -97,7 +97,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 .colorRow input[type="color"]{width:50px;height:36px;padding:2px}
 .colorRow input[type="range"]{flex:1}
 </style>
-<style>/* FIXED: allow modal to show */ #emailVerifyModal.hidden{display:none} .emailModal.hidden{display:none} /* keep badge visible if verified */</style>
+<style>/* FIXED: removed !important hide */ #emailVerifyModal.hidden{display:none} .emailModal.hidden{display:none}</style>
 <style>
 /* Hide nurse phone numbers from client view */
 .client-hide-phone .nurse-phone,
@@ -121,12 +121,15 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 
 
 <style>
-/* BUTTON FIX CSS */
-.bottomNav, .bottomNav button { pointer-events: auto !important; touch-action: manipulation !important; }
-.bottomNav button { cursor: pointer !important; user-select: none; -webkit-user-select: none; }
-button { cursor: pointer !important; }
-.sosFloat { pointer-events: auto !important; }
-.page { pointer-events: auto; }
+/* MINIMAL FIX: ensure buttons are clickable, don't block */
+.bottomNav { pointer-events:auto !important; z-index:99999 !important; }
+.bottomNav button { pointer-events:auto !important; cursor:pointer !important; touch-action:manipulation !important; }
+#page-home button { pointer-events:auto !important; cursor:pointer !important; touch-action:manipulation !important; }
+.sosFloat { pointer-events:auto !important; }
+button { cursor:pointer; }
+/* Fix any overlay that might block */
+.announcementBar { pointer-events:none; }
+.announcementBar span { pointer-events:none; }
 </style>
 
 </head>
@@ -563,12 +566,12 @@ button { cursor: pointer !important; }
 <p style="font-size:10px;color:#9ca3af">© 2026 LOVE CARE GLOBAL</p>
 </footer>
 
-<div class="bottomNav" style="pointer-events:auto;">
-<button type="button" id="nav-home" class="active" onclick="window.showPage('home')"><span>🏠</span><span>Home</span></button>
-<button type="button" id="nav-nurse" onclick="window.showPage('nurse-public')"><span>👩⚕</span><span>Join</span></button>
-<button type="button" id="nav-book" onclick="window.showPage('booking-public')"><span>💡</span><span>Help</span></button>
-<button type="button" id="nav-login" onclick="window.showPage('nurse-login')"><span>🔑</span><span>Login</span></button>
-<button type="button" id="nav-chat" onclick="window.showPage('group-chat')" class="hidden" style="background:#fef2f2;border:2px solid #ef4444;display:none"><span>💬</span><span>Group</span></button>
+<div class="bottomNav">
+<button id="nav-home" class="active" onclick="showPage('home')"><span>🏠</span><span>Home</span></button>
+<button id="nav-nurse" onclick="showPage('nurse-public')"><span>👩⚕</span><span>Join</span></button>
+<button id="nav-book" onclick="showPage('booking-public')"><span>💡</span><span>Help</span></button>
+<button id="nav-login" onclick="showPage('nurse-login')"><span>🔑</span><span>Login</span></button>
+<button id="nav-chat" onclick="showPage('group-chat')" class="hidden" style="background:#fef2f2;border:2px solid #ef4444;display:none"><span>💬</span><span>Group</span></button>
 </div>
 
 <script>
@@ -775,34 +778,17 @@ var countryCodes=[{c:'Ghana',code:'+233',flag:'🇬🇭'},{c:'Nigeria',code:'+23
 function populatePhoneCodes(){var html='';countryCodes.forEach(o=>{html+=`<option value="${o.code}">${o.flag} ${o.code} ${o.c}</option>`;});['cPhoneCode','nRegPhoneCode','nurseLoginCode','myBookPhoneCode'].forEach(id=>{var el=document.getElementById(id); if(el) el.innerHTML=html;});}
 try{firebase.initializeApp(firebaseConfig);db=firebase.database();}catch(e){}
 function showPage(id){
-  try{
-    console.log('showPage called:', id);
-    if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
-    if(id==='staff-dashboard' && !localStorage.getItem('staffID')) id='staff-login';
-    if(id==='nurse-dashboard' && !localStorage.getItem('nursePhone')) id='nurse-login';
-    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); p.style.display='none'; });
-    var el=document.getElementById('page-'+id); 
-    if(el){ el.classList.add('active'); el.style.display='block'; }
-    else { console.warn('Page not found: page-'+id); }
-    document.querySelectorAll('.bottomNav button').forEach(function(b){ b.classList.remove('active'); });
-    var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
-    var nid=map[id]; if(nid){ var nb=document.getElementById(nid); if(nb) nb.classList.add('active'); }
-    window.scrollTo(0,0);
-    if(id==='home'){
-      setTimeout(function(){
-        try{
-          if(typeof uberMap==='undefined' || !uberMap){ if(typeof initUberMap==='function') initUberMap(); }
-          else if(uberMap.invalidateSize){ uberMap.invalidateSize(); }
-        }catch(e){ console.error('Map init error', e); }
-      },300);
-    }
-  }catch(e){
-    console.error('showPage error', e);
-    alert('Navigation error: '+e.message);
-  }
+if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
+if(id==='staff-dashboard' &&!localStorage.getItem('staffID')) id='staff-login';
+if(id==='nurse-dashboard' &&!localStorage.getItem('nursePhone')) id='nurse-login';
+document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
+var el=document.getElementById('page-'+id); if(el){el.classList.add('active');el.style.display='block';}
+document.querySelectorAll('.bottomNav button').forEach(b=>b.classList.remove('active'));
+var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
+var nid=map[id]; if(nid){var nb=document.getElementById(nid); if(nb) nb.classList.add('active');}
+window.scrollTo(0,0);
+if(id==='home') setTimeout(()=>{ try{ if(typeof uberMap==='undefined' || !uberMap){ if(typeof initUberMap==='function') initUberMap(); } else if(uberMap.invalidateSize){ uberMap.invalidateSize(); } }catch(e){ console.error('Map init error', e); } },300);
 }
-window.showPage = showPage;
-
 function autoGPS(i,s){
   var se=document.getElementById(s); 
   var ie=document.getElementById(i);
@@ -1248,7 +1234,7 @@ function findNursesUber(){
     // Try to get from localStorage
     var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng');
     if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); }
-    else { alert('📡 Tap GPS Auto first to get your live location'); return; }
+    else { console.log('No GPS, using Accra default'); clientLat=5.6037; clientLng=-0.1870; localStorage.setItem('clientLat', clientLat); localStorage.setItem('clientLng', clientLng); }
   } 
   var rad=parseInt(document.getElementById('radiusSelect').value)||10; 
   nearbyNursesSorted=src.filter(w=>w.lat&&w.lng).map(w=>{
@@ -2487,11 +2473,7 @@ function findNursesUber(){
   if(!clientLat||!clientLng){
     var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng');
     if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); }
-    else { 
-      alert('📡 Tap GPS Auto first to get your live location - Allow location permission'); 
-      document.getElementById('cLocation').focus();
-      return; 
-    }
+    else { console.log('No GPS, using Accra default 2'); clientLat=5.6037; clientLng=-0.1870; localStorage.setItem('clientLat', clientLat); localStorage.setItem('clientLng', clientLng); }
   } 
   var rad=parseInt(document.getElementById('radiusSelect').value)||10; 
   nearbyNursesSorted=src.filter(function(w){return w.lat&&w.lng;}).map(function(w){
@@ -2900,7 +2882,7 @@ function resendCode(){ document.getElementById('sendCodeArea').classList.remove(
   function startDrag(e){
     var p=getPos(e); startX=p.x; startY=p.y;
     var r=sosBtn.getBoundingClientRect(); initialLeft=r.left; initialTop=r.top;
-    isDragging=true; hasMoved=false; sosBtn.classList.add('dragging'); sosBtn.style.transition='none'; if(e.target===sosBtn || sosBtn.contains(e.target)) e.preventDefault();
+    isDragging=true; hasMoved=false; sosBtn.classList.add('dragging'); sosBtn.style.transition='none'; if(e.target===sosBtn || sosBtn.contains(e.target)){ e.preventDefault(); }
   }
   function onDrag(e){
     if(!isDragging) return;
@@ -5130,288 +5112,43 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Cloudinary PDFs'
 
 
 <script>
-// ===== BUTTON FIX - Ensure all buttons work even if inline onclick fails =====
+// MINIMAL FIXES - RESTORE ALL FUNCTIONS
+console.log('Applying minimal fixes, keeping all original functions');
+
 document.addEventListener('DOMContentLoaded', function(){
-  console.log('Button fix init');
-  // Ensure bottomNav has pointer-events
+  // Ensure bottomNav is on top
   var nav = document.querySelector('.bottomNav');
-  if(nav){ nav.style.pointerEvents='auto'; nav.style.zIndex='99999'; }
-  document.querySelectorAll('.bottomNav button').forEach(function(btn){
-    btn.style.pointerEvents='auto';
-    btn.style.cursor='pointer';
-    btn.type='button';
-    // Add explicit listener as fallback
-    if(!btn.dataset.fixed){
-      btn.dataset.fixed='true';
-      btn.addEventListener('click', function(e){
-        e.stopPropagation();
-        var id = this.id.replace('nav-','');
-        var map = {'home':'home','nurse':'nurse-public','book':'booking-public','login':'nurse-login','chat':'group-chat'};
-        var page = map[id] || this.getAttribute('data-page') || id;
-        // Try to get page from onclick attribute
-        var oc = this.getAttribute('onclick')||'';
-        var m = oc.match(/showPage\('([^']+)'\)/);
-        if(m) page = m[1];
-        console.log('BottomNav clicked fallback:', id, '->', page);
-        if(window.showPage) window.showPage(page);
-      });
-    }
-  });
-  // Fix all btnSubmit and btnSmall to be type=button to prevent form submit
-  document.querySelectorAll('button').forEach(function(b){
-    if(!b.type) b.type='button';
-    b.style.pointerEvents='auto';
-    b.style.touchAction='manipulation';
-  });
-  // Fix SOS to not block clicks
-  var sos = document.getElementById('sosFloatBtn');
-  if(sos){
-    sos.style.pointerEvents='auto';
-    sos.style.touchAction='none';
-  }
-  console.log('✅ Button fix applied - all buttons should now respond');
-});
-
-// Also add global error handler to show JS errors
-window.addEventListener('error', function(e){
-  console.error('Global JS error:', e.message, e.filename, e.lineno);
-});
-</script>
-
-
-<script>
-// ===== HOMEPAGE BUTTONS FIX V2 =====
-(function(){
-  console.log('Homepage fix v2 loading');
-
-  // Ensure all homepage functions are global and robust
-  window.setCareMode = window.setCareMode || function(mode){
-    console.log('setCareMode fallback', mode);
-    window.currentCareMode = mode;
-    document.querySelectorAll('.careModeBox button').forEach(b=>b.classList.remove('active'));
-    var btn = document.getElementById('mode-'+mode);
-    if(btn) btn.classList.add('active');
-    var timeBox = document.getElementById('liveOutTimeBox');
-    if(timeBox) timeBox.style.display = (mode==='liveout' || mode==='both') ? 'block' : 'none';
-    if(window.calculateTotal) { try{ calculateTotal(); }catch(e){ console.error(e);} }
-  };
-
-  window.selectUnit = window.selectUnit || function(unit){
-    console.log('selectUnit fallback', unit);
-    window.bookingUnit = unit;
-    document.querySelectorAll('.unitTabs button').forEach(b=>b.classList.remove('active'));
-    var b = document.getElementById('btn-'+unit);
-    if(b) b.classList.add('active');
-    document.querySelectorAll('[id^="panel-"]').forEach(p=>p.classList.add('hidden'));
-    var panel = document.getElementById('panel-'+unit);
-    if(panel) panel.classList.remove('hidden');
-    if(window.calculateTotal) try{ calculateTotal(); }catch(e){}
-  };
-
-  window.stepVal = window.stepVal || function(id, delta){
-    var el = document.getElementById(id);
-    if(!el) return;
-    var v = parseInt(el.value)||0;
-    v+=delta;
-    if(v<1) v=1;
-    if(el.max && v>parseInt(el.max)) v=parseInt(el.max);
-    el.value=v;
-    if(window.calculateTotal) try{ calculateTotal(); }catch(e){}
-  };
-
-  // Make FIND NURSES work even without GPS - use Accra default
-  var originalFindUber = window.findNursesUber;
-  window.findNursesUber = function(){
-    console.log('findNursesUber fixed called');
-    if(!window.clientLat || !window.clientLng){
-      var slat = localStorage.getItem('clientLat'), slng = localStorage.getItem('clientLng');
-      if(slat && slng){ window.clientLat=parseFloat(slat); window.clientLng=parseFloat(slng); }
-      else {
-        // Default to Accra, Ghana if no GPS
-        window.clientLat = 5.6037;
-        window.clientLng = -0.1870;
-        console.log('Using default Accra location');
-        localStorage.setItem('clientLat', window.clientLat);
-        localStorage.setItem('clientLng', window.clientLng);
-        var status = document.getElementById('clientGpsStatus');
-        if(status){
-          status.classList.remove('hidden');
-          status.style.display='block';
-          status.innerHTML='📍 Using default location: Accra (allow GPS for precise)';
-        }
-        var locInput = document.getElementById('cLocation');
-        if(locInput && !locInput.value) locInput.value='Accra, Ghana (default)';
-      }
-    }
-    try{
-      if(originalFindUber) return originalFindUber();
-      // fallback manual
-      var src = window.getAllNursesSource ? getAllNursesSource() : [];
-      console.log('Nurses source length', src.length);
-      if(src.length===0){
-        // Create demo nurses if none
-        src = [
-          {name:'Demo Nurse 1', phone:'233000000001', lat:5.6037, lng:-0.1870, location:'Accra', specialty:'Elderly Care', experience:'5', careMode:'both', distance:0},
-          {name:'Demo Nurse 2', phone:'233000000002', lat:5.6147, lng:-0.2050, location:'Accra', specialty:'Baby Care', experience:'3', careMode:'liveout', distance:0}
-        ];
-      }
-      var radEl = document.getElementById('radiusSelect');
-      var rad = radEl ? parseInt(radEl.value)||10 : 10;
-      window.nearbyNursesSorted = src.filter(w=>w.lat&&w.lng).map(w=>{
-        var d = window.getDistanceKm ? getDistanceKm(window.clientLat, window.clientLng, parseFloat(w.lat), parseFloat(w.lng)) : Math.random()*5;
-        return {...w, distance:d};
-      }).filter(w=>w.distance<=rad).sort((a,b)=>a.distance-b.distance).slice(0,50);
-      var countEl = document.getElementById('nearbyCount');
-      if(countEl) countEl.innerText = window.nearbyNursesSorted.length;
-      var actionArea = document.getElementById('uberActionArea');
-      if(actionArea) actionArea.classList.remove('hidden');
-      var mapWrapper = document.getElementById('loveCareMapWrapper');
-      if(mapWrapper) mapWrapper.classList.remove('hidden');
-      if(!window.uberMap && window.initUberMap) initUberMap();
-      setTimeout(()=>{
-        try{
-          if(window.uberMap && window.uberMap.invalidateSize) window.uberMap.invalidateSize();
-          if(window.renderNurseMarkers) renderNurseMarkers(window.nearbyNursesSorted);
-          if(window.showUserOnMap) showUserOnMap(window.clientLat, window.clientLng, 25);
-          if(window.fitMapWide) fitMapWide();
-          if(window.renderNearbyList) renderNearbyList();
-        }catch(e){ console.error('Map render error', e); }
-      },500);
-      // Show toast
-      var toast=document.createElement('div');
-      toast.style.cssText='position:fixed;top:90px;left:50%;transform:translateX(-50%);background:#16a34a;color:white;padding:12px 20px;border-radius:20px;font-weight:800;font-size:12px;z-index:100000;box-shadow:0 4px 15px rgba(0,0,0,.3)';
-      toast.innerHTML='✅ Found '+window.nearbyNursesSorted.length+' nurses within '+rad+'km';
-      document.body.appendChild(toast);
-      setTimeout(()=>toast.remove(), 4000);
-    }catch(e){
-      console.error('findNursesUber fixed error', e);
-      alert('Error finding nurses: '+e.message);
-    }
-  };
-
-  // Ensure email verification always passes
-  window.isEmailVerified = function(){ return true; };
-  window.checkEmailAndFindNurses = function(){
-    console.log('checkEmailAndFindNurses fixed');
-    if(window.findNursesUber) window.findNursesUber();
-  };
-  window.checkEmailAndBook = function(){
-    console.log('checkEmailAndBook fixed');
-    if(window.submitBooking) window.submitBooking();
-    else alert('Booking function not ready - try again');
-  };
-
-  // Fix autoGPS to not fail on reverse geocode
-  var origAutoGPS = window.autoGPS;
-  window.autoGPS = function(i,s){
-    console.log('autoGPS fixed', i, s);
-    var ie = document.getElementById(i);
-    var se = document.getElementById(s);
-    if(se){
-      se.classList.remove('hidden');
-      se.style.display='block';
-      se.innerHTML='📡 Getting GPS... Please allow location';
-    }
-    if(!navigator.geolocation){
-      if(ie) ie.value='Accra, Ghana';
-      window.clientLat=5.6037; window.clientLng=-0.1870;
-      localStorage.setItem('clientLat', 5.6037);
-      localStorage.setItem('clientLng', -0.1870);
-      if(se) se.innerHTML='✅ Using default: Accra (GPS not supported)';
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(function(p){
-      var lat=p.coords.latitude, lng=p.coords.longitude;
-      window.clientLat=lat; window.clientLng=lng;
-      localStorage.setItem('clientLat', lat);
-      localStorage.setItem('clientLng', lng);
-      if(ie){
-        ie.value = lat.toFixed(5)+', '+lng.toFixed(5)+' (Live GPS)';
-        ie.style.background='#f0fdf4';
-        ie.style.border='2px solid #16a34a';
-      }
-      if(se) se.innerHTML='✅ GPS Success: '+lat.toFixed(4)+', '+lng.toFixed(4);
-      // Try reverse geocode but don't fail if it does
-      try{
-        fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=18')
-          .then(r=>r.json()).then(d=>{
-            if(ie && d.display_name) ie.value = d.display_name;
-          }).catch(e=>{ console.log('Reverse geocode failed, keep latlng'); });
-      }catch(e){}
-    }, function(err){
-      console.error('GPS error', err);
-      window.clientLat=5.6037; window.clientLng=-0.1870;
-      localStorage.setItem('clientLat', 5.6037);
-      localStorage.setItem('clientLng', -0.1870);
-      if(ie) ie.value='Accra, Ghana (GPS denied - using default)';
-      if(se) se.innerHTML='⚠️ GPS denied, using Accra default. Tap again to retry.';
-    }, {enableHighAccuracy:true, timeout:10000, maximumAge:0});
-  };
-
-  // Attach direct listeners to all homepage buttons after load
-  function attachHomeListeners(){
-    document.querySelectorAll('#page-home button').forEach(function(btn){
-      btn.type='button';
-      btn.style.pointerEvents='auto';
-      btn.style.touchAction='manipulation';
-      btn.style.cursor='pointer';
-      // Ensure onclick works
-      if(!btn.dataset.homeFixed){
-        btn.dataset.homeFixed='true';
-        // Clone to remove any blocking listeners
-        var newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        // Re-attach inline onclick as listener
-        var oc = newBtn.getAttribute('onclick');
-        if(oc){
-          newBtn.addEventListener('click', function(e){
-            e.preventDefault(); e.stopPropagation();
-            try{
-              console.log('Homepage btn clicked:', oc);
-              // Evaluate the onclick safely
-              var fn = new Function(oc);
-              // Actually just eval in context
-              eval(oc);
-            }catch(err){
-              console.error('Homepage onclick error', oc, err);
-              // Fallback manual
-              if(oc.includes('setCareMode')){
-                var m = oc.match(/setCareMode\('([^']+)'\)/);
-                if(m && window.setCareMode) window.setCareMode(m[1]);
-              } else if(oc.includes('selectUnit')){
-                var m = oc.match(/selectUnit\('([^']+)'\)/);
-                if(m && window.selectUnit) window.selectUnit(m[1]);
-              } else if(oc.includes('stepVal')){
-                var m = oc.match(/stepVal\('([^']+)',\s*(-?\d+)\)/);
-                if(m && window.stepVal) window.stepVal(m[1], parseInt(m[2]));
-              } else if(oc.includes('checkEmailAndFindNurses') && window.checkEmailAndFindNurses){
-                window.checkEmailAndFindNurses();
-              } else if(oc.includes('checkEmailAndBook') && window.checkEmailAndBook){
-                window.checkEmailAndBook();
-              } else if(oc.includes('autoGPS')){
-                var m = oc.match(/autoGPS\('([^']+)',\s*'([^']+)'\)/);
-                if(m && window.autoGPS) window.autoGPS(m[1], m[2]);
-              }
-            }
-          });
-        }
-      }
-    });
-    console.log('Homepage buttons fixed -', document.querySelectorAll('#page-home button').length, 'buttons');
-  }
-
-  document.addEventListener('DOMContentLoaded', attachHomeListeners);
-  setTimeout(attachHomeListeners, 1000);
-  setTimeout(attachHomeListeners, 2500);
+  if(nav){ nav.style.display='flex'; }
   
-  // Also run calculateTotal initially
+  // Ensure homepage buttons are type=button (prevent form submit)
+  document.querySelectorAll('#page-home button').forEach(function(b){
+    if(!b.getAttribute('type')) b.setAttribute('type','button');
+  });
+  
+  // Fix: If clientLat/Lng not set, set default Accra so map shows
+  if(!localStorage.getItem('clientLat')){
+    localStorage.setItem('clientLat', '5.6037');
+    localStorage.setItem('clientLng', '-0.1870');
+    console.log('Set default Accra location');
+  }
+  
+  // Ensure uberMap inits on home
   setTimeout(function(){
-    try{ if(window.calculateTotal) calculateTotal(); }catch(e){}
-    try{ if(window.calculateTimeFromStartEnd) calculateTimeFromStartEnd(); }catch(e){}
-  }, 800);
+    if(typeof initUberMap==='function' && !window.uberMap){
+      try{ initUberMap(); console.log('Auto-inited map'); }catch(e){ console.error(e); }
+    }
+  }, 1000);
+  
+  // Add global error logger
+  window.addEventListener('error', function(e){
+    console.error('JS Error:', e.message, 'at', e.filename+':'+e.lineno);
+  });
+  
+  console.log('✅ Minimal fixes applied - all original functions kept');
+});
 
-  console.log('✅ Homepage fix v2 applied');
-})();
+// Ensure showPage is global
+if(typeof showPage!=='undefined'){ window.showPage = showPage; }
 </script>
 
 </body>
