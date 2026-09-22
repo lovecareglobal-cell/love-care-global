@@ -301,8 +301,8 @@ input,select,textarea{width:100%;padding:12px;margin:6px 0;border-radius:10px;bo
 .bottomNav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:8px 0 10px 0;border-top:3px solid #eab308;z-index:99999}
 .bottomNav button{background:none;border:none;font-size:9px;color:#6b7280;width:20%;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:700;padding:5px}
 .bottomNav button.active{color:#16a34a;background:#f0fdf4;border-radius:12px}
-.hidden{display:none /* FIXED !important removed */}
-#nav-chat{display:none /* FIXED !important removed */}
+.hidden{display:none /* FIXED */}
+#nav-chat{display:none /* FIXED */}
 #nav-chat.show-for-staff{display:flex!important}
 .bottomNav button#nav-chat{width:0!important;min-width:0!important;padding:0!important;margin:0!important;overflow:hidden}
 .bottomNav button#nav-chat.show-for-staff{width:20%!important;padding:5px!important}
@@ -362,7 +362,22 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 .colorRow input[type="range"]{flex:1}
 </style>
 
+<body>
+<!-- ===== RESTORED HEADER WITH SECRET LOGO ACCESS ===== -->
+<div id="topHeader" style="background:#16a34a;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;position:sticky;top:0;z-index:100;border-bottom:3px solid #111827;">
+  <div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;" title="Tap 5x Staff | Long-press CEO">
+    <img src="./Icon-512.png" alt="LOVE CARE GLOBAL" class="header-logo-img" style="height:46px;background:white;border-radius:10px;padding:4px 6px;"/>
+    <div style="line-height:1.1">
+      <div style="font-weight:900;color:white;font-size:18px;letter-spacing:0.5px;">LOVE CARE GLOBAL</div>
+      <div style="font-size:10px;color:#dcfce7;font-weight:800;">ENGLISH • 18+ ONLY • Tap Logo 5x Staff | Hold 1.5s CEO</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button onclick="showPage('home')" style="background:white;color:#16a34a;border:none;padding:6px 10px;border-radius:8px;font-weight:800;font-size:11px;">🏠 Home</button>
+    <button onclick="document.getElementById('aiBotSection')?.scrollIntoView({behavior:'smooth'})" style="background:#111827;color:#eab308;border:2px solid #eab308;padding:6px 10px;border-radius:8px;font-weight:800;font-size:11px;">🤖 AI Help</button>
+  </div>
 </div>
+
 <div class="announcementBar" id="announcementBar"><span id="announcementText">🔞 18+ ONLY - LOVE CARE GLOBAL - Flexible Hours - Live-in & Live-out - Professional English Nursing Services Worldwide - 18+ Only</span></div>
 <div style="background:#111827;color:#eab308;padding:6px;text-align:center;font-size:11px;font-weight:800;border-bottom:2px solid #eab308">🔞 18+ ONLY - You must be 18 years or older to use this app - Adults Only</div>
 
@@ -1592,14 +1607,13 @@ function toggleMap(){var w=document.getElementById('loveCareMapWrapper'); w.clas
 function findNursesUber(){ 
   var src=getAllNursesSource(); 
   if(!clientLat||!clientLng){
-    // Try to get from localStorage - FIXED with Accra fallback
     var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng');
     if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); }
     else { 
       console.log('📡 GPS not set, using Accra fallback 5.6037,-0.1870');
-      clientLat=5.6037; clientLng=-0.1870; // Accra default so map/navigation always works
+      clientLat=5.6037; clientLng=-0.1870;
       try{ localStorage.setItem('clientLat', clientLat); localStorage.setItem('clientLng', clientLng); }catch(e){}
-      if(typeof showToast==='function') showToast('📍 Using Accra location - tap GPS Auto for live location');
+      if(typeof showToast==='function') showToast('📍 Using Accra - tap GPS Auto for live');
     }
   } 
   var rad=parseInt(document.getElementById('radiusSelect').value)||10; 
@@ -4064,7 +4078,7 @@ window.uploadFileToStorage = async function(file, path){
     sos.addEventListener('touchstart', onStart, {passive:false});
     document.addEventListener('touchmove', onMove, {passive:false});
     document.addEventListener('touchend', onEnd, {passive:false});
-    sos.addEventListener('click', function(e){ if(hasMoved){ hasMoved=false; /* fixed: don't block clicks */ } });
+    sos.addEventListener('click', function(e){ if(hasMoved){ hasMoved=false; } }); /* FIXED - don't block */
     var sx=localStorage.getItem('sosPosX'), sy=localStorage.getItem('sosPosY');
     if(sx && sy){ sos.style.left=sx+'px'; sos.style.top=sy+'px'; sos.style.right='auto'; sos.style.bottom='auto'; }
     console.log('✅ Draggable SOS ready - Drag anywhere');
@@ -6128,6 +6142,62 @@ body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announc
   /* keep visible if it's a page div */
 }
 </style>
+
+
+<script>
+// ===== RE-BIND SECRET LOGO ACCESS - ENSURES LOGO WORKS AFTER RESTORE =====
+(function(){
+  function bindLogo(){
+    var logo=document.getElementById('logoTapArea');
+    if(!logo){ console.log('logoTapArea not found'); return; }
+    if(logo.dataset.bound==='1') return;
+    logo.dataset.bound='1';
+    var tapCount=0, tapTimer=null, longPressTimer=null, longPressTriggered=false;
+    function resetTap(){ tapCount=0; }
+    logo.addEventListener('click', function(e){
+      if(longPressTriggered){ longPressTriggered=false; return; }
+      tapCount++;
+      clearTimeout(tapTimer);
+      tapTimer=setTimeout(resetTap, 3000);
+      if(tapCount>=5){
+        tapCount=0;
+        clearTimeout(tapTimer);
+        var hint=document.createElement('div');
+        hint.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#7c3aed;color:white;padding:10px 18px;border-radius:20px;font-weight:800;font-size:12px;z-index:100000;box-shadow:0 4px 12px rgba(0,0,0,.3)';
+        hint.innerText='🔓 Staff Portal Unlocked - 5 taps detected';
+        document.body.appendChild(hint);
+        setTimeout(function(){hint.remove()},2000);
+        if(typeof showPage==='function') showPage('staff-login');
+      }
+    });
+    function startLongPress(){
+      longPressTriggered=false;
+      longPressTimer=setTimeout(function(){
+        longPressTriggered=true;
+        var hint=document.createElement('div');
+        hint.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#111827;color:#eab308;padding:10px 18px;border-radius:20px;font-weight:800;font-size:12px;z-index:100000;box-shadow:0 4px 12px rgba(0,0,0,.3);border:2px solid #eab308';
+        hint.innerText='🔐 CEO Access Unlocked - Long press detected';
+        document.body.appendChild(hint);
+        setTimeout(function(){hint.remove()},2000);
+        if(navigator.vibrate) navigator.vibrate(100);
+        if(typeof showPage==='function') showPage('ceo-login');
+      }, 1500);
+    }
+    function cancelLongPress(){ clearTimeout(longPressTimer); }
+    logo.addEventListener('touchstart', startLongPress, {passive:true});
+    logo.addEventListener('touchend', cancelLongPress);
+    logo.addEventListener('touchmove', cancelLongPress);
+    logo.addEventListener('mousedown', startLongPress);
+    logo.addEventListener('mouseup', cancelLongPress);
+    logo.addEventListener('mouseleave', cancelLongPress);
+    console.log('✅ LOGO SECRET ACCESS BOUND - 5 taps Staff, Long-press CEO');
+  }
+  document.addEventListener('DOMContentLoaded', bindLogo);
+  setTimeout(bindLogo, 500);
+  setTimeout(bindLogo, 1500);
+  setTimeout(bindLogo, 3000);
+})();
+</script>
 
 </body>
 </html>
