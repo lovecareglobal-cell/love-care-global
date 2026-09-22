@@ -546,7 +546,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div style="display:flex;gap:6px"><input id="cBudget" type="number" placeholder="Your Offer - Must be >= Minimum" style="flex:1" oninput="validateBudgetLive()"><select id="cCurrency" style="width:110px" onchange="calculateTotal();validateBudgetLive()"><option>GHS</option><option>USD</option><option>NGN</option><option>ZAR</option><option>KES</option><option>UGX</option><option>TZS</option><option>RWF</option><option>ZMW</option><option>BWP</option><option>GBP</option><option>CAD</option><option>AUD</option><option>EUR</option><option>INR</option><option>PHP</option><option>SGD</option><option>MYR</option></select></div>
 <small id="minRateInfo" style="font-size:10px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #f59e0b;padding:6px 10px;border-radius:8px;margin:4px 0;display:block">Loading legal rate...</small>
 <button class="btnSubmit" id="findNurseBtn" style="background:linear-gradient(90deg,#2563eb,#00b050)" onclick="checkEmailAndFindNurses()">🔍 FIND NURSES NEAR ME</button>
-<div id="uberActionArea" class="hidden"><div style="display:flex;gap:6px;margin-top:8px"><button class="btnSubmit" style="background:#eab308;color:#111;flex:1" onclick="randomSelectNurse()">🎲 RANDOM</button><button class="btnSubmit" id="bookBtn" style="background:linear-gradient(90deg,#16a34a,#00b050);flex:1;border:3px solid #eab308" onclick="checkEmailAndPayAndBook()">💳 PAY & BOOK SELECTED</button><button class="btnSubmit" style="background:#111827;flex:1" onclick="checkEmailAndBookFree()">📋 BOOK WITHOUT PAY</button></div><div id="selectedNurseInfo" style="font-size:10px;text-align:center;margin-top:4px;color:#16a34a;font-weight:800">No nurse selected</div></div></div>
+<div id="uberActionArea" class="hidden"><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btnSubmit" style="background:#eab308;color:#111;flex:1" onclick="randomSelectNurse()">🎲 RANDOM</button><button class="btnSubmit" id="bookBtn" style="background:linear-gradient(90deg,#16a34a,#00b050);flex:1;border:3px solid #eab308" onclick="checkEmailAndPayAndBook()">💳 PAY & BOOK SELECTED</button><button class="btnSubmit" style="background:#111827;flex:1" onclick="checkEmailAndBookFree()">📋 BOOK WITHOUT PAY</button></div><div id="selectedNurseInfo" style="font-size:10px;text-align:center;margin-top:4px;color:#16a34a;font-weight:800">No nurse selected</div><div style="background:#eff6ff;border:2px solid #2563eb;border-radius:8px;padding:6px;margin-top:6px;font-size:10px;text-align:center">💳 Paystack Secure Payment - Card/Bank/MoMo/USSD</div></div></div>
 
 <div class="card" style="border:3px solid #2563eb"><h2>📋 MY BOOKINGS</h2><div class="phoneRow"><select id="myBookPhoneCode"></select><input id="myBookPhone" placeholder="Enter phone to load"><button class="btnSmall" style="background:#2563eb;color:white;padding:12px 16px" onclick="loadMyBookings()">LOAD</button></div><div id="myBookingsList" style="margin-top:10px"><div style="text-align:center;color:#999;font-size:11px;padding:10px">No bookings loaded</div></div></div>
 <div class="card"><h2>LIVE Map - <span id="nearbyCount">0</span> Nearby</h2><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btnMap" onclick="toggleMap()">🗺 Map</button><button class="btnSmall" style="background:#16a34a;color:white" onclick="findNursesUber()">Refresh</button><select id="radiusSelect" style="width:100px;padding:8px;border-radius:8px"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option><option value="50">50 km</option></select></div><div id="loveCareMapWrapper" class="map-wrapper"><div id="uberMap"></div></div><div id="loveCareLiveList"></div></div>
@@ -1067,8 +1067,6 @@ function checkEmailAndFindNurses(){
   findNursesUber();
 }
 function checkEmailAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
-function checkEmailAndPayAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } payAndBookWithPaystack(); }
-function checkEmailAndBookFree(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
 var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
 var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
 var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
@@ -1763,7 +1761,7 @@ function stopDuty(){
   alert('⛔ OFF DUTY - You are now hidden from map');
 }
 
-function submitBooking(paystackRef){
+function submitBookingOriginal(){
   var name=document.getElementById('cName').value.trim();
   var phone=document.getElementById('cPhone').value.trim();
   var fullPhone=getFullPhone('cPhoneCode','cPhone');
@@ -1776,25 +1774,18 @@ function submitBooking(paystackRef){
   if(amount < calc.totalMin){ alert('❌ BLOCKED: Cannot pay below minimum rate. Offer '+amount+' is below legal total '+calc.totalMin+'. Increase to book.'); document.getElementById('legalWageMsg').innerHTML = 'BLOCKED: Offer below minimum<br>Min: '+calc.totalMin+' '+document.getElementById('cCurrency').value; document.getElementById('legalWagePopup').classList.remove('hidden'); return; }
   var cur=document.getElementById('cCurrency').value;
   var country = document.getElementById('countrySelect').value;
-  var verifiedEmail = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || localStorage.getItem('verifiedClientEmail') || 'no-email@lovecare.com';
+  var verifiedEmail = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || localStorage.getItem('verifiedClientEmail') || 'no-email@lovecare.com'; // FIXED: email optional
   var id=Date.now();
   var startTime = document.getElementById('cStartTime') ? document.getElementById('cStartTime').value : '';
   var endTime = document.getElementById('cEndTime') ? document.getElementById('cEndTime').value : '';
-  var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status: paystackRef ? 'paid' : 'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,email:verifiedEmail,country:country,days:calc.displayDuration,totalHours:calc.totalHours,hrsPerDay:calc.hrsPerDay,hourlyRate:calc.rateData.amount,hourlyCurrency:calc.rateData.currency,legalMinTotal:calc.totalMin, bookingUnit:calc.unit, careMode:calc.careMode, verifiedEmail:verifiedEmail, startTime:startTime, endTime:endTime, dailySchedule: (calc.careMode==='liveout' || calc.careMode==='both' || window.currentCareMode==='liveout') ? (startTime + ' - ' + endTime) : '24hrs Live-in', paystackRef: paystackRef||'', paidAt: paystackRef?Date.now():null};
+  var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status:'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,email:verifiedEmail,country:country,days:calc.displayDuration,totalHours:calc.totalHours,hrsPerDay:calc.hrsPerDay,hourlyRate:calc.rateData.amount,hourlyCurrency:calc.rateData.currency,legalMinTotal:calc.totalMin, bookingUnit:calc.unit, careMode:calc.careMode, verifiedEmail:verifiedEmail, startTime:startTime, endTime:endTime, dailySchedule: (calc.careMode==='liveout' || calc.careMode==='both' || window.currentCareMode==='liveout') ? (startTime + ' - ' + endTime) : '24hrs Live-in'};
   if(db)db.ref('bookings/'+id).set(b).then(()=>{
    localStorage.setItem('lastClientPhone', fullPhone);
    localStorage.setItem('lastClientName', name);
    localStorage.setItem('lastClientLocation', document.getElementById('cLocation').value);
    localStorage.setItem('lastClientService', service);
    localStorage.setItem('clientPermanentProfile', JSON.stringify({name:name, phone:fullPhone, email:verifiedEmail, location:document.getElementById('cLocation').value, country:country}));
-   if(paystackRef){
-     alert('✅ Payment Successful! Ref: '+paystackRef+'
-✅ Booked! '+calc.displayDuration+' = '+calc.totalHours+' hrs ('+calc.hrsPerDay+' hrs/day) Care:'+calc.careMode+' Total '+amount+' '+cur+'.');
-   } else {
-     alert('✅ Booked! '+calc.displayDuration+' = '+calc.totalHours+' hrs ('+calc.hrsPerDay+' hrs/day) Care:'+calc.careMode+' Total '+amount+' '+cur+'.
-
-🧭 Live route to nurse drawn on map.');
-   }
+   alert('✅ Booked! '+calc.displayDuration+' = '+calc.totalHours+' hrs ('+calc.hrsPerDay+' hrs/day) Care:'+calc.careMode+' Total '+amount+' '+cur+'.\n\n🧭 Live route to nurse drawn on map. Tap Google Maps button for turn-by-turn.');
    if(selectedNurseId){
      var nurse = nearbyNursesSorted.find(n=> (n.phone||n.id)==selectedNurseId);
      if(nurse) showLiveRoute(clientLat, clientLng, parseFloat(nurse.lat), parseFloat(nurse.lng));
@@ -1804,12 +1795,42 @@ function submitBooking(paystackRef){
    loadMyBookings();
   });
   else {
-    alert('✅ Demo Booking: '+name+' - '+service+' - '+amount+' '+cur+'
-Selected nurse: '+selectedNurseId+'
-PaystackRef: '+(paystackRef||'none'));
+    alert('✅ Demo Booking: '+name+' - '+service+' - '+amount+' '+cur+'\nSelected nurse: '+selectedNurseId+'\nLive route shown on map');
   }
 }
 
+
+
+// ===== RESTORED PAYMENT BUTTON - PAYSTACK =====
+function submitBooking(paystackRef){
+  var name=document.getElementById('cName').value.trim();
+  var phone=document.getElementById('cPhone').value.trim();
+  var fullPhone=getFullPhone('cPhoneCode','cPhone');
+  var service=document.getElementById('cService').value;
+  if(!name||!phone||!service){alert('Name Phone Service required');return;}
+  if(!selectedNurseId&&nearbyNursesSorted[0])selectedNurseId=nearbyNursesSorted[0].phone||nearbyNursesSorted[0].id;
+  var calc = calculateTotal();
+  var amount=parseFloat(document.getElementById('cBudget').value||0);
+  if(!amount){ alert('Enter Your Offer - Min is '+calc.totalMin+' '+document.getElementById('cCurrency').value); return; }
+  if(amount < calc.totalMin){ alert('❌ BLOCKED: Below minimum '+calc.totalMin); document.getElementById('legalWagePopup').classList.remove('hidden'); return; }
+  var cur=document.getElementById('cCurrency').value;
+  var country = document.getElementById('countrySelect').value;
+  var verifiedEmail = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || localStorage.getItem('verifiedClientEmail') || 'no-email@lovecare.com';
+  var id=Date.now();
+  var startTime = document.getElementById('cStartTime') ? document.getElementById('cStartTime').value : '';
+  var endTime = document.getElementById('cEndTime') ? document.getElementById('cEndTime').value : '';
+  var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status: paystackRef ? 'paid' : 'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,email:verifiedEmail,country:country,days:calc.displayDuration,totalHours:calc.totalHours,hrsPerDay:calc.hrsPerDay,hourlyRate:calc.rateData.amount,legalMinTotal:calc.totalMin, careMode:calc.careMode, verifiedEmail:verifiedEmail, startTime:startTime, endTime:endTime, paystackRef: paystackRef||'', paidAt: paystackRef?Date.now():null};
+  if(db)db.ref('bookings/'+id).set(b).then(()=>{
+   localStorage.setItem('lastClientPhone', fullPhone);
+   localStorage.setItem('lastClientName', name);
+   if(paystackRef) alert('✅ Payment Successful! Ref: '+paystackRef+'\n✅ Booked! '+amount+' '+cur);
+   else alert('✅ Booked! '+calc.displayDuration+' = '+calc.totalHours+' hrs Total '+amount+' '+cur);
+   if(selectedNurseId){ var nurse = nearbyNursesSorted.find(n=> (n.phone||n.id)==selectedNurseId); if(nurse) showLiveRoute(clientLat, clientLng, parseFloat(nurse.lat), parseFloat(nurse.lng)); }
+   document.getElementById('myBookPhone').value=document.getElementById('cPhone').value;
+   document.getElementById('myBookPhoneCode').value=document.getElementById('cPhoneCode').value;
+   loadMyBookings();
+  }); else { alert('✅ Demo Booking: '+name+' - '+amount+' '+cur+' Ref: '+(paystackRef||'none')); }
+}
 function payAndBookWithPaystack(){
   var name=document.getElementById('cName').value.trim();
   var phone=document.getElementById('cPhone').value.trim();
@@ -1820,25 +1841,22 @@ function payAndBookWithPaystack(){
   if(!amount || amount < calc.totalMin){ alert('Enter valid offer >= minimum '+calc.totalMin); return; }
   var email = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || localStorage.getItem('verifiedClientEmail') || 'client@lovecareglobal.com';
   var cur=document.getElementById('cCurrency').value||'GHS';
-  var paystackPublicKey = localStorage.getItem('paystackPublicKey') || localStorage.getItem('ceoPaystackPublicKey') || 'pk_test_xxxxxxxxxxxxxxxx';
+  var paystackPublicKey = localStorage.getItem('ceoPaystackPublicKey') || localStorage.getItem('paystackPublicKey') || 'pk_test_123';
   var amountKobo = Math.round(amount * 100);
-  if(typeof PaystackPop === 'undefined'){
-    if(confirm('💳 Paystack not loaded (no internet). Book without payment for now?')) submitBooking();
-    return;
-  }
+  if(typeof PaystackPop === 'undefined'){ if(confirm('Paystack not loaded. Book without payment?')) submitBooking(); return; }
   var handler = PaystackPop.setup({
     key: paystackPublicKey,
     email: email,
     amount: amountKobo,
     currency: cur,
-    ref: 'LOVECARE_'+Date.now()+'_'+Math.floor(Math.random()*1000000),
-    metadata: {custom_fields: [{display_name: "Client Name", variable_name: "client_name", value: name}, {display_name: "Phone", variable_name: "phone", value: phone}, {display_name: "Service", variable_name: "service", value: service}]},
+    ref: 'LOVECARE_'+Date.now(),
     callback: function(response){ submitBooking(response.reference); },
-    onClose: function(){ alert('Payment closed. Tap again to pay.'); }
+    onClose: function(){ alert('Payment window closed.'); }
   });
   handler.openIframe();
 }
-
+function checkEmailAndPayAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } payAndBookWithPaystack(); }
+function checkEmailAndBookFree(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
 
 function loadMyBookings(){
  var codeEl=document.getElementById('myBookPhoneCode'); var phoneEl=document.getElementById('myBookPhone');
