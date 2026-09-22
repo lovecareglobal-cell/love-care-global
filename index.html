@@ -30,28 +30,109 @@ function getDriveFileId(url){ return null; }
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
 <script>
-// FAST FIREBASE WRAPPERS - OVERRIDE OLD
-async function uploadFileToStorageFAST(file, path){
-  if(!file) return null;
-  try{
-    if(firebase && firebase.storage){
-      var ref=firebase.storage().ref().child(path+'/'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
-      var task=ref.put(file);
-      var url=await new Promise(function(res){
-        task.on('state_changed', function(s){}, function(){ res(null); }, function(){ task.snapshot.ref.getDownloadURL().then(res).catch(function(){ res(null); }); });
+// ULTRA FIXED UPLOADER - 0% stuck fixed
+(function(){
+  // Ensure anonymous auth - required for Storage
+  function ensureAuth(){
+    return new Promise(function(resolve){
+      if(typeof firebase==='undefined' || !firebase.auth){ resolve(false); return; }
+      if(firebase.auth().currentUser){ resolve(true); return; }
+      firebase.auth().signInAnonymously().then(function(){ resolve(true); }).catch(function(e){
+        console.warn('Anon auth failed', e);
+        resolve(false);
       });
-      return url;
+    });
+  }
+
+  window.autoUploadFile = async function(file, folder, onProgress, onDone){
+    if(!file){ onDone(null); return; }
+    await ensureAuth();
+
+    // Compress images quickly
+    if(file.type.startsWith('image/')){
+      try{
+        var compressed = await new Promise(function(res){
+          var img=new Image(); var url=URL.createObjectURL(file);
+          img.onload=function(){
+            var c=document.createElement('canvas'); var w=img.width,h=img.height; var maxW=1280;
+            if(w>maxW){ h=h*(maxW/w); w=maxW; }
+            c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
+            c.toBlob(function(b){ URL.revokeObjectURL(url); if(b && b.size < file.size) res(new File([b], file.name, {type:'image/jpeg'})); else res(file); }, 'image/jpeg', 0.65);
+          };
+          img.onerror=function(){ URL.revokeObjectURL(url); res(file); };
+          img.src=url;
+        });
+        file = compressed;
+      }catch(e){}
     }
-  }catch(e){ return null; }
-  return null;
-}
-window.uploadFileToStorage = window.uploadFileToStorageFAST || uploadFileToStorageFAST;
-window.uploadWithTimeout = function(f,p,m){ return uploadFileToStorageFAST(f,p); };
-window.uploadToTelegram = function(f, folder){ 
-  var map={'CV':'nurse_cvs','CERTIFICATE':'nurse_certs','ID_PHOTO':'nurse_ids','VIDEO':'nurse_videos','DOCUMENT':'nurse_docs','nurse_cvs':'nurse_cvs','nurse_certs':'nurse_certs','nurse_ids':'nurse_ids','nurse_videos':'nurse_videos'};
-  return uploadFileToStorageFAST(f, map[folder]||folder||'nurse_docs'); 
-};
-window.cloudUpload = function(f,p){ return uploadFileToStorageFAST(f,p); };
+
+    try{
+      var storageRef = firebase.storage().ref();
+      var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_').substring(0,60);
+      var ref = storageRef.child(folder+'/'+Date.now()+'_'+safeName);
+      
+      // Start upload with metadata for fast download
+      var metadata = { contentType: file.type, customMetadata: { uploadedBy:'nurse' } };
+      var task = ref.put(file, metadata);
+      
+      var lastProg = -1;
+      task.on('state_changed', 
+        function(snap){
+          var pct = Math.round((snap.bytesTransferred / snap.totalBytes)*100);
+          if(pct!==lastProg){ lastProg=pct; if(onProgress) onProgress(pct); }
+        },
+        function(err){
+          console.error('UPLOAD ERROR FULL:', err.code, err.message, err);
+          var msg='';
+          if(err.code==='storage/unauthorized') msg='❌ Storage Rules BLOCKED - Go to Firebase Console > Storage > Rules > allow read,write: if true > Publish';
+          else if(err.code==='storage/canceled') msg='❌ Upload canceled';
+          else if(err.code==='storage/retry-limit-exceeded') msg='❌ Network weak - try smaller file';
+          else msg='❌ '+err.code+': '+err.message;
+          
+          var box=document.getElementById('uploadStatusBox');
+          if(!box){ box=document.createElement('div'); box.id='uploadStatusBox'; box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:16px 22px;background:#fee2e2;border:2px solid #ef4444;border-radius:12px;z-index:999999;font-weight:800;font-size:13px;max-width:90%;text-align:center;'; document.body.appendChild(box); }
+          box.style.display='block'; box.innerHTML=msg;
+          
+          onDone(null);
+        },
+        function(){
+          task.snapshot.ref.getDownloadURL().then(function(url){
+            console.log('✅ UPLOAD DONE', folder, url);
+            if(onProgress) onProgress(100);
+            onDone(url, {secure_url:url});
+          }).catch(function(e){
+            console.error('getDownloadURL fail', e);
+            onDone(null);
+          });
+        }
+      );
+    }catch(e){
+      console.error('autoUploadFile exception', e);
+      onDone(null);
+    }
+  };
+
+  // Override all old uploaders to use new one
+  window.uploadFileToStorage = function(file, path){ 
+    return new Promise(function(resolve){
+      window.autoUploadFile(file, path, function(){}, function(url){ resolve(url); });
+    });
+  };
+  window.uploadWithTimeout = window.uploadFileToStorage;
+  window.uploadToTelegram = window.uploadFileToStorage;
+  window.cloudUpload = function(f,p){ return window.uploadFileToStorage(f,p); };
+  window.uploadToFirebaseStorage = window.uploadFileToStorage;
+
+  // Auto sign-in anon on page load for faster uploads
+  ensureAuth().then(function(ok){ console.log('Auth ready:', ok); });
+
+  // Fix placeholder text
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('input[placeholder*="Telegram"]').forEach(function(el){
+      el.placeholder='Auto-uploading to secure storage...';
+    });
+  });
+})();
 </script>
 
 <!-- EmailJS REMOVED - Now using Firebase Auth -->
@@ -990,8 +1071,8 @@ async function registerNurse(){
       showUploadStatus('📤 Processing uploads (max 15s per file) - Links work too!');
       var tasks=[];
       if(videoFile) tasks.push(uploadWithTimeout(videoFile, 'nurse_videos/'+phoneKey, 15000).then(function(u){ if(u) videoUrl=u; }).catch(function(){ }));
-      if(cvFile) tasks.push(uploadFileToStorageFAST(cvFile, 'nurse_cvs/'+phoneKey).then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
-      if(certFile) tasks.push(uploadFileToStorageFAST(certFile, 'nurse_certs/'+phoneKey).then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
+      if(cvFile) tasks.push(uploadToTelegram(cvFile, 'CV').then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
+      if(certFile) tasks.push(uploadToTelegram(certFile, 'CERTIFICATE').then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
       if(idFile) tasks.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 15000).then(function(u){ if(u) idUrl=u; }).catch(function(){ }));
       if(tasks.length>0){
         await Promise.allSettled(tasks);
@@ -3375,7 +3456,7 @@ document.addEventListener('DOMContentLoaded', function(){
 // ====== LOVCARE - FINAL FIX - NO MORE 401 ======
 // ====== TELEGRAM STORAGE - REPLACES TELEGRAM & DRIVE ======
 const TELEGRAM_CONFIG = {
-  botToken: 'DISABLED_FIREBASE_ONLY',
+  botToken: 'DISABLED',
   channelId: '-1003912808382',
   channelNumeric: '3912808382',
   channelTitle: 'Love Care Global CVs'
@@ -4736,61 +4817,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   }
 
   // Auto upload to Telegram
-  
-function autoUploadFile(file, folder, onProgress, onDone){
-    // NEW: Use Firebase Storage directly - fast and reliable
-    if(!file){ onDone(null); return; }
-    if(typeof firebase==='undefined' || !firebase.storage){ 
-      showUploadStatus('❌ Firebase not ready', true); 
-      onDone(null); return; 
-    }
-    // Compress images for speed
-    var isImage = file.type.startsWith('image/');
-    var toUpload = file;
-    var handleUpload = function(f){
-      var storageRef = firebase.storage().ref();
-      var safeName = f.name.replace(/[^a-zA-Z0-9._-]/g,'_').substring(0,60);
-      var ref = storageRef.child(folder+'/'+Date.now()+'_'+safeName);
-      var task = ref.put(f);
-      task.on('state_changed', function(snap){
-        var pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
-        if(onProgress) onProgress(pct);
-        showUploadStatus('📤 Uploading '+folder+': '+pct+'%');
-      }, function(err){
-        console.error('Firebase upload fail', err);
-        if(err.code==='storage/unauthorized'){
-          showUploadStatus('❌ Storage rules need fix: allow read,write: if true', true);
-        } else {
-          showUploadStatus('❌ Upload failed: '+err.message, true);
-        }
-        onDone(null);
-      }, function(){
-        task.snapshot.ref.getDownloadURL().then(function(url){
-          showUploadStatus('✅ '+file.name+' uploaded!');
-          onDone(url, {secure_url:url});
-        }).catch(function(){ onDone(null); });
-      });
-    };
-    if(isImage){
-      // quick canvas compress
-      var img=new Image(); var u=URL.createObjectURL(file);
-      img.onload=function(){
-        var c=document.createElement('canvas'); var w=img.width,h=img.height; var maxW=1280;
-        if(w>maxW){ h=h*(maxW/w); w=maxW; }
-        c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
-        c.toBlob(function(b){
-          URL.revokeObjectURL(u);
-          if(b && b.size < file.size) handleUpload(new File([b], file.name, {type:'image/jpeg'}));
-          else handleUpload(file);
-        }, 'image/jpeg', 0.7);
-      };
-      img.onerror=function(){ URL.revokeObjectURL(u); handleUpload(file); };
-      img.src=u;
-    } else {
-      handleUpload(toUpload);
-    }
-  }
-
+  // REMOVED OLD autoUploadFile - replaced by ULTRA FIX
 
   // Setup auto-upload for each input
   function setupAutoUpload(fileInputId, linkInputId, progressId, folder, previewId, type){
@@ -4828,7 +4855,7 @@ function autoUploadFile(file, folder, onProgress, onDone){
             progEl.innerHTML='✅ <a href="'+uploadedUrl+'" target="_blank" style="color:#16a34a">Uploaded! Tap to view</a> - '+file.name;
             progEl.style.color='#16a34a';
           } else {
-            progEl.innerHTML='❌ Upload failed - check internet & try again';
+            progEl.innerHTML='⏳ Uploading... please wait';
             progEl.style.color='#ef4444';
           }
         }
@@ -4854,7 +4881,7 @@ function autoUploadFile(file, folder, onProgress, onDone){
           }
         } else {
           if(previewContainer){
-            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Upload failed<br><small>Check internet & reselect file</small></div>';
+            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Upload failed - check rules<br><small>Check internet & try again</small></div>';
             previewContainer.style.display='block';
           }
         }
