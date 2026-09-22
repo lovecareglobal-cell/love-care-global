@@ -362,38 +362,66 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 .colorRow input[type="range"]{flex:1}
 </style>
 
-<body>
-<!-- ===== RESTORED HEADER WITH SECRET LOGO ACCESS ===== -->
-<div id="topHeader" style="background:#16a34a;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;position:sticky;top:0;z-index:100;border-bottom:3px solid #111827;">
-  <div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;" title="Tap 5x Staff | Long-press CEO">
-    <img src="./Icon-512.png" alt="LOVE CARE GLOBAL" class="header-logo-img" style="height:46px;background:white;border-radius:10px;padding:4px 6px;"/>
-    <div style="line-height:1.1">
-      <div style="font-weight:900;color:white;font-size:18px;letter-spacing:0.5px;">LOVE CARE GLOBAL</div>
-      <div style="font-size:10px;color:#dcfce7;font-weight:800;">ENGLISH • 18+ ONLY • Tap Logo 5x Staff | Hold 1.5s CEO</div>
-    </div>
-  </div>
-  <div style="display:flex;gap:6px;align-items:center">
-    <button onclick="showPage('home')" style="background:white;color:#16a34a;border:none;padding:6px 10px;border-radius:8px;font-weight:800;font-size:11px;">🏠 Home</button>
-    <button onclick="document.getElementById('aiBotSection')?.scrollIntoView({behavior:'smooth'})" style="background:#111827;color:#eab308;border:2px solid #eab308;padding:6px 10px;border-radius:8px;font-weight:800;font-size:11px;">🤖 AI Help</button>
-  </div>
+<div id="ceoPersonalSetup" style="margin:10px 0;padding:12px;background:#eff6ff;border:2px solid #2563eb;border-radius:10px;font-size:11px">
+<b>📱 Setup Personal Telegram Notifications:</b><br>
+1. Open Telegram → search <b>@lovecareglobal_bot</b> → send <b>/start</b><br>
+2. Click button below to auto-detect your ID<br>
+<button class="btnSmall" style="background:#2563eb;color:white;margin-top:6px;padding:8px 12px" onclick="detectCeoPersonalChatId()">🔍 Detect My Telegram ID & Enable DM Alerts</button>
+<div id="ceoPersonalStatus" style="margin-top:6px;font-size:10px"></div>
+<script>
+setTimeout(function(){
+  var saved = localStorage.getItem('ceoPersonalChatId');
+  var status = document.getElementById('ceoPersonalStatus');
+  if(status){
+    if(saved){ status.innerHTML='✅ Personal DM enabled for ID: '+saved+' - You will get Telegram DMs when nurses upload'; status.style.color='#16a34a'; }
+    else { status.innerHTML='❌ Not enabled yet - Send /start to bot and click Detect'; status.style.color='#ef4444'; }
+  }
+}, 2000);
+</script>
 </div>
 
+<style>#/* FIXED - was blocking email verification modal */ #emailVerifyModal.hidden{display:none;} .emailModal.hidden{display:none;} #emailVerifyModal{display:none;} #emailVerifyModal:not(.hidden){display:flex !important; visibility:visible !important; opacity:1 !important; pointer-events:auto !important;} .emailModal:not(.hidden){display:flex !important; visibility:visible !important; opacity:1 !important; pointer-events:auto !important;} #verifiedEmailBadge{display:none /* FIXED */}</style>
+<style>
+/* Hide nurse phone numbers from client view */
+.client-hide-phone .nurse-phone,
+.client-hide-phone [id*="phone"],
+.client-hide-phone [class*="phone"],
+#page-client-map .nurse-phone,
+#page-client-map .phone-number,
+.client-view .phone,
+.nurse-card .phone-field {
+  display: none !important;
+}
+.phone-hidden-badge {
+  background: #fef3c7;
+  border: 1px solid #eab308;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  color: #92400e;
+}
+</style>
+
+<script src="https://js.paystack.co/v1/inline.js"></script>
+</head>
+<body>
+<div class="sosFloat" id="sosFloatBtn"><div class="sosPulse"></div><span style="position:relative;z-index:1">SOS</span></div>
+<div class="header"><div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer"><img src="./Icon-512.png" class="header-logo-img" style="background:white" onerror="this.style.display='none'"><div style="line-height:1"><b>LOVE CARE</b><br><span style="background:white;color:#16a34a;padding:2px 8px;border-radius:20px;font-size:8px;font-weight:800">GLOBAL HOME NURSING</span></div></div></div>
 <div class="announcementBar" id="announcementBar"><span id="announcementText">🔞 18+ ONLY - LOVE CARE GLOBAL - Flexible Hours - Live-in & Live-out - Professional English Nursing Services Worldwide - 18+ Only</span></div>
 <div style="background:#111827;color:#eab308;padding:6px;text-align:center;font-size:11px;font-weight:800;border-bottom:2px solid #eab308">🔞 18+ ONLY - You must be 18 years or older to use this app - Adults Only</div>
 
-<!-- ===== CLEAN ANNOUNCEMENT MEDIA BAR (FOR ALL USERS) ===== -->
-<div id="announcementVideoBar" style="display:none;background:#111827;border-bottom:3px solid #eab308;padding:10px;max-width:100%;overflow:hidden;box-sizing:border-box">
+<div id="announcementVideoBar" style="display:none;background:#111827;border-bottom:3px solid #eab308;padding:10px">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-<b style="color:#eab308;font-size:12px">📹 CEO Announcements</b>
+<b style="color:#eab308;font-size:12px">📹 CEO Video Announcements</b>
 <button onclick="document.getElementById('announcementVideoBar').style.display='none'" style="background:#ef4444;color:white;border:none;padding:4px 8px;border-radius:6px;font-size:10px">✕ Hide</button>
 </div>
-<div id="publicAnnounceVideosList" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;max-width:100%"></div>
+<div id="publicAnnounceVideosList" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px"></div>
 </div>
 
-<div id="announcementModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:999999;justify-content:center;align-items:center;padding:20px;box-sizing:border-box">
+<div id="announcementModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:999999;justify-content:center;align-items:center;padding:20px">
 <div style="background:white;border-radius:16px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto">
 <div style="padding:12px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #eee">
-<b id="announceModalTitle" style="font-size:14px">CEO Announcement</b>
+<b id="announceModalTitle" style="font-size:14px">CEO Video</b>
 <button onclick="closeAnnouncementVideo()" style="background:#ef4444;color:white;border:none;padding:6px 12px;border-radius:8px">✕ Close</button>
 </div>
 <div id="announceModalBody" style="padding:12px"></div>
@@ -546,7 +574,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div style="display:flex;gap:6px"><input id="cBudget" type="number" placeholder="Your Offer - Must be >= Minimum" style="flex:1" oninput="validateBudgetLive()"><select id="cCurrency" style="width:110px" onchange="calculateTotal();validateBudgetLive()"><option>GHS</option><option>USD</option><option>NGN</option><option>ZAR</option><option>KES</option><option>UGX</option><option>TZS</option><option>RWF</option><option>ZMW</option><option>BWP</option><option>GBP</option><option>CAD</option><option>AUD</option><option>EUR</option><option>INR</option><option>PHP</option><option>SGD</option><option>MYR</option></select></div>
 <small id="minRateInfo" style="font-size:10px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #f59e0b;padding:6px 10px;border-radius:8px;margin:4px 0;display:block">Loading legal rate...</small>
 <button class="btnSubmit" id="findNurseBtn" style="background:linear-gradient(90deg,#2563eb,#00b050)" onclick="checkEmailAndFindNurses()">🔍 FIND NURSES NEAR ME</button>
-<div id="uberActionArea" class="hidden"><div style="display:flex;gap:6px;margin-top:8px"><button class="btnSubmit" style="background:#eab308;color:#111;flex:1" onclick="randomSelectNurse()">🎲 RANDOM</button><button class="btnSubmit" id="bookBtn" style="background:#111827;flex:1" onclick="checkEmailAndBook()">BOOK SELECTED</button></div><div id="selectedNurseInfo" style="font-size:10px;text-align:center;margin-top:4px;color:#16a34a;font-weight:800">No nurse selected</div></div></div>
+<div id="uberActionArea" class="hidden"><div style="display:flex;gap:6px;margin-top:8px"><button class="btnSubmit" style="background:#eab308;color:#111;flex:1" onclick="randomSelectNurse()">🎲 RANDOM</button><button class="btnSubmit" id="bookBtn" style="background:#111827;flex:1" onclick="checkEmailAndPayAndBook()">💳 PAY & BOOK SELECTED</button></div><div id="selectedNurseInfo" style="font-size:10px;text-align:center;margin-top:4px;color:#16a34a;font-weight:800">No nurse selected</div></div></div>
 
 <div class="card" style="border:3px solid #2563eb"><h2>📋 MY BOOKINGS</h2><div class="phoneRow"><select id="myBookPhoneCode"></select><input id="myBookPhone" placeholder="Enter phone to load"><button class="btnSmall" style="background:#2563eb;color:white;padding:12px 16px" onclick="loadMyBookings()">LOAD</button></div><div id="myBookingsList" style="margin-top:10px"><div style="text-align:center;color:#999;font-size:11px;padding:10px">No bookings loaded</div></div></div>
 <div class="card"><h2>LIVE Map - <span id="nearbyCount">0</span> Nearby</h2><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btnMap" onclick="toggleMap()">🗺 Map</button><button class="btnSmall" style="background:#16a34a;color:white" onclick="findNursesUber()">Refresh</button><select id="radiusSelect" style="width:100px;padding:8px;border-radius:8px"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option><option value="50">50 km</option></select></div><div id="loveCareMapWrapper" class="map-wrapper"><div id="uberMap"></div></div><div id="loveCareLiveList"></div></div>
@@ -703,13 +731,15 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </div></div>
 
 <!-- GROUP CHAT - NURSE/STAFF/CEO ONLY -->
-
+<!-- GROUP CHAT - NURSE/STAFF/CEO ONLY - WITH VIDEO/IMAGE/YOUTUBE SUPPORT -->
+<!-- GROUP CHAT - WITH VIDEO/IMAGE/YOUTUBE/FILE + AUDIO VOICE -->
 <div id="page-group-chat" class="page">
 <div class="card" style="border:3px solid #16a34a"><h2>GROUP CHAT - Private (Nurse/Staff/CEO Only) 🎤📹🖼️▶️</h2>
-<div style="background:#fef3c7;padding:6px;border-radius:8px;font-size:10px;margin-bottom:8px">🔒 Clients cannot see. Only Nurses, Staff & CEO. Share text, voice, videos, images, YouTube. Telegram bot (free). CEO can wipe all.</div>
-<div id="globalChatBox" class="chatBox" style="height:400px;max-width:100%;overflow-y:auto"></div>
-<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;max-width:100%">
-<button id="voiceRecordBtn" class="btnSmall" style="background:#ef4444;color:white;padding:8px 10px;font-size:10px" onclick="toggleVoiceRecord()">🎤 Voice</button>
+<div style="background:#fef3c7;padding:6px;border-radius:8px;font-size:10px;margin-bottom:8px">🔒 Clients cannot see. Only Nurses, Staff & CEO. Share text, voice, videos, images, YouTube. Telegram bot (free). Edit/delete own messages. CEO can wipe all.</div>
+<div id="globalChatBox" class="chatBox" style="height:400px"></div>
+
+<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+<button id="voiceRecordBtn" class="btnSmall" style="background:#ef4444;color:white;padding:8px 10px;font-size:10px" onclick="toggleVoiceRecord()">🎤 Hold to Speak</button>
 <button class="btnSmall" style="background:#7c3aed;color:white;padding:8px 10px;font-size:10px" onclick="document.getElementById('groupChatVideoFile').click()">📹 Video</button>
 <button class="btnSmall" style="background:#2563eb;color:white;padding:8px 10px;font-size:10px" onclick="document.getElementById('groupChatImageFile').click()">🖼️ Image</button>
 <button class="btnSmall" style="background:#ef4444;color:white;padding:8px 10px;font-size:10px" onclick="promptGroupChatYoutube()">▶️ YouTube</button>
@@ -718,21 +748,53 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <input type="file" id="groupChatImageFile" accept="image/*" style="display:none" onchange="sendGroupChatMedia(this, 'image')">
 <input type="file" id="groupChatFile" accept=".pdf,.doc,.docx,.mp3,.wav" style="display:none" onchange="sendGroupChatMedia(this, 'file')">
 </div>
-<div id="voiceRecordUI" style="display:none;background:#fef2f2;border:3px solid #ef4444;border-radius:12px;padding:12px;margin-top:8px;text-align:center;max-width:100%">
+
+<div id="voiceRecordUI" style="display:none;background:#fef2f2;border:3px solid #ef4444;border-radius:12px;padding:12px;margin-top:8px;text-align:center">
 <div style="font-size:12px;font-weight:800;color:#ef4444;margin-bottom:6px">🔴 Recording... <span id="voiceTimer">00:00</span></div>
-<div style="display:flex;gap:6px;justify-content:center"><button class="btnSmall" style="background:#ef4444;color:white;padding:10px 20px" onclick="stopVoiceRecord()">⏹️ Stop & Send</button><button class="btnSmall" style="background:#6b7280;color:white;padding:10px 20px" onclick="cancelVoiceRecord()">✕ Cancel</button></div>
+<div style="font-size:10px;color:#6b7280;margin-bottom:8px">Speak now, tap Stop when done</div>
+<div style="display:flex;gap:6px;justify-content:center">
+<button class="btnSmall" style="background:#ef4444;color:white;padding:10px 20px" onclick="stopVoiceRecord()">⏹️ Stop & Send</button>
+<button class="btnSmall" style="background:#6b7280;color:white;padding:10px 20px" onclick="cancelVoiceRecord()">✕ Cancel</button>
 </div>
-<div style="display:flex;gap:6px;margin-top:8px;max-width:100%"><input id="globalChatInput" placeholder="Type message... or use 🎤 voice / 📹 video" style="flex:1;margin:0;min-width:0"><button class="btnSmall" style="background:#16a34a;color:white;padding:12px 20px" onclick="sendGlobalChat()">Send</button></div>
+<div style="margin-top:8px"><div style="height:4px;background:#ef4444;border-radius:2px;animation:pulse 1s infinite;width:100%"></div></div>
+</div>
+
+<div style="display:flex;gap:6px;margin-top:8px"><input id="globalChatInput" placeholder="Type message... or use 🎤 voice / 📹 video / 🖼️ image" style="flex:1;margin:0"><button class="btnSmall" style="background:#16a34a;color:white;padding:12px 20px" onclick="sendGlobalChat()">Send</button></div>
 <div id="groupChatUploadStatus" style="font-size:11px;margin-top:6px"></div>
-<div style="display:flex;gap:6px;margin-top:8px"><button class="btnSmall" style="background:#111827;color:white;flex:1" onclick="showPage('home')">Home</button><button id="masterClearBtn" class="btnSmall hidden" style="background:#ef4444;color:white;flex:1" onclick="clearGroupChat()">🗑 DELETE ALL</button></div>
+<div style="display:flex;gap:6px;margin-top:8px"><button class="btnSmall" style="background:#111827;color:white;flex:1" onclick="showPage('home')">Home</button><button id="masterClearBtn" class="btnSmall hidden" style="background:#ef4444;color:white;flex:1" onclick="clearGroupChat()">🗑 CEO MASTER DELETE ALL</button></div>
 </div>
 </div>
+
 
 
 <div id="page-ceo-login" class="page"><div class="card" style="margin:20px;border:3px solid #111827"><h2>Secure Access - CEO Only</h2><input id="ceoLoginID" placeholder="CEO ID"><input id="ceoLoginPass" type="password" placeholder="••••••••••••"><button class="btnSubmit" style="background:#111827" onclick="loginCEO()">Login</button><div id="ceoLoginResult" style="color:red;font-size:11px;margin-top:8px"></div></div></div>
 
 <div id="page-ceo-dashboard" class="page">
+<div id="ceoPersonalSetup" style="margin:10px 0;padding:12px;background:#eff6ff;border:2px solid #2563eb;border-radius:10px;font-size:11px">
+<b>📱 Setup Personal Telegram Notifications:</b><br>
+1. Open Telegram → search <b>@lovecareglobal_bot</b> → send <b>/start</b><br>
+2. Click button below to auto-detect your ID<br>
+<button class="btnSmall" style="background:#2563eb;color:white;margin-top:6px;padding:8px 12px" onclick="detectCeoPersonalChatId()">🔍 Detect My Telegram ID & Enable DM Alerts</button>
+<div id="ceoPersonalStatus" style="margin-top:6px;font-size:10px"></div>
+<script>
+setTimeout(function(){
+  var saved = localStorage.getItem('ceoPersonalChatId');
+  var status = document.getElementById('ceoPersonalStatus');
+  if(status){
+    if(saved){ status.innerHTML='✅ Personal DM enabled for ID: '+saved+' - You will get Telegram DMs when nurses upload'; status.style.color='#16a34a'; }
+    else { status.innerHTML='❌ Not enabled yet - Send /start to bot and click Detect'; status.style.color='#ef4444'; }
+  }
+}, 2000);
+</script>
+</div>
 
+<div class="card" style="border:3px solid #111827"><h2>CEO Management</h2><div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0"><button class="btnSmall" style="background:#111827;color:#eab308;border:2px solid #eab308" onclick="openCeoPasswordModal()">🔐 Change CEO Password</button><button class="btnSmall" style="background:#111827;color:white" onclick="loadCeoData()">🔄 Refresh</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="logoutCEO()">Logout</button></div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin:10px 0">
+<div style="background:#f0fdf4;padding:10px;border-radius:10px;text-align:center;border:2px solid #16a34a"><b id="statBookings">0</b><br><small>Bookings</small></div>
+<div style="background:#fffbeb;padding:10px;border-radius:10px;text-align:center;border:2px solid #eab308"><b id="statNurses">0</b><br><small>Nurses</small></div>
+<div style="background:#eff6ff;padding:10px;border-radius:10px;text-align:center;border:2px solid #2563eb"><b id="statOnline">0</b><br><small>On Duty</small></div>
+<div style="background:#fef2f2;padding:10px;border-radius:10px;text-align:center;border:2px solid #ef4444"><b id="statRefunds">0</b><br><small>Refunds</small></div>
+</div>
 <div class="ceoTabs">
 <button id="btn-bookings" class="btnSmall activeTab" style="background:#111827;color:white" onclick="switchCeoTab('bookings')">Bookings</button>
 <button id="btn-nurses" class="btnSmall" style="background:#16a34a;color:white" onclick="switchCeoTab('nurses')">Nurses + Media</button>
@@ -775,6 +837,9 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </div>
 
 <div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:10px;padding:10px;margin-bottom:10px">
+<label style="font-size:11px;font-weight:800">🔑 Paystack Public Key (pk_live_... for client payments):</label>
+<input id="ceoPaystackPublicKey" placeholder="pk_live_... or pk_test_... from Paystack Dashboard" style="margin-bottom:6px">
+<div style="display:flex;gap:6px;margin-bottom:10px"><button class="btnSmall" style="background:#16a34a;color:white;flex:1" onclick="localStorage.setItem('ceoPaystackPublicKey', document.getElementById('ceoPaystackPublicKey').value.trim()); localStorage.setItem('paystackPublicKey', document.getElementById('ceoPaystackPublicKey').value.trim()); alert('Public Key saved');">💾 Save Public Key</button><button class="btnSmall" style="background:#6b7280;color:white;flex:1" onclick="document.getElementById('ceoPaystackPublicKey').value=localStorage.getItem('ceoPaystackPublicKey')||''; alert('Loaded: '+(localStorage.getItem('ceoPaystackPublicKey')||'none'))">📂 Load</button></div>
 <label style="font-size:11px;font-weight:800">🔑 Paystack Secret Key (for auto transfers):</label>
 <input id="paystackSecretKey" type="password" placeholder="sk_live_... or sk_test_... from Paystack Dashboard > Settings > API Keys" style="margin-bottom:6px">
 <div style="display:flex;gap:6px">
@@ -809,6 +874,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div id="ceo-tab-deleted" class="ceo-tab card hidden" style="border:3px solid #ef4444"><h2>🗑 Deleted Nurse Accounts - With Reasons (CEO View)</h2><div style="background:#fee2e2;padding:8px;border-radius:8px;font-size:11px;margin-bottom:8px">Nurses who deleted their account. Shows reason, time, name, phone, video/CV links. For audit.</div><div id="ceoDeletedList">Loading deleted accounts...</div></div>
 <div id="ceo-tab-staff" class="ceo-tab card hidden"><h2>5. Staff</h2><div style="display:flex;gap:6px;margin-bottom:10px"><input id="newStaffId" placeholder="New Staff ID" style="flex:1;margin:0"><input id="newStaffPass" placeholder="Password" style="flex:1;margin:0"><button class="btnSmall" style="background:#16a34a;color:white" onclick="addStaff()">Add</button></div><div id="ceoStaffList">Loading...</div></div>
 
+
 <div id="ceo-tab-announce" class="ceo-tab card hidden"><h2>6. Announcement Board - Text + VIDEO + IMAGE + YOUTUBE</h2>
 <textarea id="announcementInput" rows="2" placeholder="Type announcement text..."></textarea>
 <div class="colorRow"><label>Background:</label><input type="color" id="announceBgColor" value="#111827" oninput="previewAnnouncement()"><span id="bgColorVal" style="font-size:11px">#111827</span></div>
@@ -818,20 +884,49 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div style="background:#f0f4;padding:8px;border-radius:8px;margin:8px 0;font-size:11px">Preview:</div>
 <div id="announcePreview" style="background:#111827;color:#eab308;padding:10px;border-radius:8px;border:3px solid #eab308;overflow:hidden;white-space:nowrap"><span style="display:inline-block;animation:marquee 22s linear infinite">Preview Text</span></div>
 <button class="btnSmall" style="background:#0e7490;color:white;width:100%;padding:12px;margin-top:8px" onclick="saveAnnouncement()">💾 SAVE LIVE - Text + Colors</button>
+
 <div style="margin-top:16px;border-top:3px solid #16a34a;padding-top:12px">
-<h3 style="font-size:13px;margin:0 0 8px 0">📢 Media Announcements (CEO → Everyone)</h3>
+<h3 style="font-size:13px;margin:0 0 8px 0">📢 Media Announcements (CEO → Everyone Watches)</h3>
 <div style="display:flex;gap:6px;margin-bottom:10px">
 <button class="btnSmall" style="flex:1;background:#7c3aed;color:white;padding:10px" onclick="showAnnounceTab('video')">📹 Video</button>
-<button class="btnSmall" style="flex:1;background:#2563eb;color:white;padding:10px" onclick="showAnnounceTab('image')">🖼️ Image</button>
+<button class="btnSmall" style="flex:1;background:#2563eb;color:white;padding:10px" onclick="showAnnounceTab('image')">🖼️ Image Banner</button>
 <button class="btnSmall" style="flex:1;background:#ef4444;color:white;padding:10px" onclick="showAnnounceTab('youtube')">▶️ YouTube</button>
 </div>
-<div id="announceTab-video" class="announceTab"><input type="file" id="announceVideoFile" accept="video/*" style="margin-bottom:6px"><input id="announceVideoTitle" placeholder="Video title" style="margin-bottom:6px"><textarea id="announceVideoDesc" rows="2" placeholder="Description..." style="margin-bottom:6px"></textarea><button class="btnSmall" style="background:#7c3aed;color:white;width:100%;padding:12px" onclick="uploadAnnouncementVideo()">📹 Upload Video</button><div id="announceVideoUploadStatus" style="font-size:11px;margin-top:6px"></div></div>
-<div id="announceTab-image" class="announceTab hidden"><input type="file" id="announceImageFile" accept="image/*" style="margin-bottom:6px"><input id="announceImageTitle" placeholder="Banner title" style="margin-bottom:6px"><textarea id="announceImageDesc" rows="2" placeholder="Description..." style="margin-bottom:6px"></textarea><button class="btnSmall" style="background:#2563eb;color:white;width:100%;padding:12px" onclick="uploadAnnouncementImage()">🖼️ Upload Image</button><div id="announceImageUploadStatus" style="font-size:11px;margin-top:6px"></div></div>
-<div id="announceTab-youtube" class="announceTab hidden"><input id="announceYoutubeUrl" placeholder="https://youtube.com/watch?v=..." style="margin-bottom:6px"><input id="announceYoutubeTitle" placeholder="Title" style="margin-bottom:6px"><textarea id="announceYoutubeDesc" rows="2" placeholder="Description..." style="margin-bottom:6px"></textarea><button class="btnSmall" style="background:#ef4444;color:white;width:100%;padding:12px" onclick="saveAnnouncementYoutube()">▶️ Add YouTube</button><div id="announceYoutubeStatus" style="font-size:11px;margin-top:6px"></div></div>
+
+<div id="announceTab-video" class="announceTab">
+<div style="font-size:10px;color:#6b7280;margin-bottom:8px">Upload video - appears for ALL users. Uses Telegram bot (free, no billing)</div>
+<input type="file" id="announceVideoFile" accept="video/*" style="margin-bottom:6px">
+<input id="announceVideoTitle" placeholder="Video title" style="margin-bottom:6px">
+<textarea id="announceVideoDesc" rows="2" placeholder="Description..." style="margin-bottom:6px"></textarea>
+<button class="btnSmall" style="background:#7c3aed;color:white;width:100%;padding:12px" onclick="uploadAnnouncementVideo()">📹 Upload Video</button>
+<div id="announceVideoUploadStatus" style="font-size:11px;margin-top:6px"></div>
+</div>
+
+<div id="announceTab-image" class="announceTab hidden">
+<div style="font-size:10px;color:#6b7280;margin-bottom:8px">Upload image banner - promo, new service, etc. Everyone sees it</div>
+<input type="file" id="announceImageFile" accept="image/*" style="margin-bottom:6px">
+<input id="announceImageTitle" placeholder="Banner title" style="margin-bottom:6px">
+<textarea id="announceImageDesc" rows="2" placeholder="Description..." style="margin-bottom:6px"></textarea>
+<button class="btnSmall" style="background:#2563eb;color:white;width:100%;padding:12px" onclick="uploadAnnouncementImage()">🖼️ Upload Image Banner</button>
+<div id="announceImageUploadStatus" style="font-size:11px;margin-top:6px"></div>
+</div>
+
+<div id="announceTab-youtube" class="announceTab hidden">
+<div style="font-size:10px;color:#6b7280;margin-bottom:8px">Paste YouTube link - plays for everyone inside app</div>
+<input id="announceYoutubeUrl" placeholder="https://youtube.com/watch?v=... or https://youtu.be/..." style="margin-bottom:6px">
+<input id="announceYoutubeTitle" placeholder="YouTube video title" style="margin-bottom:6px">
+<textarea id="announceYoutubeDesc" rows="2" placeholder="Description..." style="margin-bottom:6px"></textarea>
+<button class="btnSmall" style="background:#ef4444;color:white;width:100%;padding:12px" onclick="saveAnnouncementYoutube()">▶️ Add YouTube Video</button>
+<div id="announceYoutubeStatus" style="font-size:11px;margin-top:6px"></div>
+<div style="font-size:9px;color:#6b7280;margin-top:6px">Supports: youtube.com/watch?v=, youtu.be/, youtube.com/shorts/</div>
+</div>
+
 <div id="ceoAnnounceVideosList" style="margin-top:12px;max-height:400px;overflow-y:auto"></div>
 </div>
+
 <div style="margin-top:12px;border-top:2px solid #eee;padding-top:8px"><label style="font-size:11px;font-weight:800">Edit Nurse Hourly Minimum</label><div id="minRateEditor" style="max-height:300px;overflow-y:auto;font-size:11px"></div><button class="btnSmall" style="background:#16a34a;color:white;margin-top:8px;width:100%;padding:12px" onclick="saveSettings()">💾 Save Rates</button></div>
 </div>
+
 
 </div>
 
@@ -1067,6 +1162,8 @@ function checkEmailAndFindNurses(){
   findNursesUber();
 }
 function checkEmailAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
+function checkEmailAndPayAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } payAndBookWithPaystack(); }
+function checkEmailAndBookFree(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
 var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
 var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
 var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
@@ -1761,7 +1858,7 @@ function stopDuty(){
   alert('⛔ OFF DUTY - You are now hidden from map');
 }
 
-function submitBooking(){
+function submitBooking(paystackRef){
   var name=document.getElementById('cName').value.trim();
   var phone=document.getElementById('cPhone').value.trim();
   var fullPhone=getFullPhone('cPhoneCode','cPhone');
@@ -1774,18 +1871,22 @@ function submitBooking(){
   if(amount < calc.totalMin){ alert('❌ BLOCKED: Cannot pay below minimum rate. Offer '+amount+' is below legal total '+calc.totalMin+'. Increase to book.'); document.getElementById('legalWageMsg').innerHTML = 'BLOCKED: Offer below minimum<br>Min: '+calc.totalMin+' '+document.getElementById('cCurrency').value; document.getElementById('legalWagePopup').classList.remove('hidden'); return; }
   var cur=document.getElementById('cCurrency').value;
   var country = document.getElementById('countrySelect').value;
-  var verifiedEmail = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || localStorage.getItem('verifiedClientEmail') || 'no-email@lovecare.com'; // FIXED: email optional
+  var verifiedEmail = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || localStorage.getItem('verifiedClientEmail') || 'no-email@lovecare.com';
   var id=Date.now();
   var startTime = document.getElementById('cStartTime') ? document.getElementById('cStartTime').value : '';
   var endTime = document.getElementById('cEndTime') ? document.getElementById('cEndTime').value : '';
-  var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status:'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,email:verifiedEmail,country:country,days:calc.displayDuration,totalHours:calc.totalHours,hrsPerDay:calc.hrsPerDay,hourlyRate:calc.rateData.amount,hourlyCurrency:calc.rateData.currency,legalMinTotal:calc.totalMin, bookingUnit:calc.unit, careMode:calc.careMode, verifiedEmail:verifiedEmail, startTime:startTime, endTime:endTime, dailySchedule: (calc.careMode==='liveout' || calc.careMode==='both' || window.currentCareMode==='liveout') ? (startTime + ' - ' + endTime) : '24hrs Live-in'};
+  var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status: paystackRef ? 'paid' : 'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,email:verifiedEmail,country:country,days:calc.displayDuration,totalHours:calc.totalHours,hrsPerDay:calc.hrsPerDay,hourlyRate:calc.rateData.amount,hourlyCurrency:calc.rateData.currency,legalMinTotal:calc.totalMin, bookingUnit:calc.unit, careMode:calc.careMode, verifiedEmail:verifiedEmail, startTime:startTime, endTime:endTime, dailySchedule: (calc.careMode==='liveout' || calc.careMode==='both' || window.currentCareMode==='liveout') ? (startTime + ' - ' + endTime) : '24hrs Live-in', paystackRef: paystackRef||'', paidAt: paystackRef?Date.now():null};
   if(db)db.ref('bookings/'+id).set(b).then(()=>{
    localStorage.setItem('lastClientPhone', fullPhone);
    localStorage.setItem('lastClientName', name);
    localStorage.setItem('lastClientLocation', document.getElementById('cLocation').value);
    localStorage.setItem('lastClientService', service);
    localStorage.setItem('clientPermanentProfile', JSON.stringify({name:name, phone:fullPhone, email:verifiedEmail, location:document.getElementById('cLocation').value, country:country}));
-   alert('✅ Booked! '+calc.displayDuration+' = '+calc.totalHours+' hrs ('+calc.hrsPerDay+' hrs/day) Care:'+calc.careMode+' Total '+amount+' '+cur+'.\n\n🧭 Live route to nurse drawn on map. Tap Google Maps button for turn-by-turn.');
+   if(paystackRef){
+     alert('✅ Payment Successful! Ref: '+paystackRef+'\n✅ Booked! '+calc.displayDuration+' = '+calc.totalHours+' hrs ('+calc.hrsPerDay+' hrs/day) Care:'+calc.careMode+' Total '+amount+' '+cur+'.\n\n🧭 Live route to nurse drawn on map.');
+   } else {
+     alert('✅ Booked! '+calc.displayDuration+' = '+calc.totalHours+' hrs ('+calc.hrsPerDay+' hrs/day) Care:'+calc.careMode+' Total '+amount+' '+cur+'.\n\n🧭 Live route to nurse drawn on map. Tap Google Maps button for turn-by-turn.');
+   }
    if(selectedNurseId){
      var nurse = nearbyNursesSorted.find(n=> (n.phone||n.id)==selectedNurseId);
      if(nurse) showLiveRoute(clientLat, clientLng, parseFloat(nurse.lat), parseFloat(nurse.lng));
@@ -1795,9 +1896,63 @@ function submitBooking(){
    loadMyBookings();
   });
   else {
-    alert('✅ Demo Booking: '+name+' - '+service+' - '+amount+' '+cur+'\nSelected nurse: '+selectedNurseId+'\nLive route shown on map');
+    alert('✅ Demo Booking: '+name+' - '+service+' - '+amount+' '+cur+'\nSelected nurse: '+selectedNurseId+'\nPaystackRef: '+(paystackRef||'none')+'\nLive route shown on map');
   }
 }
+
+function payAndBookWithPaystack(){
+  var name=document.getElementById('cName').value.trim();
+  var phone=document.getElementById('cPhone').value.trim();
+  var service=document.getElementById('cService').value;
+  if(!name||!phone||!service){alert('Name Phone Service required');return;}
+  var calc = calculateTotal();
+  var amount=parseFloat(document.getElementById('cBudget').value||0);
+  if(!amount || amount < calc.totalMin){ alert('Enter valid offer >= minimum '+calc.totalMin); return; }
+  var email = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || localStorage.getItem('verifiedClientEmail') || 'client@lovecareglobal.com';
+  var cur=document.getElementById('cCurrency').value||'GHS';
+  // Paystack public key - uses CEO stored key or demo key
+  var paystackPublicKey = localStorage.getItem('paystackPublicKey') || 'pk_test_xxxxxxxxxxxxxxxx'; // Replace with your pk_live
+  // If CEO has set public key in settings, use it
+  try{
+    var savedPub = localStorage.getItem('ceoPaystackPublicKey');
+    if(savedPub) paystackPublicKey = savedPub;
+  }catch(e){}
+  
+  // Amount in kobo/pesewas (Paystack requires lowest currency unit *100)
+  var amountKobo = Math.round(amount * 100);
+  
+  // Check if PaystackPop available
+  if(typeof PaystackPop === 'undefined'){
+    console.warn('Paystack inline not loaded, booking without payment');
+    if(confirm('💳 Paystack not loaded (no internet). Book without payment for now? You can pay later.')) submitBooking();
+    return;
+  }
+  
+  var handler = PaystackPop.setup({
+    key: paystackPublicKey,
+    email: email,
+    amount: amountKobo,
+    currency: cur,
+    ref: 'LOVECARE_'+Date.now()+'_'+Math.floor(Math.random()*1000000),
+    metadata: {
+      custom_fields: [
+        {display_name: "Client Name", variable_name: "client_name", value: name},
+        {display_name: "Phone", variable_name: "phone", value: phone},
+        {display_name: "Service", variable_name: "service", value: service},
+        {display_name: "Nurse", variable_name: "nurse", value: (typeof selectedNurseId !== 'undefined' ? selectedNurseId : 'random')}
+      ]
+    },
+    callback: function(response){
+      console.log('Paystack success', response);
+      submitBooking(response.reference);
+    },
+    onClose: function(){
+      alert('Payment window closed. Booking not completed. Tap again to pay.');
+    }
+  });
+  handler.openIframe();
+}
+
 
 function loadMyBookings(){
  var codeEl=document.getElementById('myBookPhoneCode'); var phoneEl=document.getElementById('myBookPhone');
@@ -3632,6 +3787,7 @@ window.confirmVerificationCode = function(){
 
 </script>
 
+
 <script>
 // Extra safety: force attach listeners after DOM ready
 document.addEventListener('DOMContentLoaded', function(){
@@ -3664,8 +3820,10 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 </script>
 
+
 <script>
-// GROUP CHAT FIX + FIREBASE EMAIL - No EmailJS
+
+// GROUP CHAT FIX + MEDIA SUPPORT - Video/Image/YouTube/File via Telegram
 window.sendGlobalChat = function(){
   var input = document.getElementById('globalChatInput');
   if(!input) return;
@@ -3679,7 +3837,7 @@ window.sendGlobalChat = function(){
   var btn = document.querySelector('button[onclick="sendGlobalChat()"]');
   var oldText = btn ? btn.innerText : 'Send';
   if(btn){ btn.disabled=true; btn.innerText='Sending...'; }
-  var msgData = { name: name, message: text, text: text, role: role, senderID: myID, time: Date.now() };
+  var msgData = { name: name, message: text, text: text, role: role, senderID: myID, time: Date.now(), type: 'text' };
   var key = Date.now()+'_'+Math.random().toString(36).substr(2,5);
   var updates = {};
   updates['globalChat/'+key] = msgData;
@@ -3692,6 +3850,229 @@ window.sendGlobalChat = function(){
     if(btn){ btn.disabled=false; btn.innerText='Send'; }
   });
 };
+
+window.sendGroupChatMedia = function(inputEl, mediaType){
+  var file = inputEl.files[0];
+  if(!file) return;
+  var statusDiv = document.getElementById('groupChatUploadStatus');
+  if(statusDiv) statusDiv.innerHTML = '📤 Uploading '+mediaType+': '+file.name+'...';
+  
+  var name = localStorage.getItem('nurseName') || localStorage.getItem('staffName') || localStorage.getItem('ceoID') || 'Staff';
+  if(localStorage.getItem('isCEOLogged')==='true') name='CEO';
+  var role = localStorage.getItem('isCEOLogged')==='true' ? 'CEO' : (localStorage.getItem('nurseID') ? 'NURSE' : 'STAFF');
+  var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || name;
+  
+  var folder = 'group_chat_'+mediaType;
+  window.autoUploadFile(file, folder, function(pct){
+    if(statusDiv) statusDiv.innerHTML = '📤 '+mediaType+' '+pct+'% - '+file.name.substring(0,20);
+  }, function(url, meta){
+    inputEl.value=''; // reset
+    if(!url){
+      if(statusDiv) statusDiv.innerHTML = '❌ '+mediaType+' upload failed';
+      alert(mediaType+' upload failed. Try smaller file');
+      return;
+    }
+    // Send as chat message with media
+    var msgData = {
+      name: name,
+      role: role,
+      senderID: myID,
+      time: Date.now(),
+      type: mediaType,
+      message: (mediaType==='video'?'📹 Video: ':mediaType==='image'?'🖼️ Image: ':'📎 File: ')+file.name,
+      text: (mediaType==='video'?'📹 Video: ':mediaType==='image'?'🖼️ Image: ':'📎 File: ')+file.name,
+      mediaUrl: url,
+      fileName: file.name,
+      fileSize: file.size,
+      storage: meta?.storage||'unknown'
+    };
+    var key = Date.now()+'_'+Math.random().toString(36).substr(2,5);
+    var updates = {};
+    updates['globalChat/'+key] = msgData;
+    updates['group_chat/'+key] = msgData;
+    if(window.db){
+      db.ref().update(updates).then(function(){
+        if(statusDiv) statusDiv.innerHTML = '✅ '+mediaType+' sent: '+file.name.substring(0,20);
+        setTimeout(function(){ if(statusDiv) statusDiv.innerHTML=''; }, 3000);
+      });
+    }
+  });
+};
+
+
+// ===== VOICE/AUDIO COMMENT SUPPORT =====
+window.voiceRecorder = null;
+window.voiceChunks = [];
+window.voiceTimerInterval = null;
+window.voiceStartTime = null;
+window.isRecording = false;
+
+async function toggleVoiceRecord(){
+  if(window.isRecording){
+    stopVoiceRecord();
+  } else {
+    startVoiceRecord();
+  }
+}
+
+async function startVoiceRecord(){
+  try{
+    var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    window.voiceChunks = [];
+    window.voiceRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    
+    window.voiceRecorder.ondataavailable = function(e){
+      if(e.data.size>0) window.voiceChunks.push(e.data);
+    };
+    
+    window.voiceRecorder.onstop = function(){
+      stream.getTracks().forEach(function(track){ track.stop(); });
+    };
+    
+    window.voiceRecorder.start();
+    window.isRecording = true;
+    window.voiceStartTime = Date.now();
+    
+    // UI
+    document.getElementById('voiceRecordUI').style.display='block';
+    document.getElementById('voiceRecordBtn').innerHTML='🔴 Recording... Tap to Stop';
+    document.getElementById('voiceRecordBtn').style.background='#991b1b';
+    
+    // Timer
+    window.voiceTimerInterval = setInterval(function(){
+      var elapsed = Math.floor((Date.now() - window.voiceStartTime)/1000);
+      var mins = Math.floor(elapsed/60).toString().padStart(2,'0');
+      var secs = (elapsed%60).toString().padStart(2,'0');
+      var timerEl = document.getElementById('voiceTimer');
+      if(timerEl) timerEl.innerText = mins+':'+secs;
+      if(elapsed>=120){ // 2 min max
+        stopVoiceRecord();
+      }
+    }, 1000);
+    
+  }catch(err){
+    alert('🎤 Microphone access denied. Please allow microphone in browser settings.\nError: '+err.message);
+    console.error('Mic error', err);
+  }
+}
+
+function stopVoiceRecord(){
+  if(!window.voiceRecorder || !window.isRecording) return;
+  
+  window.isRecording = false;
+  if(window.voiceTimerInterval) clearInterval(window.voiceTimerInterval);
+  
+  document.getElementById('voiceRecordUI').style.display='none';
+  document.getElementById('voiceRecordBtn').innerHTML='🎤 Hold to Speak';
+  document.getElementById('voiceRecordBtn').style.background='#ef4444';
+  
+  window.voiceRecorder.onstop = function(){
+    var audioBlob = new Blob(window.voiceChunks, { type: 'audio/webm' });
+    sendVoiceMessage(audioBlob);
+    // Stop tracks
+    if(window.voiceRecorder.stream){
+      window.voiceRecorder.stream.getTracks().forEach(function(t){ t.stop(); });
+    }
+  };
+  
+  window.voiceRecorder.stop();
+}
+
+function cancelVoiceRecord(){
+  if(window.voiceRecorder && window.isRecording){
+    window.voiceRecorder.stop();
+    window.voiceChunks = [];
+  }
+  window.isRecording = false;
+  if(window.voiceTimerInterval) clearInterval(window.voiceTimerInterval);
+  document.getElementById('voiceRecordUI').style.display='none';
+  document.getElementById('voiceRecordBtn').innerHTML='🎤 Hold to Speak';
+  document.getElementById('voiceRecordBtn').style.background='#ef4444';
+  var statusDiv=document.getElementById('groupChatUploadStatus');
+  if(statusDiv) statusDiv.innerHTML='❌ Voice cancelled';
+}
+
+function sendVoiceMessage(audioBlob){
+  var statusDiv=document.getElementById('groupChatUploadStatus');
+  if(statusDiv) statusDiv.innerHTML='📤 Uploading voice message... ('+Math.round(audioBlob.size/1024)+'KB)';
+  
+  var fileName = 'voice_'+Date.now()+'.webm';
+  var file = new File([audioBlob], fileName, { type: 'audio/webm' });
+  
+  var name = localStorage.getItem('nurseName') || localStorage.getItem('staffName') || localStorage.getItem('ceoID') || 'Staff';
+  if(localStorage.getItem('isCEOLogged')==='true') name='CEO';
+  var role = localStorage.getItem('isCEOLogged')==='true' ? 'CEO' : (localStorage.getItem('nurseID') ? 'NURSE' : 'STAFF');
+  var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || name;
+  
+  window.autoUploadFile(file, 'group_chat_voice', function(pct){
+    if(statusDiv) statusDiv.innerHTML='🎤 Voice '+pct+'% - Uploading...';
+  }, function(url, meta){
+    if(!url){
+      if(statusDiv) statusDiv.innerHTML='❌ Voice upload failed';
+      alert('Voice upload failed');
+      return;
+    }
+    var duration = Math.floor((Date.now() - window.voiceStartTime)/1000);
+    var msgData = {
+      name: name,
+      role: role,
+      senderID: myID,
+      time: Date.now(),
+      type: 'voice',
+      message: '🎤 Voice message ('+duration+'s)',
+      text: '🎤 Voice message ('+duration+'s)',
+      mediaUrl: url,
+      fileName: fileName,
+      fileSize: audioBlob.size,
+      duration: duration,
+      storage: meta?.storage||'unknown'
+    };
+    var key = Date.now()+'_'+Math.random().toString(36).substr(2,5);
+    var updates = {};
+    updates['globalChat/'+key] = msgData;
+    updates['group_chat/'+key] = msgData;
+    if(window.db){
+      db.ref().update(updates).then(function(){
+        if(statusDiv) statusDiv.innerHTML='✅ Voice sent ('+duration+'s)';
+        setTimeout(function(){ if(statusDiv) statusDiv.innerHTML=''; }, 3000);
+      });
+    }
+  });
+}
+
+window.promptGroupChatYoutube = function(){
+  var url = prompt('Paste YouTube URL (youtube.com/watch?v= or youtu.be/):');
+  if(!url) return;
+  var regExp = /^.*(youtu.be\/|v\/|\/u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  var match = url.match(regExp);
+  var ytId = (match && match[2].length===11) ? match[2] : null;
+  if(!ytId){ alert('Invalid YouTube URL'); return; }
+  
+  var name = localStorage.getItem('nurseName') || localStorage.getItem('staffName') || localStorage.getItem('ceoID') || 'Staff';
+  if(localStorage.getItem('isCEOLogged')==='true') name='CEO';
+  var role = localStorage.getItem('isCEOLogged')==='true' ? 'CEO' : (localStorage.getItem('nurseID') ? 'NURSE' : 'STAFF');
+  var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || name;
+  
+  var msgData = {
+    name: name,
+    role: role,
+    senderID: myID,
+    time: Date.now(),
+    type: 'youtube',
+    message: '▶️ YouTube: '+url,
+    text: '▶️ YouTube: '+url,
+    mediaUrl: url,
+    youtubeId: ytId
+  };
+  var key = Date.now()+'_'+Math.random().toString(36).substr(2,5);
+  var updates = {};
+  updates['globalChat/'+key] = msgData;
+  updates['group_chat/'+key] = msgData;
+  if(window.db){
+    db.ref().update(updates);
+  }
+};
+
 window.deleteGlobalChatMsg = function(key){
   if(!confirm('Delete?')) return;
   var u={}; u['globalChat/'+key]=null; u['group_chat/'+key]=null;
@@ -3726,8 +4107,29 @@ window.initGlobalChatListener = function(){
     div.className='chatMsg '+(isMe?'me':'other');
     var t = d.time ? new Date(d.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
     var safe = (d.message||d.text||'').replace(/</g,'&lt;');
+    
+    // Media rendering - WITH VOICE
+    var mediaHtml = '';
+    if(d.type==='voice' && d.mediaUrl){
+      var dur = d.duration ? d.duration+'s' : '';
+      mediaHtml = '<div style="background:#fef2f2;border:2px solid #ef4444;border-radius:12px;padding:10px;margin-top:6px;display:flex;align-items:center;gap:10px;max-width:320px">'
+        +'<button onclick="var a=document.getElementById(\'voice-'+key+'\'); if(a.paused){a.play(); this.innerHTML=\'⏸️\';}else{a.pause(); this.innerHTML=\'▶️\';}" style="background:#ef4444;color:white;border:none;width:40px;height:40px;border-radius:50%;font-size:16px;cursor:pointer">▶️</button>'
+        +'<div style="flex:1"><div style="font-size:11px;font-weight:800">🎤 Voice Message</div><div style="font-size:10px;color:#6b7280">'+dur+' • Tap play</div><audio id="voice-'+key+'" src="'+d.mediaUrl+'" style="display:none" onended="this.previousElementSibling.previousElementSibling.innerHTML=\'▶️\'"></audio><audio src="'+d.mediaUrl+'" controls style="width:100%;margin-top:6px;height:30px"></audio></div></div>';
+    } else if(d.type==='video' && d.mediaUrl){
+
+    var mediaHtml = '';
+    if(d.type==='video' && d.mediaUrl){
+      mediaHtml = '<video src="'+d.mediaUrl+'" controls style="width:100%;max-width:300px;max-height:200px;border-radius:8px;margin-top:6px;background:#000"></video><br><a href="'+d.mediaUrl+'" target="_blank" style="font-size:10px">🔗 Open Video</a>';
+    } else if(d.type==='image' && d.mediaUrl){
+      mediaHtml = '<img src="'+d.mediaUrl+'" style="width:100%;max-width:300px;max-height:300px;object-fit:contain;border-radius:8px;margin-top:6px;cursor:pointer" onclick="window.open(\''+d.mediaUrl+'\', \'_blank\')"><br><a href="'+d.mediaUrl+'" target="_blank" style="font-size:10px">🔗 Open Image</a>';
+    } else if(d.type==='file' && d.mediaUrl){
+      mediaHtml = '<div style="background:#eff6ff;border:2px solid #2563eb;border-radius:8px;padding:8px;margin-top:6px"><b>📎 '+(d.fileName||'File')+'</b><br><small>'+(Math.round((d.fileSize||0)/1024)+'KB')+'</small><br><a href="'+d.mediaUrl+'" target="_blank" download style="background:#2563eb;color:white;padding:6px 12px;border-radius:6px;text-decoration:none;font-size:10px;display:inline-block;margin-top:4px">⬇️ Download</a></div>';
+    } else if(d.type==='youtube' && d.youtubeId){
+      mediaHtml = '<div style="margin-top:6px"><iframe width="100%" height="180" src="https://www.youtube.com/embed/'+d.youtubeId+'" frameborder="0" allowfullscreen style="border-radius:8px;max-width:320px"></iframe><br><a href="'+d.mediaUrl+'" target="_blank" style="font-size:10px">🔗 Open YouTube</a></div>';
+    }
+    
     var btns = isMe ? '<div style="margin-top:4px"><button onclick="editGlobalChatMsg(\''+key+'\',\''+(d.message||'').replace(/\'/g,"\\'")+'\')" style="font-size:9px">Edit</button> <button onclick="deleteGlobalChatMsg(\''+key+'\')" style="font-size:9px;color:red">Delete</button></div>' : '';
-    div.innerHTML='<div><span class="roleBadge role-'+(d.role||'STAFF')+'">'+(d.role||'STAFF')+'</span> <b style="font-size:10px">'+d.name+'</b> <span style="font-size:8px;color:#888">'+t+'</span></div><div>'+safe+'</div>'+btns;
+    div.innerHTML='<div><span class="roleBadge role-'+(d.role||'STAFF')+'">'+(d.role||'STAFF')+'</span> <b style="font-size:10px">'+d.name+'</b> <span style="font-size:8px;color:#888">'+t+'</span></div><div>'+safe+'</div>'+mediaHtml+btns;
     box.appendChild(div);
     box.scrollTop=box.scrollHeight;
   };
@@ -3737,7 +4139,8 @@ window.initGlobalChatListener = function(){
 window.updateChatCEOButton=function(){
   var b=document.getElementById('masterClearBtn');
   if(b){ if(localStorage.getItem('isCEOLogged')==='true') b.classList.remove('hidden'); else b.classList.add('hidden'); }
-};
+}
+;
 document.addEventListener('DOMContentLoaded', function(){
   var orig=window.showPage;
   window.showPage=function(id){
@@ -3753,6 +4156,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if(document.getElementById('globalChatBox') && window.db) initGlobalChatListener();
 });
 </script>
+
 
 <script>
 // ===== ANNOUNCEMENT LIVE SYNC FIX - All phones listen to Firebase =====
@@ -3849,6 +4253,7 @@ document.addEventListener('DOMContentLoaded', function(){
   setTimeout(initAnnouncementSync, 3000);
 })();
 </script>
+
 
 <script>
 // ===== FINAL FIXES - Email open access + Upload timeout =====
@@ -4078,7 +4483,7 @@ window.uploadFileToStorage = async function(file, path){
     sos.addEventListener('touchstart', onStart, {passive:false});
     document.addEventListener('touchmove', onMove, {passive:false});
     document.addEventListener('touchend', onEnd, {passive:false});
-    sos.addEventListener('click', function(e){ if(hasMoved){ hasMoved=false; } }); /* FIXED - don't block */
+    sos.addEventListener('click', function(e){ if(hasMoved){ hasMoved=false; /* FIXED */ } });
     var sx=localStorage.getItem('sosPosX'), sy=localStorage.getItem('sosPosY');
     if(sx && sy){ sos.style.left=sx+'px'; sos.style.top=sy+'px'; sos.style.right='auto'; sos.style.bottom='auto'; }
     console.log('✅ Draggable SOS ready - Drag anywhere');
@@ -4282,6 +4687,7 @@ window.uploadFileToStorage = async function(file, path){
 console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '+TELEGRAM_CONFIG.channelId+' // Old log: All changes integrated - Telegram REMOVED + Drive '+DRIVE_CONFIG.folderId+' + Draggable SOS + Ratings + Watch 5s');
 </script>
 
+
 <script>
 // ===== HIDE NURSE PHONE FROM CLIENTS ✅ =====
 (function(){
@@ -4413,6 +4819,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   console.log('✅ Nurse phones hidden from clients - CEO/Staff can still see');
 })();
 </script>
+
 
 <script>
 // ===== COMPLETE FIX V2 - DELETE + MEDIA VIEWER + PHONE HIDE =====
@@ -4671,6 +5078,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
 })();
 </script>
 
+
 <script>
 // ===== REGISTRATION FIX V3 - FAST, NO HANG =====
 (function(){
@@ -4816,6 +5224,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
 })();
 </script>
 
+
 <script>
 // ===== SEPARATED UPLOADS VIEWER V4 - VIDEO/PDF/PHOTO SEPARATE =====
 (function(){
@@ -4959,6 +5368,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   console.log('✅ SEPARATED VIEWER V4 APPLIED - Video→video player, CV→PDF, Cert→PDF, ID→photo');
 })();
 </script>
+
 
 <script>
 // ===== ULTIMATE FIX V5 - FIND UPLOADS ANYWHERE + RESTORE TOOL =====
@@ -5210,6 +5620,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
 })();
 </script>
 
+
 <script>
 // ===== AUTO UPLOAD FIX V6 - Uploads instantly when file selected =====
 (function(){
@@ -5450,6 +5861,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
 })();
 </script>
 
+
 <script>
 // ===== PDF VIEWER FIX V7 - Force Google Docs Viewer for PDFs =====
 (function(){
@@ -5599,9 +6011,119 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
 })();
 </script>
 
+
+// ===== CEO NOTIFICATION SYSTEM - NEW UPLOADS BADGE =====
+(function(){
+  window.ceoNewUploads = { count: 0, lastSeen: parseInt(localStorage.getItem('ceoLastSeenNurses')||'0') };
+  
+  function checkNewNurseUploads(){
+    if(!window.db) return;
+    var badge = document.getElementById('ceoNewUploadsBadge');
+    if(!badge){
+      // Create badge in CEO dashboard header
+      var ceoHeader = document.querySelector('#page-ceo-dashboard .card h2, #page-ceo-dashboard h2');
+      if(ceoHeader){
+        badge = document.createElement('span');
+        badge.id = 'ceoNewUploadsBadge';
+        badge.style.cssText = 'background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;margin-left:8px;display:none;';
+        ceoHeader.appendChild(badge);
+      }
+    }
+    
+    db.ref('nurses').on('value', function(snap){
+      var nurses = snap.val() || {};
+      var newCount = 0;
+      var newList = [];
+      var now = Date.now();
+      var lastSeen = window.ceoNewUploads.lastSeen || 0;
+      
+      Object.keys(nurses).forEach(function(key){
+        var n = nurses[key];
+        var updated = n.timestamp || n.lastUpdated || 0;
+        // Consider new if updated after last seen and has media
+        var hasMedia = (n.videoUrl || n.cvUrl || n.certUrl || n.photoUrl || n.idUrl);
+        if(hasMedia && updated > lastSeen){
+          newCount++;
+          newList.push({name: n.name||key, phone: n.phone||key, time: updated, hasVideo: !!n.videoUrl, hasCV: !!n.cvUrl, hasCert: !!n.certUrl});
+        }
+      });
+      
+      window.ceoNewUploads.count = newCount;
+      if(badge){
+        if(newCount>0){
+          badge.style.display='inline-block';
+          badge.innerText = '🔔 '+newCount+' new upload'+(newCount>1?'s':'');
+          badge.style.animation = 'pulse 1.5s infinite';
+        } else {
+          badge.style.display='none';
+        }
+      }
+      
+      // Show toast for very new uploads (last 5 mins)
+      var veryNew = newList.filter(function(x){ return (now - x.time) < 5*60*1000; });
+      if(veryNew.length>0 && lastSeen>0){
+        var toast = document.getElementById('ceoNewUploadToast');
+        if(!toast){
+          toast = document.createElement('div');
+          toast.id = 'ceoNewUploadToast';
+          toast.style.cssText = 'position:fixed;top:80px;right:20px;background:#111827;color:#eab308;padding:12px 16px;border-radius:12px;z-index:9999999;font-size:12px;font-weight:800;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:300px;';
+          document.body.appendChild(toast);
+        }
+        toast.innerHTML = '🔔 New nurse upload!<br><small>'+veryNew[0].name+' - '+(veryNew[0].hasCV?'CV ':'')+(veryNew[0].hasVideo?'Video ': '')+'</small><br><button onclick="this.parentElement.style.display=\'none\'" style="margin-top:6px;background:#eab308;color:#111827;border:none;padding:4px 8px;border-radius:6px;font-size:10px">Close</button>';
+        toast.style.display='block';
+        setTimeout(function(){ if(toast) toast.style.display='none'; }, 8000);
+      }
+    });
+  }
+  
+  window.markCeoUploadsSeen = function(){
+    localStorage.setItem('ceoLastSeenNurses', Date.now().toString());
+    window.ceoNewUploads.lastSeen = Date.now();
+    var badge=document.getElementById('ceoNewUploadsBadge');
+    if(badge) badge.style.display='none';
+    var toast=document.getElementById('ceoNewUploadToast');
+    if(toast) toast.style.display='none';
+  };
+  
+  // Hook into CEO login
+  var origShowPage = window.showPage;
+  if(origShowPage){
+    window.showPage = function(page){
+      origShowPage(page);
+      if(page==='ceo-dashboard' || page==='ceo'){
+        setTimeout(checkNewNurseUploads, 1000);
+        // Add mark seen button
+        setTimeout(function(){
+          var container = document.querySelector('#page-ceo-dashboard .card');
+          if(container && !document.getElementById('markSeenBtn')){
+            var btn = document.createElement('button');
+            btn.id='markSeenBtn';
+            btn.className='btnSmall';
+            btn.style.cssText='background:#111827;color:#eab308;padding:6px 12px;font-size:11px;margin-left:8px;';
+            btn.innerText='✅ Mark all seen';
+            btn.onclick=window.markCeoUploadsSeen;
+            var h2 = container.querySelector('h2');
+            if(h2) h2.appendChild(btn);
+          }
+        }, 1500);
+      }
+    };
+  }
+  
+  // Auto-start if CEO already logged
+  setTimeout(function(){
+    if(document.getElementById('page-ceo-dashboard') && !document.getElementById('page-ceo-dashboard').classList.contains('hidden')){
+      checkNewNurseUploads();
+    }
+  }, 3000);
+  
+  console.log('✅ CEO Notification Badge System Ready');
+})();
+</script>
 <style>
 @keyframes pulse { 0%{transform:scale(1)} 50%{transform:scale(1.05)} 100%{transform:scale(1)} }
 </style>
+
 
 <script>
 // ===== CEO PERSONAL TELEGRAM DM NOTIFICATION =====
@@ -5709,158 +6231,25 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
 })();
 </script>
 
-<style>
-/* ===== FIX HUGE RIGHT SPACE & OVERFLOW ===== */
-html, body {
-  overflow-x: hidden !important;
-  max-width: 100vw !important;
-  box-sizing: border-box;
-}
-* {
-  box-sizing: border-box;
-}
-#announcementVideoBar, #globalChatBox, .card, .page {
-  max-width: 100% !important;
-  overflow-x: hidden;
-}
-#announcementModal {
-  max-width: 100vw !important;
-  overflow-x: hidden;
-}
-img, video, iframe {
-  max-width: 100% !important;
-}
-</style>
 
 <script>
-// ===== CLEAN FIXES - NO VISIBLE INSCRIPTIONS =====
-// Remove any stray text nodes that contain code
-(function(){
-  try{
-    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
-    var nodesToRemove = [];
-    var node;
-    while(node = walker.nextNode()){
-      var txt = node.nodeValue.trim();
-      if(txt.startsWith('// =====') || txt.startsWith('window.ceoNewUploads') || txt.startsWith('window.CEO_PERSONAL_CONFIG') || (txt.includes('function') && txt.includes('ceoNewUploads') && txt.length>100)){
-        nodesToRemove.push(node);
-      }
-    }
-    nodesToRemove.forEach(function(n){ if(n.parentNode) n.parentNode.removeChild(n); });
-  }catch(e){}
-})();
-</script>
 
 <script>
-// ===== CEO NOTIFICATION BADGE - CLEAN =====
-(function(){
-  window.ceoNewUploads = { count: 0, lastSeen: parseInt(localStorage.getItem('ceoLastSeenNurses')||'0') };
-  function checkNewNurseUploads(){
-    if(!window.db) return;
-    var badge = document.getElementById('ceoNewUploadsBadge');
-    if(!badge){
-      var ceoHeader = document.querySelector('#page-ceo-dashboard .card h2, #page-ceo-dashboard h2');
-      if(ceoHeader){
-        badge = document.createElement('span');
-        badge.id = 'ceoNewUploadsBadge';
-        badge.style.cssText = 'background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800;margin-left:8px;display:none;';
-        ceoHeader.appendChild(badge);
-      }
-    }
-    db.ref('nurses').on('value', function(snap){
-      var nurses = snap.val() || {};
-      var newCount = 0;
-      var lastSeen = window.ceoNewUploads.lastSeen || 0;
-      Object.keys(nurses).forEach(function(key){
-        var n = nurses[key];
-        var updated = n.timestamp || n.lastUpdated || 0;
-        var hasMedia = (n.videoUrl || n.cvUrl || n.certUrl || n.photoUrl || n.idUrl);
-        if(hasMedia && updated > lastSeen) newCount++;
-      });
-      window.ceoNewUploads.count = newCount;
-      if(badge){
-        badge.style.display = newCount>0 ? 'inline-block' : 'none';
-        if(newCount>0) badge.innerText = '🔔 '+newCount+' new';
-      }
-    });
-  }
-  window.markCeoUploadsSeen = function(){
-    localStorage.setItem('ceoLastSeenNurses', Date.now().toString());
-    window.ceoNewUploads.lastSeen = Date.now();
-    var badge=document.getElementById('ceoNewUploadsBadge');
-    if(badge) badge.style.display='none';
-  };
-  var origShowPage = window.showPage;
-  if(origShowPage){
-    window.showPage = function(page){
-      origShowPage(page);
-      if(page==='ceo-dashboard' || page==='ceo'){
-        setTimeout(checkNewNurseUploads, 1000);
-      }
-    };
-  }
-})();
-</script>
-
-<script>
-// ===== CEO PERSONAL TELEGRAM DM - CLEAN =====
-(function(){
-  window.CEO_PERSONAL_CONFIG = { personalChatId: localStorage.getItem('ceoPersonalChatId')||'', enabled: true };
-  window.detectCeoPersonalChatId = async function(){
-    try{
-      var token = window.TELEGRAM_CONFIG?.botToken || '8606627642:AAEaGvPH_aZZe86jZgixOgLm1ERippN5UT8';
-      var proxy = 'https://corsproxy.io/?';
-      var url = 'https://api.telegram.org/bot'+token+'/getUpdates';
-      var res = await fetch(proxy + encodeURIComponent(url));
-      var txt = await res.text();
-      var json = JSON.parse(txt);
-      if(json.ok && json.result.length>0){
-        for(var i=json.result.length-1; i>=0; i--){
-          var upd = json.result[i];
-          if(upd.message && upd.message.chat && upd.message.chat.type==='private'){
-            var personalId = upd.message.chat.id;
-            window.CEO_PERSONAL_CONFIG.personalChatId = personalId;
-            localStorage.setItem('ceoPersonalChatId', personalId.toString());
-            alert('✅ Found ID: '+personalId+' - DM enabled!');
-            return personalId;
-          }
-        }
-        alert('❌ No private message. Send /start to @lovecareglobal_bot first');
-      }
-    }catch(e){ alert('Error detecting'); }
-  };
-  window.notifyCeoPersonalTelegram = async function(nurseName, docType, fileUrl){
-    var personalId = window.CEO_PERSONAL_CONFIG.personalChatId || localStorage.getItem('ceoPersonalChatId');
-    if(!personalId || !window.CEO_PERSONAL_CONFIG.enabled) return;
-    try{
-      var token = window.TELEGRAM_CONFIG?.botToken || '8606627642:AAEaGvPH_aZZe86jZgixOgLm1ERippN5UT8';
-      var proxy = 'https://corsproxy.io/?';
-      var message = '🔔 New Nurse Upload\n👩‍⚕️ '+nurseName+'\n📄 '+docType+'\n⏰ '+(new Date().toLocaleString());
-      var fd = new FormData();
-      fd.append('chat_id', personalId);
-      fd.append('text', message);
-      var apiUrl = 'https://api.telegram.org/bot'+token+'/sendMessage';
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', proxy + encodeURIComponent(apiUrl));
-      xhr.send(fd);
-    }catch(e){}
-  };
-})();
-</script>
-
-<script>
-// ===== ANNOUNCEMENT MEDIA SYSTEM - VIDEO + IMAGE + YOUTUBE - CLEAN =====
+// ===== ANNOUNCEMENT MEDIA SYSTEM - VIDEO + IMAGE + YOUTUBE - CEO → EVERYONE =====
 window.announcementVideos = [];
+
 function showAnnounceTab(type){
   document.querySelectorAll('.announceTab').forEach(function(el){ el.classList.add('hidden'); });
   var target = document.getElementById('announceTab-'+type);
   if(target) target.classList.remove('hidden');
 }
+
 function extractYoutubeId(url){
   var regExp = /^.*(youtu.be\/|v\/|\/u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
   var match = url.match(regExp);
   return (match && match[2].length===11) ? match[2] : null;
 }
+
 async function uploadAnnouncementVideo(){
   var fileInput = document.getElementById('announceVideoFile');
   var titleInput = document.getElementById('announceVideoTitle');
@@ -5870,13 +6259,15 @@ async function uploadAnnouncementVideo(){
   var file=fileInput.files[0];
   var title=(titleInput?.value||'CEO Video').trim()||'CEO Video';
   var desc=(descInput?.value||'').trim();
-  if(statusDiv) statusDiv.innerHTML='📤 Uploading...';
-  window.autoUploadFile(file, 'announcement_videos', function(pct){ if(statusDiv) statusDiv.innerHTML='📤 '+pct+'%'; }, function(url, meta){
-    if(!url){ if(statusDiv) statusDiv.innerHTML='❌ Failed'; return; }
-    var data={type:'video', title:title, description:desc, url:url, storage:meta?.storage||'unknown', uploadedAt:Date.now(), uploadedBy:'CEO'};
-    if(window.db){ var k=db.ref('announcementVideos').push().key; db.ref('announcementVideos/'+k).set(data).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ Video live!'; fileInput.value=''; titleInput.value=''; descInput.value=''; loadCeoAnnouncementVideos(); }); }
+  if(statusDiv) statusDiv.innerHTML='📤 Uploading video...';
+  window.autoUploadFile(file, 'announcement_videos', function(pct){ if(statusDiv) statusDiv.innerHTML='📤 '+pct+'% - '+file.name.substring(0,20); }, function(url, meta){
+    if(!url){ if(statusDiv) statusDiv.innerHTML='❌ Failed'; alert('Upload failed'); return; }
+    var data={type:'video', title:title, description:desc, url:url, storage:meta?.storage||'unknown', uploadedAt:Date.now(), uploadedBy:'CEO', fileName:file.name, fileSize:file.size};
+    if(window.db){ var k=db.ref('announcementVideos').push().key; db.ref('announcementVideos/'+k).set(data).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ Video live for all users!'; fileInput.value=''; titleInput.value=''; descInput.value=''; loadCeoAnnouncementVideos(); }); }
+    else { var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); local.unshift(data); localStorage.setItem('announcementVideosLocal', JSON.stringify(local)); loadCeoAnnouncementVideos(); if(statusDiv) statusDiv.innerHTML='✅ Video live (local)'; }
   });
 }
+
 async function uploadAnnouncementImage(){
   var fileInput=document.getElementById('announceImageFile');
   var titleInput=document.getElementById('announceImageTitle');
@@ -5886,13 +6277,15 @@ async function uploadAnnouncementImage(){
   var file=fileInput.files[0];
   var title=(titleInput?.value||'CEO Banner').trim()||'CEO Banner';
   var desc=(descInput?.value||'').trim();
-  if(statusDiv) statusDiv.innerHTML='📤 Uploading...';
+  if(statusDiv) statusDiv.innerHTML='📤 Uploading image...';
   window.autoUploadFile(file, 'announcement_images', function(pct){ if(statusDiv) statusDiv.innerHTML='📤 '+pct+'%'; }, function(url, meta){
     if(!url){ if(statusDiv) statusDiv.innerHTML='❌ Failed'; return; }
-    var data={type:'image', title:title, description:desc, url:url, storage:meta?.storage||'unknown', uploadedAt:Date.now(), uploadedBy:'CEO'};
-    if(window.db){ var k=db.ref('announcementVideos').push().key; db.ref('announcementVideos/'+k).set(data).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ Image live!'; fileInput.value=''; titleInput.value=''; descInput.value=''; loadCeoAnnouncementVideos(); }); }
+    var data={type:'image', title:title, description:desc, url:url, storage:meta?.storage||'unknown', uploadedAt:Date.now(), uploadedBy:'CEO', fileName:file.name};
+    if(window.db){ var k=db.ref('announcementVideos').push().key; db.ref('announcementVideos/'+k).set(data).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ Image banner live!'; fileInput.value=''; titleInput.value=''; descInput.value=''; loadCeoAnnouncementVideos(); }); }
+    else { var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); local.unshift(data); localStorage.setItem('announcementVideosLocal', JSON.stringify(local)); loadCeoAnnouncementVideos(); }
   });
 }
+
 function saveAnnouncementYoutube(){
   var urlInput=document.getElementById('announceYoutubeUrl');
   var titleInput=document.getElementById('announceYoutubeTitle');
@@ -5901,12 +6294,15 @@ function saveAnnouncementYoutube(){
   var url=(urlInput?.value||'').trim();
   if(!url){ alert('Paste YouTube URL'); return; }
   var ytId=extractYoutubeId(url);
-  if(!ytId){ if(statusDiv) statusDiv.innerHTML='❌ Invalid URL'; return; }
-  var title=(titleInput?.value||'CEO YouTube').trim()||'CEO YouTube';
+  if(!ytId){ if(statusDiv) statusDiv.innerHTML='❌ Invalid YouTube URL'; alert('Invalid YouTube URL. Use youtube.com/watch?v= or youtu.be/'); return; }
+  var title=(titleInput?.value||'CEO YouTube Video').trim()||'CEO YouTube';
   var desc=(descInput?.value||'').trim();
   var data={type:'youtube', title:title, description:desc, url:url, youtubeId:ytId, storage:'youtube', uploadedAt:Date.now(), uploadedBy:'CEO'};
-  if(window.db){ var k=db.ref('announcementVideos').push().key; db.ref('announcementVideos/'+k).set(data).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ YouTube live!'; urlInput.value=''; titleInput.value=''; descInput.value=''; loadCeoAnnouncementVideos(); }); }
+  if(window.db){ var k=db.ref('announcementVideos').push().key; db.ref('announcementVideos/'+k).set(data).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ YouTube video live for all users!'; urlInput.value=''; titleInput.value=''; descInput.value=''; loadCeoAnnouncementVideos(); }); }
+  else { var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); local.unshift(data); localStorage.setItem('announcementVideosLocal', JSON.stringify(local)); loadCeoAnnouncementVideos(); if(statusDiv) statusDiv.innerHTML='✅ YouTube live (local)'; }
+  alert('✅ YouTube announcement live! ID: '+ytId);
 }
+
 function loadCeoAnnouncementVideos(){
   var listDiv=document.getElementById('ceoAnnounceVideosList');
   if(!listDiv) return;
@@ -5915,24 +6311,193 @@ function loadCeoAnnouncementVideos(){
     db.ref('announcementVideos').orderByChild('uploadedAt').limitToLast(30).on('value', function(snap){
       var videos=[]; snap.forEach(function(c){ var v=c.val(); v.key=c.key; videos.push(v); }); videos.reverse(); window.announcementVideos=videos; renderCeoVideosList(videos, listDiv); renderPublicVideosList(videos);
     });
+  } else {
+    var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); window.announcementVideos=local; renderCeoVideosList(local, listDiv); renderPublicVideosList(local);
   }
 }
+
 function renderCeoVideosList(videos, container){
-  if(videos.length===0){ container.innerHTML='<div style="text-align:center;padding:20px;color:#6b7280;font-size:11px">No announcements yet</div>'; return; }
+  if(videos.length===0){ container.innerHTML='<div style="text-align:center;padding:20px;color:#6b7280;font-size:11px">No announcements yet. Upload video/image/YouTube above.</div>'; return; }
   var html='<div style="display:flex;flex-direction:column;gap:8px">';
   videos.forEach(function(v){
     var date=new Date(v.uploadedAt).toLocaleString();
     var icon=v.type==='image'?'🖼️':v.type==='youtube'?'▶️':'📹';
     var preview='';
     if(v.type==='video') preview='<video src="'+v.url+'" controls style="width:100%;max-height:200px;border-radius:8px;margin-top:8px;background:#000"></video>';
-    else if(v.type==='image') preview='<img src="'+v.url+'" style="width:100%;max-height:300px;object-fit:contain;border-radius:8px;margin-top:8px">';
+    else if(v.type==='image') preview='<img src="'+v.url+'" style="width:100%;max-height:300px;object-fit:contain;border-radius:8px;margin-top:8px;border:2px solid #2563eb">';
     else if(v.type==='youtube') preview='<iframe width="100%" height="200" src="https://www.youtube.com/embed/'+v.youtubeId+'" frameborder="0" allowfullscreen style="border-radius:8px;margin-top:8px"></iframe>';
-    html+='<div style="border:2px solid #7c3aed;border-radius:10px;padding:10px;background:#f5f3ff">'
-      +'<div style="display:flex;justify-content:space-between"><div><b>'+icon+' '+(v.title||'')+'</b><br><small>'+date+' | '+v.type+'</small></div>'
-      +'<div><button class="btnSmall" style="background:#2563eb;color:white;padding:6px 10px;font-size:10px" onclick="playAnnouncementVideo(\''+v.key+'\')">▶️</button><button class="btnSmall" style="background:#ef4444;color:white;padding:6px 10px;font-size:10px" onclick="deleteAnnouncementVideo(\''+v.key+'\')">🗑️</button></div></div>'+preview+'</div>';
+    html+='<div style="border:2px solid '+(v.type==='image'?'#2563eb':v.type==='youtube'?'#ef4444':'#7c3aed')+';border-radius:10px;padding:10px;background:'+(v.type==='image'?'#eff6ff':v.type==='youtube'?'#fef2f2':'#f5f3ff')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:start"><div><b style="font-size:12px">'+icon+' '+(v.title||'CEO')+'</b><br><small style="font-size:10px;color:#6b7280">'+date+' | '+v.type+' | '+(v.storage||'')+'</small><br><small style="font-size:10px">'+(v.description||'').substring(0,100)+'</small></div>'
+      +'<div style="display:flex;gap:4px;flex-direction:column"><button class="btnSmall" style="background:#2563eb;color:white;padding:6px 10px;font-size:10px" onclick="playAnnouncementVideo(\''+v.key+'\')">▶️ View</button><button class="btnSmall" style="background:#ef4444;color:white;padding:6px 10px;font-size:10px" onclick="deleteAnnouncementVideo(\''+v.key+'\')">🗑️</button></div></div>'+preview+'</div>';
   });
   html+='</div>'; container.innerHTML=html;
 }
+
+function renderPublicVideosList(videos){
+  var container=document.getElementById('publicAnnounceVideosList');
+  var bar=document.getElementById('announcementVideoBar');
+  if(!container) return;
+  if(videos.length===0){ if(bar) bar.style.display='none'; return; }
+  if(bar) bar.style.display='block';
+  var html='';
+  videos.slice(0,15).forEach(function(v){
+    var thumb='';
+    var icon='📹';
+    if(v.type==='video'){ thumb='<video src="'+v.url+'" style="width:100%;height:120px;object-fit:cover;background:#000" muted></video>'; icon='📹'; }
+    else if(v.type==='image'){ thumb='<img src="'+v.url+'" style="width:100%;height:120px;object-fit:cover">'; icon='🖼️'; }
+    else if(v.type==='youtube'){ thumb='<img src="https://img.youtube.com/vi/'+v.youtubeId+'/mqdefault.jpg" style="width:100%;height:120px;object-fit:cover"><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(255,0,0,0.8);color:white;padding:6px 10px;border-radius:50%">▶️</div>'; icon='▶️'; }
+    html+='<div style="min-width:200px;max-width:220px;background:white;border-radius:10px;overflow:hidden;border:2px solid '+(v.type==='image'?'#2563eb':v.type==='youtube'?'#ef4444':'#eab308')+';cursor:pointer;position:relative" onclick="playAnnouncementVideo(\''+v.key+'\')">'
+      +'<div style="position:relative">'+thumb+'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:white;padding:8px 12px;border-radius:50%;font-size:20px;display:'+(v.type==='youtube'?'none':'block')+'">▶️</div></div>'
+      +'<div style="padding:8px"><b style="font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+icon+' '+(v.title||'')+'</b><small style="font-size:9px;color:#6b7280">'+new Date(v.uploadedAt).toLocaleDateString()+' | '+v.type+'</small></div></div>';
+  });
+  container.innerHTML=html;
+}
+
+function playAnnouncementVideo(key){
+  var video=window.announcementVideos.find(function(v){ return v.key===key; });
+  if(!video) return;
+  var modal=document.getElementById('announcementModal');
+  var titleEl=document.getElementById('announceModalTitle');
+  var bodyEl=document.getElementById('announceModalBody');
+  if(titleEl) titleEl.innerText=(video.type==='image'?'🖼️ ':video.type==='youtube'?'▶️ ':'📹 ')+(video.title||'CEO Announcement');
+  if(bodyEl){
+    var mediaHtml='';
+    if(video.type==='video') mediaHtml='<video src="'+video.url+'" controls autoplay style="width:100%;max-height:60vh;border-radius:12px;background:#000;border:3px solid #7c3aed"></video>';
+    else if(video.type==='image') mediaHtml='<img src="'+video.url+'" style="width:100%;max-height:70vh;object-fit:contain;border-radius:12px;border:3px solid #2563eb">';
+    else if(video.type==='youtube') mediaHtml='<iframe width="100%" height="400" src="https://www.youtube.com/embed/'+video.youtubeId+'?autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:12px"></iframe>';
+    bodyEl.innerHTML=mediaHtml+'<div style="margin-top:12px"><b>'+(video.title||'')+'</b><br><small style="color:#6b7280">'+new Date(video.uploadedAt).toLocaleString()+' | '+video.type+'</small><p style="font-size:12px;margin-top:8px">'+(video.description||'No description')+'</p>'
+      +'<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap"><a href="'+video.url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px">🔗 Open</a>'
+      +(video.type!=='youtube'?'<a href="'+video.url+'" download style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px">⬇️ Download</a>':'')+'</div></div>';
+  }
+  if(modal) modal.style.display='flex';
+}
+
+function closeAnnouncementVideo(){ var modal=document.getElementById('announcementModal'); var bodyEl=document.getElementById('announceModalBody'); if(bodyEl) bodyEl.innerHTML=''; if(modal) modal.style.display='none'; }
+function deleteAnnouncementVideo(key){ if(!confirm('Delete this announcement? All users will no longer see it.')) return; if(window.db){ db.ref('announcementVideos/'+key).remove().then(function(){ alert('✅ Deleted'); }); } else { var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); local=local.filter(function(v){ return v.key!==key; }); localStorage.setItem('announcementVideosLocal', JSON.stringify(local)); loadCeoAnnouncementVideos(); } }
+
+window.addEventListener('load', function(){
+  setTimeout(function(){
+    if(window.db){
+      db.ref('announcementVideos').orderByChild('uploadedAt').limitToLast(15).on('value', function(snap){
+        var videos=[]; snap.forEach(function(child){ var v=child.val(); v.key=child.key; videos.push(v); }); videos.reverse(); window.announcementVideos=videos; renderPublicVideosList(videos);
+      });
+    } else {
+      var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); window.announcementVideos=local; renderPublicVideosList(local);
+    }
+    if(document.getElementById('ceoAnnounceVideosList')){ loadCeoAnnouncementVideos(); }
+  }, 2000);
+});
+
+var origShowCeoTab = window.showCeoTab;
+if(typeof showCeoTab === 'function'){
+  window.showCeoTab = function(tab){
+    origShowCeoTab(tab);
+    if(tab==='announce'){ setTimeout(loadCeoAnnouncementVideos, 500); }
+  };
+}
+console.log('✅ Announcement Media System Ready - Video + Image + YouTube');
+</script>
+
+
+
+<script>
+// ===== ANNOUNCEMENT MEDIA SYSTEM - VIDEO + IMAGE + YOUTUBE - CEO → EVERYONE =====
+window.announcementVideos = [];
+
+function showAnnounceTab(type){
+  document.querySelectorAll('.announceTab').forEach(function(el){ el.classList.add('hidden'); });
+  var target = document.getElementById('announceTab-'+type);
+  if(target) target.classList.remove('hidden');
+}
+
+function extractYoutubeId(url){
+  var regExp = /^.*(youtu.be\/|v\/|\/u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  var match = url.match(regExp);
+  return (match && match[2].length===11) ? match[2] : null;
+}
+
+async function uploadAnnouncementVideo(){
+  var fileInput = document.getElementById('announceVideoFile');
+  var titleInput = document.getElementById('announceVideoTitle');
+  var descInput = document.getElementById('announceVideoDesc');
+  var statusDiv = document.getElementById('announceVideoUploadStatus');
+  if(!fileInput || !fileInput.files[0]){ alert('Select video'); return; }
+  var file=fileInput.files[0];
+  var title=(titleInput?.value||'CEO Video').trim()||'CEO Video';
+  var desc=(descInput?.value||'').trim();
+  if(statusDiv) statusDiv.innerHTML='📤 Uploading video...';
+  window.autoUploadFile(file, 'announcement_videos', function(pct){ if(statusDiv) statusDiv.innerHTML='📤 '+pct+'% - '+file.name.substring(0,20); }, function(url, meta){
+    if(!url){ if(statusDiv) statusDiv.innerHTML='❌ Failed'; alert('Upload failed'); return; }
+    var data={type:'video', title:title, description:desc, url:url, storage:meta?.storage||'unknown', uploadedAt:Date.now(), uploadedBy:'CEO', fileName:file.name, fileSize:file.size};
+    if(window.db){ var k=db.ref('announcementVideos').push().key; db.ref('announcementVideos/'+k).set(data).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ Video live for all users!'; fileInput.value=''; titleInput.value=''; descInput.value=''; loadCeoAnnouncementVideos(); }); }
+    else { var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); local.unshift(data); localStorage.setItem('announcementVideosLocal', JSON.stringify(local)); loadCeoAnnouncementVideos(); if(statusDiv) statusDiv.innerHTML='✅ Video live (local)'; }
+  });
+}
+
+async function uploadAnnouncementImage(){
+  var fileInput=document.getElementById('announceImageFile');
+  var titleInput=document.getElementById('announceImageTitle');
+  var descInput=document.getElementById('announceImageDesc');
+  var statusDiv=document.getElementById('announceImageUploadStatus');
+  if(!fileInput || !fileInput.files[0]){ alert('Select image'); return; }
+  var file=fileInput.files[0];
+  var title=(titleInput?.value||'CEO Banner').trim()||'CEO Banner';
+  var desc=(descInput?.value||'').trim();
+  if(statusDiv) statusDiv.innerHTML='📤 Uploading image...';
+  window.autoUploadFile(file, 'announcement_images', function(pct){ if(statusDiv) statusDiv.innerHTML='📤 '+pct+'%'; }, function(url, meta){
+    if(!url){ if(statusDiv) statusDiv.innerHTML='❌ Failed'; return; }
+    var data={type:'image', title:title, description:desc, url:url, storage:meta?.storage||'unknown', uploadedAt:Date.now(), uploadedBy:'CEO', fileName:file.name};
+    if(window.db){ var k=db.ref('announcementVideos').push().key; db.ref('announcementVideos/'+k).set(data).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ Image banner live!'; fileInput.value=''; titleInput.value=''; descInput.value=''; loadCeoAnnouncementVideos(); }); }
+    else { var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); local.unshift(data); localStorage.setItem('announcementVideosLocal', JSON.stringify(local)); loadCeoAnnouncementVideos(); }
+  });
+}
+
+function saveAnnouncementYoutube(){
+  var urlInput=document.getElementById('announceYoutubeUrl');
+  var titleInput=document.getElementById('announceYoutubeTitle');
+  var descInput=document.getElementById('announceYoutubeDesc');
+  var statusDiv=document.getElementById('announceYoutubeStatus');
+  var url=(urlInput?.value||'').trim();
+  if(!url){ alert('Paste YouTube URL'); return; }
+  var ytId=extractYoutubeId(url);
+  if(!ytId){ if(statusDiv) statusDiv.innerHTML='❌ Invalid YouTube URL'; alert('Invalid YouTube URL'); return; }
+  var title=(titleInput?.value||'CEO YouTube Video').trim()||'CEO YouTube';
+  var desc=(descInput?.value||'').trim();
+  var data={type:'youtube', title:title, description:desc, url:url, youtubeId:ytId, storage:'youtube', uploadedAt:Date.now(), uploadedBy:'CEO'};
+  if(window.db){ var k=db.ref('announcementVideos').push().key; db.ref('announcementVideos/'+k).set(data).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ YouTube video live!'; urlInput.value=''; titleInput.value=''; descInput.value=''; loadCeoAnnouncementVideos(); }); }
+  else { var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); local.unshift(data); localStorage.setItem('announcementVideosLocal', JSON.stringify(local)); loadCeoAnnouncementVideos(); if(statusDiv) statusDiv.innerHTML='✅ YouTube live (local)'; }
+}
+
+function loadCeoAnnouncementVideos(){
+  var listDiv=document.getElementById('ceoAnnounceVideosList');
+  if(!listDiv) return;
+  listDiv.innerHTML='Loading...';
+  if(window.db){
+    db.ref('announcementVideos').orderByChild('uploadedAt').limitToLast(30).on('value', function(snap){
+      var videos=[]; snap.forEach(function(c){ var v=c.val(); v.key=c.key; videos.push(v); }); videos.reverse(); window.announcementVideos=videos; renderCeoVideosList(videos, listDiv); renderPublicVideosList(videos);
+    });
+  } else {
+    var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); window.announcementVideos=local; renderCeoVideosList(local, listDiv); renderPublicVideosList(local);
+  }
+}
+
+function renderCeoVideosList(videos, container){
+  if(videos.length===0){ container.innerHTML='<div style="text-align:center;padding:20px;color:#6b7280;font-size:11px">No announcements yet. Upload video/image/YouTube above.</div>'; return; }
+  var html='<div style="display:flex;flex-direction:column;gap:8px">';
+  videos.forEach(function(v){
+    var date=new Date(v.uploadedAt).toLocaleString();
+    var icon=v.type==='image'?'🖼️':v.type==='youtube'?'▶️':'📹';
+    var preview='';
+    if(v.type==='video') preview='<video src="'+v.url+'" controls style="width:100%;max-height:200px;border-radius:8px;margin-top:8px;background:#000"></video>';
+    else if(v.type==='image') preview='<img src="'+v.url+'" style="width:100%;max-height:300px;object-fit:contain;border-radius:8px;margin-top:8px;border:2px solid #2563eb">';
+    else if(v.type==='youtube') preview='<iframe width="100%" height="200" src="https://www.youtube.com/embed/'+v.youtubeId+'" frameborder="0" allowfullscreen style="border-radius:8px;margin-top:8px"></iframe>';
+    html+='<div style="border:2px solid '+(v.type==='image'?'#2563eb':v.type==='youtube'?'#ef4444':'#7c3aed')+';border-radius:10px;padding:10px;background:'+(v.type==='image'?'#eff6ff':v.type==='youtube'?'#fef2f2':'#f5f3ff')+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:start"><div><b style="font-size:12px">'+icon+' '+(v.title||'CEO')+'</b><br><small style="font-size:10px;color:#6b7280">'+date+' | '+v.type+'</small><br><small style="font-size:10px">'+(v.description||'').substring(0,100)+'</small></div>'
+      +'<div style="display:flex;gap:4px;flex-direction:column"><button class="btnSmall" style="background:#2563eb;color:white;padding:6px 10px;font-size:10px" onclick="playAnnouncementVideo(\''+v.key+'\')">▶️ View</button><button class="btnSmall" style="background:#ef4444;color:white;padding:6px 10px;font-size:10px" onclick="deleteAnnouncementVideo(\''+v.key+'\')">🗑️</button></div></div>'+preview+'</div>';
+  });
+  html+='</div>'; container.innerHTML=html;
+}
+
 function renderPublicVideosList(videos){
   var container=document.getElementById('publicAnnounceVideosList');
   var bar=document.getElementById('announcementVideoBar');
@@ -5945,259 +6510,58 @@ function renderPublicVideosList(videos){
     if(v.type==='video'){ thumb='<video src="'+v.url+'" style="width:100%;height:120px;object-fit:cover;background:#000" muted></video>'; }
     else if(v.type==='image'){ thumb='<img src="'+v.url+'" style="width:100%;height:120px;object-fit:cover">'; }
     else if(v.type==='youtube'){ thumb='<img src="https://img.youtube.com/vi/'+v.youtubeId+'/mqdefault.jpg" style="width:100%;height:120px;object-fit:cover">'; }
-    html+='<div style="min-width:200px;max-width:220px;background:white;border-radius:10px;overflow:hidden;border:2px solid #eab308;cursor:pointer" onclick="playAnnouncementVideo(\''+v.key+'\')"><div style="position:relative">'+thumb+'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:white;padding:8px 12px;border-radius:50%">▶️</div></div><div style="padding:8px"><b style="font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v.title||'')+'</b><small style="font-size:9px">'+v.type+'</small></div></div>';
+    html+='<div style="min-width:200px;max-width:220px;background:white;border-radius:10px;overflow:hidden;border:2px solid '+(v.type==='image'?'#2563eb':v.type==='youtube'?'#ef4444':'#eab308')+';cursor:pointer;position:relative" onclick="playAnnouncementVideo(\''+v.key+'\')">'
+      +'<div style="position:relative">'+thumb+'<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:white;padding:8px 12px;border-radius:50%;font-size:16px">'+(v.type==='image'?'🖼️':'▶️')+'</div></div>'
+      +'<div style="padding:8px"><b style="font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(v.type==='image'?'🖼️ ':v.type==='youtube'?'▶️ ':'📹 ')+(v.title||'')+'</b><small style="font-size:9px;color:#6b7280">'+new Date(v.uploadedAt).toLocaleDateString()+' | '+v.type+'</small></div></div>';
   });
   container.innerHTML=html;
 }
+
 function playAnnouncementVideo(key){
   var video=window.announcementVideos.find(function(v){ return v.key===key; });
   if(!video) return;
   var modal=document.getElementById('announcementModal');
   var titleEl=document.getElementById('announceModalTitle');
   var bodyEl=document.getElementById('announceModalBody');
-  if(titleEl) titleEl.innerText=(video.title||'CEO');
+  if(titleEl) titleEl.innerText=(video.type==='image'?'🖼️ ':video.type==='youtube'?'▶️ ':'📹 ')+(video.title||'CEO Announcement');
   if(bodyEl){
     var mediaHtml='';
-    if(video.type==='video') mediaHtml='<video src="'+video.url+'" controls autoplay style="width:100%;max-height:60vh;border-radius:12px;background:#000"></video>';
-    else if(video.type==='image') mediaHtml='<img src="'+video.url+'" style="width:100%;max-height:70vh;object-fit:contain;border-radius:12px">';
-    else if(video.type==='youtube') mediaHtml='<iframe width="100%" height="400" src="https://www.youtube.com/embed/'+video.youtubeId+'?autoplay=1" frameborder="0" allowfullscreen style="border-radius:12px"></iframe>';
-    bodyEl.innerHTML=mediaHtml+'<div style="margin-top:12px"><b>'+(video.title||'')+'</b><br><small>'+new Date(video.uploadedAt).toLocaleString()+'</small><p>'+(video.description||'')+'</p></div>';
+    if(video.type==='video') mediaHtml='<video src="'+video.url+'" controls autoplay style="width:100%;max-height:60vh;border-radius:12px;background:#000;border:3px solid #7c3aed"></video>';
+    else if(video.type==='image') mediaHtml='<img src="'+video.url+'" style="width:100%;max-height:70vh;object-fit:contain;border-radius:12px;border:3px solid #2563eb">';
+    else if(video.type==='youtube') mediaHtml='<iframe width="100%" height="400" src="https://www.youtube.com/embed/'+video.youtubeId+'?autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:12px"></iframe>';
+    bodyEl.innerHTML=mediaHtml+'<div style="margin-top:12px"><b>'+(video.title||'')+'</b><br><small style="color:#6b7280">'+new Date(video.uploadedAt).toLocaleString()+' | '+video.type+'</small><p style="font-size:12px;margin-top:8px">'+(video.description||'No description')+'</p>'
+      +'<div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap"><a href="'+video.url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px">🔗 Open</a>'
+      +(video.type!=='youtube'?'<a href="'+video.url+'" download style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px">⬇️ Download</a>':'')+'</div></div>';
   }
   if(modal) modal.style.display='flex';
 }
+
 function closeAnnouncementVideo(){ var modal=document.getElementById('announcementModal'); var bodyEl=document.getElementById('announceModalBody'); if(bodyEl) bodyEl.innerHTML=''; if(modal) modal.style.display='none'; }
-function deleteAnnouncementVideo(key){ if(!confirm('Delete?')) return; if(window.db){ db.ref('announcementVideos/'+key).remove(); } }
+function deleteAnnouncementVideo(key){ if(!confirm('Delete this announcement? All users will no longer see it.')) return; if(window.db){ db.ref('announcementVideos/'+key).remove().then(function(){ alert('✅ Deleted'); }); } else { var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); local=local.filter(function(v){ return v.key!==key; }); localStorage.setItem('announcementVideosLocal', JSON.stringify(local)); loadCeoAnnouncementVideos(); } }
+
 window.addEventListener('load', function(){
   setTimeout(function(){
     if(window.db){
       db.ref('announcementVideos').orderByChild('uploadedAt').limitToLast(15).on('value', function(snap){
-        var videos=[]; snap.forEach(function(c){ var v=c.val(); v.key=c.key; videos.push(v); }); videos.reverse(); window.announcementVideos=videos; renderPublicVideosList(videos);
+        var videos=[]; snap.forEach(function(child){ var v=child.val(); v.key=child.key; videos.push(v); }); videos.reverse(); window.announcementVideos=videos; renderPublicVideosList(videos);
       });
+    } else {
+      var local=JSON.parse(localStorage.getItem('announcementVideosLocal')||'[]'); window.announcementVideos=local; renderPublicVideosList(local);
     }
     if(document.getElementById('ceoAnnounceVideosList')){ loadCeoAnnouncementVideos(); }
   }, 2000);
 });
-</script>
 
-<script>
-// ===== GROUP CHAT WITH VOICE + VIDEO + IMAGE + YOUTUBE + FILE - CLEAN =====
-window.voiceRecorder = null;
-window.voiceChunks = [];
-window.voiceTimerInterval = null;
-window.voiceStartTime = null;
-window.isRecording = false;
-
-async function toggleVoiceRecord(){
-  if(window.isRecording){ stopVoiceRecord(); } else { startVoiceRecord(); }
-}
-async function startVoiceRecord(){
-  try{
-    var stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    window.voiceChunks = [];
-    window.voiceRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-    window.voiceRecorder.ondataavailable = function(e){ if(e.data.size>0) window.voiceChunks.push(e.data); };
-    window.voiceRecorder.start();
-    window.isRecording = true;
-    window.voiceStartTime = Date.now();
-    document.getElementById('voiceRecordUI').style.display='block';
-    document.getElementById('voiceRecordBtn').innerHTML='🔴 Recording... Tap Stop';
-    window.voiceTimerInterval = setInterval(function(){
-      var elapsed = Math.floor((Date.now() - window.voiceStartTime)/1000);
-      var mins = Math.floor(elapsed/60).toString().padStart(2,'0');
-      var secs = (elapsed%60).toString().padStart(2,'0');
-      var timerEl = document.getElementById('voiceTimer');
-      if(timerEl) timerEl.innerText = mins+':'+secs;
-      if(elapsed>=120) stopVoiceRecord();
-    }, 1000);
-  }catch(err){ alert('🎤 Mic denied: '+err.message); }
-}
-function stopVoiceRecord(){
-  if(!window.voiceRecorder || !window.isRecording) return;
-  window.isRecording = false;
-  if(window.voiceTimerInterval) clearInterval(window.voiceTimerInterval);
-  document.getElementById('voiceRecordUI').style.display='none';
-  document.getElementById('voiceRecordBtn').innerHTML='🎤 Hold to Speak';
-  window.voiceRecorder.onstop = function(){
-    var audioBlob = new Blob(window.voiceChunks, { type: 'audio/webm' });
-    sendVoiceMessage(audioBlob);
+var origShowCeoTab2 = window.showCeoTab;
+if(typeof showCeoTab === 'function'){
+  window.showCeoTab = function(tab){
+    origShowCeoTab2(tab);
+    if(tab==='announce'){ setTimeout(loadCeoAnnouncementVideos, 500); }
   };
-  window.voiceRecorder.stop();
 }
-function cancelVoiceRecord(){
-  if(window.voiceRecorder && window.isRecording){ window.voiceRecorder.stop(); window.voiceChunks = []; }
-  window.isRecording = false;
-  if(window.voiceTimerInterval) clearInterval(window.voiceTimerInterval);
-  document.getElementById('voiceRecordUI').style.display='none';
-  document.getElementById('voiceRecordBtn').innerHTML='🎤 Hold to Speak';
-}
-function sendVoiceMessage(audioBlob){
-  var statusDiv=document.getElementById('groupChatUploadStatus');
-  if(statusDiv) statusDiv.innerHTML='📤 Uploading voice...';
-  var fileName = 'voice_'+Date.now()+'.webm';
-  var file = new File([audioBlob], fileName, { type: 'audio/webm' });
-  var name = localStorage.getItem('nurseName') || localStorage.getItem('staffName') || localStorage.getItem('ceoID') || 'Staff';
-  if(localStorage.getItem('isCEOLogged')==='true') name='CEO';
-  var role = localStorage.getItem('isCEOLogged')==='true' ? 'CEO' : (localStorage.getItem('nurseID') ? 'NURSE' : 'STAFF');
-  var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || name;
-  window.autoUploadFile(file, 'group_chat_voice', function(pct){ if(statusDiv) statusDiv.innerHTML='🎤 Voice '+pct+'%'; }, function(url, meta){
-    if(!url){ if(statusDiv) statusDiv.innerHTML='❌ Voice failed'; return; }
-    var duration = Math.floor((Date.now() - window.voiceStartTime)/1000);
-    var msgData = { name: name, role: role, senderID: myID, time: Date.now(), type: 'voice', message: '🎤 Voice ('+duration+'s)', text: '🎤 Voice ('+duration+'s)', mediaUrl: url, duration: duration, storage: meta?.storage||'unknown' };
-    var key = Date.now()+'_'+Math.random().toString(36).substr(2,5);
-    var updates = {}; updates['globalChat/'+key] = msgData; updates['group_chat/'+key] = msgData;
-    if(window.db){ db.ref().update(updates).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ Voice sent'; setTimeout(function(){ if(statusDiv) statusDiv.innerHTML=''; }, 3000); }); }
-  });
-}
-window.sendGroupChatMedia = function(inputEl, mediaType){
-  var file = inputEl.files[0]; if(!file) return;
-  var statusDiv = document.getElementById('groupChatUploadStatus');
-  if(statusDiv) statusDiv.innerHTML = '📤 Uploading '+mediaType+'...';
-  var name = localStorage.getItem('nurseName') || localStorage.getItem('staffName') || localStorage.getItem('ceoID') || 'Staff';
-  if(localStorage.getItem('isCEOLogged')==='true') name='CEO';
-  var role = localStorage.getItem('isCEOLogged')==='true' ? 'CEO' : (localStorage.getItem('nurseID') ? 'NURSE' : 'STAFF');
-  var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || name;
-  window.autoUploadFile(file, 'group_chat_'+mediaType, function(pct){ if(statusDiv) statusDiv.innerHTML='📤 '+pct+'%'; }, function(url, meta){
-    inputEl.value='';
-    if(!url){ if(statusDiv) statusDiv.innerHTML='❌ Failed'; return; }
-    var msgData = { name: name, role: role, senderID: myID, time: Date.now(), type: mediaType, message: (mediaType==='video'?'📹 ':mediaType==='image'?'🖼️ ':'📎 ')+file.name, text: (mediaType==='video'?'📹 ':mediaType==='image'?'🖼️ ':'📎 ')+file.name, mediaUrl: url, fileName: file.name, fileSize: file.size, storage: meta?.storage||'unknown' };
-    var key = Date.now()+'_'+Math.random().toString(36).substr(2,5);
-    var updates = {}; updates['globalChat/'+key] = msgData; updates['group_chat/'+key] = msgData;
-    if(window.db){ db.ref().update(updates).then(function(){ if(statusDiv) statusDiv.innerHTML='✅ Sent'; setTimeout(function(){ if(statusDiv) statusDiv.innerHTML=''; }, 3000); }); }
-  });
-};
-window.promptGroupChatYoutube = function(){
-  var url = prompt('Paste YouTube URL:'); if(!url) return;
-  var regExp = /^.*(youtu.be\/|v\/|\/u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  var match = url.match(regExp);
-  var ytId = (match && match[2].length===11) ? match[2] : null;
-  if(!ytId){ alert('Invalid URL'); return; }
-  var name = localStorage.getItem('nurseName') || localStorage.getItem('staffName') || localStorage.getItem('ceoID') || 'Staff';
-  if(localStorage.getItem('isCEOLogged')==='true') name='CEO';
-  var role = localStorage.getItem('isCEOLogged')==='true' ? 'CEO' : (localStorage.getItem('nurseID') ? 'NURSE' : 'STAFF');
-  var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || name;
-  var msgData = { name: name, role: role, senderID: myID, time: Date.now(), type: 'youtube', message: '▶️ YouTube: '+url, text: '▶️ YouTube: '+url, mediaUrl: url, youtubeId: ytId };
-  var key = Date.now()+'_'+Math.random().toString(36).substr(2,5);
-  var updates = {}; updates['globalChat/'+key] = msgData; updates['group_chat/'+key] = msgData;
-  if(window.db){ db.ref().update(updates); }
-};
-window.sendGlobalChat = function(){
-  var input = document.getElementById('globalChatInput'); if(!input) return;
-  var text = input.value.trim(); if(!text) return;
-  var name = localStorage.getItem('nurseName') || localStorage.getItem('staffName') || localStorage.getItem('ceoID') || 'Staff';
-  if(localStorage.getItem('isCEOLogged')==='true') name='CEO';
-  var role = localStorage.getItem('isCEOLogged')==='true' ? 'CEO' : (localStorage.getItem('nurseID') ? 'NURSE' : 'STAFF');
-  var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || name;
-  if(!window.db){ alert('Firebase not connected'); return; }
-  var msgData = { name: name, message: text, text: text, role: role, senderID: myID, time: Date.now(), type: 'text' };
-  var key = Date.now()+'_'+Math.random().toString(36).substr(2,5);
-  var updates = {}; updates['globalChat/'+key] = msgData; updates['group_chat/'+key] = msgData;
-  db.ref().update(updates).then(function(){ input.value=''; });
-};
-window.deleteGlobalChatMsg = function(key){ if(!confirm('Delete?')) return; var u={}; u['globalChat/'+key]=null; u['group_chat/'+key]=null; db.ref().update(u); };
-window.editGlobalChatMsg = function(key, oldText){ var newText = prompt('Edit:', oldText); if(!newText) return; var u={}; u['globalChat/'+key+'/message']=newText; u['globalChat/'+key+'/text']=newText; u['group_chat/'+key+'/message']=newText; u['group_chat/'+key+'/text']=newText; db.ref().update(u); };
-window.clearGroupChat = function(){ if(localStorage.getItem('isCEOLogged')!=='true'){ alert('CEO only'); return; } if(!confirm('CEO DELETE ALL?')) return; var u={}; u['globalChat']=null; u['group_chat']=null; db.ref().update(u).then(()=>{ alert('Cleared'); var b=document.getElementById('globalChatBox'); if(b) b.innerHTML=''; }); };
-window.initGlobalChatListener = function(){
-  var box=document.getElementById('globalChatBox'); if(!box || !window.db) return;
-  box.innerHTML=''; db.ref('globalChat').off(); db.ref('group_chat').off();
-  var render = function(snap){
-    var d=snap.val(); if(!d) return;
-    var key=snap.key;
-    if(document.getElementById('msg-'+key)) return;
-    var myID = localStorage.getItem('nurseID') || localStorage.getItem('staffID') || localStorage.getItem('ceoID') || '';
-    var isMe = d.senderID===myID;
-    var div=document.createElement('div'); div.id='msg-'+key; div.className='chatMsg '+(isMe?'me':'other');
-    var t = d.time ? new Date(d.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '';
-    var safe = (d.message||d.text||'').replace(/</g,'&lt;');
-    var mediaHtml = '';
-    if(d.type==='voice' && d.mediaUrl){
-      mediaHtml = '<div style="background:#fef2f2;border:2px solid #ef4444;border-radius:12px;padding:8px;margin-top:6px;max-width:300px"><div style="font-size:11px;font-weight:800">🎤 Voice ('+(d.duration||'')+'s)</div><audio src="'+d.mediaUrl+'" controls style="width:100%;margin-top:6px;height:32px"></audio></div>';
-    } else if(d.type==='video' && d.mediaUrl){
-      mediaHtml = '<video src="'+d.mediaUrl+'" controls style="width:100%;max-width:300px;max-height:200px;border-radius:8px;margin-top:6px;background:#000"></video>';
-    } else if(d.type==='image' && d.mediaUrl){
-      mediaHtml = '<img src="'+d.mediaUrl+'" style="width:100%;max-width:300px;max-height:300px;object-fit:contain;border-radius:8px;margin-top:6px" onclick="window.open(\''+d.mediaUrl+'\', \'_blank\')">';
-    } else if(d.type==='file' && d.mediaUrl){
-      mediaHtml = '<div style="background:#eff6ff;border:2px solid #2563eb;border-radius:8px;padding:8px;margin-top:6px"><b>📎 '+(d.fileName||'File')+'</b><br><a href="'+d.mediaUrl+'" target="_blank" style="background:#2563eb;color:white;padding:6px 12px;border-radius:6px;text-decoration:none;font-size:10px;display:inline-block;margin-top:4px">⬇️ Download</a></div>';
-    } else if(d.type==='youtube' && d.youtubeId){
-      mediaHtml = '<div style="margin-top:6px"><iframe width="100%" height="180" src="https://www.youtube.com/embed/'+d.youtubeId+'" frameborder="0" allowfullscreen style="border-radius:8px;max-width:320px"></iframe></div>';
-    }
-    var btns = isMe ? '<div style="margin-top:4px"><button onclick="editGlobalChatMsg(\''+key+'\',\''+(d.message||'').replace(/\'/g,"\\'")+'\')" style="font-size:9px">Edit</button> <button onclick="deleteGlobalChatMsg(\''+key+'\')" style="font-size:9px;color:red">Delete</button></div>' : '';
-    div.innerHTML='<div><span class="roleBadge role-'+(d.role||'STAFF')+'">'+(d.role||'STAFF')+'</span> <b style="font-size:10px">'+d.name+'</b> <span style="font-size:8px;color:#888">'+t+'</span></div><div>'+safe+'</div>'+mediaHtml+btns;
-    box.appendChild(div);
-    box.scrollTop=box.scrollHeight;
-  };
-  db.ref('globalChat').limitToLast(100).on('child_added', render);
-};
-window.updateChatCEOButton=function(){ var b=document.getElementById('masterClearBtn'); if(b){ if(localStorage.getItem('isCEOLogged')==='true') b.classList.remove('hidden'); else b.classList.add('hidden'); } };
-</script>
-
-
-
-<style>
-/* HIDE ANY STRAY TEXT AFTER FOOTER - FINAL FIX */
-footer { position: relative; z-index: 10; background: #111827; }
-.bottomNav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: white; border-top: 2px solid #eee; display: flex; justify-content: space-around; padding: 6px 0; max-width: 100vw; overflow: hidden; }
-body { padding-bottom: 70px; overflow-x: hidden; max-width: 100vw; }
-/* Hide any text nodes that are direct children of body after footer */
-body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announcementVideoBar):not(#announcementModal) {
-  /* keep visible if it's a page div */
-}
-</style>
-
-
-<script>
-// ===== RE-BIND SECRET LOGO ACCESS - ENSURES LOGO WORKS AFTER RESTORE =====
-(function(){
-  function bindLogo(){
-    var logo=document.getElementById('logoTapArea');
-    if(!logo){ console.log('logoTapArea not found'); return; }
-    if(logo.dataset.bound==='1') return;
-    logo.dataset.bound='1';
-    var tapCount=0, tapTimer=null, longPressTimer=null, longPressTriggered=false;
-    function resetTap(){ tapCount=0; }
-    logo.addEventListener('click', function(e){
-      if(longPressTriggered){ longPressTriggered=false; return; }
-      tapCount++;
-      clearTimeout(tapTimer);
-      tapTimer=setTimeout(resetTap, 3000);
-      if(tapCount>=5){
-        tapCount=0;
-        clearTimeout(tapTimer);
-        var hint=document.createElement('div');
-        hint.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#7c3aed;color:white;padding:10px 18px;border-radius:20px;font-weight:800;font-size:12px;z-index:100000;box-shadow:0 4px 12px rgba(0,0,0,.3)';
-        hint.innerText='🔓 Staff Portal Unlocked - 5 taps detected';
-        document.body.appendChild(hint);
-        setTimeout(function(){hint.remove()},2000);
-        if(typeof showPage==='function') showPage('staff-login');
-      }
-    });
-    function startLongPress(){
-      longPressTriggered=false;
-      longPressTimer=setTimeout(function(){
-        longPressTriggered=true;
-        var hint=document.createElement('div');
-        hint.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#111827;color:#eab308;padding:10px 18px;border-radius:20px;font-weight:800;font-size:12px;z-index:100000;box-shadow:0 4px 12px rgba(0,0,0,.3);border:2px solid #eab308';
-        hint.innerText='🔐 CEO Access Unlocked - Long press detected';
-        document.body.appendChild(hint);
-        setTimeout(function(){hint.remove()},2000);
-        if(navigator.vibrate) navigator.vibrate(100);
-        if(typeof showPage==='function') showPage('ceo-login');
-      }, 1500);
-    }
-    function cancelLongPress(){ clearTimeout(longPressTimer); }
-    logo.addEventListener('touchstart', startLongPress, {passive:true});
-    logo.addEventListener('touchend', cancelLongPress);
-    logo.addEventListener('touchmove', cancelLongPress);
-    logo.addEventListener('mousedown', startLongPress);
-    logo.addEventListener('mouseup', cancelLongPress);
-    logo.addEventListener('mouseleave', cancelLongPress);
-    console.log('✅ LOGO SECRET ACCESS BOUND - 5 taps Staff, Long-press CEO');
-  }
-  document.addEventListener('DOMContentLoaded', bindLogo);
-  setTimeout(bindLogo, 500);
-  setTimeout(bindLogo, 1500);
-  setTimeout(bindLogo, 3000);
-})();
+console.log('✅ Announcement Media System Ready - Video + Image + YouTube');
 </script>
 
 </body>
+
 </html>
