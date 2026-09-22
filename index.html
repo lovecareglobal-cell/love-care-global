@@ -301,8 +301,8 @@ input,select,textarea{width:100%;padding:12px;margin:6px 0;border-radius:10px;bo
 .bottomNav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:8px 0 10px 0;border-top:3px solid #eab308;z-index:99999}
 .bottomNav button{background:none;border:none;font-size:9px;color:#6b7280;width:20%;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:700;padding:5px}
 .bottomNav button.active{color:#16a34a;background:#f0fdf4;border-radius:12px}
-.hidden{display:none!important}
-#nav-chat{display:none!important}
+.hidden{display:none /* FIXED !important removed */}
+#nav-chat{display:none /* FIXED !important removed */}
 #nav-chat.show-for-staff{display:flex!important}
 .bottomNav button#nav-chat{width:0!important;min-width:0!important;padding:0!important;margin:0!important;overflow:hidden}
 .bottomNav button#nav-chat.show-for-staff{width:20%!important;padding:5px!important}
@@ -1592,10 +1592,15 @@ function toggleMap(){var w=document.getElementById('loveCareMapWrapper'); w.clas
 function findNursesUber(){ 
   var src=getAllNursesSource(); 
   if(!clientLat||!clientLng){
-    // Try to get from localStorage
+    // Try to get from localStorage - FIXED with Accra fallback
     var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng');
     if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); }
-    else { alert('📡 Tap GPS Auto first to get your live location'); return; }
+    else { 
+      console.log('📡 GPS not set, using Accra fallback 5.6037,-0.1870');
+      clientLat=5.6037; clientLng=-0.1870; // Accra default so map/navigation always works
+      try{ localStorage.setItem('clientLat', clientLat); localStorage.setItem('clientLng', clientLng); }catch(e){}
+      if(typeof showToast==='function') showToast('📍 Using Accra location - tap GPS Auto for live location');
+    }
   } 
   var rad=parseInt(document.getElementById('radiusSelect').value)||10; 
   nearbyNursesSorted=src.filter(w=>w.lat&&w.lng).map(w=>{
@@ -4059,7 +4064,7 @@ window.uploadFileToStorage = async function(file, path){
     sos.addEventListener('touchstart', onStart, {passive:false});
     document.addEventListener('touchmove', onMove, {passive:false});
     document.addEventListener('touchend', onEnd, {passive:false});
-    sos.addEventListener('click', function(e){ if(hasMoved){ e.stopPropagation(); e.preventDefault(); hasMoved=false; } });
+    sos.addEventListener('click', function(e){ if(hasMoved){ hasMoved=false; /* fixed: don't block clicks */ } });
     var sx=localStorage.getItem('sosPosX'), sy=localStorage.getItem('sosPosY');
     if(sx && sy){ sos.style.left=sx+'px'; sos.style.top=sy+'px'; sos.style.right='auto'; sos.style.bottom='auto'; }
     console.log('✅ Draggable SOS ready - Drag anywhere');
