@@ -30,108 +30,108 @@ function getDriveFileId(url){ return null; }
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
 <script>
-// ULTRA FIXED UPLOADER - 0% stuck fixed
+// ABSOLUTE FINAL UPLOADER - FIXES 0% STUCK
 (function(){
-  // Ensure anonymous auth - required for Storage
-  function ensureAuth(){
-    return new Promise(function(resolve){
-      if(typeof firebase==='undefined' || !firebase.auth){ resolve(false); return; }
-      if(firebase.auth().currentUser){ resolve(true); return; }
-      firebase.auth().signInAnonymously().then(function(){ resolve(true); }).catch(function(e){
-        console.warn('Anon auth failed', e);
-        resolve(false);
-      });
-    });
+  console.log('🔥 ULTRA UPLOADER LOADED');
+
+  async function ensureAuth(){
+    try{
+      if(!firebase.auth().currentUser){
+        console.log('Signing in anonymously...');
+        await firebase.auth().signInAnonymously();
+        console.log('✅ Anon auth OK', firebase.auth().currentUser.uid);
+      }
+      return true;
+    }catch(e){
+      console.error('Anon auth failed - enable it in console', e);
+      alert('⚠️ Enable Anonymous Auth in Firebase Console > Authentication > Sign-in method');
+      return false;
+    }
+  }
+
+  // Call auth immediately
+  if(typeof firebase!=='undefined' && firebase.auth){
+    ensureAuth();
   }
 
   window.autoUploadFile = async function(file, folder, onProgress, onDone){
+    console.log('Starting upload', folder, file.name, file.size);
     if(!file){ onDone(null); return; }
-    await ensureAuth();
 
-    // Compress images quickly
+    var ok = await ensureAuth();
+    if(!ok){ 
+      console.warn('Auth not ok, trying anyway');
+    }
+
+    // Small compress for images only, not video
     if(file.type.startsWith('image/')){
       try{
-        var compressed = await new Promise(function(res){
+        file = await new Promise(function(res){
           var img=new Image(); var url=URL.createObjectURL(file);
           img.onload=function(){
             var c=document.createElement('canvas'); var w=img.width,h=img.height; var maxW=1280;
             if(w>maxW){ h=h*(maxW/w); w=maxW; }
             c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h);
-            c.toBlob(function(b){ URL.revokeObjectURL(url); if(b && b.size < file.size) res(new File([b], file.name, {type:'image/jpeg'})); else res(file); }, 'image/jpeg', 0.65);
+            c.toBlob(function(b){ URL.revokeObjectURL(url); if(b) res(new File([b], file.name, {type:'image/jpeg'})); else res(file); }, 'image/jpeg', 0.6);
           };
           img.onerror=function(){ URL.revokeObjectURL(url); res(file); };
           img.src=url;
         });
-        file = compressed;
       }catch(e){}
     }
 
     try{
-      var storageRef = firebase.storage().ref();
       var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g,'_').substring(0,60);
-      var ref = storageRef.child(folder+'/'+Date.now()+'_'+safeName);
-      
-      // Start upload with metadata for fast download
-      var metadata = { contentType: file.type, customMetadata: { uploadedBy:'nurse' } };
-      var task = ref.put(file, metadata);
-      
-      var lastProg = -1;
-      task.on('state_changed', 
+      var fullPath = folder+'/'+Date.now()+'_'+safeName;
+      console.log('Uploading to', fullPath);
+      var ref = firebase.storage().ref().child(fullPath);
+      var task = ref.put(file);
+
+      task.on('state_changed',
         function(snap){
-          var pct = Math.round((snap.bytesTransferred / snap.totalBytes)*100);
-          if(pct!==lastProg){ lastProg=pct; if(onProgress) onProgress(pct); }
+          var pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
+          console.log('Progress', pct+'%');
+          if(onProgress) onProgress(pct);
+          // Update UI box
+          var box=document.getElementById('uploadStatusBox');
+          if(!box){ box=document.createElement('div'); box.id='uploadStatusBox'; box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:14px 20px;background:#dcfce7;border:2px solid #16a34a;border-radius:12px;z-index:999999;font-weight:800;'; document.body.appendChild(box); }
+          box.style.display='block'; box.innerHTML='📤 '+folder+': '+pct+'% - '+file.name.substring(0,20);
         },
         function(err){
-          console.error('UPLOAD ERROR FULL:', err.code, err.message, err);
-          var msg='';
-          if(err.code==='storage/unauthorized') msg='❌ Storage Rules BLOCKED - Go to Firebase Console > Storage > Rules > allow read,write: if true > Publish';
-          else if(err.code==='storage/canceled') msg='❌ Upload canceled';
-          else if(err.code==='storage/retry-limit-exceeded') msg='❌ Network weak - try smaller file';
-          else msg='❌ '+err.code+': '+err.message;
-          
+          console.error('❌ STORAGE ERROR', err.code, err.message);
           var box=document.getElementById('uploadStatusBox');
-          if(!box){ box=document.createElement('div'); box.id='uploadStatusBox'; box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:16px 22px;background:#fee2e2;border:2px solid #ef4444;border-radius:12px;z-index:999999;font-weight:800;font-size:13px;max-width:90%;text-align:center;'; document.body.appendChild(box); }
-          box.style.display='block'; box.innerHTML=msg;
-          
+          if(!box){ box=document.createElement('div'); box.id='uploadStatusBox'; box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:16px;background:#fee2e2;border:2px solid #ef4444;border-radius:12px;z-index:999999;font-weight:800;max-width:90%;'; document.body.appendChild(box); }
+          box.style.display='block';
+          if(err.code==='storage/unauthorized'){
+            box.innerHTML='❌ STORAGE RULES BLOCKED<br>Firebase Console > Storage > Rules > allow read,write: if true > Publish<br><small>'+err.message+'</small>';
+            alert('❌ STORAGE RULES BLOCKED\n\nGo to Firebase Console:\nStorage > Rules\nSet to:\nrules_version = "2";\nservice firebase.storage {\n  match /b/{bucket}/o {\n    match /{allPaths=**} {\n      allow read, write: if true;\n    }\n  }\n}\nThen Publish');
+          } else if(err.code==='storage/unknown'){
+            box.innerHTML='❌ Unknown error - check bucket exists<br><small>'+err.message+'</small>';
+          } else {
+            box.innerHTML='❌ '+err.code+': '+err.message;
+          }
           onDone(null);
         },
         function(){
+          console.log('Upload complete, getting URL');
           task.snapshot.ref.getDownloadURL().then(function(url){
-            console.log('✅ UPLOAD DONE', folder, url);
-            if(onProgress) onProgress(100);
+            console.log('✅ URL', url);
+            var box=document.getElementById('uploadStatusBox');
+            if(box){ box.innerHTML='✅ Uploaded: '+file.name.substring(0,25); box.style.background='#dcfce7'; box.style.borderColor='#16a34a'; setTimeout(function(){ box.style.display='none'; }, 3000); }
             onDone(url, {secure_url:url});
-          }).catch(function(e){
-            console.error('getDownloadURL fail', e);
-            onDone(null);
           });
         }
       );
     }catch(e){
-      console.error('autoUploadFile exception', e);
+      console.error('autoUploadFile crash', e);
       onDone(null);
     }
   };
 
-  // Override all old uploaders to use new one
-  window.uploadFileToStorage = function(file, path){ 
-    return new Promise(function(resolve){
-      window.autoUploadFile(file, path, function(){}, function(url){ resolve(url); });
-    });
-  };
+  window.uploadFileToStorage = function(f,p){ return new Promise(function(r){ window.autoUploadFile(f,p,function(){},function(url){ r(url); }); }); };
   window.uploadWithTimeout = window.uploadFileToStorage;
   window.uploadToTelegram = window.uploadFileToStorage;
   window.cloudUpload = function(f,p){ return window.uploadFileToStorage(f,p); };
-  window.uploadToFirebaseStorage = window.uploadFileToStorage;
-
-  // Auto sign-in anon on page load for faster uploads
-  ensureAuth().then(function(ok){ console.log('Auth ready:', ok); });
-
-  // Fix placeholder text
-  document.addEventListener('DOMContentLoaded', function(){
-    document.querySelectorAll('input[placeholder*="Telegram"]').forEach(function(el){
-      el.placeholder='Auto-uploading to secure storage...';
-    });
-  });
 })();
 </script>
 
@@ -648,7 +648,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div style="background:#f0f4;padding:8px;border-radius:8px;margin:8px 0;font-size:11px">Preview:</div>
 <div id="announcePreview" style="background:#111827;color:#eab308;padding:10px;border-radius:8px;border:3px solid #eab308;overflow:hidden;white-space:nowrap"><span style="display:inline-block;animation:marquee 22s linear infinite">Preview Text</span></div>
 <button class="btnSmall" style="background:#0e7490;color:white;width:100%;padding:12px;margin-top:8px" onclick="saveAnnouncement()">💾 SAVE LIVE - Text + Colors</button>
-<div style="margin-top:12px;border-top:2px solid #eee;padding-top:8px"><label style="font-size:11px;font-weight:800">Edit Nurse Hourly Minimum (No Ghana 15 label - generic)</label><div id="minRateEditor" style="max-height:300px;overflow-y:auto;font-size:11px"></div><button class="btnSmall" style="background:#16a34a;color:white;margin-top:8px;width:100%;padding:12px" onclick="saveSettings()">💾 Save Rates</button></div>
+<div style="margin-top:12px;border-top:2px solid #eee;padding-top:8px"><label style="font-size:11px;font-weight:800">Edit Nurse Hourly Minimum (No Ghana 15 label - generic)</label><div id="minRateEditor" style="max-height:300px;overflow-y:auto;font-size:11px"></div><div style="margin-top:16px;border-top:3px solid #111827;padding-top:12px"><h3 style="font-size:13px;margin:0 0 8px 0">👑 CEO Weekly/Monthly Pricing (NO Localization Formula) - Week/Month Only</h3><p style="font-size:10px;color:#6b7280">Localization = 1-6 days only. Week/Month = CEO fixed price below. If empty, uses fallback.</p><div id="ceoWeeklyMonthlyEditor" style="max-height:400px;overflow-y:auto;font-size:11px;border:2px solid #eab308;padding:8px;border-radius:10px;background:#fffbeb">Click Load button</div><button class="btnSmall" style="background:#eab308;color:#111827;margin-top:6px;width:100%;padding:10px;font-weight:800" onclick="loadCeoRateEditor()">🔄 Load CEO Weekly/Monthly Editor</button></div><button class="btnSmall" style="background:#16a34a;color:white;margin-top:8px;width:100%;padding:12px" onclick="saveSettings()">💾 Save Rates</button></div>
 </div>
 </div>
 
@@ -756,19 +756,108 @@ function setCareMode(mode){
   calculateTotal();
   if(mode==='liveout' || mode==='both'){ calculateTimeFromStartEnd(); }
 }
+// ===== CORE LOCALIZATION FORMULA CONTROL - UPDATED PER CLIENT REQUEST =====
+// Localization formula applies ONLY to hourly bookings 1 day to 6 days
+// Week/Month bookings are CEO-managed (no localization formula)
+var CEO_WEEKLY_MONTHLY_RATES = {
+  // CEO can override these in localStorage or Firebase - these are fallbacks
+  weeklyBase: null, // if null, CEO must set via dashboard
+  monthlyBase: null,
+  // Flag: if true, weekly/monthly uses flat CEO price, not hourly calculation
+  useFlatCeoPricing: true
+};
+
+function isCeoManagedBooking(unit, daysValue){
+  // Rule: Only 1-6 days (hourly/daily) uses localization formula
+  // Weekly, Monthly = always CEO managed
+  if(unit === 'weekly' || unit === 'monthly') return true;
+  if(unit === 'daily'){
+    var d = parseInt(daysValue) || 1;
+    if(d >= 7) return true; // 7+ days = considered week -> CEO managed
+  }
+  if(unit === 'hourly'){
+    var h = parseInt(document.getElementById('inputHours').value) || 1;
+    var daysEquiv = h / 24;
+    if(daysEquiv > 6) return true; // >6 days equiv = CEO managed
+  }
+  return false; // 1-6 days = localization formula
+}
+
+function getCeoManagedRate(){
+  try{
+    var ceoOverride = JSON.parse(localStorage.getItem('ceoWeeklyMonthlyOverride')||'{}');
+    return ceoOverride;
+  }catch(e){ return {}; }
+}
+
 function calculateTotal(){
  var rateData = getCurrentNurseRate(); var totalHours = 0; var displayDuration = ''; var displayDays = ''; var hrsPerDay = 8;
- if(bookingUnit === 'hourly'){ var h = parseInt(document.getElementById('inputHours').value) || 1; totalHours = h; hrsPerDay = h; displayDuration = h + ' Hours'; displayDays = (h/24).toFixed(2) + ' days equiv'; }
- else if(bookingUnit === 'daily'){ var d = parseInt(document.getElementById('inputDays').value) || 1; hrsPerDay = parseInt(document.getElementById('inputHrsPerDayDaily').value) || 8; totalHours = d * hrsPerDay; displayDuration = d + ' Days × ' + hrsPerDay + ' hrs/day'; displayDays = d + ' days'; document.getElementById('calcDailyText').innerText = '✅ Total = ' + d + ' × ' + hrsPerDay + ' = ' + totalHours + ' hrs'; }
- else if(bookingUnit === 'weekly'){ var w = parseInt(document.getElementById('inputWeeks').value) || 1; hrsPerDay = parseInt(document.getElementById('inputHrsPerDayWeekly').value) || 8; totalHours = w * 7 * hrsPerDay; displayDuration = w + ' Weeks × ' + hrsPerDay + ' hrs/day'; displayDays = (w*7) + ' days'; document.getElementById('calcWeeklyText').innerText = '✅ Total = ' + w + ' ×7 ×' + hrsPerDay + ' = ' + totalHours + ' hrs'; }
- else if(bookingUnit === 'monthly'){ var m = parseInt(document.getElementById('inputMonths').value) || 1; hrsPerDay = parseInt(document.getElementById('inputHrsPerDayMonthly').value) || 8; totalHours = m * 30 * hrsPerDay; displayDuration = m + ' Months × ' + hrsPerDay + ' hrs/day'; displayDays = (m*30) + ' days'; document.getElementById('calcMonthlyText').innerText = '✅ Total = ' + m + ' ×30 ×' + hrsPerDay + ' = ' + totalHours + ' hrs'; }
- currentTotalHours = totalHours; var selectedCurr = document.getElementById('cCurrency').value; var totalMinLegal = rateData.amount * totalHours; if(careMode === 'livein'){ totalMinLegal = totalMinLegal * 1.10; } var totalMinInSelectedCurr = Math.ceil(convertCurrency(totalMinLegal, rateData.currency, selectedCurr)); currentTotalMin = totalMinInSelectedCurr;
- document.getElementById('breakCountry').innerText = document.getElementById('countrySelect').options[document.getElementById('countrySelect').selectedIndex].text;
- document.getElementById('breakHourly').innerText = rateData.amount + ' ' + rateData.currency + '/hr';
- document.getElementById('breakCareMode').innerText = careMode === 'livein' ? 'Live-in (+10%)' : 'Live-out';
- document.getElementById('breakHours').innerText = displayDuration; document.getElementById('breakDays').innerText = displayDays; document.getElementById('breakTotalHours').innerText = totalHours + ' hrs (' + hrsPerDay + ' hrs/day)'; document.getElementById('breakTotalPay').innerText = totalMinInSelectedCurr + ' ' + selectedCurr + ' (Min)'; document.getElementById('cBudget').placeholder = 'Min ' + totalMinInSelectedCurr + ' ' + selectedCurr; document.getElementById('cBudget').min = totalMinInSelectedCurr;
+ var bookingDaysForCheck = 0;
+ if(bookingUnit === 'hourly'){ var h = parseInt(document.getElementById('inputHours').value) || 1; totalHours = h; hrsPerDay = h; displayDuration = h + ' Hours'; displayDays = (h/24).toFixed(2) + ' days equiv'; bookingDaysForCheck = h/24; }
+ else if(bookingUnit === 'daily'){ var d = parseInt(document.getElementById('inputDays').value) || 1; hrsPerDay = parseInt(document.getElementById('inputHrsPerDayDaily').value) || 8; totalHours = d * hrsPerDay; displayDuration = d + ' Days × ' + hrsPerDay + ' hrs/day'; displayDays = d + ' days'; document.getElementById('calcDailyText').innerText = '✅ Total = ' + d + ' × ' + hrsPerDay + ' = ' + totalHours + ' hrs'; bookingDaysForCheck = d; }
+ else if(bookingUnit === 'weekly'){ var w = parseInt(document.getElementById('inputWeeks').value) || 1; hrsPerDay = parseInt(document.getElementById('inputHrsPerDayWeekly').value) || 8; totalHours = w * 7 * hrsPerDay; displayDuration = w + ' Weeks × ' + hrsPerDay + ' hrs/day'; displayDays = (w*7) + ' days'; document.getElementById('calcWeeklyText').innerText = '✅ Total = ' + w + ' ×7 ×' + hrsPerDay + ' = ' + totalHours + ' hrs'; bookingDaysForCheck = w*7; }
+ else if(bookingUnit === 'monthly'){ var m = parseInt(document.getElementById('inputMonths').value) || 1; hrsPerDay = parseInt(document.getElementById('inputHrsPerDayMonthly').value) || 8; totalHours = m * 30 * hrsPerDay; displayDuration = m + ' Months × ' + hrsPerDay + ' hrs/day'; displayDays = (m*30) + ' days'; document.getElementById('calcMonthlyText').innerText = '✅ Total = ' + m + ' ×30 ×' + hrsPerDay + ' = ' + totalHours + ' hrs'; bookingDaysForCheck = m*30; }
+
+ var isCeoManaged = isCeoManagedBooking(bookingUnit, bookingDaysForCheck);
+ currentTotalHours = totalHours; var selectedCurr = document.getElementById('cCurrency').value; 
+ var totalMinLegal = 0;
+ var pricingLabel = '';
+ 
+ if(isCeoManaged){
+   // ===== CEO MANAGED PRICING - NO LOCALIZATION FORMULA =====
+   var ceoRates = getCeoManagedRate();
+   var country = document.getElementById('countrySelect').value || 'GH';
+   // CEO can set custom flat price per country for weekly/monthly
+   if(bookingUnit === 'weekly' && ceoRates[country+'_weekly']){
+     totalMinLegal = parseFloat(ceoRates[country+'_weekly']);
+     pricingLabel = 'CEO Weekly Rate (Fixed)';
+   } else if(bookingUnit === 'monthly' && ceoRates[country+'_monthly']){
+     totalMinLegal = parseFloat(ceoRates[country+'_monthly']);
+     pricingLabel = 'CEO Monthly Rate (Fixed)';
+   } else if(bookingUnit === 'daily' && bookingDaysForCheck >=7 && ceoRates[country+'_daily7plus']){
+     totalMinLegal = parseFloat(ceoRates[country+'_daily7plus']);
+     pricingLabel = 'CEO Daily 7+ Rate (Fixed)';
+   } else {
+     // Fallback if CEO hasn't set price yet: use hourly * hours BUT mark as CEO managed
+     // This still calculates but without applying localization FX? Actually uses same rateData but flagged
+     // CEO can override later in dashboard
+     totalMinLegal = rateData.amount * totalHours;
+     pricingLabel = 'CEO Managed (Base Rate - CEO to set final price)';
+     console.log('⚠️ CEO rate not set for '+country+' '+bookingUnit+', using fallback base calculation. CEO should set in dashboard.');
+   }
+   // For CEO managed, DO NOT apply localization FX conversion if CEO set flat price in selected currency
+   // If CEO set price, assume it's already in that country's currency
+   if(ceoRates[country+'_'+bookingUnit] || ceoRates[country+'_daily7plus']){
+     // CEO flat price - already in local currency, no FX conversion needed
+     var totalMinInSelectedCurr = Math.ceil(totalMinLegal);
+     if(careMode === 'livein'){ totalMinInSelectedCurr = Math.ceil(totalMinInSelectedCurr * 1.10); }
+     currentTotalMin = totalMinInSelectedCurr;
+     document.getElementById('breakCountry').innerText = document.getElementById('countrySelect').options[document.getElementById('countrySelect').selectedIndex].text + ' (CEO Pricing)';
+     document.getElementById('breakHourly').innerText = pricingLabel + ' - ' + totalMinLegal + ' ' + rateData.currency;
+     document.getElementById('breakCareMode').innerText = careMode === 'livein' ? 'Live-in (+10%) - CEO' : 'Live-out - CEO Managed';
+     document.getElementById('breakHours').innerText = displayDuration; document.getElementById('breakDays').innerText = displayDays + ' (CEO Managed)'; document.getElementById('breakTotalHours').innerText = totalHours + ' hrs (' + hrsPerDay + ' hrs/day) - CEO'; document.getElementById('breakTotalPay').innerText = totalMinInSelectedCurr + ' ' + selectedCurr + ' (CEO Min)'; document.getElementById('cBudget').placeholder = 'Min ' + totalMinInSelectedCurr + ' ' + selectedCurr + ' (CEO)'; document.getElementById('cBudget').min = totalMinInSelectedCurr;
+     validateBudgetLive();
+     return { totalMin: totalMinInSelectedCurr, totalHours: totalHours, hrsPerDay: hrsPerDay, rateData: rateData, displayDuration: displayDuration, unit: bookingUnit, careMode: careMode, isCeoManaged: true, pricingType: 'CEO_MANAGED' };
+   }
+   // Fallback still goes through FX for now
+ } else {
+   // ===== LOCALIZATION FORMULA PRICING - 1 DAY TO 6 DAYS ONLY =====
+   pricingLabel = 'Localization Formula';
+ }
+
+ // Localization formula path (1-6 days only) OR fallback for CEO not set
+ if(careMode === 'livein'){ totalMinLegal = (rateData.amount * totalHours) * 1.10; } else { totalMinLegal = rateData.amount * totalHours; }
+ // If CEO managed but no flat price, still use base calculation above but flag it
+ if(isCeoManaged && !pricingLabel.includes('Fixed')){
+   // Keep totalMinLegal as calculated
+ }
+ var totalMinInSelectedCurr = Math.ceil(convertCurrency(totalMinLegal, rateData.currency, selectedCurr)); currentTotalMin = totalMinInSelectedCurr;
+ document.getElementById('breakCountry').innerText = document.getElementById('countrySelect').options[document.getElementById('countrySelect').selectedIndex].text + (isCeoManaged ? ' (CEO Pricing)' : ' (Localization 1-6 days)');
+ document.getElementById('breakHourly').innerText = (isCeoManaged ? pricingLabel + ' - ' : '') + rateData.amount + ' ' + rateData.currency + '/hr' + (isCeoManaged ? '' : ' - Localization');
+ document.getElementById('breakCareMode').innerText = careMode === 'livein' ? 'Live-in (+10%)' + (isCeoManaged ? ' - CEO' : '') : 'Live-out' + (isCeoManaged ? ' - CEO Managed' : ' - Localization');
+ document.getElementById('breakHours').innerText = displayDuration; document.getElementById('breakDays').innerText = displayDays + (isCeoManaged ? ' (CEO)' : ' (1-6 days Localization)'); document.getElementById('breakTotalHours').innerText = totalHours + ' hrs (' + hrsPerDay + ' hrs/day)' + (isCeoManaged ? ' - CEO' : ' - Localization'); document.getElementById('breakTotalPay').innerText = totalMinInSelectedCurr + ' ' + selectedCurr + (isCeoManaged ? ' (CEO Min)' : ' (Localization Min)'); document.getElementById('cBudget').placeholder = 'Min ' + totalMinInSelectedCurr + ' ' + selectedCurr + (isCeoManaged ? ' (CEO)' : ''); document.getElementById('cBudget').min = totalMinInSelectedCurr;
  validateBudgetLive();
- return { totalMin: totalMinInSelectedCurr, totalHours: totalHours, hrsPerDay: hrsPerDay, rateData: rateData, displayDuration: displayDuration, unit: bookingUnit, careMode: careMode };
+ return { totalMin: totalMinInSelectedCurr, totalHours: totalHours, hrsPerDay: hrsPerDay, rateData: rateData, displayDuration: displayDuration, unit: bookingUnit, careMode: careMode, isCeoManaged: isCeoManaged, pricingType: isCeoManaged ? 'CEO_MANAGED' : 'LOCALIZATION_1_6_DAYS' };
 }
 function validateBudgetLive(){
  var info = document.getElementById('minRateInfo'); var amt = parseFloat(document.getElementById('cBudget').value); var rateData = getCurrentNurseRate(); var totalHours = currentTotalHours || 0; var selectedCurr = document.getElementById('cCurrency').value; var display = document.getElementById('breakHours').innerText || '';
@@ -873,7 +962,7 @@ function enforceMinRate(){
  return true;
 }
 function closeLegalWagePopup(){ document.getElementById('legalWagePopup').classList.add('hidden'); }
-var firebaseConfig={apiKey:"AIzaSyB52-X1D8Cg-wUDWPds_tR7D8cF82dMdRg",authDomain:"web-care-618e8.firebaseapp.com",databaseURL:"https://web-care-618e8-default-rtdb.firebaseio.com",projectId:"web-care-618e8",storageBucket:"web-care-618e8.firebasestorage.app",messagingSenderId:"1062578660694",appId:"1:1062578660694:web:f94dfe12c929df05bce2f7"};
+var firebaseConfig={apiKey:"AIzaSyB52-X1D8Cg-wUDWPds_tR7D8cF82dMdRg",authDomain:"web-care-618e8.firebaseapp.com",databaseURL:"https://web-care-618e8-default-rtdb.firebaseio.com",projectId:"web-care-618e8",storageBucket:"web-care-618e8.appspot.com",messagingSenderId:"1062578660694",appId:"1:1062578660694:web:f94dfe12c929df05bce2f7"};
 var db=null,allBookings=[],allWorkers=[],allRefunds=[],clientLat=null,clientLng=null,nurseRegLat=null,nurseRegLng=null;
 var uberMap=null,ceoMap=null,nurseCluster=null,selectedNurseId=null,nearbyNursesSorted=[];
 var currentCareMode='liveout';
@@ -2374,6 +2463,41 @@ function saveSettings(){
   alert('Rates saved');
 }
 
+
+function saveCeoWeeklyMonthlyRates(){
+  var override={};
+  try{ override=JSON.parse(localStorage.getItem('ceoWeeklyMonthlyOverride')||'{}'); }catch(e){ override={}; }
+  Object.keys(NURSE_HOURLY_MIN).forEach(function(code){
+    var wEl=document.getElementById('ceo-weekly-'+code);
+    var mEl=document.getElementById('ceo-monthly-'+code);
+    var d7El=document.getElementById('ceo-daily7-'+code);
+    if(wEl && wEl.value) override[code+'_weekly']=wEl.value;
+    if(mEl && mEl.value) override[code+'_monthly']=mEl.value;
+    if(d7El && d7El.value) override[code+'_daily7plus']=d7El.value;
+  });
+  localStorage.setItem('ceoWeeklyMonthlyOverride', JSON.stringify(override));
+  if(window.db){ db.ref('settings/ceoWeeklyMonthlyRates').set(override); }
+  alert('✅ CEO Weekly/Monthly rates saved! These will be used for week/month bookings (no localization formula).');
+}
+function loadCeoRateEditor(){
+  var container=document.getElementById('ceoWeeklyMonthlyEditor');
+  if(!container) return;
+  var ceoRates={};
+  try{ ceoRates=JSON.parse(localStorage.getItem('ceoWeeklyMonthlyOverride')||'{}'); }catch(e){}
+  var h='<div style="font-size:11px;color:#6b7280;margin-bottom:8px">Set FIXED prices for Weekly/Monthly (CEO Managed - NO localization formula). Leave empty to use fallback base calculation.</div>';
+  h+='<div style="display:grid;grid-template-columns:60px 1fr 1fr 1fr;gap:6px;font-weight:800;font-size:11px;padding:4px;background:#111827;color:white;border-radius:6px"><span>Code</span><span>Weekly Fixed</span><span>Monthly Fixed</span><span>Daily 7+ Fixed</span></div>';
+  Object.keys(NURSE_HOURLY_MIN).forEach(function(code){
+    var data=NURSE_HOURLY_MIN[code];
+    var wVal=ceoRates[code+'_weekly']||'';
+    var mVal=ceoRates[code+'_monthly']||'';
+    var d7Val=ceoRates[code+'_daily7plus']||'';
+    h+='<div style="display:grid;grid-template-columns:60px 1fr 1fr 1fr;gap:6px;align-items:center;margin:4px 0;font-size:11px"><span style="font-weight:800">'+code+' ('+data.currency+')</span><input type="number" id="ceo-weekly-'+code+'" value="'+wVal+'" placeholder="Weekly" style="margin:0"><input type="number" id="ceo-monthly-'+code+'" value="'+mVal+'" placeholder="Monthly" style="margin:0"><input type="number" id="ceo-daily7-'+code+'" value="'+d7Val+'" placeholder="7+ days" style="margin:0"></div>';
+  });
+  h+='<button class="btnSmall" style="background:#111827;color:#eab308;width:100%;margin-top:8px;padding:12px;font-weight:800" onclick="saveCeoWeeklyMonthlyRates()">💾 Save CEO Weekly/Monthly Rates</button>';
+  h+='<div style="margin-top:8px;padding:8px;background:#dcfce7;border-radius:8px;font-size:10px"><b>Rule:</b> Localization formula = 1-6 days only (hourly/daily). Weekly/Monthly/Daily 7+ = CEO fixed price above. If empty, system uses base hourly*hrs as fallback until CEO sets price.</div>';
+  container.innerHTML=h;
+}
+
 // ===== STAFF EXTRA TABS =====
 function loadStaffNurses(){ 
   var el=document.getElementById('staffNursesList');
@@ -3456,7 +3580,7 @@ document.addEventListener('DOMContentLoaded', function(){
 // ====== LOVCARE - FINAL FIX - NO MORE 401 ======
 // ====== TELEGRAM STORAGE - REPLACES TELEGRAM & DRIVE ======
 const TELEGRAM_CONFIG = {
-  botToken: 'DISABLED',
+  botToken: '8606627642:AAEaGvPH_aZZe86jZgixOgLm1ERippN5UT8',
   channelId: '-1003912808382',
   channelNumeric: '3912808382',
   channelTitle: 'Love Care Global CVs'
@@ -4817,7 +4941,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   }
 
   // Auto upload to Telegram
-  // REMOVED OLD autoUploadFile - replaced by ULTRA FIX
+  // OLD REMOVED
 
   // Setup auto-upload for each input
   function setupAutoUpload(fileInputId, linkInputId, progressId, folder, previewId, type){
@@ -4855,7 +4979,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
             progEl.innerHTML='✅ <a href="'+uploadedUrl+'" target="_blank" style="color:#16a34a">Uploaded! Tap to view</a> - '+file.name;
             progEl.style.color='#16a34a';
           } else {
-            progEl.innerHTML='⏳ Uploading... please wait';
+            progEl.innerHTML='⏳ Uploading...';
             progEl.style.color='#ef4444';
           }
         }
@@ -4881,7 +5005,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
           }
         } else {
           if(previewContainer){
-            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Upload failed - check rules<br><small>Check internet & try again</small></div>';
+            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Upload failed<br><small>Check Rules & Auth</small></div>';
             previewContainer.style.display='block';
           }
         }
