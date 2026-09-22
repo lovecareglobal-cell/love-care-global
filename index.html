@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
+
+<script>
+// GLOBAL TELEGRAM HELPERS
+function isTelegramLink(url){ return url && (url.includes('t.me/c/') || url.includes('t.me/')); }
+function isDriveLink(url){ return false; }
+function getDrivePreview(url){ return url; }
+function getDriveDownload(url){ return url; }
+function getDriveFileId(url){ return null; }
+</script>
+
 <!-- FIREBASE EMAIL: Using Firebase Auth + Database - No EmailJS needed -->
 <link rel="icon" type="image/png" href="./Icon-512.png">
 <link rel="apple-touch-icon" href="./Icon-512.png">
@@ -97,7 +107,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 .colorRow input[type="color"]{width:50px;height:36px;padding:2px}
 .colorRow input[type="range"]{flex:1}
 </style>
-<style>/* FIXED: removed !important hide */ #emailVerifyModal.hidden{display:none} .emailModal.hidden{display:none}</style>
+<style>#emailVerifyModal{display:none!important; visibility:hidden!important; opacity:0!important; pointer-events:none!important} .emailModal{display:none!important} #verifiedEmailBadge{display:none!important}</style>
 <style>
 /* Hide nurse phone numbers from client view */
 .client-hide-phone .nurse-phone,
@@ -117,19 +127,6 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
   font-size: 10px;
   color: #92400e;
 }
-</style>
-
-
-<style>
-/* MINIMAL FIX: ensure buttons are clickable, don't block */
-.bottomNav { pointer-events:auto !important; z-index:99999 !important; }
-.bottomNav button { pointer-events:auto !important; cursor:pointer !important; touch-action:manipulation !important; }
-#page-home button { pointer-events:auto !important; cursor:pointer !important; touch-action:manipulation !important; }
-.sosFloat { pointer-events:auto !important; }
-button { cursor:pointer; }
-/* Fix any overlay that might block */
-.announcementBar { pointer-events:none; }
-.announcementBar span { pointer-events:none; }
 </style>
 
 </head>
@@ -305,28 +302,28 @@ button { cursor:pointer; }
 <div style="background:white;border:2px solid #16a34a;border-radius:10px;padding:8px;margin:6px 0">
 <label style="font-size:11px;font-weight:800;color:#16a34a">🎥 Video Intro - Upload from Phone/Laptop (MP4, MOV)</label>
 <input type="file" id="nRegVideoFile" accept="video/*" style="padding:6px">
-<input type="hidden" id="nRegVideo" value="">
+<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegVideo" placeholder="Telegram auto-upload" style="margin:0;flex:1"></div>
 <div id="videoUploadProgress" style="font-size:10px;color:#16a34a;margin-top:4px"></div>
 </div>
 
 <div style="background:white;border:2px solid #2563eb;border-radius:10px;padding:8px;margin:6px 0">
 <label style="font-size:11px;font-weight:800;color:#2563eb">📄 CV - Upload PDF/DOC from storage</label>
 <input type="file" id="nRegCVFile" accept=".pdf,.doc,.docx,image/*" style="padding:6px">
-<input type="hidden" id="nRegCV" value="">
+<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegCV" placeholder="Telegram auto-upload" style="margin:0;flex:1"></div>
 <div id="cvUploadProgress" style="font-size:10px;color:#2563eb;margin-top:4px"></div>
 </div>
 
 <div style="background:white;border:2px solid #eab308;border-radius:10px;padding:8px;margin:6px 0">
 <label style="font-size:11px;font-weight:800;color:#92400e">🎓 Certificate - Upload Photo/PDF</label>
 <input type="file" id="nRegCertFile" accept=".pdf,image/*" style="padding:6px">
-<input type="hidden" id="nRegCertificate" value="">
+<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegCertificate" placeholder="Certificate link (optional)" style="margin:0;flex:1"></div>
 <div id="certUploadProgress" style="font-size:10px;color:#92400e;margin-top:4px"></div>
 </div>
 
 <div style="background:white;border:2px solid #ef4444;border-radius:10px;padding:8px;margin:6px 0">
 <label style="font-size:11px;font-weight:800;color:#ef4444">🪪 ID Card - Upload Photo</label>
 <input type="file" id="nRegIDFile" accept="image/*,.pdf" style="padding:6px">
-<input type="hidden" id="nRegID" value="">
+<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegID" placeholder="ID link (optional)" style="margin:0;flex:1"></div>
 <div id="idUploadProgress" style="font-size:10px;color:#ef4444;margin-top:4px"></div>
 </div>
 
@@ -481,7 +478,7 @@ button { cursor:pointer; }
 1. Go to Firebase Console → Storage → Rules → Change to:<br>
 <code style="background:#111827;color:#eab308;padding:4px 6px;border-radius:4px;display:block;margin:4px 0">rules_version = '2';<br>service firebase.storage {<br>  match /b/{bucket}/o {<br>    match /{allPaths=**} {<br>      allow read, write: if true;<br>    }<br>  }<br>}</code>
 2. Publish rules<br>
-3. Also tell nurses to paste Google Drive link if upload fails - viewer will show Drive link
+3. Also tell nurses to paste Telegram link if upload fails - viewer will show Telegram link
 </div>
 <div id="ceoNursesList">Loading...</div><div id="ceoMap" style="height:380px;border-radius:12px;border:2px solid #16a34a;margin-top:10px"></div><div id="ceoNurseMediaView" style="display:none" data-fixed="true" id="ceoNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:16px;padding:12px;margin-top:12px;background:#f5f3ff;max-height:85vh;overflow-y:auto" style="border:3px solid #7c3aed;border-radius:16px;padding:12px;margin-top:12px;background:#f5f3ff;max-height:85vh;overflow-y:auto;position:relative"><div style="position:sticky;top:0;background:#f5f3ff;padding:8px 0;z-index:10;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">🔍 Nurse Media Viewer - CEO</h3><button class="btnSmall" style="background:#ef4444;color:white" onclick="document.getElementById('ceoNurseMediaView').classList.add('hidden')">✕ Close</button></div><div id="mediaViewerContent"></div></div></div>
 <div id="ceo-tab-clients" class="ceo-tab card hidden"><h2>3. Clients (Verified Emails)</h2><div id="ceoClientsList">Loading...</div></div>
@@ -787,7 +784,7 @@ document.querySelectorAll('.bottomNav button').forEach(b=>b.classList.remove('ac
 var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
 var nid=map[id]; if(nid){var nb=document.getElementById(nid); if(nb) nb.classList.add('active');}
 window.scrollTo(0,0);
-if(id==='home') setTimeout(()=>{ try{ if(typeof uberMap==='undefined' || !uberMap){ if(typeof initUberMap==='function') initUberMap(); } else if(uberMap.invalidateSize){ uberMap.invalidateSize(); } }catch(e){ console.error('Map init error', e); } },300);
+if(id==='home') setTimeout(()=>{if(!uberMap)initUberMap();else{uberMap.invalidateSize();}},300);
 }
 function autoGPS(i,s){
   var se=document.getElementById(s); 
@@ -967,8 +964,8 @@ async function registerNurse(){
       showUploadStatus('📤 Processing uploads (max 15s per file) - Links work too!');
       var tasks=[];
       if(videoFile) tasks.push(uploadWithTimeout(videoFile, 'nurse_videos/'+phoneKey, 15000).then(function(u){ if(u) videoUrl=u; }).catch(function(){ }));
-      if(cvFile) tasks.push(uploadToTelegram(cvFile, \'nurse_cvs\').then(function(u){ if(u) cvUrl=u; }).then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
-      if(certFile) tasks.push(uploadToTelegram(certFile, \'nurse_certs\').then(function(u){ if(u) certUrl=u; }).then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
+      if(cvFile) tasks.push(uploadToTelegram(cvFile, 'CV').then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
+      if(certFile) tasks.push(uploadToTelegram(certFile, 'CERTIFICATE').then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
       if(idFile) tasks.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 15000).then(function(u){ if(u) idUrl=u; }).catch(function(){ }));
       if(tasks.length>0){
         await Promise.allSettled(tasks);
@@ -1234,7 +1231,7 @@ function findNursesUber(){
     // Try to get from localStorage
     var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng');
     if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); }
-    else { console.log('No GPS, using Accra default'); clientLat=5.6037; clientLng=-0.1870; localStorage.setItem('clientLat', clientLat); localStorage.setItem('clientLng', clientLng); }
+    else { alert('📡 Tap GPS Auto first to get your live location'); return; }
   } 
   var rad=parseInt(document.getElementById('radiusSelect').value)||10; 
   nearbyNursesSorted=src.filter(w=>w.lat&&w.lng).map(w=>{
@@ -2473,7 +2470,11 @@ function findNursesUber(){
   if(!clientLat||!clientLng){
     var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng');
     if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); }
-    else { console.log('No GPS, using Accra default 2'); clientLat=5.6037; clientLng=-0.1870; localStorage.setItem('clientLat', clientLat); localStorage.setItem('clientLng', clientLng); }
+    else { 
+      alert('📡 Tap GPS Auto first to get your live location - Allow location permission'); 
+      document.getElementById('cLocation').focus();
+      return; 
+    }
   } 
   var rad=parseInt(document.getElementById('radiusSelect').value)||10; 
   nearbyNursesSorted=src.filter(function(w){return w.lat&&w.lng;}).map(function(w){
@@ -2882,7 +2883,7 @@ function resendCode(){ document.getElementById('sendCodeArea').classList.remove(
   function startDrag(e){
     var p=getPos(e); startX=p.x; startY=p.y;
     var r=sosBtn.getBoundingClientRect(); initialLeft=r.left; initialTop=r.top;
-    isDragging=true; hasMoved=false; sosBtn.classList.add('dragging'); sosBtn.style.transition='none'; if(e.target===sosBtn || sosBtn.contains(e.target)){ e.preventDefault(); }
+    isDragging=true; hasMoved=false; sosBtn.classList.add('dragging'); sosBtn.style.transition='none'; e.preventDefault();
   }
   function onDrag(e){
     if(!isDragging) return;
@@ -3346,14 +3347,19 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <script>
 // ====== LOVCARE - FINAL FIX - NO MORE 401 ======
+// ====== TELEGRAM STORAGE - REPLACES TELEGRAM & DRIVE ======
 const TELEGRAM_CONFIG = {
   botToken: '8606627642:AAEaGvPH_aZZe86jZgixOgLm1ERippN5UT8',
   channelId: '-1003912808382',
   channelNumeric: '3912808382',
-  channelTitle: 'Love Care Global CVs',
-  maxSizeMB: 50
+  channelTitle: 'Love Care Global CVs'
 };
-const FREE_UPLOAD_CONFIG = { cloudinaryCloudName: 'REMOVED', cloudinaryPreset: 'REMOVED', useCloudinary: false };
+const FREE_UPLOAD_CONFIG = {
+  telegramCloudName: 'REMOVED',
+  telegramPreset: 'REMOVED',
+  useTelegram: false
+};
+// Compatibility: old DRIVE_CONFIG removed
 const DRIVE_CONFIG = { enabled: false, folderId: '', appsScriptUrl: '', autoUploadThresholdMB: 9999 };
 
 
@@ -3373,89 +3379,119 @@ function showUploadStatus(msg, isError){
 }
 
 
-// ====== TELEGRAM V5 - COMPLETE REPLACEMENT ======
+// ====== TELEGRAM UPLOADER - SENDS ALL FILES TO TELEGRAM CHANNEL ======
 async function uploadToTelegram(file, folderOrType){
   if(!file) return null;
-  const sizeMB = file.size/(1024*1024);
-  if(sizeMB > TELEGRAM_CONFIG.maxSizeMB){
-    alert(`File ${file.name} is ${sizeMB.toFixed(1)}MB - Telegram limit is 50MB. Compress to <50MB.`);
-    return null;
-  }
   try{
-    const typeMap = {'nurse_cvs':'CV','nurse_certs':'CERTIFICATE','nurse_ids':'ID_PHOTO','nurse_videos':'VIDEO','nurse_certificates':'CERTIFICATE'};
+    const typeMap = {
+      'nurse_cvs': 'CV',
+      'nurse_certs': 'CERTIFICATE',
+      'nurse_ids': 'ID_PHOTO',
+      'nurse_videos': 'VIDEO',
+      'nurse_certificates': 'CERTIFICATE'
+    };
     const type = typeMap[folderOrType] || folderOrType || 'DOCUMENT';
-    let nurseName=''; try{ nurseName=document.getElementById('nRegName')?.value||''; }catch(e){}
-    let nursePhone=''; try{ nursePhone=document.getElementById('nRegPhone')?.value||''; }catch(e){}
-    const caption = `📁 ${type} | 👩‍⚕️ ${nurseName} | 📞 ${nursePhone} | 📄 ${file.name} (${sizeMB.toFixed(2)}MB)`;
-    const form=new FormData();
+    // Get nurse name/phone from form if available
+    let nurseName = '';
+    try{ nurseName = (document.getElementById('nRegName')?.value || '').trim(); }catch(e){}
+    let nursePhone = '';
+    try{ nursePhone = (document.getElementById('nRegPhone')?.value || '').trim(); }catch(e){}
+    
+    const caption = `📁 ${type}\n👩‍⚕️ ${nurseName || 'Nurse'}\n📞 ${nursePhone || 'No phone'}\n📄 ${file.name}\n💾 ${(file.size/1024/1024).toFixed(2)}MB\n🕒 ${new Date().toLocaleString()}`;
+    
+    const form = new FormData();
     form.append('chat_id', TELEGRAM_CONFIG.channelId);
     form.append('caption', caption);
-    let endpoint='sendDocument';
-    if(file.type.startsWith('image/')){ endpoint='sendPhoto'; form.append('photo', file, file.name); }
-    else if(file.type.startsWith('video/')){ endpoint='sendVideo'; form.append('video', file, file.name); }
-    else { form.append('document', file, file.name); }
-    if(typeof showUploadStatus==='function') showUploadStatus(`📤 Sending ${type} to Telegram: ${file.name}...`);
-    const url=`https://api.telegram.org/bot${TELEGRAM_CONFIG.botToken}/${endpoint}`;
-    let res, data;
-    try{ res=await fetch(url, {method:'POST', body:form}); data=await res.json(); }
-    catch(corsErr){
-      console.warn('CORS fail, proxy try', corsErr);
-      const proxyUrl=`https://thingproxy.freeboard.name/fetch/${url}`;
-      res=await fetch(proxyUrl, {method:'POST', body:form});
-      data=await res.json();
+    form.append('parse_mode', 'HTML');
+
+    let endpoint = 'sendDocument';
+    if(file.type.startsWith('image/')){
+      endpoint = 'sendPhoto';
+      form.append('photo', file, file.name);
+    } else if(file.type.startsWith('video/')){
+      endpoint = 'sendVideo';
+      form.append('video', file, file.name);
+    } else {
+      form.append('document', file, file.name);
     }
-    if(!data.ok) throw new Error(data.description);
-    const msgId=data.result.message_id;
-    const viewLink=`https://t.me/c/${TELEGRAM_CONFIG.channelNumeric}/${msgId}`;
-    if(typeof showUploadStatus==='function') showUploadStatus(`✅ ${type} sent to Telegram ✅`);
+
+    if(typeof showUploadStatus === 'function') showUploadStatus(`📤 Uploading ${type} to Telegram: ${file.name}...`);
+    if(typeof showStatus === 'function') showStatus(`📤 Uploading ${type} to Telegram...`);
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.botToken}/${endpoint}`;
+    const res = await fetch(url, { method: 'POST', body: form });
+    const data = await res.json();
+
+    if(!data.ok){
+      console.error('Telegram fail', data);
+      throw new Error(data.description || 'Telegram upload failed');
+    }
+
+    const msgId = data.result.message_id;
+    const viewLink = `https://t.me/c/${TELEGRAM_CONFIG.channelNumeric}/${msgId}`;
+
+    console.log(`✅ Telegram uploaded [${type}]:`, viewLink);
+    if(typeof showUploadStatus === 'function') showUploadStatus(`✅ ${type} sent to Telegram: ${file.name}`);
+    if(typeof showStatus === 'function') showStatus(`✅ ${type} sent to Telegram`);
+
+    // Return the t.me link - this will be saved to Firebase as cvUrl etc
     return viewLink;
   }catch(e){
-    console.error('Telegram fail', e);
-    if(typeof showUploadStatus==='function') showUploadStatus(`❌ Telegram failed: ${e.message}`, true);
+    console.error('Telegram upload error', e);
+    if(typeof showUploadStatus === 'function') showUploadStatus(`❌ Telegram failed: ${e.message}`, true);
     return null;
   }
 }
-function uploadToCloudinary(f, folder){ return uploadToTelegram(f, folder); }
-function uploadToMyDrive(f){ return Promise.resolve(null); }
-function uploadFileToStorage(f, path){ let t='DOCUMENT'; if(path?.includes('cv')) t='CV'; if(path?.includes('cert')) t='CERTIFICATE'; if(path?.includes('id')) t='ID_PHOTO'; if(path?.includes('video')) t='VIDEO'; return uploadToTelegram(f, t); }
-function uploadWithTimeout(f, path, ms){ return uploadToTelegram(f, path); }
-function isDriveLink(url){ return false; }
-function getDrivePreview(url){ return url; }
-function getDriveDownload(url){ return url; }
-function getDriveFileId(url){ return null; }
-function isTelegramLink(url){ return url && url.includes('t.me/c/'); }
 
-// COMPLETELY OVERRIDE setupAutoUpload - NO MORE CLOUDINARY / DRIVE LOGIC
-window.setupAutoUpload = function(fileInputId, linkInputId, progressId, folder, previewBoxId, type){
-  var fileEl = document.getElementById(fileInputId);
-  var linkEl = document.getElementById(linkInputId);
-  var progEl = document.getElementById(progressId);
-  if(!fileEl) return;
-  fileEl.addEventListener('change', async function(){
-    var file = fileEl.files[0];
-    if(!file) return;
-    if(progEl) progEl.innerHTML = '<div style="color:#16a34a">⏳ Uploading to Telegram: '+file.name+'...</div>';
-    var url = await uploadToTelegram(file, folder);
-    if(url){
-      if(linkEl) { linkEl.value = url; linkEl.setAttribute('data-uploaded-url', url); }
-      fileEl.setAttribute('data-uploaded-url', url);
-      if(progEl) progEl.innerHTML = '<div style="color:#16a34a;background:#dcfce7;padding:6px;border-radius:6px">✅ Sent to Telegram: <a href="'+url+'" target="_blank" style="color:#16a34a;font-weight:800">View in Channel</a></div>';
-    } else {
-      if(progEl) progEl.innerHTML = '<div style="color:#b91c1c;background:#fee2e2;padding:6px;border-radius:6px">❌ Failed. Check: Bot is Admin in channel? File <50MB? Try again.</div>';
-    }
+// Compatibility wrappers - old functions now point to Telegram
+function uploadToTelegram(file, folder){ return uploadToTelegram(file, folder); }
+function uploadToMyDrive(file){ return Promise.resolve(null); } // disabled
+function uploadFileToStorage(file, path){ 
+  // Extract type from path
+  let t = 'DOCUMENT';
+  if(path && path.includes('cv')) t='CV';
+  if(path && path.includes('cert')) t='CERTIFICATE';
+  if(path && path.includes('id')) t='ID_PHOTO';
+  return uploadToTelegram(file, t);
+}
+function uploadWithTimeout(file, path, ms){ return uploadToTelegram(file, path); }
+
+
+function uploadToMyDrive(file){
+  return new Promise(function(resolve){
+    if(!DRIVE_CONFIG.enabled) { resolve(null); return; }
+    var sizeMB=file.size/(1024*1024);
+    if(sizeMB < DRIVE_CONFIG.autoUploadThresholdMB){ resolve(null); return; }
+    showUploadStatus('📤 Big file ('+sizeMB.toFixed(1)+'MB) → Uploading to your Drive: LOVECARE UPLOADED PHOTOS...');
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var b64=e.target.result.split(',')[1];
+      var fd=new FormData();
+      fd.append('fileName', Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
+      fd.append('mimeType', file.type);
+      fd.append('fileData', b64);
+      fd.append('folderId', DRIVE_CONFIG.folderId);
+      fd.append('originalName', file.name);
+      fetch(DRIVE_CONFIG.appsScriptUrl,{method:'POST', body:fd}).then(function(r){return r.json();}).then(function(d){
+        if(d.success && d.fileUrl){ showUploadStatus('✅ Uploaded to Drive: '+file.name+' ('+sizeMB.toFixed(1)+'MB)'); resolve(d.fileUrl); }
+        else { console.warn('Drive fail', d); resolve(null); }
+      }).catch(function(err){ console.warn('Drive error', err); resolve(null); });
+    };
+    reader.onerror=function(){ resolve(null); };
+    reader.readAsDataURL(file);
   });
-};
+}
 
- if exists, else create
+// Override uploadFileToStorage if exists, else create
 window.uploadFileToStorage = async function(file, path){
   if(!file) return null;
   var sizeMB=file.size/(1024*1024);
   if(sizeMB > DRIVE_CONFIG.autoUploadThresholdMB){
-    var driveUrl=await uploadToMyDrive(file);
-    if(driveUrl) return driveUrl;
+    // drive removed
+    // drive removed
   }
   var folder=(path||'').split('/')[0]||'lovecare';
-  var cloudUrl=await uploadToCloudinary(file, folder);
+  var cloudUrl=await uploadToTelegram(file, folder);
   if(cloudUrl) return cloudUrl;
   // Fallback to Firebase if both fail (original logic)
   if(window.uploadToFirebaseStorage){
@@ -3713,7 +3749,7 @@ window.uploadFileToStorage = async function(file, path){
   console.log('✅ Rating system loaded - After service, CEO sees ratings, auto-suspend <2.5 from 3+ clients');
 })();
 
-console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CONFIG.folderId+' + Draggable SOS + Ratings + Watch 5s');
+console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '+TELEGRAM_CONFIG.channelId+' // Old log: All changes integrated - Telegram REMOVED + Drive '+DRIVE_CONFIG.folderId+' + Draggable SOS + Ratings + Watch 5s');
 </script>
 
 
@@ -3918,27 +3954,20 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
   // Also fix deleteBooking from CEO Payments if using numeric id in table
   window.deleteClientBooking = window.deleteBooking;
 
-  // ---- MEDIA VIEWER FIXES (Handles Cloudinary PDFs as PDF not image) ----
-  function isDriveLink(url){ return url && (url.includes('t.me')||url.includes('t.me')); }
-  function getDriveFileId(url){
-    if(!url) return null;
-    var m = url.match(/\/d\/([^\/\?]+)/); if(m) return m[1];
-    m = url.match(/[?&]id=([^&]+)/); if(m) return m[1];
-    return null;
-  }
-  function getDrivePreview(url){
-    var id=getDriveFileId(url); return id ? 'https://t.me/file/d/'+id+'/preview' : url;
-  }
-  function getDriveDownload(url){
-    var id=getDriveFileId(url); return id ? 'https://t.me/uc?export=download&id='+id : url;
-  }
+  // ---- MEDIA VIEWER FIXES (Handles Telegram PDFs as PDF not image) ----
+  function false{ return false; }
+  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
+  function getDriveFileId(url){ return null; }
+  function url{ return url; }
+  function url{ return url; }
+  function url{ return url; }
   function isPdfUrl(u){
     if(!u) return false;
     return /\.pdf($|\?|#)/i.test(u) || u.includes('nurse_cvs') || u.includes('_cvs/');
   }
   function isVideoUrl(u){
     if(!u) return false; if(isDriveLink(u)) return false;
-    return /\.(mp4|mov|webm|mkv|avi)($|\?)/i.test(u) || (u.includes('cloudinary') && u.includes('/video/')) || u.includes('nurse_videos');
+    return /\.(mp4|mov|webm|mkv|avi)($|\?)/i.test(u) || (u.includes('telegram') && u.includes('/video/')) || u.includes('nurse_videos');
   }
   function isImageUrl(u){
     if(!u) return false; if(isDriveLink(u) || isPdfUrl(u) || isVideoUrl(u)) return false;
@@ -3948,16 +3977,16 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
     if(!url) return '<div style="padding:10px;background:#fee2e2;border-radius:10px;margin:8px 0;font-size:12px">❌ No '+label+' uploaded</div>';
     var safe = url.trim();
     var html='<div style="border:2px solid #e5e7eb;border-radius:12px;padding:12px;margin:12px 0;background:white">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px"><b style="color:#111827;font-size:13px">'+label+'</b><div style="display:flex;gap:6px"><a href="'+safe+'" target="_blank" style="background:#2563eb;color:white;padding:6px 12px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open</a><a href="'+(isDriveLink(safe)?getDriveDownload(safe):safe)+'" download target="_blank" style="background:#16a34a;color:white;padding:6px 12px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px"><b style="color:#111827;font-size:13px">'+label+'</b><div style="display:flex;gap:6px"><a href="'+safe+'" target="_blank" style="background:#2563eb;color:white;padding:6px 12px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open</a><a href="'+(isDriveLink(safe)?safe:safe)+'" download target="_blank" style="background:#16a34a;color:white;padding:6px 12px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
     html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:8px">'+safe+'</div>';
     if(isDriveLink(safe)){
-      html+='<iframe src="'+getDrivePreview(safe)+'" style="width:100%;height:480px;border:2px solid #16a34a;border-radius:10px" allow="autoplay"></iframe>';
+      html+='<iframe src="'+safe+'" style="width:100%;height:480px;border:2px solid #16a34a;border-radius:10px" allow="autoplay"></iframe>';
     } else if(isVideoUrl(safe)){
       html+='<video src="'+safe+'" controls playsinline controlsList="nodownload" style="width:100%;max-height:480px;border-radius:12px;background:#000;border:2px solid #7c3aed"></video>';
     } else if(isPdfUrl(safe)){
-      // Use Cloudinary / Google Docs viewer for PDFs
-      if(safe.includes('cloudinary')){
-        html+='<iframe src="'+safe+'" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe><div style="font-size:10px;color:#2563eb;margin-top:4px">📄 PDF from Cloudinary - If blank, click Open</div>';
+      // Use Telegram / Google Docs viewer for PDFs
+      if(safe.includes('telegram')){
+        html+='<iframe src="'+safe+'" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe><div style="font-size:10px;color:#2563eb;margin-top:4px">📄 PDF from Telegram - If blank, click Open</div>';
       } else {
         html+='<iframe src="https://t.me/gview?url='+encodeURIComponent(safe)+'&embedded=true" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe>';
       }
@@ -4132,7 +4161,7 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
     if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 5000);
   }
 
-  // Cloudinary fast upload with 8s timeout
+  // Telegram fast upload with 8s timeout
   ).then(function(r){ return r.json(); }).then(function(d){
         clearTimeout(timer);
         if(timedOut) return;
@@ -4140,12 +4169,12 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
           showStatus('✅ Uploaded '+file.name);
           resolve(d.secure_url); 
         } else { 
-          console.warn('Cloudinary failed', d); 
+          console.warn('Telegram failed', d); 
           resolve(null); 
         }
       }).catch(function(err){
         clearTimeout(timer);
-        console.warn('Cloudinary error', err);
+        console.warn('Telegram error', err);
         resolve(null);
       });
     });
@@ -4198,7 +4227,7 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 
       var videoUrl=videoLink, cvUrl=cvLink, certUrl=certLink, idUrl=idLink;
 
-      // FAST CLOUDINARY UPLOADS - all in parallel, max 12s total
+      // FAST TELEGRAM UPLOADS - all in parallel, max 12s total
       var tasks=[];
       if(videoFile){ tasks.push(cloudUpload(videoFile, 'nurse_videos').then(function(u){ if(u) videoUrl=u; })); }
       if(cvFile){ tasks.push(cloudUpload(cvFile, 'nurse_cvs').then(function(u){ if(u) cvUrl=u; })); }
@@ -4206,7 +4235,7 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
       if(idFile){ tasks.push(cloudUpload(idFile, 'nurse_ids').then(function(u){ if(u) idUrl=u; })); }
 
       if(tasks.length>0){
-        showStatus('📤 Uploading '+tasks.length+' file(s) to Cloudinary (max 12s)...');
+        showStatus('📤 Uploading '+tasks.length+' file(s) to Telegram (max 12s)...');
         // Wait max 13 seconds for all
         await Promise.race([
           Promise.allSettled(tasks),
@@ -4242,7 +4271,7 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
       }
 
       showStatus('✅ Registration submitted! Pending approval');
-      alert('✅ Registered!\nName: '+name+'\nPhone: '+fullPhone+'\n\n⏳ PENDING APPROVAL.\nCEO must approve before login.\n\nYour files: '+(videoUrl?' Video✅':'')+(cvUrl?' CV✅':'')+(certUrl?' Cert✅':'')+(idUrl?' ID✅':'')+'\nIf some missing, you can still be approved - add Drive links later.');
+      alert('✅ Registered!\nName: '+name+'\nPhone: '+fullPhone+'\n\n⏳ PENDING APPROVAL.\nCEO must approve before login.\n\nYour files: '+(videoUrl?' Video✅':'')+(cvUrl?' CV✅':'')+(certUrl?' Cert✅':'')+(idUrl?' ID✅':'')+'\nIf some missing, you can still be approved - add Telegram links later.');
 
       if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
       if(typeof showPage==='function') showPage('home');
@@ -4250,13 +4279,13 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 
     }catch(e){
       console.error('Registration error', e);
-      alert('Registration failed: '+e.message+'\nTry again with smaller files or just Drive links.');
+      alert('Registration failed: '+e.message+'\nTry again with smaller files or just Telegram links.');
       if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
       showStatus('❌ Failed: '+e.message, true);
     }
   };
 
-  console.log('✅ REGISTRATION FIX V3 APPLIED - Fast Cloudinary, no Firebase Storage hang');
+  console.log('✅ REGISTRATION FIX V3 APPLIED - Fast Telegram, no Firebase Storage hang');
 })();
 </script>
 
@@ -4266,27 +4295,20 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 (function(){
   function cleanPhone(p){ return (p||'').toString().replace(/[^0-9]/g,''); }
 
-  function isDriveLink(url){ return url && (url.includes('t.me')||url.includes('t.me')); }
-  function getDriveFileId(url){
-    if(!url) return null;
-    var m = url.match(/\/d\/([^\/\?]+)/); if(m) return m[1];
-    m = url.match(/[?&]id=([^&]+)/); if(m) return m[1];
-    return null;
-  }
-  function getDrivePreview(url){
-    var id=getDriveFileId(url); return id ? 'https://t.me/file/d/'+id+'/preview' : url;
-  }
-  function getDriveDownload(url){
-    var id=getDriveFileId(url); return id ? 'https://t.me/uc?export=download&id='+id : url;
-  }
+  function false{ return false; }
+  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
+  function getDriveFileId(url){ return null; }
+  function url{ return url; }
+  function url{ return url; }
+  function url{ return url; }
 
   function renderVideoSection(label, url, icon, borderColor, bgColor){
     if(!url) return '<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:12px 0;background:'+bgColor+'"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">'+icon+' '+label+'</b><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT UPLOADED</span></div><div style="padding:20px;text-align:center;color:#6b7280;font-size:12px">Nurse did not upload '+label+'</div></div>';
     var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open Video</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
     html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
-    if(isDriveLink(url)){
-      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:480px;border:3px solid '+borderColor+';border-radius:12px" allow="autoplay"></iframe><div style="font-size:10px;color:#6b7280;margin-top:6px">📁 Google Drive Video - If not loading, click Open Video</div>';
+    if(false){
+      html+='<iframe src="'+url+'" style="width:100%;height:480px;border:3px solid '+borderColor+';border-radius:12px" allow="autoplay"></iframe><div style="font-size:10px;color:#6b7280;margin-top:6px">📁 Telegram Video - If not loading, click Open Video</div>';
     } else {
       html+='<video src="'+url+'" controls playsinline controlsList="nodownload" preload="metadata" style="width:100%;max-height:500px;border-radius:12px;background:#000;border:3px solid '+borderColor+'" poster="./Icon-512.png"></video><div style="font-size:10px;color:#16a34a;margin-top:6px">▶️ Tap play to watch - If not loading, click Open Video</div>';
     }
@@ -4296,12 +4318,12 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
   function renderPdfSection(label, url, icon, borderColor, bgColor){
     if(!url) return '<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:12px 0;background:'+bgColor+'"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:14px">'+icon+' '+label+'</b><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT UPLOADED</span></div><div style="padding:20px;text-align:center;color:#6b7280;font-size:12px">Nurse did not upload '+label+'</div></div>';
     var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open PDF</a><a href="'+(isDriveLink(url)?getDriveDownload(url):url)+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download PDF</a></div></div>';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open PDF</a><a href="'+(false?url:url)+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download PDF</a></div></div>';
     html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
-    if(isDriveLink(url)){
-      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
+    if(false){
+      html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
     } else {
-      // For Cloudinary PDFs, direct iframe works, plus Google Docs viewer as fallback button
+      // For Telegram PDFs, direct iframe works, plus Google Docs viewer as fallback button
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px;background:white" type="application/pdf"></iframe>';
       html+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><a href="https://t.me/gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="flex:1;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-decoration:none;text-align:center;font-size:11px;font-weight:800">📄 Open in Google PDF Viewer (if blank above)</a></div>';
     }
@@ -4314,8 +4336,8 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
     var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open Image</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
     html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
-    if(isDriveLink(url)){
-      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:550px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
+    if(false){
+      html+='<iframe src="'+url+'" style="width:100%;height:550px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
     } else {
       html+='<img src="'+url+'" style="width:100%;max-height:700px;object-fit:contain;border-radius:12px;border:3px solid '+borderColor+';background:#fff" loading="lazy" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\'"><div style="display:none;padding:30px;text-align:center;background:#fef3c7;border-radius:12px">⚠️ Image failed to load<br><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;display:inline-block;margin-top:10px">Open Image</a></div>';
     }
@@ -4417,15 +4439,12 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
 // ===== ULTIMATE FIX V5 - FIND UPLOADS ANYWHERE + RESTORE TOOL =====
 (function(){
   function cleanPhone(p){ return (p||'').toString().replace(/[^0-9]/g,''); }
-  function isDriveLink(url){ return url && (url.includes('t.me')||url.includes('t.me')); }
-  function getDriveFileId(url){
-    if(!url) return null;
-    var m = url.match(/\/d\/([^\/\?]+)/); if(m) return m[1];
-    m = url.match(/[?&]id=([^&]+)/); if(m) return m[1];
-    return null;
-  }
-  function getDrivePreview(url){ var id=getDriveFileId(url); return id ? 'https://t.me/file/d/'+id+'/preview' : url; }
-  function getDriveDownload(url){ var id=getDriveFileId(url); return id ? 'https://t.me/uc?export=download&id='+id : url; }
+  function false{ return false; }
+  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
+  function getDriveFileId(url){ return null; }
+  function url{ return url; }
+  function url{ return url; }
+  function url{ return url; }
 
   // Deep scan nurse object for any URL
   function findAllUploads(nurse){
@@ -4450,7 +4469,7 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
         if(!result.id.includes(val)) result.id.push(val);
       } else if(lowKey.includes('profile') || lowKey.includes('photo') || lowKey.includes('avatar')){
         if(!result.profile.includes(val)) result.profile.push(val);
-      } else if(lowVal.includes('cloudinary') || isDriveLink(val)){
+      } else if(lowVal.includes('telegram') || isDriveLink(val)){
         // Try to guess by URL content
         if(lowVal.includes('video')) result.video.push(val);
         else if(lowVal.includes('cv')) result.cv.push(val);
@@ -4482,8 +4501,8 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
     var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+'">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px">'+icon+' '+label+' ('+urls.length+' found)</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
     html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
-    if(isDriveLink(url)){
-      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:480px;border:3px solid '+borderColor+';border-radius:12px" allow="autoplay"></iframe>';
+    if(false){
+      html+='<iframe src="'+url+'" style="width:100%;height:480px;border:3px solid '+borderColor+';border-radius:12px" allow="autoplay"></iframe>';
     } else {
       html+='<video src="'+url+'" controls playsinline style="width:100%;max-height:500px;border-radius:12px;background:#000;border:3px solid '+borderColor+'"></video>';
     }
@@ -4501,10 +4520,10 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
     }
     var url=urls[0];
     var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+'">';
-    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px">'+icon+' '+label+' ('+urls.length+')</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open PDF</a><a href="'+(isDriveLink(url)?getDriveDownload(url):url)+'" target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px">'+icon+' '+label+' ('+urls.length+')</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open PDF</a><a href="'+(false?url:url)+'" target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
     html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
-    if(isDriveLink(url)){
-      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
+    if(false){
+      html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
     } else {
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px;background:white"></iframe>';
       html+='<div style="margin-top:8px"><a href="https://t.me/gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="display:block;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-align:center;text-decoration:none;font-size:11px;font-weight:800">📄 Open in Google Docs Viewer if blank</a></div>';
@@ -4520,8 +4539,8 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
     var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+'">';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
     html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
-    if(isDriveLink(url)){
-      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:550px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
+    if(false){
+      html+='<iframe src="'+url+'" style="width:100%;height:550px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
     } else {
       html+='<img src="'+url+'" style="width:100%;max-height:700px;object-fit:contain;border-radius:12px;border:3px solid '+borderColor+';background:#fff" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\'"><div style="display:none;padding:20px;text-align:center;background:#fef3c7;border-radius:12px">⚠️ Failed to load<br><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none">Open</a></div>';
     }
@@ -4563,7 +4582,7 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
       
       // Restore tool for CEO
       var phoneKey = (nurse.phoneKey||nurse.phone||'').replace(/[^0-9]/g,'');
-      body+='<div style="border:3px dashed #ef4444;border-radius:14px;padding:14px;margin-top:16px;background:#fef2f2"><h3 style="margin:0 0 8px 0;color:#ef4444">🛠️ CEO Restore Tool - If files missing, paste links here</h3><div style="font-size:11px;margin-bottom:8px">If nurse uploaded but DB empty, paste Cloudinary/Drive link and save to Firebase:</div>'
+      body+='<div style="border:3px dashed #ef4444;border-radius:14px;padding:14px;margin-top:16px;background:#fef2f2"><h3 style="margin:0 0 8px 0;color:#ef4444">🛠️ CEO Restore Tool - If files missing, paste links here</h3><div style="font-size:11px;margin-bottom:8px">If nurse uploaded but DB empty, paste Telegram/Telegram link and save to Firebase:</div>'
         +'<label style="font-size:11px;font-weight:800">📹 Video URL:</label><input id="restoreVideo_'+phoneKey+'" value="'+(found.video[0]||'')+'" placeholder="https://..." style="margin-bottom:6px">'
         +'<label style="font-size:11px;font-weight:800">📄 CV URL:</label><input id="restoreCV_'+phoneKey+'" value="'+(found.cv[0]||'')+'" placeholder="https://...pdf" style="margin-bottom:6px">'
         +'<label style="font-size:11px;font-weight:800">🎓 Cert URL:</label><input id="restoreCert_'+phoneKey+'" value="'+(found.cert[0]||'')+'" placeholder="https://..." style="margin-bottom:6px">'
@@ -4685,23 +4704,23 @@ console.log('✅ All changes integrated - Cloudinary xcizfvct + Drive '+DRIVE_CO
   }
 
   function getCloudConfig(){
-    var cloudName = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.cloudinaryCloudName) ? FREE_UPLOAD_CONFIG.cloudinaryCloudName : 'xcizfvct';
-    var preset = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.cloudinaryPreset) ? FREE_UPLOAD_CONFIG.cloudinaryPreset : 'Lovecare1';
+    var cloudName = (typeof FREE_UPLOAD_CONFIG!=='undefined' && 'REMOVED') ? 'REMOVED' : 'REMOVED';
+    var preset = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.telegramPreset) ? FREE_UPLOAD_CONFIG.telegramPreset : 'Lovecare1';
     return {cloudName: cloudName, preset: preset};
   }
 
-  // Auto upload to Cloudinary
+  // Auto upload to Telegram
   function autoUploadFile(file, folder, onProgress, onDone){
     if(!file){ onDone(null); return; }
     if(file.size > 15*1024*1024){
-      showStatus('⚠️ '+file.name+' too big ('+(file.size/1024/1024).toFixed(1)+'MB) - compress or use Drive link', true);
+      showStatus('⚠️ '+file.name+' too big ('+(file.size/1024/1024).toFixed(1)+'MB) - compress or use Telegram link', true);
       onDone(null);
       return;
     }
     var cfg=getCloudConfig();
 var isPDF = file.name.toLowerCase().endsWith('.pdf');
 var resource = isPDF ? 'raw' : 'image';
-var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
+var url='https://api.telegram.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
     var fd=new FormData();
     fd.append('file', file);
     fd.append('upload_preset', cfg.preset);
@@ -4725,7 +4744,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
           showStatus('✅ Auto-uploaded: '+file.name);
           onDone(res.secure_url, res);
         } else {
-          console.warn('Cloudinary fail', res);
+          console.warn('Telegram fail', res);
           showStatus('⚠️ Upload failed: '+(res.error?.message||'check preset Lovecare1 is unsigned'), true);
           onDone(null);
         }
@@ -4777,7 +4796,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
             progEl.innerHTML='✅ <a href="'+uploadedUrl+'" target="_blank" style="color:#16a34a">Uploaded! Tap to view</a> - '+file.name;
             progEl.style.color='#16a34a';
           } else {
-            progEl.innerHTML='❌ Uploading to Telegram...';
+            progEl.innerHTML='❌ Failed - paste Telegram link in box below';
             progEl.style.color='#ef4444';
           }
         }
@@ -4803,7 +4822,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
           }
         } else {
           if(previewContainer){
-            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Uploading to Telegram...<br><small>Sending to Telegram channel - please wait...</small></div>';
+            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Auto-upload failed<br><small>Paste Telegram link below instead</small></div>';
             previewContainer.style.display='block';
           }
         }
@@ -4828,7 +4847,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
       setupAutoUpload(profileFile.id, 'nRegProfileLink', 'profileUploadProgress', 'nurse_profiles', 'profilePreviewBox', 'image');
     }
 
-    console.log('✅ AUTO UPLOAD V6 READY - Select file = instant Cloudinary upload');
+    console.log('✅ AUTO UPLOAD V6 READY - Select file = instant Telegram upload');
   }
 
   // Override registerNurse to use auto-uploaded URLs first
@@ -4959,15 +4978,12 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
 <script>
 // ===== PDF VIEWER FIX V7 - Force Google Docs Viewer for PDFs =====
 (function(){
-  function isDriveLink(url){ return url && (url.includes('t.me')||url.includes('t.me')); }
-  function getDriveFileId(url){
-    if(!url) return null;
-    var m = url.match(/\/d\/([^\/\?]+)/); if(m) return m[1];
-    m = url.match(/[?&]id=([^&]+)/); if(m) return m[1];
-    return null;
-  }
-  function getDrivePreview(url){ var id=getDriveFileId(url); return id ? 'https://t.me/file/d/'+id+'/preview' : url; }
-  function getDriveDownload(url){ var id=getDriveFileId(url); return id ? 'https://t.me/uc?export=download&id='+id : url; }
+  function false{ return false; }
+  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
+  function getDriveFileId(url){ return null; }
+  function url{ return url; }
+  function url{ return url; }
+  function url{ return url; }
 
   // Override renderPdfSection globally
   window.
@@ -4999,7 +5015,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
         else if(lowKey.includes('cert') || lowVal.includes('nurse_certs') || lowVal.includes('_certs')){ if(!result.cert.includes(val)) result.cert.push(val); }
         else if(lowKey.includes('idurl') || lowKey.includes('id_card') || lowVal.includes('nurse_ids') || lowVal.includes('_ids')){ if(!result.id.includes(val)) result.id.push(val); }
         else if(lowKey.includes('profile') || lowKey.includes('photo') || lowKey.includes('avatar')){ if(!result.profile.includes(val)) result.profile.push(val); }
-        else if(lowVal.includes('cloudinary') || lowVal.includes('drive.google')){ result.other.push(val); }
+        else if(lowVal.includes('telegram') || lowVal.includes('drive.google')){ result.other.push(val); }
       }
       for(var k in nurse){ if(!nurse.hasOwnProperty(k)) continue; var v=nurse[k]; if(typeof v==='string') addUrl(k, v); else if(typeof v==='object' && v!==null){ for(var kk in v){ if(typeof v[kk]==='string') addUrl(k+'_'+kk, v[kk]); } } }
       return result;
@@ -5018,7 +5034,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
       if(!urls[0]) return '<div style="border:3px solid #7c3aed;border-radius:14px;padding:14px;margin:12px 0;background:#f5f3ff"><b>📹 Introduction Video</b><br><span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT FOUND</span></div>';
       var url=urls[0];
       var h='<div style="border:3px solid #7c3aed;border-radius:14px;padding:14px;margin:14px 0;background:#f5f3ff"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b>📹 Introduction Video</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open Video</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div><div style="font-size:9px;word-break:break-all;background:white;padding:6px;border-radius:6px;margin-bottom:10px">'+url+'</div>';
-      if(isDriveLink(url)) h+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:480px;border:3px solid #7c3aed;border-radius:12px"></iframe>';
+      if(false) h+='<iframe src="'+url+'" style="width:100%;height:480px;border:3px solid #7c3aed;border-radius:12px"></iframe>';
       else h+='<video src="'+url+'" controls playsinline style="width:100%;max-height:500px;border-radius:12px;background:#000;border:3px solid #7c3aed"></video>';
       h+='</div>'; return h;
     }
@@ -5026,7 +5042,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
       if(!urls[0]) return '<div style="border:3px solid '+border+';border-radius:14px;padding:14px;margin:12px 0;background:'+bg+'"><b>'+icon+' '+label+'</b> <span style="background:#ef4444;color:white;padding:4px 10px;border-radius:20px;font-size:10px">❌ NOT FOUND</span></div>';
       var url=urls[0];
       var h='<div style="border:3px solid '+border+';border-radius:14px;padding:14px;margin:14px 0;background:'+bg+'"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b>'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div><div style="font-size:9px;word-break:break-all;background:white;padding:6px;border-radius:6px;margin-bottom:10px">'+url+'</div>';
-      if(isDriveLink(url)) h+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:550px;border:3px solid '+border+';border-radius:12px"></iframe>';
+      if(false) h+='<iframe src="'+url+'" style="width:100%;height:550px;border:3px solid '+border+';border-radius:12px"></iframe>';
       else h+='<img src="'+url+'" style="width:100%;max-height:700px;object-fit:contain;border-radius:12px;border:3px solid '+border+';background:#fff">';
       h+='</div>'; return h;
     }
@@ -5073,10 +5089,10 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
     var url = (urls[0]||'').trim();
     // FIX: If url looks like JSON error (starts with { ), show friendly error instead of JSON words
     if(url.startsWith('{') || url.includes('"error"') || url.length>500 && url.includes('error')){
-      return '<div style="border:3px solid #ef4444;border-radius:14px;padding:14px;margin:12px 0;background:#fef2f2"><b>'+icon+' '+label+' - ❌ Cloudinary Blocked</b><div style="background:white;padding:10px;border-radius:8px;margin-top:8px;font-size:11px;color:#b91c1c;word-break:break-word">Cloudinary returned JSON error instead of PDF. This means your upload preset "Lovecare1" is set to IMAGE only. Fix: Go to Cloudinary Dashboard > Settings > Upload > Upload Presets > Lovecare1 > Set "Resource Type" to "Auto" or "Raw" and save. Then nurse must re-upload.<br><br>Raw error: '+url.substring(0,400)+'</div></div>';
+      return '<div style="border:3px solid #ef4444;border-radius:14px;padding:14px;margin:12px 0;background:#fef2f2"><b>'+icon+' '+label+' - ❌ Upload Error</b><div style="background:white;padding:10px;border-radius:8px;margin-top:8px;font-size:11px;color:#b91c1c;word-break:break-word">Telegram storage instead of PDF. This means your upload preset "Lovecare1" is set to IMAGE only. Fix: Go to Telegram Dashboard > Settings > Upload > Upload Presets > Lovecare1 > Set "Resource Type" to "Auto" or "Raw" and save. Then nurse must re-upload.<br><br>Raw error: '+url.substring(0,400)+'</div></div>';
     }
-    // Normalize Cloudinary URL: if it's image/upload but ends with .pdf, convert to raw/upload to avoid JSON block
-    if(url.includes('cloudinary') && url.includes('/image/upload/') && url.toLowerCase().includes('.pdf')){
+    // Normalize Telegram URL: if it's image/upload but ends with .pdf, convert to raw/upload to avoid JSON block
+    if(url.includes('telegram') && url.includes('/image/upload/') && url.toLowerCase().includes('.pdf')){
       url = url.replace('/image/upload/', '/raw/upload/');
     }
     var encoded = encodeURIComponent(url);
@@ -5087,13 +5103,11 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px;flex-wrap:wrap"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open PDF</a><a href="'+url+'" target="_blank" download style="background:#16a34a;color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
     html+='<div style="font-size:9px;color:#6b7280;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px;border:1px solid #e5e7eb">'+url+'</div>';
     
-    if(typeof isTelegramLink !== "undefined" && isTelegramLink(url)){
-      html+=`<div style="background:#0088cc;color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:10px"><b>📲 Telegram: Love Care Global CVs</b><br><a href="${url}" target="_blank" style="background:white;color:#0088cc;padding:10px 20px;border-radius:20px;text-decoration:none;font-weight:800;display:inline-block;margin-top:8px">🔗 Open in Telegram</a></div>`;
-    } else if(false && typeof isDriveLink !== "undefined" && isDriveLink(url)){
-      html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white" allow="autoplay"></iframe>';
+    if(typeof isDriveLink !== "undefined" && false){
+      html+='<iframe src="'+url+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white" allow="autoplay"></iframe>';
     } else {
-      html+='<div style="background:#111827;color:white;padding:8px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:8px;text-align:center">📄 PDF Preview - CEO can open directly (fixed for Cloudinary RAW)</div>';
-      // Use direct embed for Cloudinary raw - works if public, plus gview fallback
+      html+='<div style="background:#111827;color:white;padding:8px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:8px;text-align:center">📄 PDF Preview - CEO can open directly (fixed for Telegram RAW)</div>';
+      // Use direct embed for Telegram raw - works if public, plus gview fallback
       html+='<object data="'+url+'" type="application/pdf" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white"><iframe src="'+gviewUrl+'" style="width:100%;height:700px;border:none"></iframe></object>';
       html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">'
         +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:10px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:11px">🔗 Open Direct<br><small>Best</small></a>'
@@ -5106,49 +5120,8 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
   };
   window.renderPdfSection = window.renderPdfSectionFixed;
 
-console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Cloudinary PDFs');
+console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
 })();
-</script>
-
-
-<script>
-// MINIMAL FIXES - RESTORE ALL FUNCTIONS
-console.log('Applying minimal fixes, keeping all original functions');
-
-document.addEventListener('DOMContentLoaded', function(){
-  // Ensure bottomNav is on top
-  var nav = document.querySelector('.bottomNav');
-  if(nav){ nav.style.display='flex'; }
-  
-  // Ensure homepage buttons are type=button (prevent form submit)
-  document.querySelectorAll('#page-home button').forEach(function(b){
-    if(!b.getAttribute('type')) b.setAttribute('type','button');
-  });
-  
-  // Fix: If clientLat/Lng not set, set default Accra so map shows
-  if(!localStorage.getItem('clientLat')){
-    localStorage.setItem('clientLat', '5.6037');
-    localStorage.setItem('clientLng', '-0.1870');
-    console.log('Set default Accra location');
-  }
-  
-  // Ensure uberMap inits on home
-  setTimeout(function(){
-    if(typeof initUberMap==='function' && !window.uberMap){
-      try{ initUberMap(); console.log('Auto-inited map'); }catch(e){ console.error(e); }
-    }
-  }, 1000);
-  
-  // Add global error logger
-  window.addEventListener('error', function(e){
-    console.error('JS Error:', e.message, 'at', e.filename+':'+e.lineno);
-  });
-  
-  console.log('✅ Minimal fixes applied - all original functions kept');
-});
-
-// Ensure showPage is global
-if(typeof showPage!=='undefined'){ window.showPage = showPage; }
 </script>
 
 </body>
