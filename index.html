@@ -286,8 +286,8 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <input id="nRegExperience" type="number" placeholder="Years Experience">
 <select id="nRegSpecialty"><option value="">-- Specialty (13) --</option><option>General Nurse</option><option>Elderly Care</option><option>Baby Care and Nanny</option><option>Hospital Support</option><option>Post-Surgery Care</option><option>Disability Support</option><option>Maternity Care</option><option>Night Nurse</option><option>Palliative Care</option><option>Physiotherapy</option><option>Injection and Wound Care</option><option>Diabetes Monitoring</option><option>Dementia Care</option><option>Child Special Needs Care</option></select>
 <div style="border:3px solid #7c3aed;border-radius:12px;padding:12px;margin:8px 0;background:#f5f3ff">
-<h3 style="margin:0 0 8px 0;font-size:13px;color:#7c3aed">📹 Uploads for CEO Verification - Stored in Telegram Channel</h3>
-<p style="font-size:10px;color:#6b7280;margin:0 0 8px 0">Your files will be sent directly to our secure Telegram channel (Love Care Global CVs) for CEO verification. No Drive links needed.</p>
+<h3 style="margin:0 0 8px 0;font-size:13px;color:#7c3aed">📹 Uploads for CEO Verification - Phone/Laptop Storage + Link Optional</h3>
+<p style="font-size:10px;color:#6b7280;margin:0 0 8px 0">Choose: Upload directly from your phone/laptop storage OR paste link. You can do both. CEO will watch your files.</p>
 
 <div style="background:white;border:2px solid #16a34a;border-radius:10px;padding:8px;margin:6px 0">
 <label style="font-size:11px;font-weight:800;color:#16a34a">🎥 Video Intro - Upload from Phone/Laptop (MP4, MOV)</label>
@@ -3364,12 +3364,12 @@ function showUploadStatus(msg, isError){
 }
 
 
-// ====== TELEGRAM STORAGE V4 - FULL JOIN PAGE RESTORED ======
+// ====== TELEGRAM V5 - COMPLETE REPLACEMENT ======
 async function uploadToTelegram(file, folderOrType){
   if(!file) return null;
   const sizeMB = file.size/(1024*1024);
   if(sizeMB > TELEGRAM_CONFIG.maxSizeMB){
-    alert(`File ${file.name} is ${sizeMB.toFixed(1)}MB - Telegram limit is 50MB. Please compress to <50MB.`);
+    alert(`File ${file.name} is ${sizeMB.toFixed(1)}MB - Telegram limit is 50MB. Compress to <50MB.`);
     return null;
   }
   try{
@@ -3377,7 +3377,7 @@ async function uploadToTelegram(file, folderOrType){
     const type = typeMap[folderOrType] || folderOrType || 'DOCUMENT';
     let nurseName=''; try{ nurseName=document.getElementById('nRegName')?.value||''; }catch(e){}
     let nursePhone=''; try{ nursePhone=document.getElementById('nRegPhone')?.value||''; }catch(e){}
-    const caption = `📁 ${type}\n👩‍⚕️ ${nurseName}\n📞 ${nursePhone}\n📄 ${file.name} (${sizeMB.toFixed(2)}MB)\n🕒 ${new Date().toLocaleString()}`;
+    const caption = `📁 ${type} | 👩‍⚕️ ${nurseName} | 📞 ${nursePhone} | 📄 ${file.name} (${sizeMB.toFixed(2)}MB)`;
     const form=new FormData();
     form.append('chat_id', TELEGRAM_CONFIG.channelId);
     form.append('caption', caption);
@@ -3385,31 +3385,23 @@ async function uploadToTelegram(file, folderOrType){
     if(file.type.startsWith('image/')){ endpoint='sendPhoto'; form.append('photo', file, file.name); }
     else if(file.type.startsWith('video/')){ endpoint='sendVideo'; form.append('video', file, file.name); }
     else { form.append('document', file, file.name); }
-    if(typeof showUploadStatus==='function') showUploadStatus(`📤 Uploading ${type} to Telegram: ${file.name}...`);
+    if(typeof showUploadStatus==='function') showUploadStatus(`📤 Sending ${type} to Telegram: ${file.name}...`);
     const url=`https://api.telegram.org/bot${TELEGRAM_CONFIG.botToken}/${endpoint}`;
     let res, data;
-    try{
-      res=await fetch(url, {method:'POST', body:form});
-      data=await res.json();
-    }catch(corsErr){
-      console.warn('CORS fail, trying proxy', corsErr);
+    try{ res=await fetch(url, {method:'POST', body:form}); data=await res.json(); }
+    catch(corsErr){
+      console.warn('CORS fail, proxy try', corsErr);
       const proxyUrl=`https://thingproxy.freeboard.name/fetch/${url}`;
       res=await fetch(proxyUrl, {method:'POST', body:form});
       data=await res.json();
     }
-    if(!data.ok){
-      console.error('Telegram error', data);
-      if(data.description?.includes('not enough rights')) alert('Bot not admin in channel. Add bot as Admin in Love Care Global CVs > Administrators > Post Messages.');
-      if(data.description?.includes('chat not found')) alert('Channel not found - add bot to channel -1003912808382 as admin.');
-      throw new Error(data.description);
-    }
+    if(!data.ok) throw new Error(data.description);
     const msgId=data.result.message_id;
     const viewLink=`https://t.me/c/${TELEGRAM_CONFIG.channelNumeric}/${msgId}`;
-    console.log(`✅ Telegram ${type}: ${viewLink}`);
     if(typeof showUploadStatus==='function') showUploadStatus(`✅ ${type} sent to Telegram ✅`);
     return viewLink;
   }catch(e){
-    console.error('Telegram upload fail', e);
+    console.error('Telegram fail', e);
     if(typeof showUploadStatus==='function') showUploadStatus(`❌ Telegram failed: ${e.message}`, true);
     return null;
   }
@@ -3424,7 +3416,28 @@ function getDriveDownload(url){ return url; }
 function getDriveFileId(url){ return null; }
 function isTelegramLink(url){ return url && url.includes('t.me/c/'); }
 
-// Override uploadFileToStorage if exists, else create
+// COMPLETELY OVERRIDE setupAutoUpload - NO MORE CLOUDINARY / DRIVE LOGIC
+window.setupAutoUpload = function(fileInputId, linkInputId, progressId, folder, previewBoxId, type){
+  var fileEl = document.getElementById(fileInputId);
+  var linkEl = document.getElementById(linkInputId);
+  var progEl = document.getElementById(progressId);
+  if(!fileEl) return;
+  fileEl.addEventListener('change', async function(){
+    var file = fileEl.files[0];
+    if(!file) return;
+    if(progEl) progEl.innerHTML = '<div style="color:#16a34a">⏳ Uploading to Telegram: '+file.name+'...</div>';
+    var url = await uploadToTelegram(file, folder);
+    if(url){
+      if(linkEl) { linkEl.value = url; linkEl.setAttribute('data-uploaded-url', url); }
+      fileEl.setAttribute('data-uploaded-url', url);
+      if(progEl) progEl.innerHTML = '<div style="color:#16a34a;background:#dcfce7;padding:6px;border-radius:6px">✅ Sent to Telegram: <a href="'+url+'" target="_blank" style="color:#16a34a;font-weight:800">View in Channel</a></div>';
+    } else {
+      if(progEl) progEl.innerHTML = '<div style="color:#b91c1c;background:#fee2e2;padding:6px;border-radius:6px">❌ Failed. Check: Bot is Admin in channel? File <50MB? Try again.</div>';
+    }
+  });
+};
+
+ if exists, else create
 window.uploadFileToStorage = async function(file, path){
   if(!file) return null;
   var sizeMB=file.size/(1024*1024);
@@ -4755,7 +4768,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
             progEl.innerHTML='✅ <a href="'+uploadedUrl+'" target="_blank" style="color:#16a34a">Uploaded! Tap to view</a> - '+file.name;
             progEl.style.color='#16a34a';
           } else {
-            progEl.innerHTML='❌ Failed - paste Drive link in box below';
+            progEl.innerHTML='❌ Uploading to Telegram...';
             progEl.style.color='#ef4444';
           }
         }
@@ -4781,7 +4794,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
           }
         } else {
           if(previewContainer){
-            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Auto-upload failed<br><small>Paste Google Drive link below instead</small></div>';
+            previewContainer.innerHTML='<div style="font-size:11px;color:#ef4444;text-align:center">❌ Uploading to Telegram...<br><small>Sending to Telegram channel - please wait...</small></div>';
             previewContainer.style.display='block';
           }
         }
@@ -5066,7 +5079,7 @@ var url='https://api.cloudinary.com/v1_1/'+cfg.cloudName+'/'+resource+'/upload';
     html+='<div style="font-size:9px;color:#6b7280;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px;border:1px solid #e5e7eb">'+url+'</div>';
     
     if(typeof isTelegramLink !== "undefined" && isTelegramLink(url)){
-      html+=`<div style="background:#0088cc;color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:10px"><b>📲 Stored in Telegram: ${TELEGRAM_CONFIG?.channelTitle||"Love Care Global CVs"}</b><br><a href="${url}" target="_blank" style="background:white;color:#0088cc;padding:10px 20px;border-radius:20px;text-decoration:none;font-weight:800;display:inline-block;margin-top:8px">🔗 Open in Telegram</a></div>`;
+      html+=`<div style="background:#0088cc;color:white;padding:12px;border-radius:10px;text-align:center;margin-bottom:10px"><b>📲 Telegram: Love Care Global CVs</b><br><a href="${url}" target="_blank" style="background:white;color:#0088cc;padding:10px 20px;border-radius:20px;text-decoration:none;font-weight:800;display:inline-block;margin-top:8px">🔗 Open in Telegram</a></div>`;
     } else if(false && typeof isDriveLink !== "undefined" && isDriveLink(url)){
       html+='<iframe src="'+getDrivePreview(url)+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white" allow="autoplay"></iframe>';
     } else {
