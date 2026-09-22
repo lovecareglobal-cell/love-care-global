@@ -27,7 +27,62 @@ function getDriveFileId(url){ return null; }
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js">
+<script>
+// ===== FAST FIREBASE UPLOADER V10 - DIRECT & FAST =====
+const FAST_UPLOAD_CONFIG = { maxVideoMB: 80, compressImages:true, imageQuality:0.7, maxImageWidth:1280 };
+function showUploadStatus(msg, isError){
+  var box=document.getElementById('uploadStatusBox');
+  if(!box){ box=document.createElement('div'); box.id='uploadStatusBox'; box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:14px 20px;background:white;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:999999;font-family:Poppins,sans-serif;font-size:13px;font-weight:700;max-width:90%;text-align:center;'; document.body.appendChild(box); }
+  box.style.display='block'; box.innerHTML=msg; box.style.background=isError?'#fee2e2':'#dcfce7'; box.style.border='2px solid '+(isError?'#ef4444':'#16a34a'); if(!isError) setTimeout(function(){ box.style.display='none'; }, 4000);
+}
+function compressImageFast(file){
+  return new Promise(function(resolve){
+    if(!file.type.startsWith('image/')){ resolve(file); return; }
+    var img=new Image(); var url=URL.createObjectURL(file);
+    img.onload=function(){ var c=document.createElement('canvas'); var w=img.width,h=img.height; var maxW=1280; if(w>maxW){ h=h*(maxW/w); w=maxW; } c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); c.toBlob(function(b){ URL.revokeObjectURL(url); if(b && b.size<file.size) resolve(new File([b], file.name, {type:'image/jpeg'})); else resolve(file); }, 'image/jpeg', 0.7); };
+    img.onerror=function(){ URL.revokeObjectURL(url); resolve(file); }; img.src=url;
+  });
+}
+async function uploadFileToStorageFAST(file, path){
+  if(!file) return null;
+  try{
+    var sizeMB=file.size/(1024*1024);
+    if(file.type.startsWith('video/') && sizeMB>80){ showUploadStatus('⚠️ Video '+sizeMB.toFixed(1)+'MB >80MB, trim it', true); return null; }
+    if(file.type.startsWith('image/')) file=await compressImageFast(file);
+    var storageRef=firebase.storage().ref();
+    var safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').substring(0,80);
+    var fileRef=storageRef.child(path+'/'+Date.now()+'_'+safeName);
+    return await new Promise(function(resolve){
+      var task=fileRef.put(file);
+      task.on('state_changed', function(snap){
+        var pct=Math.round((snap.bytesTransferred/snap.totalBytes)*100);
+        var label=path.includes('video')?'Video':path.includes('cv')?'CV':path.includes('cert')?'Certificate':'ID';
+        showUploadStatus('📤 Uploading '+label+': '+pct+'% - '+file.name.substring(0,18));
+        document.querySelectorAll('[id$="UploadProgress"]').forEach(function(el){
+          if((el.id.includes('video')&&path.includes('video'))||(el.id.includes('cv')&&path.includes('cv'))||(el.id.includes('cert')&&path.includes('cert'))||(el.id.includes('id')&&path.includes('id'))){
+            el.innerText=pct+'%'; el.style.display='inline-block'; el.style.background=pct<100?'#eab308':'#16a34a'; el.style.color='white'; el.style.padding='2px 8px'; el.style.borderRadius='10px';
+          }
+        });
+      }, function(err){ console.error(err); if(err.code==='storage/unauthorized'){ showUploadStatus('❌ Storage rules blocked. Set rules_version=2; allow read,write: if true;', true); } else showUploadStatus('❌ '+err.message, true); resolve(null); },
+      function(){ task.snapshot.ref.getDownloadURL().then(function(url){ showUploadStatus('✅ '+path.split('/')[0]+' uploaded'); resolve(url); }).catch(function(){ resolve(null); }); });
+    });
+  }catch(e){ console.error(e); showUploadStatus('❌ '+e.message, true); return null; }
+}
+function uploadWithTimeoutFAST(file, path, ms){ return uploadFileToStorageFAST(file, path); }
+async function uploadToTelegramFAST(file, folder){ 
+  var map={'CV':'nurse_cvs','CERTIFICATE':'nurse_certs','ID_PHOTO':'nurse_ids','VIDEO':'nurse_videos','DOCUMENT':'nurse_docs','nurse_cvs':'nurse_cvs','nurse_certs':'nurse_certs','nurse_ids':'nurse_ids','nurse_videos':'nurse_videos'};
+  var f=map[folder]||folder||'nurse_docs'; return await uploadFileToStorageFAST(file, f);
+}
+async function cloudUploadFAST(file, path){ return await uploadFileToStorageFAST(file, path); }
+window.uploadFileToStorage = uploadFileToStorageFAST;
+window.uploadWithTimeout = uploadWithTimeoutFAST;
+window.uploadToTelegram = uploadToTelegramFAST;
+window.cloudUpload = cloudUploadFAST;
+window.uploadToFirebaseStorage = uploadFileToStorageFAST;
+</script>
+
+</script>
 <!-- EmailJS REMOVED - Now using Firebase Auth -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
@@ -583,7 +638,7 @@ var NURSE_HOURLY_MIN = {
  ZM: { amount: 80, currency: "ZMW", label: "Zambia" },
  BW: { amount: 60, currency: "BWP", label: "Botswana" },
  LR: { amount: 300, currency: "LRD", label: "Liberia" },
- SL: { amount: 15000, currency: "SLL", label: "Sierra Leone" },
+ SL: { amount: 120000, currency: "SLL", label: "Sierra Leone" },
  US: { amount: 25, currency: "USD", label: "USA" },
  UK: { amount: 15, currency: "GBP", label: "UK" },
  CA: { amount: 28, currency: "CAD", label: "Canada" },
@@ -847,10 +902,10 @@ function showUploadStatus(msg, isError){
   box.style.border='2px solid '+(isError?'#ef4444':'#16a34a');
 }
 
-function uploadFileToStorage(file, path){
+function OLD_uploadFileToStorage_DISABLED(file, path){
   return new Promise(function(resolve){
     if(!file){ resolve(null); return; }
-    var MAX_SIZE = 10 * 1024 * 1024; // 10MB max - videos larger will be skipped
+    var MAX_SIZE = 80 * 1024 * 1024; // 10MB max - videos larger will be skipped
     if(file.size > MAX_SIZE){
       showUploadStatus('⚠️ '+file.name+' is '+(file.size/1024/1024).toFixed(1)+'MB - too large, skipping. Please paste link instead or compress.', true);
       console.warn('File too large, skipping:', file.name);
@@ -864,7 +919,7 @@ function uploadFileToStorage(file, path){
       showUploadStatus('⏱️ Upload taking too long for '+file.name+' - Skipping, continuing with registration...', false);
       console.warn('Upload timeout, resolving null for', file.name);
       resolve(null);
-    }, 15000);
+    }, 120000);
 
     try{
       if(typeof firebase!== 'undefined' && firebase.storage){
@@ -912,8 +967,8 @@ function uploadFileToStorage(file, path){
   });
 }
 
-function uploadWithTimeout(file, path, ms){
-  ms = ms || 15000;
+function OLD_uploadWithTimeout_DISABLED(file, path, ms){
+  ms = ms || 120000;
   return Promise.race([
     uploadFileToStorage(file, path),
     new Promise(function(res){ setTimeout(function(){ res(null); }, ms); })
@@ -963,10 +1018,10 @@ async function registerNurse(){
     try{
       showUploadStatus('📤 Processing uploads (max 15s per file) - Links work too!');
       var tasks=[];
-      if(videoFile) tasks.push(uploadWithTimeout(videoFile, 'nurse_videos/'+phoneKey, 15000).then(function(u){ if(u) videoUrl=u; }).catch(function(){ }));
+      if(videoFile) tasks.push(uploadWithTimeout(videoFile, 'nurse_videos/'+phoneKey, 120000).then(function(u){ if(u) videoUrl=u; }).catch(function(){ }));
       if(cvFile) tasks.push(uploadToTelegram(cvFile, 'CV').then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
       if(certFile) tasks.push(uploadToTelegram(certFile, 'CERTIFICATE').then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
-      if(idFile) tasks.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 15000).then(function(u){ if(u) idUrl=u; }).catch(function(){ }));
+      if(idFile) tasks.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 120000).then(function(u){ if(u) idUrl=u; }).catch(function(){ }));
       if(tasks.length>0){
         await Promise.allSettled(tasks);
         showUploadStatus('✅ Uploads done, saving profile...');
@@ -1080,10 +1135,10 @@ async function saveNurseSettings(){
   var prog=document.getElementById('nurseSetUploadProgress'); if(prog) prog.innerHTML='Saving...';
   try{
     var up=[];
-    if(vFile) up.push(uploadWithTimeout(vFile, 'nurse_videos/'+phoneKey, 15000).then(function(u){ if(u) updates.videoUrl=u; }));
-    if(cvFile) up.push(uploadWithTimeout(cvFile, 'nurse_cvs/'+phoneKey, 15000).then(function(u){ if(u) updates.cvUrl=u; }));
-    if(certFile) up.push(uploadWithTimeout(certFile, 'nurse_certs/'+phoneKey, 15000).then(function(u){ if(u) updates.certUrl=u; }));
-    if(idFile) up.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 15000).then(function(u){ if(u) updates.idUrl=u; }));
+    if(vFile) up.push(uploadWithTimeout(vFile, 'nurse_videos/'+phoneKey, 120000).then(function(u){ if(u) updates.videoUrl=u; }));
+    if(cvFile) up.push(uploadWithTimeout(cvFile, 'nurse_cvs/'+phoneKey, 120000).then(function(u){ if(u) updates.cvUrl=u; }));
+    if(certFile) up.push(uploadWithTimeout(certFile, 'nurse_certs/'+phoneKey, 120000).then(function(u){ if(u) updates.certUrl=u; }));
+    if(idFile) up.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 120000).then(function(u){ if(u) updates.idUrl=u; }));
     if(up.length) await Promise.allSettled(up);
   }catch(e){ console.warn(e); }
   try{
@@ -3349,7 +3404,7 @@ document.addEventListener('DOMContentLoaded', function(){
 // ====== LOVCARE - FINAL FIX - NO MORE 401 ======
 // ====== TELEGRAM STORAGE - REPLACES TELEGRAM & DRIVE ======
 const TELEGRAM_CONFIG = {
-  botToken: '8606627642:AAEaGvPH_aZZe86jZgixOgLm1ERippN5UT8',
+  botToken: 'DISABLED_USE_FIREBASE',
   channelId: '-1003912808382',
   channelNumeric: '3912808382',
   channelTitle: 'Love Care Global CVs'
@@ -3380,7 +3435,7 @@ function showUploadStatus(msg, isError){
 
 
 // ====== TELEGRAM UPLOADER - SENDS ALL FILES TO TELEGRAM CHANNEL ======
-async function uploadToTelegram(file, folderOrType){
+async function OLD_uploadToTelegram_DISABLED(file, folderOrType){
   if(!file) return null;
   try{
     const typeMap = {
@@ -3444,9 +3499,9 @@ async function uploadToTelegram(file, folderOrType){
 }
 
 // Compatibility wrappers - old functions now point to Telegram
-function uploadToTelegram(file, folder){ return uploadToTelegram(file, folder); }
+function OLD_wrapper_DISABLED(){ return null; }
 function uploadToMyDrive(file){ return Promise.resolve(null); } // disabled
-function uploadFileToStorage(file, path){ 
+function OLD_uploadFileToStorage_DISABLED(file, path){ 
   // Extract type from path
   let t = 'DOCUMENT';
   if(path && path.includes('cv')) t='CV';
@@ -3454,7 +3509,7 @@ function uploadFileToStorage(file, path){
   if(path && path.includes('id')) t='ID_PHOTO';
   return uploadToTelegram(file, t);
 }
-function uploadWithTimeout(file, path, ms){ return uploadToTelegram(file, path); }
+function OLD_uploadWithTimeout_DISABLED(file, path, ms){ return uploadToTelegram(file, path); }
 
 
 function uploadToMyDrive(file){
