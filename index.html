@@ -12,7 +12,7 @@ button, a{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 .bottomNav button{  }
 .uber-card{ contain:layout style paint; }
 #loveCareLiveList{ contain:layout; }
-</style>
+</style><style>button,.btnSubmit,.btnSmall{ touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; } button:active{ transform:scale(0.97); }</style>
 
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
@@ -426,50 +426,17 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <option value="MY" data-curr="MYR">🇲🇾 Malaysia MYR</option>
 </select>
 <span id="currencyDisplay" style="font-weight:800;color:#16a34a;font-size:11px">GHS</span>
-<span id="verifiedEmailBadge" class="hidden" style="background:#16a34a;color:white;padding:3px 8px;border-radius:10px;font-size:9px;font-weight:800">✓ Email Verified</span>
+
 </div>
 
 <!-- EMAIL VERIFICATION POPUP BEFORE BOOKING -->
-<div id="emailVerifyModal" class="emailModal hidden">
-<div class="emailBox">
 
-<div id="templateHelper" class="hidden" style="background:#dbeafe;border:2px dashed #2563eb;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px;line-height:1.5">
-<b style="color:#1e40af">📸 I see you're in EmailJS Templates (from your screenshot):</b><br>
-1. Tap the <b>template name</b> (not the star) in your list<br>
-2. Top left you will see <b>Template ID: template_xxxxxx</b><br>
-3. Copy that ID<br>
-4. Send it to me here, or paste it in code at line: <code>EMAILJS_TEMPLATE_ID</code><br>
-5. I will update your app instantly so real emails send<br>
-<br>
-<b>Or create new template:</b> Click + New Template -> Use subject: Verification code {{verification_code}} -> To Email: {{to_email}} -> Content: Your code is {{verification_code}} -> Save -> Copy new ID
-</div>
-
-<h2 style="color:#16a34a;margin:0 0 10px 0;font-size:16px">🔐 Verify Your Email - One Time Registration</h2>
-<p style="font-size:11px;color:#374151;line-height:1.5">For security, please verify your real email before booking. We will save it permanently so next time you visit, no need to verify again. Code will be sent to your email.</p>
-<input id="verifyEmailInput" placeholder="Enter your real email - e.g. you@gmail.com" type="email">
-<div id="sendCodeArea">
-<button class="btnSubmit" style="background:#2563eb" onclick="sendVerificationCode()">📧 Send Code to My Email</button>
-<p style="font-size:10px;color:#6b7280;margin-top:6px">A 6-digit code will be sent. In this demo, code is shown on screen (in production, sent via EmailJS/Firebase). Check inbox/spam.</p>
-</div>
-<div id="enterCodeArea" class="hidden">
-<p style="font-size:12px;font-weight:800;color:#111827">Enter 6-digit code sent to <span id="sentToEmail" style="color:#2563eb"></span></p>
-<p id="demoCodeDisplay" style="background:#fef3c7;padding:8px;border-radius:8px;font-weight:800;text-align:center;font-size:14px;border:2px dashed #f59e0b"></p>
-<input id="verifyCodeInput" placeholder="Enter 6-digit code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6">
-<button class="btnSubmit" style="background:#16a34a" onclick="confirmVerificationCode()">✅ Verify & Continue Booking</button>
-<button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:6px" onclick="resendCode()">Resend Code</button>
-</div>
-<div style="margin-top:10px;text-align:center">
-<button class="btnSmall" style="background:none;color:#6b7280" onclick="closeEmailModal()">Cancel</button>
-</div>
-<p id="emailVerifyStatus" style="font-size:11px;color:red;margin-top:8px"></p>
-</div>
-</div>
 
 <div id="page-home" class="page active">
 <div class="card"><h2>BOOK NURSE - Flexible Hours + Live-in / Live-out</h2>
 <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:6px;font-size:10px;font-weight:800;text-align:center;color:#92400e;margin-bottom:6px">🔞 18+ ONLY - You must be 18+ to book</div>
 <input id="cName" placeholder="Full Name"><div style="display:flex;gap:6px;align-items:center;background:white;padding:6px;border-radius:8px;border:1px solid #e5e7eb;margin:6px 0"><input type="checkbox" id="cAgeConfirm" style="width:18px;height:18px" checked><label for="cAgeConfirm" style="font-size:10px;font-weight:800;color:#111827;margin:0">I am 18+ years old</label></div><div class="phoneRow"><select id="cPhoneCode"></select><input id="cPhone" placeholder="Phone"></div>
-<input id="cEmail" placeholder="Email - will be auto-filled after verification"><div class="locationRow"><input id="cLocation" placeholder="Tap GPS Auto"><button type="button" onclick="autoGPS('cLocation','clientGpsStatus')">GPS Auto</button></div><small id="clientGpsStatus" class="gpsBadge hidden"></small>
+<div class="locationRow"><input id="cLocation" placeholder="Tap GPS Auto"><button type="button" onclick="autoGPS('cLocation','clientGpsStatus')">GPS Auto</button></div><small id="clientGpsStatus" class="gpsBadge hidden"></small>
 <select id="cService"><option value="">-- Select Service (13 Services) --</option><option>Elderly Care</option><option>Baby Care and Nanny</option><option>Hospital Support</option><option>Post-Surgery Care</option><option>Disability Support</option><option>Maternity Care</option><option>Night Nurse (12hrs)</option><option>Palliative Care</option><option>Physiotherapy</option><option>Injection and Wound Care</option><option>Diabetes Monitoring</option><option>Dementia Care</option><option>Child Special Needs Care</option></select>
 
 <div style="border:2px dashed #7c3aed;border-radius:12px;padding:10px;margin:8px 0;background:#f5f3ff">
@@ -698,7 +665,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <button id="staff-btn-nurses" class="btnSmall" style="background:#16a34a;color:white" onclick="switchStaffTab('nurses')">Nurses + Media</button>
 <button id="staff-btn-clients" class="btnSmall" style="background:#2563eb;color:white" onclick="switchStaffTab('clients')">Clients</button>
 <button id="staff-btn-announce" class="btnSmall" style="background:#0e7490;color:white" onclick="switchStaffTab('announce')">Announce Settings</button>
-<button id="staff-btn-emails" class="btnSmall" style="background:#16a34a;color:white;border:2px solid #eab308" onclick="switchStaffTab('emails')">📧 Email Verifications</button>
+
 </div>
 <div id="staff-tab-bookings" class="staff-tab card"><h2>1. Bookings (Staff can Confirm/Cancel)</h2><div id="staffBookingsList">Loading...</div></div>
 <div id="staff-tab-nurses" class="staff-tab card hidden"><h2>2. Nurses + Media Viewer</h2><div id="staffNursesList">Loading...</div><div id="staffNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:16px;padding:12px;margin-top:12px;background:#f5f3ff;max-height:85vh;overflow-y:auto;position:relative"><div style="position:sticky;top:0;background:#f5f3ff;padding:8px 0;z-index:10;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">🔍 Nurse Media Viewer - Staff/Admin</h3><button class="btnSmall" style="background:#ef4444;color:white" onclick="document.getElementById('staffNurseMediaView').classList.add('hidden')">✕ Close</button></div><div id="staffMediaViewerContent"></div></div></div></div>
@@ -707,7 +674,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </div><div style="margin:20px;display:flex;gap:8px"><button class="btnSubmit" style="background:#16a34a;flex:1" onclick="showPage('home')">Home</button><button class="btnSubmit" style="background:#ef4444;flex:1" onclick="logoutStaff()">Logout</button></div></div>
 
 
-<div id="staff-tab-emails" class="staff-tab card hidden"><h2>📧 Email Verifications - Staff View</h2><div style="background:#eff6ff;border:2px solid #2563eb;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px">Staff can view all client email verifications: Service service_uqu1kcg | Template template_yi4iwel</div><div style="display:flex;gap:6px;margin-bottom:10px"><button class="btnSmall" style="background:#16a34a;color:white" onclick="loadEmailVerifications()">Refresh</button></div><div id="staffEmailVerificationsList">Loading...</div></div>
+
 
 </div></div>
 
@@ -752,7 +719,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <button id="btn-staff" class="btnSmall" style="background:#7c3aed;color:white" onclick="switchCeoTab('staff')">Staff</button>
 <button id="btn-deleted" class="btnSmall" style="background:#ef4444;color:white" onclick="switchCeoTab('deleted')">🗑 Deleted Nurses</button>
 <button id="btn-announce" class="btnSmall" style="background:#0e7490;color:white" onclick="switchCeoTab('announce')">Announce Settings</button>
-<button id="btn-emails" class="btnSmall" style="background:#16a34a;color:white;border:2px solid #eab308" onclick="switchCeoTab('emails')">📧 Email Verifications</button>
+
 </div>
 <div style="display:flex;gap:6px;margin-top:6px"><button class="btnSmall" style="background:#111827;color:white" onclick="loadCeoData()">🔄 Refresh</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="logoutCEO()">Logout</button></div>
 </div>
@@ -845,20 +812,20 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </div>
 
 
-<div id="ceo-tab-emails" class="ceo-tab card hidden" style="border:3px solid #16a34a"><h2>📧 Email Verifications - 6-Digit Codes (CEO View)</h2><div style="background:#eff6ff;border:2px solid #2563eb;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px"><b>How it works:</b><br>1. Client enters email → Send Code → 6-digit code sent via EmailJS Service: <b>service_uqu1kcg</b> | Template: <b>template_yi4iwel</b> | From: lovecareglobal@gmail.com<br>2. Saved to Firebase: <b>emailVerifications/</b> and <b>verifiedEmails/</b><br>3. CEO and Staff see all here<br>4. Client enters code → Status verified → Can book</div><div style="display:flex;gap:6px;margin-bottom:10px"><button class="btnSmall" style="background:#16a34a;color:white" onclick="loadEmailVerifications()">Refresh Emails</button><button class="btnSmall" style="background:#ef4444;color:white" onclick="clearAllVerifications()">Clear All</button></div><div id="ceoEmailVerificationsList">Loading...</div></div>
+
 
 </div>
 
 <div id="ratePopup" class="ratePopup hidden" style="border-color:#eab308"><h3 style="color:#b45309;margin:0 0 10px 0">⏰ No Nurse Responded in 10 Minutes</h3><p id="ratePopupMsg" style="font-size:13px;color:#333">Your booking has not been picked. Increase your rate for quick successful booking! Higher pay = faster acceptance.</p><p style="font-size:12px"><b id="ratePopupCurrent"></b></p><div style="display:flex;gap:8px;margin-top:12px"><button class="btnSubmit" style="background:#16a34a;flex:1" onclick="increaseRateAction()">💰 Increase Rate Now</button><button class="btnSubmit" style="background:#6b7280;flex:1" onclick="closeRatePopup()">Wait More</button></div></div>
 <div id="legalWagePopup" class="ratePopup hidden" style="border-color:#b45309"><h3 style="color:#b45309;margin:0 0 10px 0">⚖ Below Legal Minimum - Blocked</h3><p id="legalWageMsg" style="font-size:13px;color:#333"></p><p style="font-size:11px;color:#666">You cannot pay below minimum. Increase your offer to book.</p><button class="btnSubmit" style="background:#b45309" onclick="closeLegalWagePopup()">Adjust Rate</button></div>
 <div id="refundModal" class="ratePopup hidden" style="border-color:#7c3aed"><h3 style="color:#7c3aed;margin:0 0 10px 0">💸 Request Refund</h3><p style="font-size:12px;text-align:left">Booking ID: <b id="refundBookingId"></b><br>Amount: <b id="refundBookingAmount"></b></p><input id="refundReason" placeholder="Reason"><input id="refundAccount" placeholder="MoMo / Bank Account"><input id="refundAccountName" placeholder="Account Name"><div style="display:flex;gap:8px;margin-top:12px"><button class="btnSubmit" style="background:#7c3aed;flex:1" onclick="submitRefundRequest()">Submit</button><button class="btnSubmit" style="background:#6b7280;flex:1" onclick="closeRefundModal()">Cancel</button></div></div>
-<div id="legalModal" class="legalModal hidden" onclick="if(event.target===this)closeLegal()"><div class="legalContent"><div style="display:flex;justify-content:space-between;align-items:center"><h1 id="legalTitle">Policy</h1><button onclick="closeLegal()" style="background:#ef4444;color:white;border:none;padding:8px 14px;border-radius:8px;font-weight:800">✕ CLOSE</button></div><div id="legalBody"></div></div></div>
+
 
 <footer class="appFooter">
 <div style="font-weight:800;letter-spacing:1px;color:white">LOVE CARE GLOBAL - ENGLISH</div>
 <div style="font-size:11px;margin-top:4px">Flexible hrs/day × days/weeks/months | Live-in & Live-out | Verified Nurses</div>
-<div class="footerLinks"><button onclick="openLegal('about')">ℹ About</button><button onclick="openLegal('privacy')">🔒 Privacy</button><button onclick="openLegal('terms')">📄 Terms</button><button onclick="openLegal('cancel')">❌ Cancel</button><button onclick="openLegal('contact')">📧 Contact</button></div>
-<p style="font-size:11px;margin:8px 0">lovecareglobal@gmail.com | 0544121814</p>
+<div class="footerLinks"><button onclick="/* policy removed */">ℹ About</button><button onclick="/* policy removed */">🔒 Privacy</button><button onclick="/* policy removed */">📄 Terms</button><button onclick="/* policy removed */">❌ Cancel</button><button onclick="/* policy removed */">📧 Contact</button></div>
+<p style="font-size:11px;margin:8px 0"> | 0544121814</p>
 <p style="font-size:10px;color:#9ca3af">© 2026 LOVE CARE GLOBAL</p>
 </footer>
 
@@ -1068,91 +1035,14 @@ function validateBudgetLive(){
  return { valid:!amt || amt >= currentTotalMin, minRequired: currentTotalMin };
 }
 function changeCountry(){ var sel=document.getElementById('countrySelect'); var opt=sel.options[sel.selectedIndex]; var curr=opt.getAttribute('data-curr'); document.getElementById('currencyDisplay').innerText=curr; document.getElementById('cCurrency').value=curr; localStorage.setItem('selectedCountry',sel.value); calculateTotal(); }
-var pendingEmailCode = null;
-function isEmailVerified(){ return true; } // FIXED: open access
-function checkEmailAndFindNurses(){
-  var ageCheck = document.getElementById('cAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book'); return; }
-  if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; }
-  findNursesUber();
-}
-function checkEmailAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
-var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
-var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
-var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
-try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); } }catch(e){}
-function sendVerificationCode(){
-  var email = document.getElementById('verifyEmailInput').value.trim();
-  var name = document.getElementById('cName').value.trim() || 'Client';
-  if(!email || !email.includes('@')){ document.getElementById('emailVerifyStatus').innerText='Enter valid real email'; return; }
-  var code = Math.floor(100000 + Math.random()*900000).toString();
-  pendingEmailCode = code;
-  localStorage.setItem('pendingEmail', email);
-  localStorage.setItem('pendingEmailCode', code);
-  document.getElementById('emailVerifyStatus').innerText = '⏳ Sending code to '+email+' via EmailJS...';
-  document.getElementById('sendCodeArea').querySelector('button').disabled = true;
-  document.getElementById('sendCodeArea').querySelector('button').innerText = '⏳ Sending...';
-  if(window.emailjs){
-    var templateIdToUse = EMAILJS_TEMPLATE_ID;
-    emailjs.send(EMAILJS_SERVICE_ID, templateIdToUse, {
-      email: email, to_email: email, to_name: name, name: name, verification_code: code, code: code, passcode: code, otp: code, from_name: 'LOVE CARE GLOBAL', reply_to: 'lovecareglobal@gmail.com', company: 'LOVE CARE GLOBAL'
-    }).then(function(response){
-      document.getElementById('sentToEmail').innerText = email;
-      document.getElementById('demoCodeDisplay').innerHTML = '✅ Code sent to <b>'+email+'</b> via EmailJS!<br><small>Check inbox & spam folder. Code: '+code+' (shown here for testing)</small>';
-      document.getElementById('demoCodeDisplay').style.background = '#dcfce7';
-      document.getElementById('sendCodeArea').classList.add('hidden');
-      document.getElementById('enterCodeArea').classList.remove('hidden');
-      document.getElementById('emailVerifyStatus').innerText = '✅ Code sent to '+email;
-      document.getElementById('sendCodeArea').querySelector('button').disabled = false;
-      document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
-    }, function(error){
-      document.getElementById('sentToEmail').innerText = email;
-      document.getElementById('demoCodeDisplay').innerHTML = 'DEMO CODE: <b>'+code+'</b>';
-      document.getElementById('sendCodeArea').classList.add('hidden');
-      document.getElementById('enterCodeArea').classList.remove('hidden');
-      document.getElementById('emailVerifyStatus').innerText = 'Demo mode: Code is '+code;
-      document.getElementById('sendCodeArea').querySelector('button').disabled = false;
-    });
-  } else {
-    document.getElementById('sentToEmail').innerText = email;
-    document.getElementById('demoCodeDisplay').innerHTML = 'DEMO CODE: <b>'+code+'</b>';
-    document.getElementById('sendCodeArea').classList.add('hidden');
-    document.getElementById('enterCodeArea').classList.remove('hidden');
-    document.getElementById('emailVerifyStatus').innerText = 'Demo mode - Code: '+code;
-    document.getElementById('sendCodeArea').querySelector('button').disabled = false;
-  }
-}
-function resendCode(){ document.getElementById('sendCodeArea').classList.remove('hidden'); document.getElementById('enterCodeArea').classList.add('hidden'); sendVerificationCode(); }
-function confirmVerificationCode(){
-  var entered = document.getElementById('verifyCodeInput').value.trim();
-  var saved = localStorage.getItem('pendingEmailCode') || pendingEmailCode;
-  var email = localStorage.getItem('pendingEmail');
-  if(entered === saved){
-    localStorage.setItem('verifiedClientEmail', email);
-    localStorage.setItem('emailVerified', 'true');
-    localStorage.setItem('clientPermanentEmail', email);
-    document.getElementById('cEmail').value = email;
-    document.getElementById('verifiedEmailBadge').classList.remove('hidden');
-    document.getElementById('verifiedEmailBadge').innerText = '✓ ' + email;
-    document.getElementById('emailVerifyModal').classList.add('hidden');
-    document.getElementById('emailVerifyStatus').innerText='';
-    alert('✅ Email verified: ' + email);
-    setTimeout(()=>{ findNursesUber(); }, 500);
-  } else {
-    document.getElementById('emailVerifyStatus').innerText='❌ Wrong code. Enter ' + saved;
-  }
-}
-function closeEmailModal(){ document.getElementById('emailVerifyModal').classList.add('hidden'); }
-function enforceMinRate(){
- var budget = document.getElementById('cBudget').value;
- if(!budget) return true;
- var result = validateBudgetLive();
- if(!result.valid){
-   document.getElementById('legalWageMsg').innerHTML = 'Legal Rate = <b>' + getCurrentNurseRate().amount + ' ' + getCurrentNurseRate().currency + '/hr</b><br><br>You selected: ' + document.getElementById('breakHours').innerText + ' = ' + currentTotalHours + ' hours<br>Care: ' + careMode + ' (+10% if live-in)<br>Minimum you must pay: <b>' + result.minRequired + ' ' + document.getElementById('cCurrency').value + '</b><br><br>System blocks booking below minimum.';
-   document.getElementById('legalWagePopup').classList.remove('hidden');
-   return false;
- }
- return true;
-}
+var pendingEmailCode=null;
+function isEmailVerified(){return true;}
+function checkEmailAndFindNurses(){var a=document.getElementById('cAgeConfirm'); if(a&&!a.checked){alert('❌ You must be 18+'); return;} findNursesUber();}
+function checkEmailAndBook(){submitBooking();}
+function checkEmailAndPayAndBook(){submitBooking();}
+function checkEmailAndBookFree(){submitBooking();}
+function sendVerificationCode(){return true;}
+function resendCode(){return true;}
 function closeLegalWagePopup(){ document.getElementById('legalWagePopup').classList.add('hidden'); }
 var firebaseConfig={apiKey:"AIzaSyB52-X1D8Cg-wUDWPds_tR7D8cF82dMdRg",authDomain:"web-care-618e8.firebaseapp.com",databaseURL:"https://web-care-618e8-default-rtdb.firebaseio.com",projectId:"web-care-618e8",storageBucket:"web-care-618e8.appspot.com",messagingSenderId:"1062578660694",appId:"1:1062578660694:web:f94dfe12c929df05bce2f7"};
 var db=null,allBookings=[],allWorkers=[],allRefunds=[],clientLat=null,clientLng=null,nurseRegLat=null,nurseRegLng=null;
@@ -1951,7 +1841,7 @@ var helpKnowledgeBase = [
   {topic:'nurse_join', keywords:['nurse','register','join','become nurse','apply','work as nurse'], answer:'👩⚕ <b>Join as Nurse:</b><br>Join tab → Full Name 18+, Phone (with country code), Password, Years Experience, Specialty (13 options)<br>GPS Auto → Upload: Introduction Video (30sec), CV PDF, Certificate PDF, ID Photo, Profile Photo<br>Upload goes to  channel Love Care Global CVs (free, no Firebase billing needed) + Firebase if billing settled<br>Care Mode: Live-in/Live-out/Both → Register → CEO verifies docs in CEO Dashboard → Login → START DUTY → You appear LIVE on client map with green dot', weight:9},
   {topic:'payout', keywords:['payout','85%','paystack','momo','bank','money','earn','salary','payment'], answer:'💸 <b>Payouts 85%:</b><br>Client pays 100% → Held by platform → Nurse does work → Client clicks Work Done & Confirms → CEO Dashboard → Payouts tab → Pay Nurse 85% button → Paystack Transfer to your bank/MoMo automatically<br>Example: Client paid 1000 GHS → You get 850 GHS, platform keeps 150 GHS<br>Set bank/MoMo in Nurse Settings → Bank/MoMo details', weight:8},
   {topic:'staff_ceo', keywords:['staff','ceo','secret','logo','5 taps','long press','admin','dashboard'], answer:'🔐 <b>Secret Staff/CEO Access:</b><br>Staff Portal: 5 quick taps on LOVE CARE logo at top → Staff login (Staff ID + Password)<br>CEO Portal: Long press logo 1.5 seconds → CEO login → Full control: Verify nurses, see CV/Video/Cert/Photo, set rates, CEO Weekly/Monthly flat pricing (no localization), payouts, analytics<br>Staff can view nurses & bookings, CEO can do everything', weight:8},
-  {topic:'footer', keywords:['footer','about','privacy','terms','cancel','contact','refund'], answer:'📄 <b>Footer Fixed & Working:</b><br>About Us, Privacy Policy, Terms of Service, Cancellation & Refund, Contact Us now open as modals (popups)<br>Cancel shows: Full refund if cancelled before nurse assigned, 50% if after assigned, no refund after work started<br>Contact: lovecareglobal@gmail.com / 0544121814 / WhatsApp<br>All footer links now work', weight:7},
+  {topic:'footer', keywords:['footer','about','privacy','terms','cancel','contact','refund'], answer:'📄 <b>Footer Fixed & Working:</b><br>About Us, Privacy Policy, Terms of Service, Cancellation & Refund, Contact Us now open as modals (popups)<br>Cancel shows: Full refund if cancelled before nurse assigned, 50% if after assigned, no refund after work started<br>Contact:  / 0544121814 / WhatsApp<br>All footer links now work', weight:7},
   {topic:'email', keywords:['email','verify','code','otp'], answer:'🔐 <b>Email Verification:</b><br>Enter real email → Click Send Code → 6-digit code sent via EmailJS to inbox & spam → Enter code → Verified badge ✓ → Saved permanently in localStorage<br>If not receiving: Check spam, try Gmail, wait 1 min. Currently bypassed for open access (isEmailVerified returns true)', weight:7},
   {topic:'hours', keywords:['help','faq','hours','how many hours','duration','day','week','month','time'], answer:'💡 <b>Flexible Hours System:</b><br>Hourly: 1-24hrs (e.g., 3 Hours)<br>Daily: Days × hrs/day (e.g., 7 Days × 8 hrs/day = 56 hrs)<br>Weekly: Weeks×7×hrs/day (e.g., 2 Weeks × 8 hrs/day = 112 hrs) → CEO pricing<br>Monthly: Months×30×hrs/day (e.g., 1 Month × 8 hrs/day = 240 hrs) → CEO pricing<br>Night shift allowed 20:00-06:00<br>Daily 1-6 days = Localization formula, Daily 7+ / Weekly / Monthly = CEO managed', weight:8},
   {topic:'', keywords:['','upload','cv','video','photo','certificate','document','fail','not uploading'], answer:'✈️ <b>Nurse Uploads &  Storage FIXED:</b><br>Old issue:  API blocked browser (CORS) + upload preset set to IMAGE only → PDFs failed with JSON error<br>Fixed now: Uses  +  Bot 8606627642:AA... + Channel  Love Care Global CVs<br>Upload order: Firebase Storage (if billing settled) →  (free, unlimited, your channel) → Catbox.moe (free 200MB) → RTDB Base64 (<950KB)<br>CEO sees files in CEO Dashboard → Nurse detail → Video player + PDF viewer (fixed /image/upload/ → /raw/upload/ bug)<br> channel is backup, CEO Dashboard is main viewer', weight:9},
@@ -2189,7 +2079,7 @@ var legalPages = {
       <li>Show live map with real-time tracking (Google Live)</li>
       <li>Process bookings and payments via Paystack</li>
       <li>Verify nurse credentials (video/CV/certificate/ID viewer in CEO dashboard)</li>
-      <li>Send EmailJS verification codes (service_uqu1kcg)</li>
+      <li>Send EmailJS verification codes ()</li>
       <li>Enable turn-by-turn navigation via Google Maps</li>
       <li>Process payouts 85% via Paystack Transfer</li>
       <li>Group Chat communication (private, not visible to clients)</li>
@@ -2199,12 +2089,12 @@ var legalPages = {
     <h2>4. Data Sharing</h2>
     <p>We do NOT sell data. Shared only with: Firebase (Google), Paystack (payments), EmailJS (verification). Nurses see client name/phone/location/amount after booking. Clients see nurse name/location/specialty/phone after selection. GPS not shared publicly - only matched parties.</p>
     <h2>5. Your Rights</h2>
-    <p>Access, correct, delete your data via Contact. Nurse can delete account permanently (with reason sent to CEO dashboard - Deleted Nurses tab for audit). Client can cancel booking. Request data deletion: lovecareglobal@gmail.com</p>
+    <p>Access, correct, delete your data via Contact. Nurse can delete account permanently (with reason sent to CEO dashboard - Deleted Nurses tab for audit). Client can cancel booking. Request data deletion: </p>
     <h2>6. Security</h2>
     <p>Firebase rules, HTTPS, password protection, 18+ age gate, Email OTP verification. Paystack secret key stored in browser localStorage only, never shared. Staff/CEO access via secret logo taps (5 taps staff, long-press CEO).</p>
     <h2>7. Children</h2>
     <p>🔞 18+ Only. We do not collect data from under 18. Age confirmation required at booking and nurse registration.</p>
-    <p>Contact: lovecareglobal@gmail.com | 0544121814</p>
+    <p>Contact:  | 0544121814</p>
   `},
   terms: {title:'Terms & Conditions - LOVE CARE GLOBAL', body:`
     <h1>Terms & Conditions</h1>
@@ -2259,17 +2149,17 @@ var legalPages = {
       <li>CEO Approves → Refund via Paystack/MoMo - Status refund_ok → refuned</li>
       <li>Processed within 24-48 hours</li>
     </ol>
-    <p><strong>Alternative - Email:</strong> Send email to lovecareglobal@gmail.com with Subject: Refund Request - Booking ID, Amount, Reason, MoMo/Bank Account, Account Name. Or tap footer Cancel → Email Refund button (mailto).</p>
+    <p><strong>Alternative - Email:</strong> Send email to  with Subject: Refund Request - Booking ID, Amount, Reason, MoMo/Bank Account, Account Name. Or tap footer Cancel → Email Refund button (mailto).</p>
     <p><strong>Nurse No-Show:</strong> If nurse doesn't arrive after START DUTY, client can report via Group Chat or Contact. CEO verifies GPS logs and provides full refund.</p>
     <p><strong>Nurse Cancellation:</strong> If nurse cancels after confirming, client gets full refund and nurse may be suspended (CEO dashboard).</p>
     <p><strong>Payouts After Refund:</strong> If refund approved after payout created, payout is cancelled. Nurse does not receive 85% if refunded.</p>
-    <p><strong>Contact for Refunds:</strong><br>Email: lovecareglobal@gmail.com<br>Phone/WhatsApp: 0544121814<br>Response: 24hrs</p>
+    <p><strong>Contact for Refunds:</strong><br>Email: <br>Phone/WhatsApp: 0544121814<br>Response: 24hrs</p>
     <p>© 2026 LOVE CARE GLOBAL</p>
   `},
   contact: {title:'Contact Us - LOVE CARE GLOBAL', body:`
     <h1>Contact LOVE CARE GLOBAL</h1>
     <p><strong>Professional Home Nursing Services Worldwide</strong></p>
-    <p><strong>Email:</strong> lovecareglobal@gmail.com<br>
+    <p><strong>Email:</strong> <br>
     <strong>Phone / WhatsApp:</strong> 0544121814<br>
     <strong>Support Hours:</strong> 24/7 via App Group Chat (Nurse/Staff/CEO) and AI Help Bot</p>
     <h2>🌍 Countries (20 English)</h2>
@@ -2278,7 +2168,7 @@ var legalPages = {
     <ul>
       <li><strong>AI Help Bot:</strong> Help Center tab → AI Bot → Instant answers about booking, rates, live map, nurse join, payouts, staff/CEO access, footer</li>
       <li><strong>Group Chat:</strong> Private chat for Nurse/Staff/CEO only (clients cannot see) - Real-time messaging, edit/delete own messages, CEO can wipe all</li>
-      <li><strong>Email:</strong> lovecareglobal@gmail.com for refunds, data deletion, general inquiries</li>
+      <li><strong>Email:</strong>  for refunds, data deletion, general inquiries</li>
       <li><strong>SOS Button:</strong> Red SOS floating button bottom-right for emergencies</li>
     </ul>
     <h2>🏢 Business</h2>
@@ -2295,83 +2185,13 @@ function openLegal(type){
     title.innerText=legalPages[type].title;
     body.innerHTML=legalPages[type].body;
     if(type==='cancel'){
-      body.innerHTML+='<br><div style="margin-top:12px;padding:10px;background:#f0fdf4;border:2px solid #16a34a;border-radius:10px"><b>Need refund?</b><br><button onclick="window.location.href=\'mailto:lovecareglobal@gmail.com?subject=Refund Request\'" style="background:#7c3aed;color:white;border:none;padding:8px 14px;border-radius:8px;font-weight:800;margin-top:6px">📧 Email Refund</button></div>';
+      body.innerHTML+='<br><div style="margin-top:12px;padding:10px;background:#f0fdf4;border:2px solid #16a34a;border-radius:10px"><b>Need refund?</b><br><button onclick="window.location.href=\'mailto:?subject=Refund Request\'" style="background:#7c3aed;color:white;border:none;padding:8px 14px;border-radius:8px;font-weight:800;margin-top:6px">📧 Email Refund</button></div>';
     }
     modal.classList.remove('hidden');
     modal.style.display='flex';
   }
 }
-function closeLegal(){ var m=document.getElementById('legalModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } }
-function cancelBookingClient(id){ if(!confirm('Cancel booking #'+id+'?')) return; if(window.db){ db.ref('bookings/'+id).update({status:'cancelled_by_client'}).then(function(){ alert('Cancelled'); loadMyBookings(); }); } else { alert('Demo cancelled '+id); } }
-function increaseRateAction(){ var curr=parseFloat(document.getElementById('cBudget').value)||currentTotalMin; var newRate=Math.ceil(curr*1.2); document.getElementById('cBudget').value=newRate; calculateTotal(); closeRatePopup(); }
-function closeRatePopup(){ var el=document.getElementById('ratePopup'); if(el) el.classList.add('hidden'); }
-function closeRefundModal(){ var el=document.getElementById('refundModal'); if(el) el.classList.add('hidden'); }
-function submitRefundRequest(){ var bid=document.getElementById('refundBookingId').innerText; var reason=document.getElementById('refundReason').value; var acc=document.getElementById('refundAccount').value; var name=document.getElementById('refundAccountName').value; if(!reason||!acc||!name){ alert('Fill all'); return; } if(window.db){ db.ref('refunds/'+bid).set({bookingId:bid, reason:reason, account:acc, accountName:name, time:Date.now(), status:'refund_req'}); db.ref('bookings/'+bid).update({status:'refund_req'}); } alert('Refund submitted'); closeRefundModal(); loadMyBookings(); }
-function filterHelp(){ var q=document.getElementById('helpSearch'); if(!q) return; var val=q.value; if(!val){ document.getElementById('helpFaqList').innerHTML=''; return; } var ans=aiBotAnswer(val); document.getElementById('helpFaqList').innerHTML='<div style="background:white;border:2px solid #2563eb;border-radius:12px;padding:12px;margin-top:8px;font-size:12px">'+ans+'</div>'; }
-document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeLegal(); var em=document.getElementById('emailVerifyModal'); if(em) em.classList.add('hidden'); } });
-
-
-
-// ===== FIXED LOGIN FUNCTIONS - STAFF & CEO =====
-function loginStaff(){
-  var id=document.getElementById('staffLoginID').value.trim();
-  var pass=document.getElementById('staffLoginPass').value.trim();
-  var resultEl=document.getElementById('staffLoginResult');
-  if(!id||!pass){ if(resultEl) resultEl.innerText='Enter Staff ID and Password'; else alert('Enter Staff ID and Password'); return; }
-  // Show loading
-  if(resultEl) resultEl.innerText='⏳ Checking...';
-  // Default credentials for demo + Firebase check
-  var validStaff = {
-    'STAFF001': 'staff123',
-    'STAFF002': 'staff123',
-    'LOVE001': 'love123',
-    'ADMIN': 'admin123'
-  };
-  function successLogin(){
-    localStorage.setItem('staffID', id);
-    localStorage.setItem('staffName', id);
-    // Show group chat button for staff
-    var chatBtn=document.getElementById('nav-chat');
-    if(chatBtn){ chatBtn.classList.remove('hidden'); chatBtn.classList.add('show-for-staff'); chatBtn.style.display='flex'; }
-    if(resultEl) resultEl.innerText='✅ Success';
-    showPage('staff-dashboard');
-    setTimeout(function(){ 
-      var list=document.getElementById('staffBookingsList');
-      if(list) list.innerHTML='<div style="padding:10px">Loading bookings from Firebase...<br><small>If Firebase offline, bookings will appear from local demo</small></div>';
-      if(typeof loadStaffBookings==='function') loadStaffBookings();
-      else if(typeof loadCeoData==='function') loadCeoData();
-    },300);
-  }
-  if(validStaff[id] && validStaff[id]===pass){
-    successLogin();
-    return;
-  }
-  if(window.db){
-    db.ref('staff/'+id).once('value').then(function(snap){
-      var data=snap.val();
-      if(data && (data.password===pass || data.pass===pass)){
-        successLogin();
-      } else {
-        // Also check staff list
-        db.ref('staff').once('value').then(function(snap2){
-          var all=snap2.val()||{};
-          var found=false;
-          Object.keys(all).forEach(function(k){
-            if((k===id || all[k].id===id) && (all[k].password===pass || all[k].pass===pass)){ found=true; }
-          });
-          if(found){ successLogin(); }
-          else { if(resultEl) resultEl.innerText='❌ Invalid Staff ID or Password. Try STAFF001 / staff123'; else alert('Invalid'); }
-        });
-      }
-    }).catch(function(){ 
-      if(resultEl) resultEl.innerText='❌ Invalid - Try STAFF001 / staff123';
-    });
-  } else {
-    // No Firebase - allow any non-empty for demo if matches default, else show hint
-    if(resultEl) resultEl.innerText='❌ Invalid Staff ID. Demo: STAFF001 / staff123';
-    else alert('Use STAFF001 / staff123');
-  }
-}
+function closeLegal(){return true;}
 function logoutStaff(){
   localStorage.removeItem('staffID');
   var chatBtn=document.getElementById('nav-chat');
@@ -3283,219 +3103,20 @@ function requestRefundForBooking(id){
 
 
 // ===== EMAILJS CONFIG - FROM SCREENSHOTS =====
-// Service ID: service_uqu1kcg (Gmail - Connected as lovecareglobal@gmail.com)
-// Template ID: template_yi4iwel (LOVECARE GLOBAL)
-// Public Key: rJ6O0Qmnsx96892o5 (from previous config, account level)
-var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
-var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
-var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
+// Service ID:  (Gmail - Connected as )
+// Template ID:  (LOVECARE GLOBAL)
+// Public Key:  (from previous config, account level)
 try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); } }catch(e){}
 
-function sendVerificationCode(){
-  var emailEl = document.getElementById('verifyEmailInput');
-  var email = emailEl ? emailEl.value.trim() : '';
-  var name = (document.getElementById('cName') && document.getElementById('cName').value.trim()) || 'Client';
-  var phone = '';
-  try{ phone = getFullPhone('cPhoneCode','cPhone'); }catch(e){ try{ phone = document.getElementById('cPhone').value; }catch(e2){} }
-  var statusEl = document.getElementById('emailVerifyStatus');
-  if(!email || email.indexOf('@')===-1){ if(statusEl) statusEl.innerText='Enter valid real email'; return; }
-  var code = Math.floor(100000 + Math.random()*900000).toString();
-  window.pendingEmailCode = code;
-  localStorage.setItem('pendingEmail', email);
-  localStorage.setItem('pendingEmailCode', code);
-  localStorage.setItem('pendingEmailName', name);
-  localStorage.setItem('pendingEmailPhone', phone);
-  if(statusEl) statusEl.innerText = 'Sending 6-digit code to '+email+' via service_uqu1kcg...';
-  var btnArea = document.getElementById('sendCodeArea');
-  var btn = btnArea ? btnArea.querySelector('button') : null;
-  if(btn){ btn.disabled=true; btn.innerText='Sending...'; }
-  // Save pending to Firebase for CEO/Staff
-  try{
-    var pendingData = {email: email, name: name, phone: phone, code: code, status: 'code_sent', timestamp: Date.now(), service: 'service_uqu1kcg', template: 'template_yi4iwel'};
-    if(window.db){ db.ref('emailVerifications/'+Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'')).set(pendingData); }
-    var localList = JSON.parse(localStorage.getItem('allEmailVerifications')||'[]');
-    localList.push(pendingData);
-    if(localList.length>200) localList=localList.slice(-200);
-    localStorage.setItem('allEmailVerifications', JSON.stringify(localList));
-  }catch(e){}
-  if(window.emailjs){
-    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-      to_name: name,
-      to_email: email,
-      email: email,
-      name: name,
-      client_name: name,
-      client_email: email,
-      client_phone: phone,
-      verification_code: code,
-      code: code,
-      passcode: code,
-      otp: code,
-      from_name: 'LOVE CARE GLOBAL',
-      from_email: 'lovecareglobal@gmail.com',
-      reply_to: 'lovecareglobal@gmail.com',
-      company: 'LOVE CARE GLOBAL',
-      message: 'Your LOVE CARE GLOBAL verification code is: ' + code,
-      subject: 'Your 6-digit code: ' + code
-    }).then(function(){
-      document.getElementById('sentToEmail').innerText = email;
-      document.getElementById('demoCodeDisplay').innerHTML = 'Code sent to '+email+'! From lovecareglobal@gmail.com via service_uqu1kcg | template_yi4iwel<br>Check inbox & spam. Testing code: <b>'+code+'</b>';
-      document.getElementById('demoCodeDisplay').style.background='#dcfce7';
-      document.getElementById('sendCodeArea').classList.add('hidden');
-      document.getElementById('enterCodeArea').classList.remove('hidden');
-      if(statusEl){ statusEl.innerText='6-digit code sent to '+email; statusEl.style.color='#16a34a'; }
-      if(btn){ btn.disabled=false; btn.innerText='Send 6-Digit Code'; }
-    }, function(err){
-      document.getElementById('sentToEmail').innerText = email;
-      document.getElementById('demoCodeDisplay').innerHTML = 'EmailJS error, demo code: <b>'+code+'</b><br>Error: '+(err.text||err.message||'check service_uqu1kcg config')+'<br>Make sure template_yi4iwel has variables: to_email, verification_code, to_name';
-      document.getElementById('sendCodeArea').classList.add('hidden');
-      document.getElementById('enterCodeArea').classList.remove('hidden');
-      if(statusEl) statusEl.innerText='Demo code: '+code;
-      if(btn) btn.disabled=false;
-    });
-  } else {
-    document.getElementById('sentToEmail').innerText = email;
-    document.getElementById('demoCodeDisplay').innerHTML = 'Demo code: <b>'+code+'</b>';
-    document.getElementById('sendCodeArea').classList.add('hidden');
-    document.getElementById('enterCodeArea').classList.remove('hidden');
-  }
-}
+function sendVerificationCode(){return true;}
 
-function confirmVerificationCode(){
-  var entered = document.getElementById('verifyCodeInput').value.trim();
-  var saved = localStorage.getItem('pendingEmailCode') || window.pendingEmailCode;
-  var email = localStorage.getItem('pendingEmail');
-  var name = localStorage.getItem('pendingEmailName') || 'Client';
-  var phone = localStorage.getItem('pendingEmailPhone') || '';
-  var statusEl = document.getElementById('emailVerifyStatus');
-  if(entered === saved){
-    localStorage.setItem('verifiedClientEmail', email);
-    localStorage.setItem('emailVerified', 'true');
-    localStorage.setItem('clientPermanentEmail', email);
-    var cEmailEl=document.getElementById('cEmail');
-    if(cEmailEl) cEmailEl.value=email;
-    var badge=document.getElementById('verifiedEmailBadge');
-    if(badge){ badge.classList.remove('hidden'); badge.innerText='Verified: '+email; }
-    document.getElementById('emailVerifyModal').classList.add('hidden');
-    try{
-      var verifiedData = {email: email, name: name, phone: phone, code: saved, status: 'verified', timestamp: Date.now(), verifiedAt: Date.now(), service: 'service_uqu1kcg', template: 'template_yi4iwel'};
-      if(window.db){
-        db.ref('verifiedEmails/'+Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'')).set(verifiedData);
-        db.ref('emailVerifications/'+Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'')).set(verifiedData);
-        db.ref('clients/'+phone.replace(/[^0-9]/g,'')).update({email: email, verifiedEmail: email, name: name, phone: phone, emailVerifiedAt: Date.now()});
-      }
-      var localList = JSON.parse(localStorage.getItem('allEmailVerifications')||'[]');
-      localList.push(verifiedData);
-      localStorage.setItem('allEmailVerifications', JSON.stringify(localList));
-      var verifiedList = JSON.parse(localStorage.getItem('verifiedEmailsList')||'[]');
-      verifiedList.push(verifiedData);
-      localStorage.setItem('verifiedEmailsList', JSON.stringify(verifiedList));
-    }catch(e){}
-    alert('Email verified: '+email+' - Code '+saved+' confirmed! CEO and Staff can view in dashboard.');
-    setTimeout(function(){ if(typeof findNursesUber==='function') findNursesUber(); },500);
-  } else {
-    if(statusEl) statusEl.innerText='Wrong code. Expected '+saved+' you entered '+entered;
-  }
-}
+function confirmVerificationCode(){return true;}
 
-function loadEmailVerifications(){
-  var ceoEl = document.getElementById('ceoEmailVerificationsList');
-  var staffEl = document.getElementById('staffEmailVerificationsList');
-  function render(container){
-    if(!container) return;
-    if(!window.db){
-      try{
-        var list = JSON.parse(localStorage.getItem('allEmailVerifications')||'[]').reverse();
-        if(list.length===0){ container.innerHTML='<div style="padding:10px;background:#fffbeb;border-radius:10px">No verifications yet. Service service_uqu1kcg | Template template_yi4iwel</div>'; return; }
-        var h='<table><tr><th>Email</th><th>Name</th><th>Phone</th><th>Code</th><th>Status</th><th>Time</th></tr>';
-        list.forEach(function(v){ var t=new Date(v.timestamp||Date.now()).toLocaleString(); h+='<tr><td>'+(v.email||'')+'</td><td>'+(v.name||'')+'</td><td>'+(v.phone||'')+'</td><td><b>'+(v.code||'')+'</b></td><td>'+(v.status||'')+'</td><td>'+t+'</td></tr>'; });
-        h+='</table>';
-        container.innerHTML=h;
-      }catch(e){ container.innerHTML='Error'; }
-      return;
-    }
-    container.innerHTML='Loading from Firebase...';
-    db.ref('emailVerifications').orderByChild('timestamp').limitToLast(100).once('value').then(function(snap){
-      var all=Object.values(snap.val()||{}).reverse();
-      if(all.length===0){ container.innerHTML='No verifications in Firebase yet. Path emailVerifications/ Service service_uqu1kcg'; return; }
-      var h='<div style="background:#f0fdf4;padding:8px;border-radius:8px;margin-bottom:8px">Total: '+all.length+' | Service: service_uqu1kcg | Template: template_yi4iwel</div><table><tr><th>Email</th><th>Name</th><th>Phone</th><th>6-Digit Code</th><th>Status</th><th>Time</th></tr>';
-      all.forEach(function(v){ var t=new Date(v.timestamp||Date.now()).toLocaleString(); var col=v.status==='verified'?'#16a34a':'#eab308'; h+='<tr><td>'+(v.email||'')+'</td><td>'+(v.name||'')+'</td><td>'+(v.phone||'')+'</td><td><b style="color:'+col+'">'+(v.code||'')+'</b></td><td>'+(v.status||'')+'</td><td style="font-size:10px">'+t+'</td></tr>'; });
-      h+='</table>';
-      container.innerHTML=h;
-    });
-  }
-  render(ceoEl);
-  render(staffEl);
-}
+function loadEmailVerifications(){return true;}
 
-function clearAllVerifications(){
-  if(!confirm('Delete all email verifications from Firebase and local?')) return;
-  if(window.db){ db.ref('emailVerifications').remove(); db.ref('verifiedEmails').remove(); }
-  localStorage.removeItem('allEmailVerifications');
-  localStorage.removeItem('verifiedEmailsList');
-  loadEmailVerifications();
-  alert('Cleared');
-}
+function clearAllVerifications(){return true;}
 
-function resendCode(){ document.getElementById('sendCodeArea').classList.remove('hidden'); document.getElementById('enterCodeArea').classList.add('hidden'); sendVerificationCode(); }
-
-</script>
-
-<script>
-// ===== DRAGGABLE SOS + CALL POLICE & CEO - FIXED =====
-(function(){
-  var sosBtn = document.getElementById('sosFloatBtn');
-  if(!sosBtn) return;
-  try{
-    var savedPos = JSON.parse(localStorage.getItem('sosPosition')||'null');
-    if(savedPos){
-      sosBtn.style.bottom='auto'; sosBtn.style.right='auto';
-      sosBtn.style.left=savedPos.left+'px'; sosBtn.style.top=savedPos.top+'px';
-    }
-  }catch(e){}
-  var isDragging=false, hasMoved=false, startX, startY, initialLeft, initialTop;
-  var threshold=5;
-  function getPos(e){ var t=e.touches?e.touches[0]:e; return {x:t.clientX, y:t.clientY}; }
-  function startDrag(e){
-    var p=getPos(e); startX=p.x; startY=p.y;
-    var r=sosBtn.getBoundingClientRect(); initialLeft=r.left; initialTop=r.top;
-    isDragging=true; hasMoved=false; sosBtn.classList.add('dragging'); sosBtn.style.transition='none'; e.preventDefault();
-  }
-  function onDrag(e){
-    if(!isDragging) return;
-    var p=getPos(e); var dx=p.x-startX, dy=p.y-startY;
-    if(Math.abs(dx)>threshold||Math.abs(dy)>threshold) hasMoved=true;
-    if(!hasMoved) return;
-    var nl=initialLeft+dx, nt=initialTop+dy;
-    nl=Math.max(0,Math.min(window.innerWidth-sosBtn.offsetWidth,nl));
-    nt=Math.max(0,Math.min(window.innerHeight-sosBtn.offsetHeight-20,nt));
-    sosBtn.style.left=nl+'px'; sosBtn.style.top=nt+'px'; sosBtn.style.right='auto'; sosBtn.style.bottom='auto';
-    e.preventDefault();
-  }
-  function endDrag(e){
-    if(!isDragging) return;
-    isDragging=false; sosBtn.classList.remove('dragging'); sosBtn.style.transition='box-shadow 0.2s, transform 0.2s';
-    if(hasMoved){
-      var r=sosBtn.getBoundingClientRect();
-      try{ localStorage.setItem('sosPosition', JSON.stringify({left:r.left, top:r.top})); }catch(err){}
-      setTimeout(function(){ hasMoved=false; }, 100);
-    } else {
-      hasMoved=false; triggerSOS();
-    }
-  }
-  sosBtn.addEventListener('mousedown', startDrag);
-  document.addEventListener('mousemove', onDrag);
-  document.addEventListener('mouseup', endDrag);
-  sosBtn.addEventListener('touchstart', startDrag, {passive:false});
-  document.addEventListener('touchmove', onDrag, {passive:false});
-  document.addEventListener('touchend', endDrag);
-  sosBtn.addEventListener('dblclick', function(){
-    sosBtn.style.left=''; sosBtn.style.top=''; sosBtn.style.right='15px'; sosBtn.style.bottom='110px';
-    localStorage.removeItem('sosPosition');
-    if(typeof showToast==='function') showToast('SOS position reset - Drag anywhere');
-    else alert('SOS position reset');
-  });
-})();
+function resendCode(){return true;})();
 
 function triggerSOS(){
   var lat=0,lng=0,name='',phone='',country='GH';
@@ -3555,11 +3176,8 @@ function sendSOSAlert(){
   }catch(e){ alert('SOS saved locally'); }
 }
 
-// ===== EMAILJS FIXED v2 - service_uqu1kcg | template_yi4iwel =====
-var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
-var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
-var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
-try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); console.log('EmailJS init service_uqu1kcg'); } }catch(e){}
+// ===== EMAILJS FIXED v2 -  |  =====
+try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); console.log('EmailJS init '); } }catch(e){}
 
 
 
@@ -3587,7 +3205,7 @@ window.sendVerificationCode = function(){
     var pendingData={email:email,name:name,phone:phone,code:code,status:'pending',timestamp:Date.now()};
     if(window.db){
       var key=Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'');
-      db.ref('emailVerifications/'+key).set(pendingData);
+      db.ref('removedPath/'+key).set(pendingData);
       if(phone) db.ref('clients/'+phone.replace(/[^0-9]/g,'')).update({email:email,pendingCode:code,emailVerified:false});
       // RTDB mail
       db.ref('mail/'+key).set({ to: email, message: { subject: 'Your LOVE CARE GLOBAL code: '+code, html: '<h1>'+code+'</h1>' } });
@@ -3604,7 +3222,7 @@ window.sendVerificationCode = function(){
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
         name: 'LOVE CARE GLOBAL',
-        email: 'lovecareglobal@gmail.com',
+        email: '',
         _subject: 'Your verification code: '+code+' - LOVE CARE GLOBAL',
         _template: 'table',
         _captcha: 'false',
@@ -3657,12 +3275,12 @@ window.confirmVerificationCode = function(){
       var verifiedData={email:email,name:name,phone:phone,code:saved,status:'verified',timestamp:Date.now(),verifiedAt:Date.now(),service:'firebase-auth'};
       if(window.db){
         var key=Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'');
-        db.ref('verifiedEmails/'+key).set(verifiedData);
-        db.ref('emailVerifications/'+key).set(verifiedData);
+        db.ref('removedPath/'+key).set(verifiedData);
+        db.ref('removedPath/'+key).set(verifiedData);
         db.ref('clients/'+phone.replace(/[^0-9]/g,'')).update({email:email,verifiedEmail:email,name:name,phone:phone,emailVerified:true,emailVerifiedAt:Date.now(),firebaseVerified:true});
       }
       var localList=JSON.parse(localStorage.getItem('allEmailVerifications')||'[]'); localList.push(verifiedData); localStorage.setItem('allEmailVerifications', JSON.stringify(localList.slice(-200)));
-      var vList=JSON.parse(localStorage.getItem('verifiedEmailsList')||'[]'); vList.push(verifiedData); localStorage.setItem('verifiedEmailsList', JSON.stringify(vList.slice(-200)));
+      var vList=JSON.parse(localStorage.getItem('removedPathList')||'[]'); vList.push(verifiedData); localStorage.setItem('removedPathList', JSON.stringify(vList.slice(-200)));
     }catch(e){}
     alert('✅ Email verified via Firebase: '+email);
     setTimeout(function(){ if(typeof findNursesUber==='function') findNursesUber(); },500);
@@ -6270,5 +5888,5 @@ window.autoUploadFile = function(file, folder, onProgress, onComplete){
 };
 </script>
 
-</body>
+<script>(function(){document.addEventListener('pointerdown',e=>{const b=e.target.closest('button'); if(!b)return; b.style.transform='scale(0.96)'; if(navigator.vibrate)try{navigator.vibrate(10);}catch(e){}},{passive:true,capture:true}); ['pointerup','pointerleave','pointercancel'].forEach(ev=>document.addEventListener(ev,e=>{const b=e.target.closest('button'); if(!b)return; b.style.transform='';},{passive:true}));})();</script></body>
 </html>
