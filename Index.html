@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>LOVE CARE GLOBAL - Optimized</title>
+
+<!-- PERFORMANCE: Preconnect to critical origins -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://corsproxy.io" crossorigin>
+
+<link rel="icon" type="image/png" href="./Icon-512.png">
+<link rel="apple-touch-icon" href="./Icon-512.png">
+<link rel="manifest" href="./manifest.json">
+
+<!-- CRITICAL CSS ONLY - non-blocking -->
+<style>
+*{box-sizing:border-box;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{padding-bottom:75px;overflow-x:hidden;margin:0;font-family:system-ui,-apple-system,sans-serif;background:#f8fafc}
+.page{display:none;opacity:0;transition:opacity .15s}
+.page.active{display:block;opacity:1}
+.bottomNav{position:fixed;bottom:0;left:0;right:0;z-index:100;background:#fff;border-top:1px solid #e5e7eb;display:flex;justify-content:space-around;padding:8px 0;backdrop-filter:blur(10px)}
+.bottomNav button{border:0;background:transparent;padding:8px 12px;border-radius:12px;transition:transform .08s,background .08s;user-select:none}
+.bottomNav button:active{transform:scale(.92);background:#f3f4f6}
+.bottomNav button.fast-active{background:#e0f2fe !important}
+.uber-card{content-visibility:auto;contain-intrinsic-size:0 300px}
+#loadingSplash{position:fixed;inset:0;background:#fff;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column}
+.spinner{width:32px;height:32px;border:3px solid #e5e7eb;border-top-color:#0ea5e9;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+button{cursor:pointer}
+button:disabled{opacity:.4 !important;pointer-events:none}
+</style>
+
+<!-- Leaflet CSS non-blocking -->
+<link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
+
+<script>
+// ===== GLOBAL HELPERS - LIGHTWEIGHT =====
+window.isTelegramLink = function(url){ return url && (url.includes('t.me/') || /^[A-Za-z0-9_-]{20,}$/.test(url)); };
+window.isDriveLink = function(){ return false; };
+window.getDrivePreview = function(url){ return url; };
+window.getDriveDownload = function(url){ return url; };
+
+// ===== FAST BUTTON SYSTEM - fixes lag =====
+window.addEventListener('DOMContentLoaded', function(){
+  // Instant visual feedback on pointerdown
+  document.addEventListener('pointerdown', function(e){
+    const btn = e.target.closest('button, a[role=button]');
+    if(btn){
+      btn.classList.add('fast-active');
+      // haptic on supported devices
+      if(navigator.vibrate) navigator.vibrate(10);
+    }
+  }, {passive:true});
+  document.addEventListener('pointerup', function(e){
+    document.querySelectorAll('.fast-active').forEach(b=>b.classList.remove('fast-active'));
+  }, {passive:true});
+  document.addEventListener('pointercancel', function(){
+    document.querySelectorAll('.fast-active').forEach(b=>b.classList.remove('fast-active'));
+  }, {passive:true});
+});
+
+// ===== DEBOUNCE UTILITY =====
+window.debounce = function(fn, wait){
+  let t; return function(...args){
+    clearTimeout(t);
+    t = setTimeout(()=>fn.apply(this,args), wait);
+  };
+};
+window.throttle = function(fn, limit){
+  let inThrottle; return function(...args){
+    if(!inThrottle){ fn.apply(this,args); inThrottle=true; setTimeout(()=>inThrottle=false, limit); }
+  };
+};
+</script>
+</head>
+<body>
+
+<div id="loadingSplash">
+  <div class="spinner"></div>
+  <div style="margin-top:12px;font-size:13px;color:#64748b">Loading Love Care Global...</div>
+</div>
+
+<!-- PASTE YOUR ORIGINAL <body> CONTENT HERE, KEEPING ONLY THE PAGES -->
+<!-- Example: -->
+<div id="appRoot">
+  <!-- Your existing page divs: <div id="home" class="page active"> etc go here -->
+</div>
+
+<!-- Bottom Nav - keep your original but with fast class -->
+<nav class="bottomNav" id="bottomNav">
+  <button onclick="showPage('home')">Home</button>
+  <button onclick="showPage('search')">Search</button>
+  <button onclick="showPage('book')">Book</button>
+  <button onclick="showPage('chat')">Chat</button>
+  <button onclick="showPage('profile')">Profile</button>
+</nav>
+
+<!-- ===== SCRIPTS - ALL DEFERRED & LAZY ===== -->
+<!-- Firebase - load only what you need, deferred -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js" defer></script>
+
+<!-- Leaflet - lazy load only when map needed -->
+<script>
+window.loadLeaflet = (function(){
+  let loaded=false;
+  return function(cb){
+    if(loaded) return cb && cb();
+    loaded=true;
+    const s1=document.createElement('script'); s1.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; s1.defer=true;
+    s1.onload=function(){
+      const s2=document.createElement('script'); s2.src='https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.js'; s2.defer=true;
+      s2.onload=function(){
+        const link=document.createElement('link'); link.rel='stylesheet'; link.href='https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css';
+        document.head.appendChild(link);
+        cb && cb();
+      };
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s1);
+  };
+})();
+</script>
+
+<!-- TELEGRAM - SECURE & NON-BLOCKING -->
+<script>
+window.TELEGRAM_CONFIG = {
+  // IMPORTANT: NEVER hardcode token in frontend! Use Cloud Function proxy
+  botToken: null, // set via Firebase Function
+  chatId: null,
+  enabled: false, // enable only after you move token to backend
+  useProxy: true
+};
+
+// Optimized uploader - uses fetch with progress
+window.uploadToTelegram = async function(file, folder, onProgress){
+  if(!window.TELEGRAM_CONFIG.enabled) return null;
+  // TODO: call your Firebase Function /api/telegram-upload instead of direct Telegram API
+  // This avoids exposing token and CORS issues
+  console.warn('Telegram upload should go via backend');
+  return null;
+};
+</script>
+
+<!-- CORE APP LOGIC - DEFERRED INITIALIZATION -->
+<script>
+function showPage(id){
+  // FAST: immediate UI switch, no heavy work
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    const target=document.getElementById(id);
+    if(target){
+      target.classList.add('active');
+      // Lazy load map if this page needs it
+      if(target.querySelector('#map') && window.loadLeaflet){
+        loadLeaflet(()=>{ if(window.initMap) initMap(); });
+      }
+    }
+    window.scrollTo({top:0, behavior:'instant'});
+  });
+}
+
+// Remove splash after Firebase ready
+window.addEventListener('load', function(){
+  // Use idle callback for non-critical init
+  const run = function(){
+    const splash=document.getElementById('loadingSplash');
+    if(splash){ splash.style.opacity='0'; splash.style.transition='opacity .3s'; setTimeout(()=>splash.remove(),300); }
+    if(typeof firebase!=='undefined' && firebase.auth){
+      firebase.auth().signInAnonymously().catch(()=>{});
+    }
+  };
+  if('requestIdleCallback' in window) requestIdleCallback(run, {timeout:2000});
+  else setTimeout(run, 300);
+});
+
+// ===== OPTIMIZED BUDGET VALIDATION =====
+(function(){
+  let _calc = window.calculateTotal;
+  const enforceMin = debounce(function(){
+    try{
+      const calc = _calc ? _calc() : window.calculateTotal ? window.calculateTotal() : null;
+      if(!calc) return;
+      const min=calc.totalMin||0;
+      const budgetEl=document.getElementById('cBudget');
+      const amt=parseFloat(budgetEl?.value)||0;
+      const below=amt>0 && amt<min;
+      const empty=!amt;
+      const info=document.getElementById('minRateInfo');
+      if(info){
+        info.textContent = below ? `❌ Below min ${min}` : empty ? `⚠️ Min required: ${min}` : `✅ OK: ${amt} >= ${min}`;
+        info.style.background = below ? '#fee2e2' : empty ? '#fef3c7' : '#dcfce7';
+      }
+      ['livePayBtn','bookBtn'].forEach(id=>{
+        const btn=document.getElementById(id);
+        if(!btn) return;
+        btn.disabled = below || empty;
+      });
+    }catch(e){}
+  }, 150);
+
+  if(document.getElementById('cBudget')){
+    document.getElementById('cBudget').addEventListener('input', enforceMin, {passive:true});
+  }
+  window.validateBudgetLive = enforceMin;
+})();
+</script>
+
+<!-- CONSOLE CLEANUP - PRODUCTION ONLY -->
+<script>
+if(location.hostname!=='localhost' && location.hostname!=='127.0.0.1'){
+  const noop=()=>{};
+  console.log=noop; console.debug=noop; console.info=noop;
+  // keep warn/error for debugging
+}
+</script>
+
+</body>
+</html>
