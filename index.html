@@ -7,9 +7,9 @@
 <style>
 *{touch-action:manipulation}
 button, a{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
-.page{ display:none; content-visibility:auto; contain-intrinsic-size: 1000px; }
+.page{ display:none; content-visibility:auto; contain-intrinsic-size: 0 300px; }
 .page.active{ display:block !important; }
-.bottomNav button{ will-change:transform; transform: translateZ(0); }
+.bottomNav button{  }
 .uber-card{ contain:layout style paint; }
 #loveCareLiveList{ contain:layout; }
 </style>
@@ -18,8 +18,8 @@ button, a{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
 
 <script>
-// GLOBAL TELEGRAM HELPERS
-function isTelegramLink(url){ return url && (url.includes('t.me/') || /^[A-Za-z0-9_-]{20,}$/.test(url)); } // file_id is now stored, not t.me link
+// Helpers - Firebase Storage only
+function isLink(url){ return false; }
 function isDriveLink(url){ return false; }
 function getDrivePreview(url){ return url; }
 function getDriveDownload(url){ return url; }
@@ -35,264 +35,12 @@ function getDriveFileId(url){ return null; }
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
-
-
-<script>
-// ===== UPLOADER V4 - TELEGRAM FIXED - WORKS FOR NURSES UPLOADING =====
-(function(){
-  console.log('🔥 UPLOADER V4 - TELEGRAM FIXED');
-
-  // ============ CONFIGURE THIS ============
-  window.TELEGRAM_CONFIG = {
-    // Create bot: Talk to @BotFather on Telegram -> /newbot -> name it -> get token like 123456:ABC...
-    botToken: 'REMOVED_FOR_SECURITY', // e.g. '1234567890:AAHxyz...'
-    // Create private channel, add your bot as Admin, send a message, then get channel ID
-    // How to get chatId: forward a message from channel to @userinfobot or use https://api.telegram.org/botTOKEN/getUpdates
-    // Channel ID looks like -1001234567890 , personal chat ID is like 123456789
-    chatId: 'REMOVED_FOR_SECURITY', // e.g. '-1001234567890' or '123456789'
-    enabled: true, // ✅ CONFIGURED - Telegram active
-    useProxy: true // ✅ CORS proxy ON to fix browser upload
-  };
-  // ========================================
-
-  async function ensureAuth(){
-    try{ if(!firebase.auth().currentUser){ await firebase.auth().signInAnonymously(); } return true; }catch(e){ return false; }
-  }
-  if(typeof firebase!=='undefined' && firebase.auth){ ensureAuth(); }
-
-  // Helper: Get Telegram file direct URL from file_id
-  async function getTelegramFileUrl(fileId){
-    try{
-      var token = window.TELEGRAM_CONFIG.botToken;
-      var proxy = window.TELEGRAM_CONFIG.useProxy ? 'https://corsproxy.io/?' : '';
-      var apiUrl = 'https://api.telegram.org/bot'+token+'/getFile?file_id='+fileId;
-      var res = await fetch(proxy + encodeURIComponent(apiUrl));
-      // corsproxy.io returns raw, need to handle
-      var text = await res.text();
-      // Try parse
-      try{
-        var json = JSON.parse(text);
-        if(json.ok && json.result && json.result.file_path){
-          return 'https://api.telegram.org/file/bot'+token+'/'+json.result.file_path;
-        }
-      }catch(e){
-        // If proxy returns JSON wrapped
-        console.log('getFile response', text.substring(0,300));
-      }
-      return null;
-    }catch(e){ console.error('getTelegramFileUrl error', e); return null; }
-  }
-
-  // TELEGRAM UPLOAD - Fixed with CORS proxy
-  async function uploadToTelegram(file, folder, onProgress){
-    if(!window.TELEGRAM_CONFIG.enabled || window.TELEGRAM_CONFIG.botToken==='REMOVED_FOR_SECURITY'){
-      console.warn('Telegram not configured');
-      return null;
-    }
-    try{
-      var token = window.TELEGRAM_CONFIG.botToken;
-      var chatId = window.TELEGRAM_CONFIG.chatId;
-      var fd = new FormData();
-      fd.append('chat_id', chatId);
-      // Add caption with folder info for CEO to search
-      fd.append('caption', '📁 '+folder+' | 👩‍⚕️ '+file.name+' | '+(new Date().toLocaleString()));
-      
-      // Choose correct field based on type
-      var method = 'sendDocument';
-      var fieldName = 'document';
-      if(file.type.startsWith('image/')){
-        method = 'sendPhoto';
-        fieldName = 'photo';
-        // For photo, caption field works but file is photo
-      } else if(file.type.startsWith('video/')){
-        method = 'sendVideo';
-        fieldName = 'video';
-      }
-
-      fd.append(fieldName, file, file.name);
-
-      var apiUrl = 'https://api.telegram.org/bot'+token+'/'+method;
-      var fetchUrl = window.TELEGRAM_CONFIG.useProxy ? 'https://corsproxy.io/?' + encodeURIComponent(apiUrl) : apiUrl;
-
-      var xhr = new XMLHttpRequest();
-      return await new Promise(function(resolve){
-        xhr.upload.onprogress = function(e){
-          if(e.lengthComputable){
-            var pct = Math.round((e.loaded/e.total)*100);
-            if(onProgress) onProgress(pct);
-            var box=document.getElementById('uploadStatusBox');
-            if(box) box.innerHTML='✈️ Telegram '+folder+': '+pct+'% - '+file.name.substring(0,20);
-          }
-        };
-        xhr.onload = function(){
-          try{
-            var respText = xhr.responseText;
-            console.log('Telegram raw response', respText.substring(0,500));
-            var json;
-            try{ json = JSON.parse(respText); } catch(e){
-              // corsproxy may wrap?
-              var inner = respText;
-              // Try extract JSON
-              var m = inner.match(/\{.*\}/s);
-              if(m) { try{ json = JSON.parse(m[0]); }catch(e){} }
-            }
-            if(!json){
-              // Try if response is already file_id
-              resolve(null); return;
-            }
-            if(json.ok){
-              var fileId = null;
-              var result = json.result;
-              if(result.document) fileId = result.document.file_id;
-              else if(result.photo) fileId = result.photo[result.photo.length-1].file_id; // biggest photo
-              else if(result.video) fileId = result.video.file_id;
-              
-              if(fileId){
-                // Now get direct file URL
-                getTelegramFileUrl(fileId).then(function(directUrl){
-                  if(directUrl){
-                    console.log('✅ Telegram direct URL', directUrl);
-                    resolve(directUrl);
-                  } else {
-                    // Fallback: return file_id based URL that CEO can still open via bot
-                    // Save file_id, CEO can use bot to retrieve
-                    resolve('tg://file_id/'+fileId); // marker
-                  }
-                });
-              } else {
-                resolve(null);
-              }
-            } else {
-              console.error('Telegram API error', json);
-              if(json.description && json.description.includes('chat not found')){
-                alert('❌ Telegram chatId wrong. Make sure bot is admin in channel and chatId is like -100...');
-              }
-              resolve(null);
-            }
-          }catch(e){
-            console.error('Telegram parse error', e, xhr.responseText.substring(0,300));
-            resolve(null);
-          }
-        };
-        xhr.onerror = function(){ console.error('Telegram xhr error'); resolve(null); };
-        xhr.open('POST', fetchUrl);
-        xhr.send(fd);
-      });
-    }catch(e){ console.error('Telegram upload crash', e); return null; }
-  }
-
-  // FALLBACK 1: Catbox.moe FREE (no account)
-  async function uploadToCatbox(file, onProgress){
-    try{
-      var fd = new FormData(); fd.append('reqtype','fileupload'); fd.append('fileToUpload', file);
-      var xhr = new XMLHttpRequest();
-      return await new Promise(function(resolve){
-        xhr.upload.onprogress = function(e){ if(e.lengthComputable){ var pct=Math.round((e.loaded/e.total)*100); if(onProgress) onProgress(pct); var box=document.getElementById('uploadStatusBox'); if(box) box.innerHTML='📦 Catbox '+pct+'%'; } };
-        xhr.onload = function(){ var url=(xhr.responseText||'').trim(); if(url.startsWith('https://files.catbox.moe/')) resolve(url); else resolve(null); };
-        xhr.onerror = function(){ resolve(null); };
-        xhr.open('POST','https://catbox.moe/user/api.php'); xhr.send(fd);
-      });
-    }catch(e){ return null; }
-  }
-
-  // FALLBACK 2: Base64 to RTDB
-  async function uploadAsBase64ToDB(file, folder){
-    if(file.size>950*1024) return null;
-    try{
-      var base64 = await new Promise(function(res){ var r=new FileReader(); r.onload=function(){ res(r.result); }; r.readAsDataURL(file); });
-      var key=Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_').substring(0,30);
-      var dbPath='nurse_uploads_base64/'+folder+'/'+key;
-      if(window.db){ await db.ref(dbPath).set({name:file.name,type:file.type,size:file.size,data:base64,timestamp:Date.now()}); return base64; }
-      return null;
-    }catch(e){ return null; }
-  }
-
-  window.autoUploadFile = async function(file, folder, onProgress, onDone){
-    if(!file){ onDone(null); return; }
-    await ensureAuth();
-
-    if(file.type.startsWith('image/')){
-      try{
-        file = await new Promise(function(res){
-          var img=new Image(); var url=URL.createObjectURL(file);
-          img.onload=function(){ var c=document.createElement('canvas'); var w=img.width,h=img.height; var maxW=1280; if(w>maxW){ h=h*(maxW/w); w=maxW; } c.width=w; c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); c.toBlob(function(b){ URL.revokeObjectURL(url); if(b) res(new File([b],file.name,{type:'image/jpeg'})); else res(file); },'image/jpeg',0.75); };
-          img.onerror=function(){ URL.revokeObjectURL(url); res(file); }; img.src=url;
-        });
-      }catch(e){}
-    }
-
-    var box=document.getElementById('uploadStatusBox');
-    if(!box){ box=document.createElement('div'); box.id='uploadStatusBox'; box.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);padding:14px 20px;background:#dcfce7;border:2px solid #16a34a;border-radius:12px;z-index:999999;font-weight:800;max-width:90%;'; document.body.appendChild(box); }
-    box.style.display='block'; box.innerHTML='📤 Uploading '+folder+': 0% - '+file.name.substring(0,20);
-
-    // TRY 1: Firebase Storage (if billing settled)
-    try{
-      var safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_').substring(0,60);
-      var fullPath=folder+'/'+Date.now()+'_'+safeName;
-      var ref=firebase.storage().ref().child(fullPath);
-      var task=ref.put(file);
-      var url=await new Promise(function(resolve){
-        task.on('state_changed',
-          function(snap){ var pct=Math.round((snap.bytesTransferred/snap.totalBytes)*100); if(onProgress) onProgress(pct); box.innerHTML='🔥 Firebase '+folder+': '+pct+'%'; },
-          function(err){ console.error('Firebase error',err.code); if((err.message||'').toLowerCase().includes('billing')){ box.innerHTML='⚠️ Firebase billing blocked - Trying Telegram...'; box.style.background='#fef3c7'; } resolve(null); },
-          function(){ task.snapshot.ref.getDownloadURL().then(function(dl){ resolve(dl); }).catch(function(){ resolve(null); }); }
-        );
-      });
-      if(url){ box.innerHTML='✅ Firebase Uploaded: '+file.name.substring(0,25); setTimeout(function(){ box.style.display='none'; },2500); onDone(url,{secure_url:url,storage:'firebase'}); return; }
-    }catch(e){}
-
-    // TRY 2: Telegram (your preferred)
-    if(window.TELEGRAM_CONFIG.enabled){
-      box.innerHTML='✈️ Trying Telegram (your preferred)...';
-      var tgUrl = await uploadToTelegram(file, folder, onProgress);
-      if(tgUrl){
-        if(tgUrl.startsWith('tg://')){
-          // File ID fallback - save file_id, tell CEO to use bot
-          box.innerHTML='✅ Telegram Uploaded (file_id): '+file.name.substring(0,25);
-          setTimeout(function(){ box.style.display='none'; }, 3000);
-          onDone(tgUrl, {secure_url:tgUrl, storage:'telegram_file_id'});
-          return;
-        } else {
-          box.innerHTML='✅ Telegram Uploaded: '+file.name.substring(0,25)+' (Permanent)';
-          box.style.background='#dcfce7'; box.style.borderColor='#16a34a';
-          setTimeout(function(){ box.style.display='none'; }, 3000);
-          onDone(tgUrl, {secure_url:tgUrl, storage:'telegram'});
-          return;
-        }
-      } else {
-        box.innerHTML='⚠️ Telegram failed, trying Catbox free fallback...';
-      }
-    } else {
-      console.log('Telegram disabled, skipping to Catbox. Enable it in TELEGRAM_CONFIG');
-      box.innerHTML='ℹ️ Telegram not configured - Using FREE Catbox...<br><small>To use Telegram: set botToken + chatId + enabled=true</small>';
-      await new Promise(r=>setTimeout(r,1500));
-    }
-
-    // TRY 3: Catbox FREE
-    var catUrl = await uploadToCatbox(file, onProgress);
-    if(catUrl){ box.innerHTML='✅ Catbox Uploaded: '+file.name.substring(0,25)+' (FREE)'; setTimeout(function(){ box.style.display='none'; },3000); onDone(catUrl,{secure_url:catUrl,storage:'catbox'}); return; }
-
-    // TRY 4: Base64 RTDB
-    if(file.size<950*1024){
-      var b64 = await uploadAsBase64ToDB(file, folder);
-      if(b64){ box.innerHTML='✅ Saved to Database'; setTimeout(function(){ box.style.display='none'; },3000); onDone(b64,{secure_url:b64,storage:'rtdb'}); return; }
-    }
-
-    box.innerHTML='❌ All uploads failed.<br><small>1. Settle Firebase OR 2. Setup Telegram bot OR 3. File <200MB for Catbox</small>';
-    box.style.background='#fee2e2'; box.style.borderColor='#ef4444';
-    onDone(null);
-  };
-
-  window.uploadFileToStorage = function(f,p){ return new Promise(function(r){ window.autoUploadFile(f,p,function(){},function(url){ r(url); }); }); };
-  console.log('✅ UPLOADER V4 TELEGRAM FIXED READY');
-})();
-</script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js" defer></script>
 
 
 <!-- EmailJS REMOVED - Now using Firebase Auth -->
@@ -576,14 +324,14 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div style="background:white;border:2px solid #16a34a;border-radius:10px;padding:8px;margin:6px 0">
 <label style="font-size:11px;font-weight:800;color:#16a34a">🎥 Video Intro - Upload from Phone/Laptop (MP4, MOV)</label>
 <input type="file" id="nRegVideoFile" accept="video/*" style="padding:6px">
-<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegVideo" placeholder="Telegram auto-upload" style="margin:0;flex:1"></div>
+<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegVideo" placeholder=" auto-upload" style="margin:0;flex:1"></div>
 <div id="videoUploadProgress" style="font-size:10px;color:#16a34a;margin-top:4px"></div>
 </div>
 
 <div style="background:white;border:2px solid #2563eb;border-radius:10px;padding:8px;margin:6px 0">
 <label style="font-size:11px;font-weight:800;color:#2563eb">📄 CV - Upload PDF/DOC from storage</label>
 <input type="file" id="nRegCVFile" accept=".pdf,.doc,.docx,image/*" style="padding:6px">
-<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegCV" placeholder="Telegram auto-upload" style="margin:0;flex:1"></div>
+<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegCV" placeholder=" auto-upload" style="margin:0;flex:1"></div>
 <div id="cvUploadProgress" style="font-size:10px;color:#2563eb;margin-top:4px"></div>
 </div>
 
@@ -715,7 +463,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 
 <div id="page-group-chat" class="page">
 <div class="card" style="border:3px solid #16a34a"><h2>GROUP CHAT - Private (Nurse/Staff/CEO Only) 🎤📹🖼️▶️</h2>
-<div style="background:#fef3c7;padding:6px;border-radius:8px;font-size:10px;margin-bottom:8px">🔒 Clients cannot see. Only Nurses, Staff & CEO. Share text, voice, videos, images, YouTube. Telegram bot (free). CEO can wipe all.</div>
+<div style="background:#fef3c7;padding:6px;border-radius:8px;font-size:10px;margin-bottom:8px">🔒 Clients cannot see. Only Nurses, Staff & CEO. Share text, voice, videos, images, YouTube.  bot (free). CEO can wipe all.</div>
 <div id="globalChatBox" class="chatBox" style="height:400px;max-width:100%;overflow-y:auto"></div>
 <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;max-width:100%">
 <button id="voiceRecordBtn" class="btnSmall" style="background:#ef4444;color:white;padding:8px 10px;font-size:10px" onclick="toggleVoiceRecord()">🎤 Voice</button>
@@ -763,7 +511,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 1. Go to Firebase Console → Storage → Rules → Change to:<br>
 <code style="background:#111827;color:#eab308;padding:4px 6px;border-radius:4px;display:block;margin:4px 0">rules_version = '2';<br>service firebase.storage {<br>  match /b/{bucket}/o {<br>    match /{allPaths=**} {<br>      allow read, write: if true;<br>    }<br>  }<br>}</code>
 2. Publish rules<br>
-3. Also tell nurses to paste Telegram link if upload fails - viewer will show Telegram link
+3. Also tell nurses to paste  link if upload fails - viewer will show  link
 </div>
 <div id="ceoNursesList">Loading...</div><div id="ceoMap" style="height:380px;border-radius:12px;border:2px solid #16a34a;margin-top:10px"></div><div id="ceoNurseMediaView" style="display:none" data-fixed="true" id="ceoNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:16px;padding:12px;margin-top:12px;background:#f5f3ff;max-height:85vh;overflow-y:auto" style="border:3px solid #7c3aed;border-radius:16px;padding:12px;margin-top:12px;background:#f5f3ff;max-height:85vh;overflow-y:auto;position:relative"><div style="position:sticky;top:0;background:#f5f3ff;padding:8px 0;z-index:10;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">🔍 Nurse Media Viewer - CEO</h3><button class="btnSmall" style="background:#ef4444;color:white" onclick="document.getElementById('ceoNurseMediaView').classList.add('hidden')">✕ Close</button></div><div id="mediaViewerContent"></div></div></div>
 <div id="ceo-tab-clients" class="ceo-tab card hidden"><h2>3. Clients (Verified Emails)</h2><div id="ceoClientsList">Loading...</div></div>
@@ -1372,8 +1120,8 @@ async function registerNurse(){
       showUploadStatus('📤 Processing uploads (max 15s per file) - Links work too!');
       var tasks=[];
       if(videoFile) tasks.push(uploadWithTimeout(videoFile, 'nurse_videos/'+phoneKey, 15000).then(function(u){ if(u) videoUrl=u; }).catch(function(){ }));
-      if(cvFile) tasks.push(uploadToTelegram(cvFile, 'CV').then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
-      if(certFile) tasks.push(uploadToTelegram(certFile, 'CERTIFICATE').then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
+      if(cvFile) tasks.push(uploadToFirebaseStorage(cvFile, 'CV').then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
+      if(certFile) tasks.push(uploadToFirebaseStorage(certFile, 'CERTIFICATE').then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
       if(idFile) tasks.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 15000).then(function(u){ if(u) idUrl=u; }).catch(function(){ }));
       if(tasks.length>0){
         await Promise.allSettled(tasks);
@@ -1948,16 +1696,16 @@ var helpKnowledgeBase = [
   {topic:'rate', keywords:['rate','minimum','legal','wage','pay','price','ghs','cost','how much','amount','fee','charge'], answer:'⚖ <b>Legal Minimum Rates & Pricing Logic:</b><br>• <b>1-6 days (hourly/daily)</b> = Localization formula: Per-country rate × hours<br>Ghana 15 GHS/hr, Nigeria 1500 NGN/hr, SA 80 ZAR/hr, Kenya 300 KES/hr, USA 25 USD/hr, UK 15 GBP/hr etc<br>• <b>Week/Month/Daily 7+ days</b> = CEO Managed flat price (no localization, CEO sets in dashboard, with auto discount 10% weekly, 20% monthly)<br>• Total = hourly × totalHours ×1.10 if Live-in<br>• Live calculation shows in green box<br>• System BLOCKS if you offer below minimum<br>Current rate now: ', isDynamic:true, weight:10},
   {topic:'live', keywords:['live-in','livein','live in','live-out','liveout','live out','stay','room','food'], answer:'🏠 <b>Live-in vs Live-out:</b><br>Live-out: Nurse comes at Start Time, leaves at End Time daily, goes home. Pay per hour worked.<br>Live-in: Nurse stays 24hrs in your home, needs private room + food + toilet, +10% allowance. Example: 8hrs/day Live-out = 8hrs pay, Live-in same 8hrs = 8hrs×1.10. CEO recommends Live-in for elderly, baby, 24hr care.', weight:9},
   {topic:'gps', keywords:['gps','map','google','live','navigation','location','find nurse','near me','route','direction'], answer:'🗺 <b>Google Live & Navigation FIXED:</b><br>GPS Auto button → Gets your blue dot live<br>FIND NURSES NEAR ME → Shows green dots = nurses ON DUTY<br>Select nurse → Blue dashed route drawn from you to nurse<br>NAV button → Opens Google Maps turn-by-turn navigation<br>Radius: 5/10/20/50km selector<br>If GPS fails: Enable location in phone settings, allow browser location, try outdoors', weight:9},
-  {topic:'nurse_join', keywords:['nurse','register','join','become nurse','apply','work as nurse'], answer:'👩⚕ <b>Join as Nurse:</b><br>Join tab → Full Name 18+, Phone (with country code), Password, Years Experience, Specialty (13 options)<br>GPS Auto → Upload: Introduction Video (30sec), CV PDF, Certificate PDF, ID Photo, Profile Photo<br>Upload goes to Telegram channel Love Care Global CVs (free, no Firebase billing needed) + Firebase if billing settled<br>Care Mode: Live-in/Live-out/Both → Register → CEO verifies docs in CEO Dashboard → Login → START DUTY → You appear LIVE on client map with green dot', weight:9},
+  {topic:'nurse_join', keywords:['nurse','register','join','become nurse','apply','work as nurse'], answer:'👩⚕ <b>Join as Nurse:</b><br>Join tab → Full Name 18+, Phone (with country code), Password, Years Experience, Specialty (13 options)<br>GPS Auto → Upload: Introduction Video (30sec), CV PDF, Certificate PDF, ID Photo, Profile Photo<br>Upload goes to  channel Love Care Global CVs (free, no Firebase billing needed) + Firebase if billing settled<br>Care Mode: Live-in/Live-out/Both → Register → CEO verifies docs in CEO Dashboard → Login → START DUTY → You appear LIVE on client map with green dot', weight:9},
   {topic:'payout', keywords:['payout','85%','paystack','momo','bank','money','earn','salary','payment'], answer:'💸 <b>Payouts 85%:</b><br>Client pays 100% → Held by platform → Nurse does work → Client clicks Work Done & Confirms → CEO Dashboard → Payouts tab → Pay Nurse 85% button → Paystack Transfer to your bank/MoMo automatically<br>Example: Client paid 1000 GHS → You get 850 GHS, platform keeps 150 GHS<br>Set bank/MoMo in Nurse Settings → Bank/MoMo details', weight:8},
   {topic:'staff_ceo', keywords:['staff','ceo','secret','logo','5 taps','long press','admin','dashboard'], answer:'🔐 <b>Secret Staff/CEO Access:</b><br>Staff Portal: 5 quick taps on LOVE CARE logo at top → Staff login (Staff ID + Password)<br>CEO Portal: Long press logo 1.5 seconds → CEO login → Full control: Verify nurses, see CV/Video/Cert/Photo, set rates, CEO Weekly/Monthly flat pricing (no localization), payouts, analytics<br>Staff can view nurses & bookings, CEO can do everything', weight:8},
   {topic:'footer', keywords:['footer','about','privacy','terms','cancel','contact','refund'], answer:'📄 <b>Footer Fixed & Working:</b><br>About Us, Privacy Policy, Terms of Service, Cancellation & Refund, Contact Us now open as modals (popups)<br>Cancel shows: Full refund if cancelled before nurse assigned, 50% if after assigned, no refund after work started<br>Contact: lovecareglobal@gmail.com / 0544121814 / WhatsApp<br>All footer links now work', weight:7},
   {topic:'email', keywords:['email','verify','code','otp'], answer:'🔐 <b>Email Verification:</b><br>Enter real email → Click Send Code → 6-digit code sent via EmailJS to inbox & spam → Enter code → Verified badge ✓ → Saved permanently in localStorage<br>If not receiving: Check spam, try Gmail, wait 1 min. Currently bypassed for open access (isEmailVerified returns true)', weight:7},
   {topic:'hours', keywords:['help','faq','hours','how many hours','duration','day','week','month','time'], answer:'💡 <b>Flexible Hours System:</b><br>Hourly: 1-24hrs (e.g., 3 Hours)<br>Daily: Days × hrs/day (e.g., 7 Days × 8 hrs/day = 56 hrs)<br>Weekly: Weeks×7×hrs/day (e.g., 2 Weeks × 8 hrs/day = 112 hrs) → CEO pricing<br>Monthly: Months×30×hrs/day (e.g., 1 Month × 8 hrs/day = 240 hrs) → CEO pricing<br>Night shift allowed 20:00-06:00<br>Daily 1-6 days = Localization formula, Daily 7+ / Weekly / Monthly = CEO managed', weight:8},
-  {topic:'telegram', keywords:['telegram','upload','cv','video','photo','certificate','document','fail','not uploading'], answer:'✈️ <b>Nurse Uploads & Telegram Storage FIXED:</b><br>Old issue: Telegram API blocked browser (CORS) + upload preset set to IMAGE only → PDFs failed with JSON error<br>Fixed now: Uses corsproxy.io + Telegram Bot 8606627642:AA... + Channel REMOVED_FOR_SECURITY Love Care Global CVs<br>Upload order: Firebase Storage (if billing settled) → Telegram (free, unlimited, your channel) → Catbox.moe (free 200MB) → RTDB Base64 (<950KB)<br>CEO sees files in CEO Dashboard → Nurse detail → Video player + PDF viewer (fixed /image/upload/ → /raw/upload/ bug)<br>Telegram channel is backup, CEO Dashboard is main viewer', weight:9},
+  {topic:'', keywords:['','upload','cv','video','photo','certificate','document','fail','not uploading'], answer:'✈️ <b>Nurse Uploads &  Storage FIXED:</b><br>Old issue:  API blocked browser (CORS) + upload preset set to IMAGE only → PDFs failed with JSON error<br>Fixed now: Uses .io +  Bot 8606627642:AA... + Channel REMOVED_FOR_SECURITY Love Care Global CVs<br>Upload order: Firebase Storage (if billing settled) →  (free, unlimited, your channel) → Catbox.moe (free 200MB) → RTDB Base64 (<950KB)<br>CEO sees files in CEO Dashboard → Nurse detail → Video player + PDF viewer (fixed /image/upload/ → /raw/upload/ bug)<br> channel is backup, CEO Dashboard is main viewer', weight:9},
   {topic:'pricing_logic', keywords:['localization','ceo pricing','weekly','monthly','flat price','1-6 days','discount'], answer:'👑 <b>New Pricing Logic (Your Request):</b><br>• <b>1-6 days (hourly/daily)</b> = 🌍 Localization formula: NURSE_HOURLY_MIN per country × hours, with currency conversion<br>• <b>7+ days, Weekly, Monthly</b> = 👑 CEO Managed flat price (NO localization formula)<br>CEO sets flat price in CEO Dashboard → CEO Weekly/Monthly Pricing section (GH_weekly, GH_monthly etc)<br>Auto defaults: Weekly = hourly×7×8×0.9 (10% discount), Monthly = hourly×26×8×0.8 (20% discount)<br>Badge shows: Green = Localization, Black/Gold = CEO Managed', weight:10},
-  {topic:'ceo_files', keywords:['ceo','receive','watch','read','cv','where to see','how to see nurse docs'], answer:'👁️ <b>How CEO Receives & Watches Nurse Files:</b><br>You do NOT need to go to Telegram! Files appear in CEO Dashboard:<br>CEO Dashboard → Nurses List → Tap nurse name → Shows separated view:<br>📹 Introduction Video = <video controls> player (works for Firebase/Catbox/Telegram links)<br>📄 CV PDF = PDF viewer with 3 options: Direct, Google Docs, PDF.js + Open/Download buttons<br>🎓 Certificate = same PDF viewer<br>🪪 ID + 👤 Profile = photo viewer<br>Also: Telegram channel Love Care Global CVs has backup copy. Plus 🔔 badge shows new uploads, and personal Telegram DM notifies you', weight:9},
-  {topic:'notification', keywords:['notification','badge','alert','dm','personal telegram','new upload'], answer:'🔔 <b>Notifications for CEO:</b><br>1. Dashboard badge: Red pulsing 🔔 3 new uploads in CEO header<br>2. Toast popup: Top-right for uploads in last 5 mins<br>3. Personal Telegram DM: When nurse uploads CV/Video/Cert, bot sends DM to your private Telegram (if you enabled: CEO Dashboard → Setup Personal Telegram → Send /start to bot → Detect ID)<br>4. Mark as seen button: ✅ Mark all seen resets counter', weight:8}
+  {topic:'ceo_files', keywords:['ceo','receive','watch','read','cv','where to see','how to see nurse docs'], answer:'👁️ <b>How CEO Receives & Watches Nurse Files:</b><br>You do NOT need to go to ! Files appear in CEO Dashboard:<br>CEO Dashboard → Nurses List → Tap nurse name → Shows separated view:<br>📹 Introduction Video = <video controls> player (works for Firebase/Catbox/ links)<br>📄 CV PDF = PDF viewer with 3 options: Direct, Google Docs, PDF.js + Open/Download buttons<br>🎓 Certificate = same PDF viewer<br>🪪 ID + 👤 Profile = photo viewer<br>Also:  channel Love Care Global CVs has backup copy. Plus 🔔 badge shows new uploads, and personal  DM notifies you', weight:9},
+  {topic:'notification', keywords:['notification','badge','alert','dm','personal ','new upload'], answer:'🔔 <b>Notifications for CEO:</b><br>1. Dashboard badge: Red pulsing 🔔 3 new uploads in CEO header<br>2. Toast popup: Top-right for uploads in last 5 mins<br>3. Personal  DM: When nurse uploads CV/Video/Cert, bot sends DM to your private  (if you enabled: CEO Dashboard → Setup Personal  → Send /start to bot → Detect ID)<br>4. Mark as seen button: ✅ Mark all seen resets counter', weight:8}
 ];
 
 function calculateLevenshtein(a,b){
@@ -1994,7 +1742,7 @@ function scoreMatch(query, keywords){
 }
 
 function aiBotAnswer(query){
-  if(!query || !query.trim()) return '👋 Ask me anything about Love Care Global!<br><br>Examples:<br>• How much for 3 days 8hrs?<br>• Why is weekly price CEO managed?<br>• Where do I see nurse CV?<br>• My GPS not working<br>• How does Telegram upload work?<br>• What is live-in?<br>Try any question!';
+  if(!query || !query.trim()) return '👋 Ask me anything about Love Care Global!<br><br>Examples:<br>• How much for 3 days 8hrs?<br>• Why is weekly price CEO managed?<br>• Where do I see nurse CV?<br>• My GPS not working<br>• How does  upload work?<br>• What is live-in?<br>Try any question!';
 
   var q=query.toLowerCase().trim();
   var results=[];
@@ -2062,7 +1810,7 @@ function aiBotAnswer(query){
         // This will be answered generally, specific nurse check happens in CEO dashboard
       }
     }catch(e){}
-    return '👁️ <b>Where to see nurse CV/Video/Cert/Photo:</b><br>1. CEO Dashboard → Nurses List → Tap nurse name<br>2. You will see separated sections:<br>📹 Video = player<br>📄 CV = PDF viewer (3 viewers)<br>🎓 Certificate = PDF viewer<br>🪪 ID + 👤 Profile = photos<br>3. Also backup in Telegram channel: Love Care Global CVs (REMOVED_FOR_SECURITY)<br>4. Files uploaded via: Firebase (if billing settled) → Telegram (free) → Catbox (free) → RTDB<br>All links saved in Database, so CEO dashboard shows them instantly';
+    return '👁️ <b>Where to see nurse CV/Video/Cert/Photo:</b><br>1. CEO Dashboard → Nurses List → Tap nurse name<br>2. You will see separated sections:<br>📹 Video = player<br>📄 CV = PDF viewer (3 viewers)<br>🎓 Certificate = PDF viewer<br>🪪 ID + 👤 Profile = photos<br>3. Also backup in  channel: Love Care Global CVs (REMOVED_FOR_SECURITY)<br>4. Files uploaded via: Firebase (if billing settled) →  (free) → Catbox (free) → RTDB<br>All links saved in Database, so CEO dashboard shows them instantly';
   }
 
   // Score all knowledge base
@@ -2106,13 +1854,13 @@ function aiBotAnswer(query){
   fallback+='• ⚖ Rates & new pricing (1-6 days localization, week/month CEO)<br>';
   fallback+='• 🏠 Live-in vs Live-out (+10%)<br>';
   fallback+='• 🗺 Google Live map & navigation<br>';
-  fallback+='• 👩⚕ Join as nurse & uploads (Telegram fixed)<br>';
+  fallback+='• 👩⚕ Join as nurse & uploads ( fixed)<br>';
   fallback+='• 💸 Payouts 85% via Paystack<br>';
   fallback+='• 🔐 Staff/CEO secret access (5 taps / long press logo)<br>';
   fallback+='• 📄 Footer, Email verification<br>';
-  fallback+='• ✈️ Telegram/Catbox storage (no billing needed)<br>';
+  fallback+='• ✈️ /Catbox storage (no billing needed)<br>';
   fallback+='• 👁️ CEO Dashboard viewing CV/Video/Cert<br>';
-  fallback+='• 🔔 Notifications & personal Telegram DM<br><br>';
+  fallback+='• 🔔 Notifications & personal  DM<br><br>';
   fallback+='<b>Try rephrasing:</b><br>• "How much for 3 days 8 hours?"<br>• "Where do I see nurse CV?"<br>• "Why weekly price is CEO managed?"<br>• "My upload fails"<br>• "How to become a nurse?"';
   return fallback;
 }
@@ -3939,17 +3687,17 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <script>
 // ====== LOVCARE - FINAL FIX - NO MORE 401 ======
-// ====== TELEGRAM STORAGE - REPLACES TELEGRAM & DRIVE ======
-const TELEGRAM_CONFIG = {
+// ======  STORAGE - REPLACES  & DRIVE ======
+const _CONFIG = {
   botToken: 'REMOVED_FOR_SECURITY',
   channelId: 'REMOVED_FOR_SECURITY',
   channelNumeric: '3912808382',
   channelTitle: 'Love Care Global CVs'
 };
 const FREE_UPLOAD_CONFIG = {
-  telegramCloudName: 'REMOVED',
-  telegramPreset: 'REMOVED',
-  useTelegram: false
+  CloudName: 'REMOVED',
+  Preset: 'REMOVED',
+  use: false
 };
 // Compatibility: old DRIVE_CONFIG removed
 const DRIVE_CONFIG = { enabled: true, folderId: '', appsScriptUrl: '', autoUploadThresholdMB: 9999 };
@@ -3971,8 +3719,8 @@ function showUploadStatus(msg, isError){
 }
 
 
-// ====== TELEGRAM UPLOADER - SENDS ALL FILES TO TELEGRAM CHANNEL ======
-async function uploadToTelegram(file, folderOrType){
+// ======  UPLOADER - SENDS ALL FILES TO  CHANNEL ======
+async function uploadToFirebaseStorage(file, folderOrType){
   if(!file) return null;
   try{
     const typeMap = {
@@ -3992,7 +3740,7 @@ async function uploadToTelegram(file, folderOrType){
     const caption = `📁 ${type}\n👩‍⚕️ ${nurseName || 'Nurse'}\n📞 ${nursePhone || 'No phone'}\n📄 ${file.name}\n💾 ${(file.size/1024/1024).toFixed(2)}MB\n🕒 ${new Date().toLocaleString()}`;
     
     const form = new FormData();
-    form.append('chat_id', TELEGRAM_CONFIG.channelId);
+    form.append('chat_id', _CONFIG.channelId);
     form.append('caption', caption);
     form.append('parse_mode', 'HTML');
 
@@ -4007,36 +3755,36 @@ async function uploadToTelegram(file, folderOrType){
       form.append('document', file, file.name);
     }
 
-    if(typeof showUploadStatus === 'function') showUploadStatus(`📤 Uploading ${type} to Telegram: ${file.name}...`);
-    if(typeof showStatus === 'function') showStatus(`📤 Uploading ${type} to Telegram...`);
+    if(typeof showUploadStatus === 'function') showUploadStatus(`📤 Uploading ${type} to : ${file.name}...`);
+    if(typeof showStatus === 'function') showStatus(`📤 Uploading ${type} to ...`);
 
-    const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.botToken}/${endpoint}`;
+    const url = `https://api..org/bot${_CONFIG.botToken}/${endpoint}`;
     const res = await fetch(url, { method: 'POST', body: form });
     const data = await res.json();
 
     if(!data.ok){
-      console.error('Telegram fail', data);
-      throw new Error(data.description || 'Telegram upload failed');
+      console.error(' fail', data);
+      throw new Error(data.description || ' upload failed');
     }
 
-    const msgId = data.result.message_id;
-    const viewLink = `https://t.me/c/${TELEGRAM_CONFIG.channelNumeric}/${msgId}`;
+    const msgId = data.resulssage_id;
+    const viewLink = `https:///c/${_CONFIG.channelNumeric}/${msgId}`;
 
-    console.log(`✅ Telegram uploaded [${type}]:`, viewLink);
-    if(typeof showUploadStatus === 'function') showUploadStatus(`✅ ${type} sent to Telegram: ${file.name}`);
-    if(typeof showStatus === 'function') showStatus(`✅ ${type} sent to Telegram`);
+    console.log(`✅  uploaded [${type}]:`, viewLink);
+    if(typeof showUploadStatus === 'function') showUploadStatus(`✅ ${type} sent to : ${file.name}`);
+    if(typeof showStatus === 'function') showStatus(`✅ ${type} sent to `);
 
-    // Return the t.me link - this will be saved to Firebase as cvUrl etc
+    // Return the  link - this will be saved to Firebase as cvUrl etc
     return viewLink;
   }catch(e){
-    console.error('Telegram upload error', e);
-    if(typeof showUploadStatus === 'function') showUploadStatus(`❌ Telegram failed: ${e.message}`, true);
+    console.error(' upload error', e);
+    if(typeof showUploadStatus === 'function') showUploadStatus(`❌  failed: ${e.message}`, true);
     return null;
   }
 }
 
-// Compatibility wrappers - old functions now point to Telegram
-function uploadToTelegram(file, folder){ return uploadToTelegram(file, folder); }
+// Compatibility wrappers - old functions now point to 
+function uploadToFirebaseStorage(file, folder){ return uploadToFirebaseStorage(file, folder); }
 function uploadToMyDrive(file){ return Promise.resolve(null); } // disabled
 function uploadFileToStorage(file, path){ 
   // Extract type from path
@@ -4044,9 +3792,9 @@ function uploadFileToStorage(file, path){
   if(path && path.includes('cv')) t='CV';
   if(path && path.includes('cert')) t='CERTIFICATE';
   if(path && path.includes('id')) t='ID_PHOTO';
-  return uploadToTelegram(file, t);
+  return uploadToFirebaseStorage(file, t);
 }
-function uploadWithTimeout(file, path, ms){ return uploadToTelegram(file, path); }
+function uploadWithTimeout(file, path, ms){ return uploadToFirebaseStorage(file, path); }
 
 
 function uploadToMyDrive(file){
@@ -4083,7 +3831,7 @@ window.uploadFileToStorage = async function(file, path){
     // drive removed
   }
   var folder=(path||'').split('/')[0]||'lovecare';
-  var cloudUrl=await uploadToTelegram(file, folder);
+  var cloudUrl=await uploadToFirebaseStorage(file, folder);
   if(cloudUrl) return cloudUrl;
   // Fallback to Firebase if both fail (original logic)
   if(window.uploadToFirebaseStorage){
@@ -4341,7 +4089,7 @@ window.uploadFileToStorage = async function(file, path){
   console.log('✅ Rating system loaded - After service, CEO sees ratings, auto-suspend <2.5 from 3+ clients');
 })();
 
-console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '+TELEGRAM_CONFIG.channelId+' // Old log: All changes integrated - Telegram REMOVED + Drive '+DRIVE_CONFIG.folderId+' + Draggable SOS + Ratings + Watch 5s');
+console.log('✅  VERSION -  + Drive removed,  active: '+_CONFIG.channelId+' // Old log: All changes integrated -  REMOVED + Drive '+DRIVE_CONFIG.folderId+' + Draggable SOS + Ratings + Watch 5s');
 </script>
 
 <script>
@@ -4544,9 +4292,9 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   // Also fix deleteBooking from CEO Payments if using numeric id in table
   window.deleteClientBooking = window.deleteBooking;
 
-  // ---- MEDIA VIEWER FIXES (Handles Telegram PDFs as PDF not image) ----
+  // ---- MEDIA VIEWER FIXES (Handles  PDFs as PDF not image) ----
   function false{ return false; }
-  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
+  function isLink(url){ return url && url.includes("/c/"); }
   function getDriveFileId(url){ return null; }
   function url{ return url; }
   function url{ return url; }
@@ -4557,7 +4305,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   }
   function isVideoUrl(u){
     if(!u) return false; if(isDriveLink(u)) return false;
-    return /\.(mp4|mov|webm|mkv|avi)($|\?)/i.test(u) || (u.includes('telegram') && u.includes('/video/')) || u.includes('nurse_videos');
+    return /\.(mp4|mov|webm|mkv|avi)($|\?)/i.test(u) || (u.includes('') && u.includes('/video/')) || u.includes('nurse_videos');
   }
   function isImageUrl(u){
     if(!u) return false; if(isDriveLink(u) || isPdfUrl(u) || isVideoUrl(u)) return false;
@@ -4574,11 +4322,11 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
     } else if(isVideoUrl(safe)){
       html+='<video src="'+safe+'" controls playsinline controlsList="nodownload" style="width:100%;max-height:480px;border-radius:12px;background:#000;border:2px solid #7c3aed"></video>';
     } else if(isPdfUrl(safe)){
-      // Use Telegram / Google Docs viewer for PDFs
-      if(safe.includes('telegram')){
-        html+='<iframe src="'+safe+'" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe><div style="font-size:10px;color:#2563eb;margin-top:4px">📄 PDF from Telegram - If blank, click Open</div>';
+      // Use  / Google Docs viewer for PDFs
+      if(safe.includes('')){
+        html+='<iframe src="'+safe+'" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe><div style="font-size:10px;color:#2563eb;margin-top:4px">📄 PDF from  - If blank, click Open</div>';
       } else {
-        html+='<iframe src="https://t.me/gview?url='+encodeURIComponent(safe)+'&embedded=true" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe>';
+        html+='<iframe src="https:///gview?url='+encodeURIComponent(safe)+'&embedded=true" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe>';
       }
     } else if(isImageUrl(safe)){
       html+='<img src="'+safe+'" style="width:100%;max-height:650px;object-fit:contain;border-radius:12px;border:2px solid #16a34a;background:#f9fafb" loading="lazy" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\'"><div style="display:none;padding:20px;text-align:center;background:#fef3c7;border-radius:10px">⚠️ Image failed to load - Tap Open button<br><small>'+safe+'</small></div>';
@@ -4750,7 +4498,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
     if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 5000);
   }
 
-  // Telegram fast upload with 8s timeout
+  //  fast upload with 8s timeout
   ).then(function(r){ return r.json(); }).then(function(d){
         clearTimeout(timer);
         if(timedOut) return;
@@ -4758,12 +4506,12 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
           showStatus('✅ Uploaded '+file.name);
           resolve(d.secure_url); 
         } else { 
-          console.warn('Telegram failed', d); 
+          console.warn(' failed', d); 
           resolve(null); 
         }
       }).catch(function(err){
         clearTimeout(timer);
-        console.warn('Telegram error', err);
+        console.warn(' error', err);
         resolve(null);
       });
     });
@@ -4816,7 +4564,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
 
       var videoUrl=videoLink, cvUrl=cvLink, certUrl=certLink, idUrl=idLink;
 
-      // FAST TELEGRAM UPLOADS - all in parallel, max 12s total
+      // FAST  UPLOADS - all in parallel, max 12s total
       var tasks=[];
       if(videoFile){ tasks.push(cloudUpload(videoFile, 'nurse_videos').then(function(u){ if(u) videoUrl=u; })); }
       if(cvFile){ tasks.push(cloudUpload(cvFile, 'nurse_cvs').then(function(u){ if(u) cvUrl=u; })); }
@@ -4824,7 +4572,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
       if(idFile){ tasks.push(cloudUpload(idFile, 'nurse_ids').then(function(u){ if(u) idUrl=u; })); }
 
       if(tasks.length>0){
-        showStatus('📤 Uploading '+tasks.length+' file(s) to Telegram (max 12s)...');
+        showStatus('📤 Uploading '+tasks.length+' file(s) to  (max 12s)...');
         // Wait max 13 seconds for all
         await Promise.race([
           Promise.allSettled(tasks),
@@ -4860,7 +4608,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
       }
 
       showStatus('✅ Registration submitted! Pending approval');
-      alert('✅ Registered!\nName: '+name+'\nPhone: '+fullPhone+'\n\n⏳ PENDING APPROVAL.\nCEO must approve before login.\n\nYour files: '+(videoUrl?' Video✅':'')+(cvUrl?' CV✅':'')+(certUrl?' Cert✅':'')+(idUrl?' ID✅':'')+'\nIf some missing, you can still be approved - add Telegram links later.');
+      alert('✅ Registered!\nName: '+name+'\nPhone: '+fullPhone+'\n\n⏳ PENDING APPROVAL.\nCEO must approve before login.\n\nYour files: '+(videoUrl?' Video✅':'')+(cvUrl?' CV✅':'')+(certUrl?' Cert✅':'')+(idUrl?' ID✅':'')+'\nIf some missing, you can still be approved - add  links later.');
 
       if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
       if(typeof showPage==='function') showPage('home');
@@ -4868,13 +4616,13 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
 
     }catch(e){
       console.error('Registration error', e);
-      alert('Registration failed: '+e.message+'\nTry again with smaller files or just Telegram links.');
+      alert('Registration failed: '+e.message+'\nTry again with smaller files or just  links.');
       if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
       showStatus('❌ Failed: '+e.message, true);
     }
   };
 
-  console.log('✅ REGISTRATION FIX V3 APPLIED - Fast Telegram, no Firebase Storage hang');
+  console.log('✅ REGISTRATION FIX V3 APPLIED - Fast , no Firebase Storage hang');
 })();
 </script>
 
@@ -4884,7 +4632,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   function cleanPhone(p){ return (p||'').toString().replace(/[^0-9]/g,''); }
 
   function false{ return false; }
-  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
+  function isLink(url){ return url && url.includes("/c/"); }
   function getDriveFileId(url){ return null; }
   function url{ return url; }
   function url{ return url; }
@@ -4896,7 +4644,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open Video</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
     html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
     if(false){
-      html+='<iframe src="'+url+'" style="width:100%;height:480px;border:3px solid '+borderColor+';border-radius:12px" allow="autoplay"></iframe><div style="font-size:10px;color:#6b7280;margin-top:6px">📁 Telegram Video - If not loading, click Open Video</div>';
+      html+='<iframe src="'+url+'" style="width:100%;height:480px;border:3px solid '+borderColor+';border-radius:12px" allow="autoplay"></iframe><div style="font-size:10px;color:#6b7280;margin-top:6px">📁  Video - If not loading, click Open Video</div>';
     } else {
       html+='<video src="'+url+'" controls playsinline controlsList="nodownload" preload="metadata" style="width:100%;max-height:500px;border-radius:12px;background:#000;border:3px solid '+borderColor+'" poster="./Icon-512.png"></video><div style="font-size:10px;color:#16a34a;margin-top:6px">▶️ Tap play to watch - If not loading, click Open Video</div>';
     }
@@ -4911,9 +4659,9 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
     if(false){
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
     } else {
-      // For Telegram PDFs, direct iframe works, plus Google Docs viewer as fallback button
+      // For  PDFs, direct iframe works, plus Google Docs viewer as fallback button
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px;background:white" type="application/pdf"></iframe>';
-      html+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><a href="https://t.me/gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="flex:1;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-decoration:none;text-align:center;font-size:11px;font-weight:800">📄 Open in Google PDF Viewer (if blank above)</a></div>';
+      html+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><a href="https:///gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="flex:1;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-decoration:none;text-align:center;font-size:11px;font-weight:800">📄 Open in Google PDF Viewer (if blank above)</a></div>';
     }
     html+='<div style="font-size:10px;color:#6b7280;margin-top:6px">📄 PDF Document - If preview blank, click Open PDF</div>';
     html+='</div>'; return html;
@@ -5027,7 +4775,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
 (function(){
   function cleanPhone(p){ return (p||'').toString().replace(/[^0-9]/g,''); }
   function false{ return false; }
-  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
+  function isLink(url){ return url && url.includes("/c/"); }
   function getDriveFileId(url){ return null; }
   function url{ return url; }
   function url{ return url; }
@@ -5056,7 +4804,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
         if(!result.id.includes(val)) result.id.push(val);
       } else if(lowKey.includes('profile') || lowKey.includes('photo') || lowKey.includes('avatar')){
         if(!result.profile.includes(val)) result.profile.push(val);
-      } else if(lowVal.includes('telegram') || isDriveLink(val)){
+      } else if(lowVal.includes('') || isDriveLink(val)){
         // Try to guess by URL content
         if(lowVal.includes('video')) result.video.push(val);
         else if(lowVal.includes('cv')) result.cv.push(val);
@@ -5113,7 +4861,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
     } else {
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px;background:white"></iframe>';
-      html+='<div style="margin-top:8px"><a href="https://t.me/gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="display:block;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-align:center;text-decoration:none;font-size:11px;font-weight:800">📄 Open in Google Docs Viewer if blank</a></div>';
+      html+='<div style="margin-top:8px"><a href="https:///gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="display:block;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-align:center;text-decoration:none;font-size:11px;font-weight:800">📄 Open in Google Docs Viewer if blank</a></div>';
     }
     html+='</div>'; return html;
   }
@@ -5169,7 +4917,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
       
       // Restore tool for CEO
       var phoneKey = (nurse.phoneKey||nurse.phone||'').replace(/[^0-9]/g,'');
-      body+='<div style="border:3px dashed #ef4444;border-radius:14px;padding:14px;margin-top:16px;background:#fef2f2"><h3 style="margin:0 0 8px 0;color:#ef4444">🛠️ CEO Restore Tool - If files missing, paste links here</h3><div style="font-size:11px;margin-bottom:8px">If nurse uploaded but DB empty, paste Telegram/Telegram link and save to Firebase:</div>'
+      body+='<div style="border:3px dashed #ef4444;border-radius:14px;padding:14px;margin-top:16px;background:#fef2f2"><h3 style="margin:0 0 8px 0;color:#ef4444">🛠️ CEO Restore Tool - If files missing, paste links here</h3><div style="font-size:11px;margin-bottom:8px">If nurse uploaded but DB empty, paste / link and save to Firebase:</div>'
         +'<label style="font-size:11px;font-weight:800">📹 Video URL:</label><input id="restoreVideo_'+phoneKey+'" value="'+(found.video[0]||'')+'" placeholder="https://..." style="margin-bottom:6px">'
         +'<label style="font-size:11px;font-weight:800">📄 CV URL:</label><input id="restoreCV_'+phoneKey+'" value="'+(found.cv[0]||'')+'" placeholder="https://...pdf" style="margin-bottom:6px">'
         +'<label style="font-size:11px;font-weight:800">🎓 Cert URL:</label><input id="restoreCert_'+phoneKey+'" value="'+(found.cert[0]||'')+'" placeholder="https://..." style="margin-bottom:6px">'
@@ -5291,11 +5039,11 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
 
   function getCloudConfig(){
     var cloudName = (typeof FREE_UPLOAD_CONFIG!=='undefined' && 'REMOVED') ? 'REMOVED' : 'REMOVED';
-    var preset = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.telegramPreset) ? FREE_UPLOAD_CONFIG.telegramPreset : 'Lovecare1';
+    var preset = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.Preset) ? FREE_UPLOAD_CONFIG.Preset : 'Lovecare1';
     return {cloudName: cloudName, preset: preset};
   }
 
-  // Auto upload to Telegram
+  // Auto upload to 
   // OLD REMOVED
 
   // Setup auto-upload for each input
@@ -5385,7 +5133,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
       setupAutoUpload(profileFile.id, 'nRegProfileLink', 'profileUploadProgress', 'nurse_profiles', 'profilePreviewBox', 'image');
     }
 
-    console.log('✅ AUTO UPLOAD V6 READY - Select file = instant Telegram upload');
+    console.log('✅ AUTO UPLOAD V6 READY - Select file = instant  upload');
   }
 
   // Override registerNurse to use auto-uploaded URLs first
@@ -5516,7 +5264,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
 // ===== PDF VIEWER FIX V7 - Force Google Docs Viewer for PDFs =====
 (function(){
   function false{ return false; }
-  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
+  function isLink(url){ return url && url.includes("/c/"); }
   function getDriveFileId(url){ return null; }
   function url{ return url; }
   function url{ return url; }
@@ -5552,7 +5300,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
         else if(lowKey.includes('cert') || lowVal.includes('nurse_certs') || lowVal.includes('_certs')){ if(!result.cert.includes(val)) result.cert.push(val); }
         else if(lowKey.includes('idurl') || lowKey.includes('id_card') || lowVal.includes('nurse_ids') || lowVal.includes('_ids')){ if(!result.id.includes(val)) result.id.push(val); }
         else if(lowKey.includes('profile') || lowKey.includes('photo') || lowKey.includes('avatar')){ if(!result.profile.includes(val)) result.profile.push(val); }
-        else if(lowVal.includes('telegram') || lowVal.includes('drive.google')){ result.other.push(val); }
+        else if(lowVal.includes('') || lowVal.includes('drive.google')){ result.other.push(val); }
       }
       for(var k in nurse){ if(!nurse.hasOwnProperty(k)) continue; var v=nurse[k]; if(typeof v==='string') addUrl(k, v); else if(typeof v==='object' && v!==null){ for(var kk in v){ if(typeof v[kk]==='string') addUrl(k+'_'+kk, v[kk]); } } }
       return result;
@@ -5626,14 +5374,14 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
     var url = (urls[0]||'').trim();
     // FIX: If url looks like JSON error (starts with { ), show friendly error instead of JSON words
     if(url.startsWith('{') || url.includes('"error"') || url.length>500 && url.includes('error')){
-      return '<div style="border:3px solid #ef4444;border-radius:14px;padding:14px;margin:12px 0;background:#fef2f2"><b>'+icon+' '+label+' - ❌ Upload Error</b><div style="background:white;padding:10px;border-radius:8px;margin-top:8px;font-size:11px;color:#b91c1c;word-break:break-word">Telegram storage instead of PDF. This means your upload preset "Lovecare1" is set to IMAGE only. Fix: Go to Telegram Dashboard > Settings > Upload > Upload Presets > Lovecare1 > Set "Resource Type" to "Auto" or "Raw" and save. Then nurse must re-upload.<br><br>Raw error: '+url.substring(0,400)+'</div></div>';
+      return '<div style="border:3px solid #ef4444;border-radius:14px;padding:14px;margin:12px 0;background:#fef2f2"><b>'+icon+' '+label+' - ❌ Upload Error</b><div style="background:white;padding:10px;border-radius:8px;margin-top:8px;font-size:11px;color:#b91c1c;word-break:break-word"> storage instead of PDF. This means your upload preset "Lovecare1" is set to IMAGE only. Fix: Go to  Dashboard > Settings > Upload > Upload Presets > Lovecare1 > Set "Resource Type" to "Auto" or "Raw" and save. Then nurse must re-upload.<br><br>Raw error: '+url.substring(0,400)+'</div></div>';
     }
-    // Normalize Telegram URL: if it's image/upload but ends with .pdf, convert to raw/upload to avoid JSON block
-    if(url.includes('telegram') && url.includes('/image/upload/') && url.toLowerCase().includes('.pdf')){
+    // Normalize  URL: if it's image/upload but ends with .pdf, convert to raw/upload to avoid JSON block
+    if(url.includes('') && url.includes('/image/upload/') && url.toLowerCase().includes('.pdf')){
       url = url.replace('/image/upload/', '/raw/upload/');
     }
     var encoded = encodeURIComponent(url);
-    var gviewUrl = 'https://t.me/gview?url='+encoded+'&embedded=true';
+    var gviewUrl = 'https:///gview?url='+encoded+'&embedded=true';
     var pdfJsUrl = 'https://mozilla.github.io/pdf.js/web/viewer.html?file='+encoded;
     
     var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
@@ -5643,8 +5391,8 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
     if(typeof isDriveLink !== "undefined" && false){
       html+='<iframe src="'+url+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white" allow="autoplay"></iframe>';
     } else {
-      html+='<div style="background:#111827;color:white;padding:8px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:8px;text-align:center">📄 PDF Preview - CEO can open directly (fixed for Telegram RAW)</div>';
-      // Use direct embed for Telegram raw - works if public, plus gview fallback
+      html+='<div style="background:#111827;color:white;padding:8px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:8px;text-align:center">📄 PDF Preview - CEO can open directly (fixed for  RAW)</div>';
+      // Use direct embed for  raw - works if public, plus gview fallback
       html+='<object data="'+url+'" type="application/pdf" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white"><iframe src="'+gviewUrl+'" style="width:100%;height:700px;border:none"></iframe></object>';
       html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">'
         +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:10px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:11px">🔗 Open Direct<br><small>Best</small></a>'
@@ -5657,7 +5405,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   };
   window.renderPdfSection = window.renderPdfSectionFixed;
 
-console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
+console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for  PDFs');
 })();
 </script>
 
@@ -5666,7 +5414,7 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
 </style>
 
 <script>
-// ===== CEO PERSONAL TELEGRAM DM NOTIFICATION =====
+// ===== CEO PERSONAL  DM NOTIFICATION =====
 (function(){
   window.CEO_PERSONAL_CONFIG = {
     personalChatId: '', // <-- Will auto-detect when you send /start to bot
@@ -5676,38 +5424,14 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
   // Auto-detect personal chat ID
   window.detectCeoPersonalChatId = async function(){
     try{
-      var token = window.TELEGRAM_CONFIG.botToken;
-      var proxy = 'https://corsproxy.io/?';
-      var url = 'https://api.telegram.org/bot'+token+'/getUpdates';
-      var res = await fetch(proxy + encodeURIComponent(url));
-      var txt = await res.text();
-      var json = JSON.parse(txt);
-      if(json.ok && json.result.length>0){
-        // Find latest private message (not channel_post)
-        for(var i=json.result.length-1; i>=0; i--){
-          var upd = json.result[i];
-          if(upd.message && upd.message.chat && upd.message.chat.type==='private'){
-            var personalId = upd.message.chat.id;
-            console.log('Found personal chat ID', personalId);
-            window.CEO_PERSONAL_CONFIG.personalChatId = personalId;
-            localStorage.setItem('ceoPersonalChatId', personalId.toString());
-            alert('✅ Found your personal Telegram ID: '+personalId+'\nYou will now get DM notifications for nurse uploads!');
-            return personalId;
-          }
-        }
-        alert('❌ No private message found. Please: 1. Open Telegram, 2. Search your bot @lovecareglobal_bot, 3. Send /start, 4. Click this button again');
-      } else {
-        alert('No updates found. Send /start to your bot first');
-      }
-    }catch(e){ console.error(e); alert('Error detecting chat ID'); }
-  };
+      var token = window._CONFIG = { enabled:false };
 
   // Load saved personal ID
   var savedPersonal = localStorage.getItem('ceoPersonalChatId');
   if(savedPersonal){ window.CEO_PERSONAL_CONFIG.personalChatId = savedPersonal; }
 
-  // Function to notify CEO via Telegram DM
-  window.notifyCeoPersonalTelegram = async function(nurseName, docType, fileUrl){
+  // Function to notify CEO via  DM
+  window.notifyCeoPersonal = async function(nurseName, docType, fileUrl){
     if(!window.CEO_PERSONAL_CONFIG.enabled) return;
     var personalId = window.CEO_PERSONAL_CONFIG.personalChatId || localStorage.getItem('ceoPersonalChatId');
     if(!personalId){
@@ -5715,22 +5439,7 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
       return;
     }
     try{
-      var token = window.TELEGRAM_CONFIG.botToken;
-      var proxy = 'https://corsproxy.io/?';
-      var message = '🔔 *New Nurse Upload*\n\n👩‍⚕️ Nurse: '+nurseName+'\n📄 Type: '+docType+'\n⏰ Time: '+(new Date().toLocaleString())+'\n\n📁 Channel: Love Care Global CVs\n🔗 File: '+fileUrl+'\n\n👉 Open CEO Dashboard to review';
-      
-      var fd = new FormData();
-      fd.append('chat_id', personalId);
-      fd.append('text', message);
-      fd.append('parse_mode', 'Markdown');
-      
-      var apiUrl = 'https://api.telegram.org/bot'+token+'/sendMessage';
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', proxy + encodeURIComponent(apiUrl));
-      xhr.send(fd);
-      console.log('✅ CEO personal notification sent to', personalId);
-    }catch(e){ console.error('Personal notify failed', e); }
-  };
+      var token = window._CONFIG = { enabled:false };
 
   // Hook into nurse upload success to trigger DM
   var originalAutoUpload = window.autoUploadFile;
@@ -5751,7 +5460,7 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
           
           if(docType){
             var fileUrl = nurse.cvUrl || nurse.videoUrl || nurse.certUrl || '';
-            window.notifyCeoPersonalTelegram(nurse.name||snap.key, docType, fileUrl);
+            window.notifyCeoPersonal(nurse.name||snap.key, docType, fileUrl);
             localStorage.setItem('lastNotified_'+snap.key, now.toString());
           }
         }
@@ -5761,13 +5470,13 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
       db.ref('nurses').on('child_added', function(snap){
         var nurse = snap.val();
         if(nurse.timestamp && (Date.now() - nurse.timestamp < 300000)){ // Added in last 5 mins
-          window.notifyCeoPersonalTelegram(nurse.name||snap.key, 'New Registration', '');
+          window.notifyCeoPersonal(nurse.name||snap.key, 'New Registration', '');
         }
       });
     }
   });
 
-  console.log('✅ CEO Personal Telegram DM System Ready');
+  console.log('✅ CEO Personal  DM System Ready');
 })();
 </script>
 
@@ -5865,48 +5574,17 @@ img, video, iframe {
 </script>
 
 <script>
-// ===== CEO PERSONAL TELEGRAM DM - CLEAN =====
+// ===== CEO PERSONAL  DM - CLEAN =====
 (function(){
   window.CEO_PERSONAL_CONFIG = { personalChatId: localStorage.getItem('ceoPersonalChatId')||'', enabled: true };
   window.detectCeoPersonalChatId = async function(){
     try{
-      var token = window.TELEGRAM_CONFIG?.botToken || 'REMOVED_FOR_SECURITY';
-      var proxy = 'https://corsproxy.io/?';
-      var url = 'https://api.telegram.org/bot'+token+'/getUpdates';
-      var res = await fetch(proxy + encodeURIComponent(url));
-      var txt = await res.text();
-      var json = JSON.parse(txt);
-      if(json.ok && json.result.length>0){
-        for(var i=json.result.length-1; i>=0; i--){
-          var upd = json.result[i];
-          if(upd.message && upd.message.chat && upd.message.chat.type==='private'){
-            var personalId = upd.message.chat.id;
-            window.CEO_PERSONAL_CONFIG.personalChatId = personalId;
-            localStorage.setItem('ceoPersonalChatId', personalId.toString());
-            alert('✅ Found ID: '+personalId+' - DM enabled!');
-            return personalId;
-          }
-        }
-        alert('❌ No private message. Send /start to @lovecareglobal_bot first');
-      }
-    }catch(e){ alert('Error detecting'); }
-  };
-  window.notifyCeoPersonalTelegram = async function(nurseName, docType, fileUrl){
+      var token = window._CONFIG = { enabled:false };
+  window.notifyCeoPersonal = async function(nurseName, docType, fileUrl){
     var personalId = window.CEO_PERSONAL_CONFIG.personalChatId || localStorage.getItem('ceoPersonalChatId');
     if(!personalId || !window.CEO_PERSONAL_CONFIG.enabled) return;
     try{
-      var token = window.TELEGRAM_CONFIG?.botToken || 'REMOVED_FOR_SECURITY';
-      var proxy = 'https://corsproxy.io/?';
-      var message = '🔔 New Nurse Upload\n👩‍⚕️ '+nurseName+'\n📄 '+docType+'\n⏰ '+(new Date().toLocaleString());
-      var fd = new FormData();
-      fd.append('chat_id', personalId);
-      fd.append('text', message);
-      var apiUrl = 'https://api.telegram.org/bot'+token+'/sendMessage';
-      var xhr = new XMLHttpRequest();
-      xhr.open('POST', proxy + encodeURIComponent(apiUrl));
-      xhr.send(fd);
-    }catch(e){}
-  };
+      var token = window._CONFIG = { enabled:false };
 })();
 </script>
 
@@ -6271,8 +5949,50 @@ body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announc
   document.addEventListener('DOMContentLoaded', function(){ var b=document.getElementById('cBudget'); if(b){ b.addEventListener('input', enforceMin); } setTimeout(enforceMin,1000); });
   setTimeout(enforceMin,1500);
 })();
-</script>
 
+<script>
+// ===== PURE FIREBASE STORAGE UPLOADER - FAST & SECURE =====
+window.firebaseStorageUploader = {
+  async upload(file, folder, onProgress){
+    try{
+      if(!firebase.storage) throw new Error('storage not loaded');
+      const auth = firebase.auth();
+      if(!auth.currentUser){
+        await auth.signInAnonymously();
+      }
+      const safeName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path = `${folder}/${safeName}`;
+      const ref = firebase.storage().ref().child(path);
+      const task = ref.put(file, { contentType: file.type });
+      return await new Promise((resolve, reject)=>{
+        task.on('state_changed',
+          (snap)=>{
+            const pct = Math.round((snap.bytesTransferred / snap.totalBytes)*100);
+            if(onProgress) onProgress(pct);
+            const box=document.getElementById('uploadStatusBox');
+            if(box) box.textContent = `Uploading ${folder}: ${pct}% - ${file.name.substring(0,25)}`;
+          },
+          (err)=>{ console.error('Upload error', err); reject(err); },
+          async ()=>{
+            const url = await task.snapshot.ref.getDownloadURL();
+            const box=document.getElementById('uploadStatusBox');
+            if(box) box.textContent = `Done: ${file.name}`;
+            setTimeout(()=>{ if(box) box.textContent=''; }, 2000);
+            resolve({ url, path, name: file.name, size: file.size, type: file.type });
+          }
+        );
+      });
+    }catch(e){
+      console.error('firebaseStorageUploader error', e);
+      throw e;
+    }
+  }
+};
+
+// Global alias used everywhere
+window.uploadToFirebaseStorage = window.firebaseStorageUploader.upload;
+window.uploadFile = window.firebaseStorageUploader.upload;
+</script>
 
 <script>
 // === FINAL PERFORMANCE LAYER ===
@@ -6286,6 +6006,21 @@ body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announc
     console.log=function(){}; 
   }
 })();
+</script>
+
+
+<script>
+// Fast buttons
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.addEventListener('pointerdown', (e)=>{
+    const b=e.target.closest('button'); if(b) b.style.transform='scale(0.96)';
+  }, {passive:true});
+  document.addEventListener('pointerup', (e)=>{
+    const b=e.target.closest('button'); if(b) b.style.transform='';
+  }, {passive:true});
+  // debounce
+  window.debounce = (fn, w)=>{ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), w); }; };
+});
 </script>
 
 </body>
