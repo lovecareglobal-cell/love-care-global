@@ -378,19 +378,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <body>
 <div class="header"><div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer"><img src="./Icon-512.png" class="header-logo-img" style="background:white" onerror="this.style.display='none'"><div style="line-height:1"><b>LOVE CARE</b><br><span style="background:white;color:#16a34a;padding:2px 8px;border-radius:20px;font-size:8px;font-weight:800">GLOBAL HOME NURSING</span></div></div></div>
 </div>
-<div class="announcementBar"
- id="announcementBar"><span id="announcementText">🔞 18+ ONLY - LOVE CARE GLOBAL - Flexible Hours - Live-in & Live-out - Professional English Nursing Services Worldwide - 18+ Only</span></div>
-<div style="background:#111827;color:#eab308;padding:6px;text-align:center;font-size:11px;font-weight:800;border-bottom:2px solid #eab308">🔞 18+ ONLY - You must be 18 years or older to use this app - Adults Only</div>
-
 <!-- ===== CLEAN ANNOUNCEMENT MEDIA BAR (FOR ALL USERS) ===== -->
-<div id="announcementVideoBar" style="display:block;background:#111827;border-bottom:3px solid #eab308;padding:10px;max-width:100%;overflow:hidden;box-sizing:border-box">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-<b style="color:#eab308;font-size:12px">📹 CEO Announcements</b>
-<button onclick="document.getElementById('announcementVideoBar').style.display='none'" style="background:#ef4444;color:white;border:none;padding:4px 8px;border-radius:6px;font-size:10px">✕ Hide</button>
-</div>
-<div id="publicAnnounceVideosList" style="display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;max-width:100%"></div>
-</div>
-
 <div id="announcementModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:999999;justify-content:center;align-items:center;padding:20px;box-sizing:border-box">
 <div style="background:white;border-radius:16px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto">
 <div style="padding:12px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #eee">
@@ -3945,5 +3933,40 @@ setInterval(function(){ var m=document.getElementById('emailVerifyModal'); if(m)
 console.log('✅ Email verification completely removed');
 </script>
 
+
+<style>
+/* NO INSCRIPTIONS - SPARK & STORAGE BOTH */
+.announcementBar,#announcementBar,#announcementText,#announcementVideoBar,#publicAnnounceVideosList,#announcementModal{display:none !important;height:0 !important;}
+</style>
+<script>
+(function(){function kill(){document.querySelectorAll('#announcementBar,#announcementVideoBar,#publicAnnounceVideosList,.announcementBar').forEach(e=>e.remove());document.querySelectorAll('div').forEach(d=>{var t=d.innerText||'';if(t.trim().startsWith('🔞 18+ ONLY')&&t.length<300&&!d.closest('#ceo-tab-announce')&&!d.closest('.card'))d.style.display='none';});}kill();document.addEventListener('DOMContentLoaded',kill);setInterval(kill,2000);window.renderPublicVideosList=function(){};})();
+</script>
+
+<script>
+// SPARK PLAN - NO STORAGE BILLING - Uses Realtime Database for small files (<1MB)
+// If file > 1MB, shows message to compress or upgrade to Blaze
+window.autoUploadFile = window.autoUploadFile || function(file, folder, onProgress, onDone){
+  if(file.size > 0.9*1024*1024){
+    alert('File too big for Spark (free). On Spark, max 900KB. Use Blaze Storage version for bigger files or compress image.');
+    if(onDone) onDone(null);
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var base64 = e.target.result;
+    var key = Date.now()+'_'+file.name.replace(/[^a-z0-9._-]/gi,'_');
+    if(window.db){
+      window.db.ref(folder+'/'+key).set({name:file.name, data:base64, size:file.size, type:file.type, uploadedAt:Date.now()}).then(function(){
+        if(onProgress) onProgress(100);
+        if(onDone) onDone(base64, {url:base64, path:folder+'/'+key, name:file.name});
+      });
+    } else {
+      if(onDone) onDone(base64, {url:base64});
+    }
+  };
+  reader.readAsDataURL(file);
+};
+console.log('✅ SPARK MODE: No Storage billing, RTDB base64 uploader (<900KB)');
+</script>
 </body>
 </html>
