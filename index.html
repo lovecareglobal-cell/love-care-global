@@ -2,24 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<style>
-*{touch-action:manipulation}
-button, a{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
-.page{ display:none; content-visibility:auto; contain-intrinsic-size: 1000px; }
-.page.active{ display:block !important; }
-.bottomNav button{ will-change:transform; transform: translateZ(0); }
-.uber-card{ contain:layout style paint; }
-#loveCareLiveList{ contain:layout; }
-</style>
-
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
 
 <script>
 // GLOBAL TELEGRAM HELPERS
-function isTelegramLink(url){ return url && (url.includes('t.me/') || /^[A-Za-z0-9_-]{20,}$/.test(url)); } // file_id is now stored, not t.me link
+function isTelegramLink(url){ return url && (url.includes('t.me/c/') || url.includes('t.me/')); }
 function isDriveLink(url){ return false; }
 function getDrivePreview(url){ return url; }
 function getDriveDownload(url){ return url; }
@@ -31,16 +19,15 @@ function getDriveFileId(url){ return null; }
 <link rel="apple-touch-icon" href="./Icon-512.png">
 <link rel="manifest" href="./manifest.json">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"/>
-<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js" defer></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
 
 
 <script>
@@ -51,11 +38,11 @@ function getDriveFileId(url){ return null; }
   // ============ CONFIGURE THIS ============
   window.TELEGRAM_CONFIG = {
     // Create bot: Talk to @BotFather on Telegram -> /newbot -> name it -> get token like 123456:ABC...
-    botToken: 'REMOVED_FOR_SECURITY', // e.g. '1234567890:AAHxyz...'
+    botToken: '8606627642:AAEaGvPH_aZZe86jZgixOgLm1ERippN5UT8', // e.g. '1234567890:AAHxyz...'
     // Create private channel, add your bot as Admin, send a message, then get channel ID
     // How to get chatId: forward a message from channel to @userinfobot or use https://api.telegram.org/botTOKEN/getUpdates
     // Channel ID looks like -1001234567890 , personal chat ID is like 123456789
-    chatId: 'REMOVED_FOR_SECURITY', // e.g. '-1001234567890' or '123456789'
+    chatId: '-1003912808382', // e.g. '-1001234567890' or '123456789'
     enabled: true, // ✅ CONFIGURED - Telegram active
     useProxy: true // ✅ CORS proxy ON to fix browser upload
   };
@@ -91,7 +78,7 @@ function getDriveFileId(url){ return null; }
 
   // TELEGRAM UPLOAD - Fixed with CORS proxy
   async function uploadToTelegram(file, folder, onProgress){
-    if(!window.TELEGRAM_CONFIG.enabled || window.TELEGRAM_CONFIG.botToken==='REMOVED_FOR_SECURITY'){
+    if(!window.TELEGRAM_CONFIG.enabled || window.TELEGRAM_CONFIG.botToken==='YOUR_BOT_TOKEN_HERE'){
       console.warn('Telegram not configured');
       return null;
     }
@@ -1162,38 +1149,24 @@ var lastBookingId=null,lastBookingCurrency='GHS',lastBookingAmount=0,currentRefu
 var countryCodes=[{c:'Ghana',code:'+233',flag:'🇬🇭'},{c:'Nigeria',code:'+234',flag:'🇳🇬'},{c:'South Africa',code:'+27',flag:'🇿🇦'},{c:'Kenya',code:'+254',flag:'🇰🇪'},{c:'Uganda',code:'+256',flag:'🇺🇬'},{c:'Tanzania',code:'+255',flag:'🇹🇿'},{c:'Rwanda',code:'+250',flag:'🇷🇼'},{c:'Zambia',code:'+260',flag:'🇿🇲'},{c:'Botswana',code:'+267',flag:'🇧🇼'},{c:'Liberia',code:'+231',flag:'🇱🇷'},{c:'Sierra Leone',code:'+232',flag:'🇸🇱'},{c:'USA',code:'+1',flag:'🇺🇸'},{c:'UK',code:'+44',flag:'🇬🇧'},{c:'Canada',code:'+1',flag:'🇨🇦'},{c:'Australia',code:'+61',flag:'🇦🇺'},{c:'Ireland',code:'+353',flag:'🇮🇪'},{c:'India',code:'+91',flag:'🇮🇳'},{c:'Philippines',code:'+63',flag:'🇵🇭'},{c:'Singapore',code:'+65',flag:'🇸🇬'},{c:'Malaysia',code:'+60',flag:'🇲🇾'}];
 function populatePhoneCodes(){var html='';countryCodes.forEach(o=>{html+=`<option value="${o.code}">${o.flag} ${o.code} ${o.c}</option>`;});['cPhoneCode','nRegPhoneCode','nurseLoginCode','myBookPhoneCode'].forEach(id=>{var el=document.getElementById(id); if(el) el.innerHTML=html;});}
 try{firebase.initializeApp(firebaseConfig);db=firebase.database();}catch(e){}
-
-// === OPTIMIZED showPage - cached, RAF, no layout thrash ===
-(function(){
-  var cachedPages=null, cachedNavBtns=null;
-  function getPages(){ if(!cachedPages) cachedPages=document.querySelectorAll('.page'); return cachedPages; }
-  function getNavBtns(){ if(!cachedNavBtns) cachedNavBtns=document.querySelectorAll('.bottomNav button'); return cachedNavBtns; }
-  var lastPage=null;
-  window.showPage = function(id){
-    if(!id) return;
-    if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
-    if(id==='staff-dashboard' && !localStorage.getItem('staffID')) id='staff-login';
-    if(id==='nurse-dashboard' && !localStorage.getItem('nursePhone')) id='nurse-login';
-    if(lastPage===id) { window.scrollTo(0,0); return; }
-    lastPage=id;
-    requestAnimationFrame(function(){
-      var pages=getPages();
-      for(var i=0;i<pages.length;i++){ var p=pages[i]; if(p.id==='page-'+id){ p.classList.add('active'); p.style.display='block'; } else { p.classList.remove('active'); p.style.display='none'; } }
-      var btns=getNavBtns();
-      for(var j=0;j<btns.length;j++) btns[j].classList.remove('active');
-      var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
-      var nid=map[id]; if(nid){ var nb=document.getElementById(nid); if(nb) nb.classList.add('active'); }
-      window.scrollTo({top:0, behavior:'instant'});
-    });
-    if(id==='home'){
-      var doMap=function(){ if(!window.uberMap){ if(typeof initUberMap==='function') initUberMap(); } else { uberMap.invalidateSize(); if(typeof fitMapWide==='function') fitMapWide(); } };
-      window.requestIdleCallback ? requestIdleCallback(doMap, {timeout:500}) : setTimeout(doMap, 100);
-    }
-    if(id==='ceo-dashboard') setTimeout(function(){ if(typeof loadCeoData==='function') loadCeoData(); }, 100);
-    if(id==='staff-dashboard') setTimeout(function(){ if(typeof loadStaffBookings==='function') loadStaffBookings(); }, 100);
-  };
-})();
-
+function showPage(id){
+if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
+if(id==='staff-dashboard' &&!localStorage.getItem('staffID')) id='staff-login';
+if(id==='nurse-dashboard' &&!localStorage.getItem('nursePhone')) id='nurse-login';
+// INSTANT - no delay
+document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active'); p.style.display='none';});
+var el=document.getElementById('page-'+id); if(el){el.classList.add('active'); el.style.display='block';}
+document.querySelectorAll('.bottomNav button').forEach(b=>b.classList.remove('active'));
+var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
+var nid=map[id]; if(nid){var nb=document.getElementById(nid); if(nb) nb.classList.add('active');}
+window.scrollTo(0,0);
+// DEFER heavy map work - don't block button response
+if(id==='home'){
+  requestAnimationFrame(function(){
+    setTimeout(function(){ try{ if(!uberMap) initUberMap(); else { uberMap.invalidateSize(); } }catch(e){} }, 100);
+  });
+}
+}
 function autoGPS(i,s){
   var se=document.getElementById(s); 
   var ie=document.getElementById(i);
@@ -1954,7 +1927,7 @@ var helpKnowledgeBase = [
   {topic:'footer', keywords:['footer','about','privacy','terms','cancel','contact','refund'], answer:'📄 <b>Footer Fixed & Working:</b><br>About Us, Privacy Policy, Terms of Service, Cancellation & Refund, Contact Us now open as modals (popups)<br>Cancel shows: Full refund if cancelled before nurse assigned, 50% if after assigned, no refund after work started<br>Contact: lovecareglobal@gmail.com / 0544121814 / WhatsApp<br>All footer links now work', weight:7},
   {topic:'email', keywords:['email','verify','code','otp'], answer:'🔐 <b>Email Verification:</b><br>Enter real email → Click Send Code → 6-digit code sent via EmailJS to inbox & spam → Enter code → Verified badge ✓ → Saved permanently in localStorage<br>If not receiving: Check spam, try Gmail, wait 1 min. Currently bypassed for open access (isEmailVerified returns true)', weight:7},
   {topic:'hours', keywords:['help','faq','hours','how many hours','duration','day','week','month','time'], answer:'💡 <b>Flexible Hours System:</b><br>Hourly: 1-24hrs (e.g., 3 Hours)<br>Daily: Days × hrs/day (e.g., 7 Days × 8 hrs/day = 56 hrs)<br>Weekly: Weeks×7×hrs/day (e.g., 2 Weeks × 8 hrs/day = 112 hrs) → CEO pricing<br>Monthly: Months×30×hrs/day (e.g., 1 Month × 8 hrs/day = 240 hrs) → CEO pricing<br>Night shift allowed 20:00-06:00<br>Daily 1-6 days = Localization formula, Daily 7+ / Weekly / Monthly = CEO managed', weight:8},
-  {topic:'telegram', keywords:['telegram','upload','cv','video','photo','certificate','document','fail','not uploading'], answer:'✈️ <b>Nurse Uploads & Telegram Storage FIXED:</b><br>Old issue: Telegram API blocked browser (CORS) + upload preset set to IMAGE only → PDFs failed with JSON error<br>Fixed now: Uses corsproxy.io + Telegram Bot 8606627642:AA... + Channel REMOVED_FOR_SECURITY Love Care Global CVs<br>Upload order: Firebase Storage (if billing settled) → Telegram (free, unlimited, your channel) → Catbox.moe (free 200MB) → RTDB Base64 (<950KB)<br>CEO sees files in CEO Dashboard → Nurse detail → Video player + PDF viewer (fixed /image/upload/ → /raw/upload/ bug)<br>Telegram channel is backup, CEO Dashboard is main viewer', weight:9},
+  {topic:'telegram', keywords:['telegram','upload','cv','video','photo','certificate','document','fail','not uploading'], answer:'✈️ <b>Nurse Uploads & Telegram Storage FIXED:</b><br>Old issue: Telegram API blocked browser (CORS) + upload preset set to IMAGE only → PDFs failed with JSON error<br>Fixed now: Uses corsproxy.io + Telegram Bot 8606627642:AA... + Channel -1003912808382 Love Care Global CVs<br>Upload order: Firebase Storage (if billing settled) → Telegram (free, unlimited, your channel) → Catbox.moe (free 200MB) → RTDB Base64 (<950KB)<br>CEO sees files in CEO Dashboard → Nurse detail → Video player + PDF viewer (fixed /image/upload/ → /raw/upload/ bug)<br>Telegram channel is backup, CEO Dashboard is main viewer', weight:9},
   {topic:'pricing_logic', keywords:['localization','ceo pricing','weekly','monthly','flat price','1-6 days','discount'], answer:'👑 <b>New Pricing Logic (Your Request):</b><br>• <b>1-6 days (hourly/daily)</b> = 🌍 Localization formula: NURSE_HOURLY_MIN per country × hours, with currency conversion<br>• <b>7+ days, Weekly, Monthly</b> = 👑 CEO Managed flat price (NO localization formula)<br>CEO sets flat price in CEO Dashboard → CEO Weekly/Monthly Pricing section (GH_weekly, GH_monthly etc)<br>Auto defaults: Weekly = hourly×7×8×0.9 (10% discount), Monthly = hourly×26×8×0.8 (20% discount)<br>Badge shows: Green = Localization, Black/Gold = CEO Managed', weight:10},
   {topic:'ceo_files', keywords:['ceo','receive','watch','read','cv','where to see','how to see nurse docs'], answer:'👁️ <b>How CEO Receives & Watches Nurse Files:</b><br>You do NOT need to go to Telegram! Files appear in CEO Dashboard:<br>CEO Dashboard → Nurses List → Tap nurse name → Shows separated view:<br>📹 Introduction Video = <video controls> player (works for Firebase/Catbox/Telegram links)<br>📄 CV PDF = PDF viewer with 3 options: Direct, Google Docs, PDF.js + Open/Download buttons<br>🎓 Certificate = same PDF viewer<br>🪪 ID + 👤 Profile = photo viewer<br>Also: Telegram channel Love Care Global CVs has backup copy. Plus 🔔 badge shows new uploads, and personal Telegram DM notifies you', weight:9},
   {topic:'notification', keywords:['notification','badge','alert','dm','personal telegram','new upload'], answer:'🔔 <b>Notifications for CEO:</b><br>1. Dashboard badge: Red pulsing 🔔 3 new uploads in CEO header<br>2. Toast popup: Top-right for uploads in last 5 mins<br>3. Personal Telegram DM: When nurse uploads CV/Video/Cert, bot sends DM to your private Telegram (if you enabled: CEO Dashboard → Setup Personal Telegram → Send /start to bot → Detect ID)<br>4. Mark as seen button: ✅ Mark all seen resets counter', weight:8}
@@ -2062,7 +2035,7 @@ function aiBotAnswer(query){
         // This will be answered generally, specific nurse check happens in CEO dashboard
       }
     }catch(e){}
-    return '👁️ <b>Where to see nurse CV/Video/Cert/Photo:</b><br>1. CEO Dashboard → Nurses List → Tap nurse name<br>2. You will see separated sections:<br>📹 Video = player<br>📄 CV = PDF viewer (3 viewers)<br>🎓 Certificate = PDF viewer<br>🪪 ID + 👤 Profile = photos<br>3. Also backup in Telegram channel: Love Care Global CVs (REMOVED_FOR_SECURITY)<br>4. Files uploaded via: Firebase (if billing settled) → Telegram (free) → Catbox (free) → RTDB<br>All links saved in Database, so CEO dashboard shows them instantly';
+    return '👁️ <b>Where to see nurse CV/Video/Cert/Photo:</b><br>1. CEO Dashboard → Nurses List → Tap nurse name<br>2. You will see separated sections:<br>📹 Video = player<br>📄 CV = PDF viewer (3 viewers)<br>🎓 Certificate = PDF viewer<br>🪪 ID + 👤 Profile = photos<br>3. Also backup in Telegram channel: Love Care Global CVs (-1003912808382)<br>4. Files uploaded via: Firebase (if billing settled) → Telegram (free) → Catbox (free) → RTDB<br>All links saved in Database, so CEO dashboard shows them instantly';
   }
 
   // Score all knowledge base
@@ -3927,7 +3900,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var m=document.getElementById('emailVerifyModal');
     if(m){ m.classList.add('hidden'); m.style.display='none'; m.style.visibility='hidden'; }
   }
-  // REMOVED;
+  setInterval(killModal, 800);
   document.addEventListener('DOMContentLoaded', function(){
     killModal();
     var ce=document.getElementById('cEmail');
@@ -3941,8 +3914,8 @@ document.addEventListener('DOMContentLoaded', function(){
 // ====== LOVCARE - FINAL FIX - NO MORE 401 ======
 // ====== TELEGRAM STORAGE - REPLACES TELEGRAM & DRIVE ======
 const TELEGRAM_CONFIG = {
-  botToken: 'REMOVED_FOR_SECURITY',
-  channelId: 'REMOVED_FOR_SECURITY',
+  botToken: '8606627642:AAEaGvPH_aZZe86jZgixOgLm1ERippN5UT8',
+  channelId: '-1003912808382',
   channelNumeric: '3912808382',
   channelTitle: 'Love Care Global CVs'
 };
@@ -4450,7 +4423,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   document.addEventListener('DOMContentLoaded', function(){
     patchNurseDisplayFunctions();
     hideNursePhonesForClients();
-    // REMOVED - was lagging; // Keep checking
+    setInterval(hideNursePhonesForClients, 2000); // Keep checking
   });
   
   // Also hide when showing pages
@@ -4713,7 +4686,7 @@ console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '
   }
 
   // Override the detail card creation to mask phone
-  // REMOVED - was lagging;
+  setInterval(hidePhonesForClients, 1500);
   document.addEventListener('DOMContentLoaded', function(){ hidePhonesForClients(); });
 
   // Run on page show
@@ -5870,7 +5843,7 @@ img, video, iframe {
   window.CEO_PERSONAL_CONFIG = { personalChatId: localStorage.getItem('ceoPersonalChatId')||'', enabled: true };
   window.detectCeoPersonalChatId = async function(){
     try{
-      var token = window.TELEGRAM_CONFIG?.botToken || 'REMOVED_FOR_SECURITY';
+      var token = window.TELEGRAM_CONFIG?.botToken || '8606627642:AAEaGvPH_aZZe86jZgixOgLm1ERippN5UT8';
       var proxy = 'https://corsproxy.io/?';
       var url = 'https://api.telegram.org/bot'+token+'/getUpdates';
       var res = await fetch(proxy + encodeURIComponent(url));
@@ -5895,7 +5868,7 @@ img, video, iframe {
     var personalId = window.CEO_PERSONAL_CONFIG.personalChatId || localStorage.getItem('ceoPersonalChatId');
     if(!personalId || !window.CEO_PERSONAL_CONFIG.enabled) return;
     try{
-      var token = window.TELEGRAM_CONFIG?.botToken || 'REMOVED_FOR_SECURITY';
+      var token = window.TELEGRAM_CONFIG?.botToken || '8606627642:AAEaGvPH_aZZe86jZgixOgLm1ERippN5UT8';
       var proxy = 'https://corsproxy.io/?';
       var message = '🔔 New Nurse Upload\n👩‍⚕️ '+nurseName+'\n📄 '+docType+'\n⏰ '+(new Date().toLocaleString());
       var fd = new FormData();
@@ -6213,8 +6186,8 @@ body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announc
     var logo=document.getElementById('logoTapArea'); if(!logo || logo.dataset.bound) return; logo.dataset.bound='1';
     var tapCount=0, tapTimer=null, longPressTimer=null, longPressed=false;
     function reset(){ tapCount=0; }
-    logo.addEventListener('click', function(e){ if(longPressed){ longPressed=false; return; } tapCount++; clearTimeout(tapTimer); tapTimer=setTimeout(reset,3000); if(tapCount>=5){ tapCount=0; alert('🔓 Staff Portal'); showPage('staff-login'); } });
-    function startLP(){ longPressed=false; longPressTimer=setTimeout(function(){ longPressed=true; if(navigator.vibrate) navigator.vibrate(100); alert('🔐 CEO Access'); showPage('ceo-login'); },1500); }
+    logo.addEventListener('click', function(e){ if(longPressed){ longPressed=false; return; } tapCount++; clearTimeout(tapTimer); tapTimer=setTimeout(reset,3000); if(tapCount>=5){ tapCount=0; var h=document.createElement('div'); h.innerText='🔓 Staff'; h.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#7c3aed;color:white;padding:8px 16px;border-radius:20px;z-index:99999;font-weight:800'; document.body.appendChild(h); setTimeout(function(){h.remove()},1200); showPage('staff-login'); } });
+    function startLP(){ longPressed=false; longPressTimer=setTimeout(function(){ longPressed=true; if(navigator.vibrate) navigator.vibrate(100); var h=document.createElement('div'); h.innerText='🔐 CEO'; h.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#111827;color:#eab308;padding:8px 16px;border-radius:20px;z-index:99999;font-weight:800;border:2px solid #eab308'; document.body.appendChild(h); setTimeout(function(){h.remove()},1200); showPage('ceo-login'); },1500); }
     function cancelLP(){ clearTimeout(longPressTimer); }
     logo.addEventListener('touchstart', startLP, {passive:true}); logo.addEventListener('touchend', cancelLP); logo.addEventListener('touchmove', cancelLP);
     logo.addEventListener('mousedown', startLP); logo.addEventListener('mouseup', cancelLP); logo.addEventListener('mouseleave', cancelLP);
@@ -6265,26 +6238,35 @@ body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announc
   }
   window.validateBudgetLive = function(){ try{ var orig=window._origValidate; }catch(e){} enforceMin(); };
   window._origCalculate = window.calculateTotal;
-  window.calculateTotal = function(){ var r=null; if(window._origCalculate) r=window._origCalculate.apply(this,arguments); setTimeout(enforceMin,50); return r; };
+  window.calculateTotal = function(){ var r=null; if(window._origCalculate) r=window._origCalculate.apply(this,arguments); enforceMin(); return r; };
   var origPay=window.payAndBookWithPaystack;
   window.payAndBookWithPaystack = function(){ if(!enforceMin()){ alert('❌ Below minimum - Increase offer'); return; } if(origPay) origPay.apply(this,arguments); else { var name=document.getElementById('cName').value.trim(); if(!name){ alert('Name required'); return; } alert('Paystack would open here'); } };
-  document.addEventListener('DOMContentLoaded', function(){ var b=document.getElementById('cBudget'); if(b){ b.addEventListener('input', enforceMin); } setTimeout(enforceMin,1000); });
-  setTimeout(enforceMin,1500);
+  document.addEventListener('DOMContentLoaded', function(){ var b=document.getElementById('cBudget'); if(b){ b.addEventListener('input', enforceMin); } setTimeout(enforceMin,200); });
+  setTimeout(enforceMin,300);
 })();
 </script>
 
 
 <script>
-// === FINAL PERFORMANCE LAYER ===
+// INSTANT BUTTON FEEDBACK - makes all buttons respond in <50ms
 (function(){
-  document.addEventListener('DOMContentLoaded', function(){
-    document.querySelectorAll('button').forEach(function(el){ el.style.touchAction='manipulation'; });
-  });
-  // Remove console spam in prod
-  if(location.hostname!=='localhost' && location.hostname!=='127.0.0.1'){ 
-    // keep error but mute log
-    console.log=function(){}; 
+  function makeFast(){
+    document.querySelectorAll('button').forEach(function(btn){
+      if(btn.dataset.fast) return; btn.dataset.fast='1';
+      // Add instant visual feedback on touchstart/mousedown
+      btn.addEventListener('touchstart', function(){ this.style.transform='scale(0.97)'; }, {passive:true});
+      btn.addEventListener('touchend', function(){ this.style.transform=''; }, {passive:true});
+      btn.addEventListener('mousedown', function(){ this.style.transform='scale(0.97)'; });
+      btn.addEventListener('mouseup', function(){ this.style.transform=''; });
+      btn.addEventListener('mouseleave', function(){ this.style.transform=''; });
+    });
   }
+  document.addEventListener('DOMContentLoaded', makeFast);
+  setTimeout(makeFast, 300);
+  setTimeout(makeFast, 1000);
+  // Re-run after dynamic content
+  var origRender = window.renderNearbyList;
+  window.renderNearbyList = function(){ if(origRender) origRender.apply(this,arguments); setTimeout(makeFast,100); };
 })();
 </script>
 
