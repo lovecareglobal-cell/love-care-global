@@ -363,9 +363,8 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 </style>
 <body>
 <div class="header"><div id="logoTapArea" style="display:flex;align-items:center;gap:10px;cursor:pointer"><img src="./Icon-512.png" class="header-logo-img" style="background:white" onerror="this.style.display='none'"><div style="line-height:1"><b>LOVE CARE</b><br><span style="background:white;color:#16a34a;padding:2px 8px;border-radius:20px;font-size:8px;font-weight:800">GLOBAL HOME NURSING</span></div></div></div>
-</div>
-<div class="announcementBar"
- id="announcementBar"><span id="announcementText">🔞 18+ ONLY - LOVE CARE GLOBAL - Flexible Hours - Live-in & Live-out - Professional English Nursing Services Worldwide - 18+ Only</span></div>
+
+<div class="announcementBar" id="announcementBar"><span id="announcementText">🔞 18+ ONLY - LOVE CARE GLOBAL - Flexible Hours - Live-in & Live-out - Professional English Nursing Services Worldwide - 18+ Only</span></div>
 <div style="background:#111827;color:#eab308;padding:6px;text-align:center;font-size:11px;font-weight:800;border-bottom:2px solid #eab308">🔞 18+ ONLY - You must be 18 years or older to use this app - Adults Only</div>
 
 <!-- ===== CLEAN ANNOUNCEMENT MEDIA BAR (FOR ALL USERS) ===== -->
@@ -534,15 +533,13 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <small id="minRateInfo" style="font-size:10px;font-weight:800;color:#92400e;background:#fef3c7;border:1px solid #f59e0b;padding:6px 10px;border-radius:8px;margin:4px 0;display:block">Loading legal rate...</small>
 <button class="btnSubmit" id="findNurseBtn" style="background:linear-gradient(90deg,#2563eb,#00b050)" onclick="checkEmailAndFindNurses()">🔍 FIND NURSES NEAR ME</button>
 <div style="margin-top:10px;border:3px solid #eab308;border-radius:12px;padding:10px;background:#fffbeb;">
-<div style="font-size:11px;font-weight:800;color:#92400e;text-align:center;margin-bottom:6px">💳 LIVE SECURE PAYMENT - Paystack</div>
-<div style="display:flex;gap:6px;flex-wrap:wrap">
-<button class="btnSubmit" id="livePayBtn" style="background:linear-gradient(90deg,#16a34a,#00b050);flex:2;border:3px solid #eab308;padding:14px;" onclick="checkEmailAndPayAndBook()">💳 LIVE PAY & BOOK NOW</button>
-<button class="btnSubmit" style="background:#111827;flex:1;" onclick="checkEmailAndBookFree()">📋 BOOK FREE DEMO</button>
+<div style="font-size:11px;font-weight:800;text-align:center;margin-bottom:6px">💳 LIVE SECURE PAYMENT</div>
+<div style="display:flex;gap:6px">
+<button class="btnSubmit" id="livePayBtn" style="background:#16a34a;flex:2;border:3px solid #eab308;padding:14px;" onclick="checkEmailAndPayAndBook()">💳 LIVE PAY & BOOK NOW</button>
+<button class="btnSubmit" style="background:#111827;flex:1;" onclick="checkEmailAndBookFree()">📋 BOOK FREE</button>
 </div>
-<div style="font-size:9px;color:#6b7280;text-align:center;margin-top:4px">Card • Bank • USSD • MoMo • QR - 100% Secure</div>
 </div>
-
-<div id="uberActionArea" class="hidden"><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btnSubmit" style="background:#eab308;color:#111;flex:1" onclick="randomSelectNurse()">🎲 RANDOM</button><button class="btnSubmit" id="bookBtn" style="background:linear-gradient(90deg,#16a34a,#00b050);flex:1;border:3px solid #eab308" onclick="checkEmailAndPayAndBook()">💳 PAY & BOOK SELECTED</button><button class="btnSubmit" style="background:#111827;flex:1" onclick="checkEmailAndBookFree()">📋 BOOK WITHOUT PAY</button></div><div id="selectedNurseInfo" style="font-size:10px;text-align:center;margin-top:4px;color:#16a34a;font-weight:800">No nurse selected</div></div></div>
+<div id="uberActionArea" class="hidden"><div style="display:flex;gap:6px;margin-top:8px"><button class="btnSubmit" style="background:#eab308;color:#111;flex:1" onclick="randomSelectNurse()">🎲 RANDOM</button><button class="btnSubmit" id="bookBtn" style="background:#16a34a;flex:1;border:3px solid #eab308" onclick="checkEmailAndPayAndBook()">💳 PAY & BOOK SELECTED</button></div><div id="selectedNurseInfo" style="font-size:10px;text-align:center;margin-top:4px;color:#16a34a;font-weight:800">No nurse selected</div></div></div>
 
 <div class="card" style="border:3px solid #2563eb"><h2>📋 MY BOOKINGS</h2><div class="phoneRow"><select id="myBookPhoneCode"></select><input id="myBookPhone" placeholder="Enter phone to load"><button class="btnSmall" style="background:#2563eb;color:white;padding:12px 16px" onclick="loadMyBookings()">LOAD</button></div><div id="myBookingsList" style="margin-top:10px"><div style="text-align:center;color:#999;font-size:11px;padding:10px">No bookings loaded</div></div></div>
 <div class="card"><h2>LIVE Map - <span id="nearbyCount">0</span> Nearby</h2><div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button class="btnMap" onclick="toggleMap()">🗺 Map</button><button class="btnSmall" style="background:#16a34a;color:white" onclick="findNursesUber()">Refresh</button><select id="radiusSelect" style="width:100px;padding:8px;border-radius:8px"><option value="5">5 km</option><option value="10" selected>10 km</option><option value="20">20 km</option><option value="50">50 km</option></select></div><div id="loveCareMapWrapper" class="map-wrapper"><div id="uberMap"></div></div><div id="loveCareLiveList"></div></div>
@@ -1153,19 +1150,13 @@ function showPage(id){
 if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
 if(id==='staff-dashboard' &&!localStorage.getItem('staffID')) id='staff-login';
 if(id==='nurse-dashboard' &&!localStorage.getItem('nursePhone')) id='nurse-login';
-// INSTANT - no delay
-document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active'); p.style.display='none';});
-var el=document.getElementById('page-'+id); if(el){el.classList.add('active'); el.style.display='block';}
+document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
+var el=document.getElementById('page-'+id); if(el){el.classList.add('active');el.style.display='block';}
 document.querySelectorAll('.bottomNav button').forEach(b=>b.classList.remove('active'));
 var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
 var nid=map[id]; if(nid){var nb=document.getElementById(nid); if(nb) nb.classList.add('active');}
 window.scrollTo(0,0);
-// DEFER heavy map work - don't block button response
-if(id==='home'){
-  requestAnimationFrame(function(){
-    setTimeout(function(){ try{ if(!uberMap) initUberMap(); else { uberMap.invalidateSize(); } }catch(e){} }, 100);
-  });
-}
+if(id==='home') setTimeout(()=>{if(!uberMap)initUberMap();else{uberMap.invalidateSize();}},300);
 }
 function autoGPS(i,s){
   var se=document.getElementById(s); 
@@ -1608,11 +1599,7 @@ function toggleMap(){var w=document.getElementById('loveCareMapWrapper'); w.clas
 
 function findNursesUber(){ 
   var src=getAllNursesSource(); 
-  if(!clientLat||!clientLng){
-    var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng');
-    if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); }
-    else { clientLat=5.6037; clientLng=-0.1870; try{ localStorage.setItem('clientLat', clientLat); localStorage.setItem('clientLng', clientLng); }catch(e){} }
-  } 
+  if(!clientLat||!clientLng){ var slat=localStorage.getItem('clientLat'), slng=localStorage.getItem('clientLng'); if(slat && slng){ clientLat=parseFloat(slat); clientLng=parseFloat(slng); } else { clientLat=5.6037; clientLng=-0.1870; } } 
   var rad=parseInt(document.getElementById('radiusSelect').value)||10; 
   nearbyNursesSorted=src.filter(w=>w.lat&&w.lng).map(w=>{
     var d=getDistanceKm(clientLat,clientLng,parseFloat(w.lat),parseFloat(w.lng)); 
@@ -1804,35 +1791,27 @@ function submitBookingWithPaystackRef(paystackRef){
   var service=document.getElementById('cService').value;
   if(!name||!phone||!service){alert('Name Phone Service required');return;}
   if(!selectedNurseId&&nearbyNursesSorted[0])selectedNurseId=nearbyNursesSorted[0].phone||nearbyNursesSorted[0].id;
-  var calc = calculateTotal();
+  var calc = window._realCalculateTotal ? window._realCalculateTotal() : calculateTotal();
   var amount=parseFloat(document.getElementById('cBudget').value||0);
-  if(!amount || amount < calc.totalMin){ alert('❌ BLOCKED: Offer below minimum '+calc.totalMin); return; }
+  if(!amount || amount < calc.totalMin){ alert('❌ BLOCKED: Below minimum '+calc.totalMin); return; }
   var cur=document.getElementById('cCurrency').value;
-  var country = document.getElementById('countrySelect').value;
-  var verifiedEmail = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || localStorage.getItem('verifiedClientEmail') || 'client@lovecareglobal.com';
   var id=Date.now();
-  var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status: paystackRef ? 'paid' : 'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,email:verifiedEmail,country:country,days:calc.displayDuration,totalHours:calc.totalHours,paystackRef:paystackRef||'',paidAt:paystackRef?Date.now():null};
-  if(db)db.ref('bookings/'+id).set(b).then(()=>{ alert('✅ '+(paystackRef?'Payment Successful! Ref: '+paystackRef+'\n':'')+'Booked! '+amount+' '+cur); loadMyBookings(); }); else { alert('✅ Demo Booking: '+amount+' '+cur+' Ref: '+(paystackRef||'none')); }
+  var b={id:id,name:name,phone:fullPhone,service:service,location:document.getElementById('cLocation').value,amount:amount,currency:cur,status: paystackRef ? 'paid' : 'pending_assignment',time:new Date().toLocaleString(),timestamp:Date.now(),lat:clientLat,lng:clientLng,selectedNurse:selectedNurseId,paystackRef:paystackRef||''};
+  if(db)db.ref('bookings/'+id).set(b).then(()=>{ alert('✅ '+(paystackRef?'Payment '+paystackRef+'\n':'')+'Booked '+amount+' '+cur); loadMyBookings(); }); else { alert('✅ Demo Booked '+amount+' '+cur); }
 }
 function payAndBookWithPaystack(){
-  var name=document.getElementById('cName').value.trim();
-  var phone=document.getElementById('cPhone').value.trim();
-  var service=document.getElementById('cService').value;
-  if(!name||!phone||!service){alert('Name Phone Service required');return;}
-  var calc = calculateTotal();
+  var calc = window._realCalculateTotal ? window._realCalculateTotal() : calculateTotal();
   var amount=parseFloat(document.getElementById('cBudget').value||0);
-  if(!amount || amount < calc.totalMin){ alert('❌ BLOCKED: Offer below minimum '+calc.totalMin+' - Increase offer'); return; }
-  var email = (document.getElementById('cEmail')?document.getElementById('cEmail').value.trim():'') || 'client@lovecareglobal.com';
+  if(!amount || amount < calc.totalMin){ alert('❌ BLOCKED: Below minimum '+calc.totalMin); return; }
+  if(typeof PaystackPop==='undefined'){ alert('Paystack loading... try again in 2 sec'); return; }
+  var email=(document.getElementById('cEmail')?.value||'client@lovecareglobal.com');
   var cur=document.getElementById('cCurrency').value||'GHS';
-  var pubKey = localStorage.getItem('ceoPaystackPublicKey') || localStorage.getItem('paystackPublicKey') || 'pk_test_xxx';
-  if(typeof PaystackPop==='undefined'){ alert('Paystack not loaded - check internet'); return; }
-  var handler=PaystackPop.setup({key:pubKey,email:email,amount:Math.round(amount*100),currency:cur,ref:'LOVECARE_'+Date.now(),callback:function(r){ submitBookingWithPaystackRef(r.reference); },onClose:function(){ alert('Payment closed'); }});
+  var pubKey=localStorage.getItem('ceoPaystackPublicKey')||localStorage.getItem('paystackPublicKey')||'pk_test_xxx';
+  var handler=PaystackPop.setup({key:pubKey,email:email,amount:Math.round(amount*100),currency:cur,ref:'LOVECARE_'+Date.now(),callback:function(r){ submitBookingWithPaystackRef(r.reference); },onClose:function(){}});
   handler.openIframe();
 }
-function checkEmailAndPayAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } payAndBookWithPaystack(); }
-function checkEmailAndBookFree(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
-
-
+function checkEmailAndPayAndBook(){ payAndBookWithPaystack(); }
+function checkEmailAndBookFree(){ submitBooking(); }
 
 function loadMyBookings(){
  var codeEl=document.getElementById('myBookPhoneCode'); var phoneEl=document.getElementById('myBookPhone');
@@ -6180,95 +6159,97 @@ body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announc
 
 
 <script>
-// LOGO BINDING - 5 taps staff, long press CEO
+// SINGLE combined fix - no recursion, no double wrapping
 (function(){
+  // LOGO
   function bindLogo(){
     var logo=document.getElementById('logoTapArea'); if(!logo || logo.dataset.bound) return; logo.dataset.bound='1';
-    var tapCount=0, tapTimer=null, longPressTimer=null, longPressed=false;
-    function reset(){ tapCount=0; }
-    logo.addEventListener('click', function(e){ if(longPressed){ longPressed=false; return; } tapCount++; clearTimeout(tapTimer); tapTimer=setTimeout(reset,3000); if(tapCount>=5){ tapCount=0; var h=document.createElement('div'); h.innerText='🔓 Staff'; h.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#7c3aed;color:white;padding:8px 16px;border-radius:20px;z-index:99999;font-weight:800'; document.body.appendChild(h); setTimeout(function(){h.remove()},1200); showPage('staff-login'); } });
-    function startLP(){ longPressed=false; longPressTimer=setTimeout(function(){ longPressed=true; if(navigator.vibrate) navigator.vibrate(100); var h=document.createElement('div'); h.innerText='🔐 CEO'; h.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#111827;color:#eab308;padding:8px 16px;border-radius:20px;z-index:99999;font-weight:800;border:2px solid #eab308'; document.body.appendChild(h); setTimeout(function(){h.remove()},1200); showPage('ceo-login'); },1500); }
-    function cancelLP(){ clearTimeout(longPressTimer); }
-    logo.addEventListener('touchstart', startLP, {passive:true}); logo.addEventListener('touchend', cancelLP); logo.addEventListener('touchmove', cancelLP);
-    logo.addEventListener('mousedown', startLP); logo.addEventListener('mouseup', cancelLP); logo.addEventListener('mouseleave', cancelLP);
+    var tap=0, tapT=null, lpT=null, lp=false;
+    logo.addEventListener('click', function(){ if(lp){ lp=false; return; } tap++; clearTimeout(tapT); tapT=setTimeout(function(){tap=0},3000); if(tap>=5){ tap=0; showPage('staff-login'); } });
+    function sLP(){ lp=false; lpT=setTimeout(function(){ lp=true; showPage('ceo-login'); },1500); }
+    function cLP(){ clearTimeout(lpT); }
+    logo.addEventListener('touchstart', sLP, {passive:true}); logo.addEventListener('touchend', cLP); logo.addEventListener('mousedown', sLP); logo.addEventListener('mouseup', cLP); logo.addEventListener('mouseleave', cLP);
   }
-  document.addEventListener('DOMContentLoaded', bindLogo); setTimeout(bindLogo,500); setTimeout(bindLogo,1500);
-})();
+  document.addEventListener('DOMContentLoaded', bindLogo); setTimeout(bindLogo,500);
 
-// HIDE PHONE + MIN RESTRICTION
-(function(){
+  // Save real calculateTotal to avoid recursion
+  window._realCalculateTotal = window.calculateTotal;
+
+  // FAST showPage
+  var origShowPage = window.showPage;
+  window.showPage = function(id){
+    if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
+    if(id==='staff-dashboard' &&!localStorage.getItem('staffID')) id='staff-login';
+    if(id==='nurse-dashboard' &&!localStorage.getItem('nursePhone')) id='nurse-login';
+    document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); p.style.display='none'; });
+    var el=document.getElementById('page-'+id); if(el){ el.classList.add('active'); el.style.display='block'; }
+    window.scrollTo(0,0);
+    if(id==='home'){ setTimeout(function(){ try{ if(!uberMap) initUberMap(); else uberMap.invalidateSize(); }catch(e){} },150); }
+  };
+
+  // PHONE HIDE + MIN ENFORCE - single wrapper
   var origRender = window.renderNearbyList;
   window.renderNearbyList = function(){
     if(origRender) origRender.apply(this,arguments);
-    setTimeout(function(){
-      var list=document.getElementById('loveCareLiveList'); if(!list) return;
-      list.querySelectorAll('.uber-card').forEach(function(card){
-        card.querySelectorAll('small').forEach(function(sm){
-          var t=sm.innerText||'';
-          if(/\+?\d{10,}/.test(t) && !t.includes('km') && !t.includes('Verified')){
-            sm.innerHTML='<span style="background:#f0fdf4;border:1px solid #16a34a;padding:3px 8px;border-radius:8px;font-size:9px;color:#166534;font-weight:800">🔒 Phone hidden - Contact via app</span>';
-          }
-        });
-      });
-    },100);
+    // hide phone after render
+    var list=document.getElementById('loveCareLiveList'); if(!list) return;
+    list.querySelectorAll('.uber-card small').forEach(function(sm){
+      var t=sm.innerText||'';
+      if(/\+?\d{10,}/.test(t) && !t.includes('km') && !t.includes('Verified') && t.length>9){
+        sm.innerHTML='<span style="background:#f0fdf4;border:1px solid #16a34a;padding:3px 6px;border-radius:6px;font-size:9px">🔒 Phone hidden</span>';
+      }
+    });
   };
-  
+
   function enforceMin(){
     try{
-      var calc=calculateTotal(); if(!calc) return true;
+      var calc = window._realCalculateTotal ? window._realCalculateTotal() : null;
+      if(!calc) return true;
       var min=calc.totalMin||0;
-      var budgetEl=document.getElementById('cBudget');
-      var amt=parseFloat(budgetEl?.value)||0;
+      var bEl=document.getElementById('cBudget');
+      var amt=parseFloat(bEl?.value)||0;
       var below=amt>0 && amt<min;
       var empty=!amt;
       var info=document.getElementById('minRateInfo');
       if(info){
-        if(below){ info.innerHTML='❌ BLOCKED: '+amt+' below min '+min; info.style.background='#fee2e2'; info.style.border='2px solid #ef4444'; info.style.color='#991b1b'; }
-        else if(empty){ info.innerHTML='⚠️ Min required: '+min+' - Enter >= min to enable PAY'; info.style.background='#fef3c7'; }
-        else { info.innerHTML='✅ OK: '+amt+' >= '+min+' - PAY enabled'; info.style.background='#dcfce7'; info.style.border='2px solid #16a34a'; info.style.color='#166534'; }
+        if(below){ info.innerHTML='❌ BLOCKED: '+amt+' below min '+min; info.style.background='#fee2e2'; info.style.color='#991b1b'; }
+        else if(empty){ info.innerHTML='⚠️ Min: '+min+' - Enter >= min to PAY'; info.style.background='#fef3c7'; }
+        else { info.innerHTML='✅ OK: '+amt+' >= '+min; info.style.background='#dcfce7'; info.style.color='#166534'; }
       }
-      ['livePayBtn','bookBtn'].forEach(function(id){
-        var btn=document.getElementById(id); if(!btn) return;
-        if(below || empty){ btn.disabled=true; btn.style.opacity='0.4'; btn.style.pointerEvents='none'; }
-        else { btn.disabled=false; btn.style.opacity='1'; btn.style.pointerEvents='auto'; }
+      var liveBtn=document.getElementById('livePayBtn');
+      var bookBtn=document.getElementById('bookBtn');
+      [liveBtn, bookBtn].forEach(function(btn){
+        if(!btn) return;
+        if(below || empty){ btn.disabled=true; btn.style.opacity='0.4'; }
+        else { btn.disabled=false; btn.style.opacity='1'; }
       });
-      if(below) return false;
-      return true;
+      return !below;
     }catch(e){ return true; }
   }
-  window.validateBudgetLive = function(){ try{ var orig=window._origValidate; }catch(e){} enforceMin(); };
-  window._origCalculate = window.calculateTotal;
-  window.calculateTotal = function(){ var r=null; if(window._origCalculate) r=window._origCalculate.apply(this,arguments); enforceMin(); return r; };
-  var origPay=window.payAndBookWithPaystack;
-  window.payAndBookWithPaystack = function(){ if(!enforceMin()){ alert('❌ Below minimum - Increase offer'); return; } if(origPay) origPay.apply(this,arguments); else { var name=document.getElementById('cName').value.trim(); if(!name){ alert('Name required'); return; } alert('Paystack would open here'); } };
-  document.addEventListener('DOMContentLoaded', function(){ var b=document.getElementById('cBudget'); if(b){ b.addEventListener('input', enforceMin); } setTimeout(enforceMin,200); });
-  setTimeout(enforceMin,300);
+
+  // Wrap calculateTotal to also enforce but NOT call itself recursively
+  var realCalc = window._realCalculateTotal;
+  window.calculateTotal = function(){
+    var r = realCalc ? realCalc.apply(this,arguments) : null;
+    // don't call enforceMin here if it calls calculateTotal - we use cached values
+    setTimeout(enforceMin, 10);
+    return r;
+  };
+
+  // Budget listener
+  document.addEventListener('DOMContentLoaded', function(){
+    var b=document.getElementById('cBudget');
+    if(b){ b.addEventListener('input', enforceMin); }
+    setTimeout(enforceMin,500);
+  });
 })();
 </script>
 
-
-<script>
-// INSTANT BUTTON FEEDBACK - makes all buttons respond in <50ms
-(function(){
-  function makeFast(){
-    document.querySelectorAll('button').forEach(function(btn){
-      if(btn.dataset.fast) return; btn.dataset.fast='1';
-      // Add instant visual feedback on touchstart/mousedown
-      btn.addEventListener('touchstart', function(){ this.style.transform='scale(0.97)'; }, {passive:true});
-      btn.addEventListener('touchend', function(){ this.style.transform=''; }, {passive:true});
-      btn.addEventListener('mousedown', function(){ this.style.transform='scale(0.97)'; });
-      btn.addEventListener('mouseup', function(){ this.style.transform=''; });
-      btn.addEventListener('mouseleave', function(){ this.style.transform=''; });
-    });
-  }
-  document.addEventListener('DOMContentLoaded', makeFast);
-  setTimeout(makeFast, 300);
-  setTimeout(makeFast, 1000);
-  // Re-run after dynamic content
-  var origRender = window.renderNearbyList;
-  window.renderNearbyList = function(){ if(origRender) origRender.apply(this,arguments); setTimeout(makeFast,100); };
-})();
-</script>
+<style>
+/* FAST BUTTONS */
+button{ touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+button:active{ transform: scale(0.97); }
+</style>
 
 </body>
 </html>
