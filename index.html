@@ -9,7 +9,7 @@
 button, a{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 .page{ display:none; content-visibility:auto; contain-intrinsic-size: 1000px; }
 .page.active{ display:block !important; }
-.bottomNav button{  }
+.bottomNav button{ will-change:transform; transform: translateZ(0); }
 .uber-card{ contain:layout style paint; }
 #loveCareLiveList{ contain:layout; }
 </style>
@@ -18,8 +18,8 @@ button, a{ -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
 <title>LOVE CARE GLOBAL - Real EmailJS Enabled</title>
 
 <script>
-// GLOBAL  HELPERS
-function isLink(url){ return url && (url.includes('/') || /^[A-Za-z0-9_-]{20,}$/.test(url)); } // file_id is now stored, not  link
+// GLOBAL TELEGRAM HELPERS
+function isTelegramLink(url){ return url && (url.includes('t.me/') || /^[A-Za-z0-9_-]{20,}$/.test(url)); } // file_id is now stored, not t.me link
 function isDriveLink(url){ return false; }
 function getDrivePreview(url){ return url; }
 function getDriveDownload(url){ return url; }
@@ -35,28 +35,28 @@ function getDriveFileId(url){ return null; }
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"/>
 <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
 
 
 <script>
-// ===== UPLOADER V4 -  FIXED - WORKS FOR NURSES UPLOADING =====
+// ===== UPLOADER V4 - TELEGRAM FIXED - WORKS FOR NURSES UPLOADING =====
 (function(){
-  console.log('🔥 UPLOADER V4 -  FIXED');
+  console.log('🔥 UPLOADER V4 - TELEGRAM FIXED');
 
   // ============ CONFIGURE THIS ============
-  window. = {
-    // Create bot: Talk to @ on  -> /newbot -> name it -> get token like 123456:ABC...
-    : '', // e.g. '1234567890:AAHxyz...'
+  window.TELEGRAM_CONFIG = {
+    // Create bot: Talk to @BotFather on Telegram -> /newbot -> name it -> get token like 123456:ABC...
+    botToken: 'REMOVED_FOR_SECURITY', // e.g. '1234567890:AAHxyz...'
     // Create private channel, add your bot as Admin, send a message, then get channel ID
-    // How to get : forward a message from channel to @userinfobot or use https://api..org//getUpdates
+    // How to get chatId: forward a message from channel to @userinfobot or use https://api.telegram.org/botTOKEN/getUpdates
     // Channel ID looks like -1001234567890 , personal chat ID is like 123456789
-    : '', // e.g. '-1001234567890' or '123456789'
-    enabled: true, // ✅ CONFIGURED -  active
+    chatId: 'REMOVED_FOR_SECURITY', // e.g. '-1001234567890' or '123456789'
+    enabled: true, // ✅ CONFIGURED - Telegram active
     useProxy: true // ✅ CORS proxy ON to fix browser upload
   };
   // ========================================
@@ -66,40 +66,40 @@ function getDriveFileId(url){ return null; }
   }
   if(typeof firebase!=='undefined' && firebase.auth){ ensureAuth(); }
 
-  // Helper: Get  file direct URL from file_id
-  async function getFileUrl(fileId){
+  // Helper: Get Telegram file direct URL from file_id
+  async function getTelegramFileUrl(fileId){
     try{
-      var token = window..;
-      var proxy = window..useProxy ? 'https:///?' : '';
-      var apiUrl = 'https://api..org/bot'+token+'/getFile?file_id='+fileId;
+      var token = window.TELEGRAM_CONFIG.botToken;
+      var proxy = window.TELEGRAM_CONFIG.useProxy ? 'https://corsproxy.io/?' : '';
+      var apiUrl = 'https://api.telegram.org/bot'+token+'/getFile?file_id='+fileId;
       var res = await fetch(proxy + encodeURIComponent(apiUrl));
-      //  returns raw, need to handle
+      // corsproxy.io returns raw, need to handle
       var text = await res.text();
       // Try parse
       try{
         var json = JSON.parse(text);
         if(json.ok && json.result && json.result.file_path){
-          return 'https://api..org/file/bot'+token+'/'+json.result.file_path;
+          return 'https://api.telegram.org/file/bot'+token+'/'+json.result.file_path;
         }
       }catch(e){
         // If proxy returns JSON wrapped
         console.log('getFile response', text.substring(0,300));
       }
       return null;
-    }catch(e){ console.error('getFileUrl error', e); return null; }
+    }catch(e){ console.error('getTelegramFileUrl error', e); return null; }
   }
 
-  //  UPLOAD - Fixed with CORS proxy
-  async function uploadTo(file, folder, onProgress){
-    if(!window..enabled || window..===''){
-      console.warn(' not configured');
+  // TELEGRAM UPLOAD - Fixed with CORS proxy
+  async function uploadToTelegram(file, folder, onProgress){
+    if(!window.TELEGRAM_CONFIG.enabled || window.TELEGRAM_CONFIG.botToken==='REMOVED_FOR_SECURITY'){
+      console.warn('Telegram not configured');
       return null;
     }
     try{
-      var token = window..;
-      var  = window..;
+      var token = window.TELEGRAM_CONFIG.botToken;
+      var chatId = window.TELEGRAM_CONFIG.chatId;
       var fd = new FormData();
-      fd.append('chat_id', );
+      fd.append('chat_id', chatId);
       // Add caption with folder info for CEO to search
       fd.append('caption', '📁 '+folder+' | 👩‍⚕️ '+file.name+' | '+(new Date().toLocaleString()));
       
@@ -117,8 +117,8 @@ function getDriveFileId(url){ return null; }
 
       fd.append(fieldName, file, file.name);
 
-      var apiUrl = 'https://api..org/bot'+token+'/'+method;
-      var fetchUrl = window..useProxy ? 'https:///?' + encodeURIComponent(apiUrl) : apiUrl;
+      var apiUrl = 'https://api.telegram.org/bot'+token+'/'+method;
+      var fetchUrl = window.TELEGRAM_CONFIG.useProxy ? 'https://corsproxy.io/?' + encodeURIComponent(apiUrl) : apiUrl;
 
       var xhr = new XMLHttpRequest();
       return await new Promise(function(resolve){
@@ -127,13 +127,13 @@ function getDriveFileId(url){ return null; }
             var pct = Math.round((e.loaded/e.total)*100);
             if(onProgress) onProgress(pct);
             var box=document.getElementById('uploadStatusBox');
-            if(box) box.innerHTML='✈️  '+folder+': '+pct+'% - '+file.name.substring(0,20);
+            if(box) box.innerHTML='✈️ Telegram '+folder+': '+pct+'% - '+file.name.substring(0,20);
           }
         };
         xhr.onload = function(){
           try{
             var respText = xhr.responseText;
-            console.log(' raw response', respText.substring(0,500));
+            console.log('Telegram raw response', respText.substring(0,500));
             var json;
             try{ json = JSON.parse(respText); } catch(e){
               // corsproxy may wrap?
@@ -155,9 +155,9 @@ function getDriveFileId(url){ return null; }
               
               if(fileId){
                 // Now get direct file URL
-                getFileUrl(fileId).then(function(directUrl){
+                getTelegramFileUrl(fileId).then(function(directUrl){
                   if(directUrl){
-                    console.log('✅  direct URL', directUrl);
+                    console.log('✅ Telegram direct URL', directUrl);
                     resolve(directUrl);
                   } else {
                     // Fallback: return file_id based URL that CEO can still open via bot
@@ -169,22 +169,22 @@ function getDriveFileId(url){ return null; }
                 resolve(null);
               }
             } else {
-              console.error(' API error', json);
+              console.error('Telegram API error', json);
               if(json.description && json.description.includes('chat not found')){
-                alert('❌   wrong. Make sure bot is admin in channel and  is like -100...');
+                alert('❌ Telegram chatId wrong. Make sure bot is admin in channel and chatId is like -100...');
               }
               resolve(null);
             }
           }catch(e){
-            console.error(' parse error', e, xhr.responseText.substring(0,300));
+            console.error('Telegram parse error', e, xhr.responseText.substring(0,300));
             resolve(null);
           }
         };
-        xhr.onerror = function(){ console.error(' xhr error'); resolve(null); };
+        xhr.onerror = function(){ console.error('Telegram xhr error'); resolve(null); };
         xhr.open('POST', fetchUrl);
         xhr.send(fd);
       });
-    }catch(e){ console.error(' upload crash', e); return null; }
+    }catch(e){ console.error('Telegram upload crash', e); return null; }
   }
 
   // FALLBACK 1: Catbox.moe FREE (no account)
@@ -240,37 +240,37 @@ function getDriveFileId(url){ return null; }
       var url=await new Promise(function(resolve){
         task.on('state_changed',
           function(snap){ var pct=Math.round((snap.bytesTransferred/snap.totalBytes)*100); if(onProgress) onProgress(pct); box.innerHTML='🔥 Firebase '+folder+': '+pct+'%'; },
-          function(err){ console.error('Firebase error',err.code); if((err.message||'').toLowerCase().includes('billing')){ box.innerHTML='⚠️ Firebase billing blocked - Trying ...'; box.style.background='#fef3c7'; } resolve(null); },
+          function(err){ console.error('Firebase error',err.code); if((err.message||'').toLowerCase().includes('billing')){ box.innerHTML='⚠️ Firebase billing blocked - Trying Telegram...'; box.style.background='#fef3c7'; } resolve(null); },
           function(){ task.snapshot.ref.getDownloadURL().then(function(dl){ resolve(dl); }).catch(function(){ resolve(null); }); }
         );
       });
       if(url){ box.innerHTML='✅ Firebase Uploaded: '+file.name.substring(0,25); setTimeout(function(){ box.style.display='none'; },2500); onDone(url,{secure_url:url,storage:'firebase'}); return; }
     }catch(e){}
 
-    // TRY 2:  (your preferred)
-    if(window..enabled){
-      box.innerHTML='✈️ Trying  (your preferred)...';
-      var tgUrl = await uploadTo(file, folder, onProgress);
+    // TRY 2: Telegram (your preferred)
+    if(window.TELEGRAM_CONFIG.enabled){
+      box.innerHTML='✈️ Trying Telegram (your preferred)...';
+      var tgUrl = await uploadToTelegram(file, folder, onProgress);
       if(tgUrl){
         if(tgUrl.startsWith('tg://')){
           // File ID fallback - save file_id, tell CEO to use bot
-          box.innerHTML='✅  Uploaded (file_id): '+file.name.substring(0,25);
+          box.innerHTML='✅ Telegram Uploaded (file_id): '+file.name.substring(0,25);
           setTimeout(function(){ box.style.display='none'; }, 3000);
-          onDone(tgUrl, {secure_url:tgUrl, storage:'_file_id'});
+          onDone(tgUrl, {secure_url:tgUrl, storage:'telegram_file_id'});
           return;
         } else {
-          box.innerHTML='✅  Uploaded: '+file.name.substring(0,25)+' (Permanent)';
+          box.innerHTML='✅ Telegram Uploaded: '+file.name.substring(0,25)+' (Permanent)';
           box.style.background='#dcfce7'; box.style.borderColor='#16a34a';
           setTimeout(function(){ box.style.display='none'; }, 3000);
-          onDone(tgUrl, {secure_url:tgUrl, storage:''});
+          onDone(tgUrl, {secure_url:tgUrl, storage:'telegram'});
           return;
         }
       } else {
-        box.innerHTML='⚠️  failed, trying Catbox free fallback...';
+        box.innerHTML='⚠️ Telegram failed, trying Catbox free fallback...';
       }
     } else {
-      console.log(' disabled, skipping to Catbox. Enable it in ');
-      box.innerHTML='ℹ️  not configured - Using FREE Catbox...<br><small>To use : set  +  + enabled=true</small>';
+      console.log('Telegram disabled, skipping to Catbox. Enable it in TELEGRAM_CONFIG');
+      box.innerHTML='ℹ️ Telegram not configured - Using FREE Catbox...<br><small>To use Telegram: set botToken + chatId + enabled=true</small>';
       await new Promise(r=>setTimeout(r,1500));
     }
 
@@ -284,13 +284,13 @@ function getDriveFileId(url){ return null; }
       if(b64){ box.innerHTML='✅ Saved to Database'; setTimeout(function(){ box.style.display='none'; },3000); onDone(b64,{secure_url:b64,storage:'rtdb'}); return; }
     }
 
-    box.innerHTML='❌ All uploads failed.<br><small>1. Settle Firebase OR 2. Setup  bot OR 3. File <200MB for Catbox</small>';
+    box.innerHTML='❌ All uploads failed.<br><small>1. Settle Firebase OR 2. Setup Telegram bot OR 3. File <200MB for Catbox</small>';
     box.style.background='#fee2e2'; box.style.borderColor='#ef4444';
     onDone(null);
   };
 
   window.uploadFileToStorage = function(f,p){ return new Promise(function(r){ window.autoUploadFile(f,p,function(){},function(url){ r(url); }); }); };
-  console.log('✅ UPLOADER V4  FIXED READY');
+  console.log('✅ UPLOADER V4 TELEGRAM FIXED READY');
 })();
 </script>
 
@@ -382,7 +382,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div style="background:#111827;color:#eab308;padding:6px;text-align:center;font-size:11px;font-weight:800;border-bottom:2px solid #eab308">🔞 18+ ONLY - You must be 18 years or older to use this app - Adults Only</div>
 
 <!-- ===== CLEAN ANNOUNCEMENT MEDIA BAR (FOR ALL USERS) ===== -->
-<div id="announcementVideoBar" style="display:block;background:#111827;border-bottom:3px solid #eab308;padding:10px;max-width:100%;overflow:hidden;box-sizing:border-box">
+<div id="announcementVideoBar" style="display:none;background:#111827;border-bottom:3px solid #eab308;padding:10px;max-width:100%;overflow:hidden;box-sizing:border-box">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
 <b style="color:#eab308;font-size:12px">📹 CEO Announcements</b>
 <button onclick="document.getElementById('announcementVideoBar').style.display='none'" style="background:#ef4444;color:white;border:none;padding:4px 8px;border-radius:6px;font-size:10px">✕ Hide</button>
@@ -426,17 +426,50 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <option value="MY" data-curr="MYR">🇲🇾 Malaysia MYR</option>
 </select>
 <span id="currencyDisplay" style="font-weight:800;color:#16a34a;font-size:11px">GHS</span>
-
+<span id="verifiedEmailBadge" class="hidden" style="background:#16a34a;color:white;padding:3px 8px;border-radius:10px;font-size:9px;font-weight:800">✓ Email Verified</span>
 </div>
 
 <!-- EMAIL VERIFICATION POPUP BEFORE BOOKING -->
+<div id="emailVerifyModal" class="emailModal hidden">
+<div class="emailBox">
 
+<div id="templateHelper" class="hidden" style="background:#dbeafe;border:2px dashed #2563eb;border-radius:10px;padding:10px;margin-bottom:10px;font-size:11px;line-height:1.5">
+<b style="color:#1e40af">📸 I see you're in EmailJS Templates (from your screenshot):</b><br>
+1. Tap the <b>template name</b> (not the star) in your list<br>
+2. Top left you will see <b>Template ID: template_xxxxxx</b><br>
+3. Copy that ID<br>
+4. Send it to me here, or paste it in code at line: <code>EMAILJS_TEMPLATE_ID</code><br>
+5. I will update your app instantly so real emails send<br>
+<br>
+<b>Or create new template:</b> Click + New Template -> Use subject: Verification code {{verification_code}} -> To Email: {{to_email}} -> Content: Your code is {{verification_code}} -> Save -> Copy new ID
+</div>
+
+<h2 style="color:#16a34a;margin:0 0 10px 0;font-size:16px">🔐 Verify Your Email - One Time Registration</h2>
+<p style="font-size:11px;color:#374151;line-height:1.5">For security, please verify your real email before booking. We will save it permanently so next time you visit, no need to verify again. Code will be sent to your email.</p>
+<input id="verifyEmailInput" placeholder="Enter your real email - e.g. you@gmail.com" type="email">
+<div id="sendCodeArea">
+<button class="btnSubmit" style="background:#2563eb" onclick="sendVerificationCode()">📧 Send Code to My Email</button>
+<p style="font-size:10px;color:#6b7280;margin-top:6px">A 6-digit code will be sent. In this demo, code is shown on screen (in production, sent via EmailJS/Firebase). Check inbox/spam.</p>
+</div>
+<div id="enterCodeArea" class="hidden">
+<p style="font-size:12px;font-weight:800;color:#111827">Enter 6-digit code sent to <span id="sentToEmail" style="color:#2563eb"></span></p>
+<p id="demoCodeDisplay" style="background:#fef3c7;padding:8px;border-radius:8px;font-weight:800;text-align:center;font-size:14px;border:2px dashed #f59e0b"></p>
+<input id="verifyCodeInput" placeholder="Enter 6-digit code" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6">
+<button class="btnSubmit" style="background:#16a34a" onclick="confirmVerificationCode()">✅ Verify & Continue Booking</button>
+<button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:6px" onclick="resendCode()">Resend Code</button>
+</div>
+<div style="margin-top:10px;text-align:center">
+<button class="btnSmall" style="background:none;color:#6b7280" onclick="closeEmailModal()">Cancel</button>
+</div>
+<p id="emailVerifyStatus" style="font-size:11px;color:red;margin-top:8px"></p>
+</div>
+</div>
 
 <div id="page-home" class="page active">
 <div class="card"><h2>BOOK NURSE - Flexible Hours + Live-in / Live-out</h2>
 <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:8px;padding:6px;font-size:10px;font-weight:800;text-align:center;color:#92400e;margin-bottom:6px">🔞 18+ ONLY - You must be 18+ to book</div>
 <input id="cName" placeholder="Full Name"><div style="display:flex;gap:6px;align-items:center;background:white;padding:6px;border-radius:8px;border:1px solid #e5e7eb;margin:6px 0"><input type="checkbox" id="cAgeConfirm" style="width:18px;height:18px" checked><label for="cAgeConfirm" style="font-size:10px;font-weight:800;color:#111827;margin:0">I am 18+ years old</label></div><div class="phoneRow"><select id="cPhoneCode"></select><input id="cPhone" placeholder="Phone"></div>
-<div class="locationRow"><input id="cLocation" placeholder="Tap GPS Auto"><button type="button" onclick="autoGPS('cLocation','clientGpsStatus')">GPS Auto</button></div><small id="clientGpsStatus" class="gpsBadge hidden"></small>
+<input id="cEmail" placeholder="Email - will be auto-filled after verification"><div class="locationRow"><input id="cLocation" placeholder="Tap GPS Auto"><button type="button" onclick="autoGPS('cLocation','clientGpsStatus')">GPS Auto</button></div><small id="clientGpsStatus" class="gpsBadge hidden"></small>
 <select id="cService"><option value="">-- Select Service (13 Services) --</option><option>Elderly Care</option><option>Baby Care and Nanny</option><option>Hospital Support</option><option>Post-Surgery Care</option><option>Disability Support</option><option>Maternity Care</option><option>Night Nurse (12hrs)</option><option>Palliative Care</option><option>Physiotherapy</option><option>Injection and Wound Care</option><option>Diabetes Monitoring</option><option>Dementia Care</option><option>Child Special Needs Care</option></select>
 
 <div style="border:2px dashed #7c3aed;border-radius:12px;padding:10px;margin:8px 0;background:#f5f3ff">
@@ -543,14 +576,14 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 <div style="background:white;border:2px solid #16a34a;border-radius:10px;padding:8px;margin:6px 0">
 <label style="font-size:11px;font-weight:800;color:#16a34a">🎥 Video Intro - Upload from Phone/Laptop (MP4, MOV)</label>
 <input type="file" id="nRegVideoFile" accept="video/*" style="padding:6px">
-<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegVideo" placeholder=" auto-upload" style="margin:0;flex:1"></div>
+<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegVideo" placeholder="Telegram auto-upload" style="margin:0;flex:1"></div>
 <div id="videoUploadProgress" style="font-size:10px;color:#16a34a;margin-top:4px"></div>
 </div>
 
 <div style="background:white;border:2px solid #2563eb;border-radius:10px;padding:8px;margin:6px 0">
 <label style="font-size:11px;font-weight:800;color:#2563eb">📄 CV - Upload PDF/DOC from storage</label>
 <input type="file" id="nRegCVFile" accept=".pdf,.doc,.docx,image/*" style="padding:6px">
-<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegCV" placeholder=" auto-upload" style="margin:0;flex:1"></div>
+<div style="display:flex;gap:6px;align-items:center;margin-top:4px"><span style="font-size:10px">OR Link:</span><input id="nRegCV" placeholder="Telegram auto-upload" style="margin:0;flex:1"></div>
 <div id="cvUploadProgress" style="font-size:10px;color:#2563eb;margin-top:4px"></div>
 </div>
 
@@ -682,7 +715,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 
 <div id="page-group-chat" class="page">
 <div class="card" style="border:3px solid #16a34a"><h2>GROUP CHAT - Private (Nurse/Staff/CEO Only) 🎤📹🖼️▶️</h2>
-<div style="background:#fef3c7;padding:6px;border-radius:8px;font-size:10px;margin-bottom:8px">🔒 Clients cannot see. Only Nurses, Staff & CEO. Share text, voice, videos, images, YouTube.  bot (free). CEO can wipe all.</div>
+<div style="background:#fef3c7;padding:6px;border-radius:8px;font-size:10px;margin-bottom:8px">🔒 Clients cannot see. Only Nurses, Staff & CEO. Share text, voice, videos, images, YouTube. Telegram bot (free). CEO can wipe all.</div>
 <div id="globalChatBox" class="chatBox" style="height:400px;max-width:100%;overflow-y:auto"></div>
 <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;max-width:100%">
 <button id="voiceRecordBtn" class="btnSmall" style="background:#ef4444;color:white;padding:8px 10px;font-size:10px" onclick="toggleVoiceRecord()">🎤 Voice</button>
@@ -730,7 +763,7 @@ table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px} th,td{b
 1. Go to Firebase Console → Storage → Rules → Change to:<br>
 <code style="background:#111827;color:#eab308;padding:4px 6px;border-radius:4px;display:block;margin:4px 0">rules_version = '2';<br>service firebase.storage {<br>  match /b/{bucket}/o {<br>    match /{allPaths=**} {<br>      allow read, write: if true;<br>    }<br>  }<br>}</code>
 2. Publish rules<br>
-3. Also tell nurses to paste  link if upload fails - viewer will show  link
+3. Also tell nurses to paste Telegram link if upload fails - viewer will show Telegram link
 </div>
 <div id="ceoNursesList">Loading...</div><div id="ceoMap" style="height:380px;border-radius:12px;border:2px solid #16a34a;margin-top:10px"></div><div id="ceoNurseMediaView" style="display:none" data-fixed="true" id="ceoNurseMediaView" class="hidden" style="border:3px solid #7c3aed;border-radius:16px;padding:12px;margin-top:12px;background:#f5f3ff;max-height:85vh;overflow-y:auto" style="border:3px solid #7c3aed;border-radius:16px;padding:12px;margin-top:12px;background:#f5f3ff;max-height:85vh;overflow-y:auto;position:relative"><div style="position:sticky;top:0;background:#f5f3ff;padding:8px 0;z-index:10;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">🔍 Nurse Media Viewer - CEO</h3><button class="btnSmall" style="background:#ef4444;color:white" onclick="document.getElementById('ceoNurseMediaView').classList.add('hidden')">✕ Close</button></div><div id="mediaViewerContent"></div></div></div>
 <div id="ceo-tab-clients" class="ceo-tab card hidden"><h2>3. Clients (Verified Emails)</h2><div id="ceoClientsList">Loading...</div></div>
@@ -1036,21 +1069,90 @@ function validateBudgetLive(){
 }
 function changeCountry(){ var sel=document.getElementById('countrySelect'); var opt=sel.options[sel.selectedIndex]; var curr=opt.getAttribute('data-curr'); document.getElementById('currencyDisplay').innerText=curr; document.getElementById('cCurrency').value=curr; localStorage.setItem('selectedCountry',sel.value); calculateTotal(); }
 var pendingEmailCode = null;
-function isEmailVerified(){ return true; }
+function isEmailVerified(){ return true; } // FIXED: open access
 function checkEmailAndFindNurses(){
-  var ageCheck = document.getElementById('cAgeConfirm');
-  if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book'); return; }
+  var ageCheck = document.getElementById('cAgeConfirm'); if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book'); return; }
+  if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; }
   findNursesUber();
 }
-function checkEmailAndBook(){ submitBooking(); }
-function checkEmailAndPayAndBook(){ submitBooking(); }
-function checkEmailAndBookFree(){ submitBooking(); }
+function checkEmailAndBook(){ if(!isEmailVerified()){ document.getElementById('emailVerifyModal').classList.remove('hidden'); return; } submitBooking(); }
 var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
-var EMAILJS_PUBLIC_KEY = '';
-var EMAILJS_TEMPLATE_ID = '';
+var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
+var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
 try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); } }catch(e){}
-function sendVerificationCode(){ return true; }
-function resendCode(){ return true; }
+function sendVerificationCode(){
+  var email = document.getElementById('verifyEmailInput').value.trim();
+  var name = document.getElementById('cName').value.trim() || 'Client';
+  if(!email || !email.includes('@')){ document.getElementById('emailVerifyStatus').innerText='Enter valid real email'; return; }
+  var code = Math.floor(100000 + Math.random()*900000).toString();
+  pendingEmailCode = code;
+  localStorage.setItem('pendingEmail', email);
+  localStorage.setItem('pendingEmailCode', code);
+  document.getElementById('emailVerifyStatus').innerText = '⏳ Sending code to '+email+' via EmailJS...';
+  document.getElementById('sendCodeArea').querySelector('button').disabled = true;
+  document.getElementById('sendCodeArea').querySelector('button').innerText = '⏳ Sending...';
+  if(window.emailjs){
+    var templateIdToUse = EMAILJS_TEMPLATE_ID;
+    emailjs.send(EMAILJS_SERVICE_ID, templateIdToUse, {
+      email: email, to_email: email, to_name: name, name: name, verification_code: code, code: code, passcode: code, otp: code, from_name: 'LOVE CARE GLOBAL', reply_to: 'lovecareglobal@gmail.com', company: 'LOVE CARE GLOBAL'
+    }).then(function(response){
+      document.getElementById('sentToEmail').innerText = email;
+      document.getElementById('demoCodeDisplay').innerHTML = '✅ Code sent to <b>'+email+'</b> via EmailJS!<br><small>Check inbox & spam folder. Code: '+code+' (shown here for testing)</small>';
+      document.getElementById('demoCodeDisplay').style.background = '#dcfce7';
+      document.getElementById('sendCodeArea').classList.add('hidden');
+      document.getElementById('enterCodeArea').classList.remove('hidden');
+      document.getElementById('emailVerifyStatus').innerText = '✅ Code sent to '+email;
+      document.getElementById('sendCodeArea').querySelector('button').disabled = false;
+      document.getElementById('sendCodeArea').querySelector('button').innerText = '📧 Send Code to My Email';
+    }, function(error){
+      document.getElementById('sentToEmail').innerText = email;
+      document.getElementById('demoCodeDisplay').innerHTML = 'DEMO CODE: <b>'+code+'</b>';
+      document.getElementById('sendCodeArea').classList.add('hidden');
+      document.getElementById('enterCodeArea').classList.remove('hidden');
+      document.getElementById('emailVerifyStatus').innerText = 'Demo mode: Code is '+code;
+      document.getElementById('sendCodeArea').querySelector('button').disabled = false;
+    });
+  } else {
+    document.getElementById('sentToEmail').innerText = email;
+    document.getElementById('demoCodeDisplay').innerHTML = 'DEMO CODE: <b>'+code+'</b>';
+    document.getElementById('sendCodeArea').classList.add('hidden');
+    document.getElementById('enterCodeArea').classList.remove('hidden');
+    document.getElementById('emailVerifyStatus').innerText = 'Demo mode - Code: '+code;
+    document.getElementById('sendCodeArea').querySelector('button').disabled = false;
+  }
+}
+function resendCode(){ document.getElementById('sendCodeArea').classList.remove('hidden'); document.getElementById('enterCodeArea').classList.add('hidden'); sendVerificationCode(); }
+function confirmVerificationCode(){
+  var entered = document.getElementById('verifyCodeInput').value.trim();
+  var saved = localStorage.getItem('pendingEmailCode') || pendingEmailCode;
+  var email = localStorage.getItem('pendingEmail');
+  if(entered === saved){
+    localStorage.setItem('verifiedClientEmail', email);
+    localStorage.setItem('emailVerified', 'true');
+    localStorage.setItem('clientPermanentEmail', email);
+    document.getElementById('cEmail').value = email;
+    document.getElementById('verifiedEmailBadge').classList.remove('hidden');
+    document.getElementById('verifiedEmailBadge').innerText = '✓ ' + email;
+    document.getElementById('emailVerifyModal').classList.add('hidden');
+    document.getElementById('emailVerifyStatus').innerText='';
+    alert('✅ Email verified: ' + email);
+    setTimeout(()=>{ findNursesUber(); }, 500);
+  } else {
+    document.getElementById('emailVerifyStatus').innerText='❌ Wrong code. Enter ' + saved;
+  }
+}
+function closeEmailModal(){ document.getElementById('emailVerifyModal').classList.add('hidden'); }
+function enforceMinRate(){
+ var budget = document.getElementById('cBudget').value;
+ if(!budget) return true;
+ var result = validateBudgetLive();
+ if(!result.valid){
+   document.getElementById('legalWageMsg').innerHTML = 'Legal Rate = <b>' + getCurrentNurseRate().amount + ' ' + getCurrentNurseRate().currency + '/hr</b><br><br>You selected: ' + document.getElementById('breakHours').innerText + ' = ' + currentTotalHours + ' hours<br>Care: ' + careMode + ' (+10% if live-in)<br>Minimum you must pay: <b>' + result.minRequired + ' ' + document.getElementById('cCurrency').value + '</b><br><br>System blocks booking below minimum.';
+   document.getElementById('legalWagePopup').classList.remove('hidden');
+   return false;
+ }
+ return true;
+}
 function closeLegalWagePopup(){ document.getElementById('legalWagePopup').classList.add('hidden'); }
 var firebaseConfig={apiKey:"AIzaSyB52-X1D8Cg-wUDWPds_tR7D8cF82dMdRg",authDomain:"web-care-618e8.firebaseapp.com",databaseURL:"https://web-care-618e8-default-rtdb.firebaseio.com",projectId:"web-care-618e8",storageBucket:"web-care-618e8.appspot.com",messagingSenderId:"1062578660694",appId:"1:1062578660694:web:f94dfe12c929df05bce2f7"};
 var db=null,allBookings=[],allWorkers=[],allRefunds=[],clientLat=null,clientLng=null,nurseRegLat=null,nurseRegLng=null;
@@ -1270,8 +1372,8 @@ async function registerNurse(){
       showUploadStatus('📤 Processing uploads (max 15s per file) - Links work too!');
       var tasks=[];
       if(videoFile) tasks.push(uploadWithTimeout(videoFile, 'nurse_videos/'+phoneKey, 15000).then(function(u){ if(u) videoUrl=u; }).catch(function(){ }));
-      if(cvFile) tasks.push(uploadTo(cvFile, 'CV').then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
-      if(certFile) tasks.push(uploadTo(certFile, 'CERTIFICATE').then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
+      if(cvFile) tasks.push(uploadToTelegram(cvFile, 'CV').then(function(u){ if(u) cvUrl=u; }).catch(function(){ }));
+      if(certFile) tasks.push(uploadToTelegram(certFile, 'CERTIFICATE').then(function(u){ if(u) certUrl=u; }).catch(function(){ }));
       if(idFile) tasks.push(uploadWithTimeout(idFile, 'nurse_ids/'+phoneKey, 15000).then(function(u){ if(u) idUrl=u; }).catch(function(){ }));
       if(tasks.length>0){
         await Promise.allSettled(tasks);
@@ -1846,16 +1948,16 @@ var helpKnowledgeBase = [
   {topic:'rate', keywords:['rate','minimum','legal','wage','pay','price','ghs','cost','how much','amount','fee','charge'], answer:'⚖ <b>Legal Minimum Rates & Pricing Logic:</b><br>• <b>1-6 days (hourly/daily)</b> = Localization formula: Per-country rate × hours<br>Ghana 15 GHS/hr, Nigeria 1500 NGN/hr, SA 80 ZAR/hr, Kenya 300 KES/hr, USA 25 USD/hr, UK 15 GBP/hr etc<br>• <b>Week/Month/Daily 7+ days</b> = CEO Managed flat price (no localization, CEO sets in dashboard, with auto discount 10% weekly, 20% monthly)<br>• Total = hourly × totalHours ×1.10 if Live-in<br>• Live calculation shows in green box<br>• System BLOCKS if you offer below minimum<br>Current rate now: ', isDynamic:true, weight:10},
   {topic:'live', keywords:['live-in','livein','live in','live-out','liveout','live out','stay','room','food'], answer:'🏠 <b>Live-in vs Live-out:</b><br>Live-out: Nurse comes at Start Time, leaves at End Time daily, goes home. Pay per hour worked.<br>Live-in: Nurse stays 24hrs in your home, needs private room + food + toilet, +10% allowance. Example: 8hrs/day Live-out = 8hrs pay, Live-in same 8hrs = 8hrs×1.10. CEO recommends Live-in for elderly, baby, 24hr care.', weight:9},
   {topic:'gps', keywords:['gps','map','google','live','navigation','location','find nurse','near me','route','direction'], answer:'🗺 <b>Google Live & Navigation FIXED:</b><br>GPS Auto button → Gets your blue dot live<br>FIND NURSES NEAR ME → Shows green dots = nurses ON DUTY<br>Select nurse → Blue dashed route drawn from you to nurse<br>NAV button → Opens Google Maps turn-by-turn navigation<br>Radius: 5/10/20/50km selector<br>If GPS fails: Enable location in phone settings, allow browser location, try outdoors', weight:9},
-  {topic:'nurse_join', keywords:['nurse','register','join','become nurse','apply','work as nurse'], answer:'👩⚕ <b>Join as Nurse:</b><br>Join tab → Full Name 18+, Phone (with country code), Password, Years Experience, Specialty (13 options)<br>GPS Auto → Upload: Introduction Video (30sec), CV PDF, Certificate PDF, ID Photo, Profile Photo<br>Upload goes to  channel Love Care Global CVs (free, no Firebase billing needed) + Firebase if billing settled<br>Care Mode: Live-in/Live-out/Both → Register → CEO verifies docs in CEO Dashboard → Login → START DUTY → You appear LIVE on client map with green dot', weight:9},
+  {topic:'nurse_join', keywords:['nurse','register','join','become nurse','apply','work as nurse'], answer:'👩⚕ <b>Join as Nurse:</b><br>Join tab → Full Name 18+, Phone (with country code), Password, Years Experience, Specialty (13 options)<br>GPS Auto → Upload: Introduction Video (30sec), CV PDF, Certificate PDF, ID Photo, Profile Photo<br>Upload goes to Telegram channel Love Care Global CVs (free, no Firebase billing needed) + Firebase if billing settled<br>Care Mode: Live-in/Live-out/Both → Register → CEO verifies docs in CEO Dashboard → Login → START DUTY → You appear LIVE on client map with green dot', weight:9},
   {topic:'payout', keywords:['payout','85%','paystack','momo','bank','money','earn','salary','payment'], answer:'💸 <b>Payouts 85%:</b><br>Client pays 100% → Held by platform → Nurse does work → Client clicks Work Done & Confirms → CEO Dashboard → Payouts tab → Pay Nurse 85% button → Paystack Transfer to your bank/MoMo automatically<br>Example: Client paid 1000 GHS → You get 850 GHS, platform keeps 150 GHS<br>Set bank/MoMo in Nurse Settings → Bank/MoMo details', weight:8},
   {topic:'staff_ceo', keywords:['staff','ceo','secret','logo','5 taps','long press','admin','dashboard'], answer:'🔐 <b>Secret Staff/CEO Access:</b><br>Staff Portal: 5 quick taps on LOVE CARE logo at top → Staff login (Staff ID + Password)<br>CEO Portal: Long press logo 1.5 seconds → CEO login → Full control: Verify nurses, see CV/Video/Cert/Photo, set rates, CEO Weekly/Monthly flat pricing (no localization), payouts, analytics<br>Staff can view nurses & bookings, CEO can do everything', weight:8},
   {topic:'footer', keywords:['footer','about','privacy','terms','cancel','contact','refund'], answer:'📄 <b>Footer Fixed & Working:</b><br>About Us, Privacy Policy, Terms of Service, Cancellation & Refund, Contact Us now open as modals (popups)<br>Cancel shows: Full refund if cancelled before nurse assigned, 50% if after assigned, no refund after work started<br>Contact: lovecareglobal@gmail.com / 0544121814 / WhatsApp<br>All footer links now work', weight:7},
   {topic:'email', keywords:['email','verify','code','otp'], answer:'🔐 <b>Email Verification:</b><br>Enter real email → Click Send Code → 6-digit code sent via EmailJS to inbox & spam → Enter code → Verified badge ✓ → Saved permanently in localStorage<br>If not receiving: Check spam, try Gmail, wait 1 min. Currently bypassed for open access (isEmailVerified returns true)', weight:7},
   {topic:'hours', keywords:['help','faq','hours','how many hours','duration','day','week','month','time'], answer:'💡 <b>Flexible Hours System:</b><br>Hourly: 1-24hrs (e.g., 3 Hours)<br>Daily: Days × hrs/day (e.g., 7 Days × 8 hrs/day = 56 hrs)<br>Weekly: Weeks×7×hrs/day (e.g., 2 Weeks × 8 hrs/day = 112 hrs) → CEO pricing<br>Monthly: Months×30×hrs/day (e.g., 1 Month × 8 hrs/day = 240 hrs) → CEO pricing<br>Night shift allowed 20:00-06:00<br>Daily 1-6 days = Localization formula, Daily 7+ / Weekly / Monthly = CEO managed', weight:8},
-  {topic:'', keywords:['','upload','cv','video','photo','certificate','document','fail','not uploading'], answer:'✈️ <b>Nurse Uploads &  Storage FIXED:</b><br>Old issue:  API blocked browser (CORS) + upload preset set to IMAGE only → PDFs failed with JSON error<br>Fixed now: Uses  +  Bot 8606627642:AA... + Channel  Love Care Global CVs<br>Upload order: Firebase Storage (if billing settled) →  (free, unlimited, your channel) → Catbox.moe (free 200MB) → RTDB Base64 (<950KB)<br>CEO sees files in CEO Dashboard → Nurse detail → Video player + PDF viewer (fixed /image/upload/ → /raw/upload/ bug)<br> channel is backup, CEO Dashboard is main viewer', weight:9},
+  {topic:'telegram', keywords:['telegram','upload','cv','video','photo','certificate','document','fail','not uploading'], answer:'✈️ <b>Nurse Uploads & Telegram Storage FIXED:</b><br>Old issue: Telegram API blocked browser (CORS) + upload preset set to IMAGE only → PDFs failed with JSON error<br>Fixed now: Uses corsproxy.io + Telegram Bot 8606627642:AA... + Channel REMOVED_FOR_SECURITY Love Care Global CVs<br>Upload order: Firebase Storage (if billing settled) → Telegram (free, unlimited, your channel) → Catbox.moe (free 200MB) → RTDB Base64 (<950KB)<br>CEO sees files in CEO Dashboard → Nurse detail → Video player + PDF viewer (fixed /image/upload/ → /raw/upload/ bug)<br>Telegram channel is backup, CEO Dashboard is main viewer', weight:9},
   {topic:'pricing_logic', keywords:['localization','ceo pricing','weekly','monthly','flat price','1-6 days','discount'], answer:'👑 <b>New Pricing Logic (Your Request):</b><br>• <b>1-6 days (hourly/daily)</b> = 🌍 Localization formula: NURSE_HOURLY_MIN per country × hours, with currency conversion<br>• <b>7+ days, Weekly, Monthly</b> = 👑 CEO Managed flat price (NO localization formula)<br>CEO sets flat price in CEO Dashboard → CEO Weekly/Monthly Pricing section (GH_weekly, GH_monthly etc)<br>Auto defaults: Weekly = hourly×7×8×0.9 (10% discount), Monthly = hourly×26×8×0.8 (20% discount)<br>Badge shows: Green = Localization, Black/Gold = CEO Managed', weight:10},
-  {topic:'ceo_files', keywords:['ceo','receive','watch','read','cv','where to see','how to see nurse docs'], answer:'👁️ <b>How CEO Receives & Watches Nurse Files:</b><br>You do NOT need to go to ! Files appear in CEO Dashboard:<br>CEO Dashboard → Nurses List → Tap nurse name → Shows separated view:<br>📹 Introduction Video = <video controls> player (works for Firebase/Catbox/ links)<br>📄 CV PDF = PDF viewer with 3 options: Direct, Google Docs, PDF.js + Open/Download buttons<br>🎓 Certificate = same PDF viewer<br>🪪 ID + 👤 Profile = photo viewer<br>Also:  channel Love Care Global CVs has backup copy. Plus 🔔 badge shows new uploads, and personal  DM notifies you', weight:9},
-  {topic:'notification', keywords:['notification','badge','alert','dm','personal ','new upload'], answer:'🔔 <b>Notifications for CEO:</b><br>1. Dashboard badge: Red pulsing 🔔 3 new uploads in CEO header<br>2. Toast popup: Top-right for uploads in last 5 mins<br>3. Personal  DM: When nurse uploads CV/Video/Cert, bot sends DM to your private  (if you enabled: CEO Dashboard → Setup Personal  → Send /start to bot → Detect ID)<br>4. Mark as seen button: ✅ Mark all seen resets counter', weight:8}
+  {topic:'ceo_files', keywords:['ceo','receive','watch','read','cv','where to see','how to see nurse docs'], answer:'👁️ <b>How CEO Receives & Watches Nurse Files:</b><br>You do NOT need to go to Telegram! Files appear in CEO Dashboard:<br>CEO Dashboard → Nurses List → Tap nurse name → Shows separated view:<br>📹 Introduction Video = <video controls> player (works for Firebase/Catbox/Telegram links)<br>📄 CV PDF = PDF viewer with 3 options: Direct, Google Docs, PDF.js + Open/Download buttons<br>🎓 Certificate = same PDF viewer<br>🪪 ID + 👤 Profile = photo viewer<br>Also: Telegram channel Love Care Global CVs has backup copy. Plus 🔔 badge shows new uploads, and personal Telegram DM notifies you', weight:9},
+  {topic:'notification', keywords:['notification','badge','alert','dm','personal telegram','new upload'], answer:'🔔 <b>Notifications for CEO:</b><br>1. Dashboard badge: Red pulsing 🔔 3 new uploads in CEO header<br>2. Toast popup: Top-right for uploads in last 5 mins<br>3. Personal Telegram DM: When nurse uploads CV/Video/Cert, bot sends DM to your private Telegram (if you enabled: CEO Dashboard → Setup Personal Telegram → Send /start to bot → Detect ID)<br>4. Mark as seen button: ✅ Mark all seen resets counter', weight:8}
 ];
 
 function calculateLevenshtein(a,b){
@@ -1892,7 +1994,7 @@ function scoreMatch(query, keywords){
 }
 
 function aiBotAnswer(query){
-  if(!query || !query.trim()) return '👋 Ask me anything about Love Care Global!<br><br>Examples:<br>• How much for 3 days 8hrs?<br>• Why is weekly price CEO managed?<br>• Where do I see nurse CV?<br>• My GPS not working<br>• How does  upload work?<br>• What is live-in?<br>Try any question!';
+  if(!query || !query.trim()) return '👋 Ask me anything about Love Care Global!<br><br>Examples:<br>• How much for 3 days 8hrs?<br>• Why is weekly price CEO managed?<br>• Where do I see nurse CV?<br>• My GPS not working<br>• How does Telegram upload work?<br>• What is live-in?<br>Try any question!';
 
   var q=query.toLowerCase().trim();
   var results=[];
@@ -1960,7 +2062,7 @@ function aiBotAnswer(query){
         // This will be answered generally, specific nurse check happens in CEO dashboard
       }
     }catch(e){}
-    return '👁️ <b>Where to see nurse CV/Video/Cert/Photo:</b><br>1. CEO Dashboard → Nurses List → Tap nurse name<br>2. You will see separated sections:<br>📹 Video = player<br>📄 CV = PDF viewer (3 viewers)<br>🎓 Certificate = PDF viewer<br>🪪 ID + 👤 Profile = photos<br>3. Also backup in  channel: Love Care Global CVs ()<br>4. Files uploaded via: Firebase (if billing settled) →  (free) → Catbox (free) → RTDB<br>All links saved in Database, so CEO dashboard shows them instantly';
+    return '👁️ <b>Where to see nurse CV/Video/Cert/Photo:</b><br>1. CEO Dashboard → Nurses List → Tap nurse name<br>2. You will see separated sections:<br>📹 Video = player<br>📄 CV = PDF viewer (3 viewers)<br>🎓 Certificate = PDF viewer<br>🪪 ID + 👤 Profile = photos<br>3. Also backup in Telegram channel: Love Care Global CVs (REMOVED_FOR_SECURITY)<br>4. Files uploaded via: Firebase (if billing settled) → Telegram (free) → Catbox (free) → RTDB<br>All links saved in Database, so CEO dashboard shows them instantly';
   }
 
   // Score all knowledge base
@@ -2004,13 +2106,13 @@ function aiBotAnswer(query){
   fallback+='• ⚖ Rates & new pricing (1-6 days localization, week/month CEO)<br>';
   fallback+='• 🏠 Live-in vs Live-out (+10%)<br>';
   fallback+='• 🗺 Google Live map & navigation<br>';
-  fallback+='• 👩⚕ Join as nurse & uploads ( fixed)<br>';
+  fallback+='• 👩⚕ Join as nurse & uploads (Telegram fixed)<br>';
   fallback+='• 💸 Payouts 85% via Paystack<br>';
   fallback+='• 🔐 Staff/CEO secret access (5 taps / long press logo)<br>';
   fallback+='• 📄 Footer, Email verification<br>';
-  fallback+='• ✈️ /Catbox storage (no billing needed)<br>';
+  fallback+='• ✈️ Telegram/Catbox storage (no billing needed)<br>';
   fallback+='• 👁️ CEO Dashboard viewing CV/Video/Cert<br>';
-  fallback+='• 🔔 Notifications & personal  DM<br><br>';
+  fallback+='• 🔔 Notifications & personal Telegram DM<br><br>';
   fallback+='<b>Try rephrasing:</b><br>• "How much for 3 days 8 hours?"<br>• "Where do I see nurse CV?"<br>• "Why weekly price is CEO managed?"<br>• "My upload fails"<br>• "How to become a nurse?"';
   return fallback;
 }
@@ -2729,7 +2831,27 @@ function previewAnnouncement(){
     preview.innerHTML='<span style="display:inline-block;animation:marquee '+speed+'s linear infinite">'+text+'</span>';
   }
 }
-
+function saveAnnouncement(){
+  var text=document.getElementById('announcementInput').value;
+  var bg=document.getElementById('announceBgColor').value;
+  var tc=document.getElementById('announceTextColor').value;
+  var bc=document.getElementById('announceBorderColor').value;
+  var speed=document.getElementById('announceSpeed').value;
+  localStorage.setItem('announcementText', text);
+  localStorage.setItem('announceBg', bg);
+  localStorage.setItem('announceTextColor', tc);
+  localStorage.setItem('announceBorder', bc);
+  localStorage.setItem('announceSpeed', speed);
+  // Apply live
+  document.getElementById('announcementText').innerText=text;
+  document.documentElement.style.setProperty('--announce-bg', bg);
+  document.documentElement.style.setProperty('--announce-text', tc);
+  document.documentElement.style.setProperty('--announce-border', bc);
+  document.documentElement.style.setProperty('--announce-speed', speed+'s');
+  // Save to Firebase for all users
+  if(window.db){ db.ref('announcement').set({text:text, bg:bg, textColor:tc, border:bc, speed:speed, updatedAt:Date.now()}); }
+  alert('✅ Announcement saved and live!');
+}
 function saveSettings(){
   var override={};
   Object.keys(NURSE_HOURLY_MIN).forEach(function(code){
@@ -3185,13 +3307,116 @@ function requestRefundForBooking(id){
 // Template ID: template_yi4iwel (LOVECARE GLOBAL)
 // Public Key: rJ6O0Qmnsx96892o5 (from previous config, account level)
 var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
-var EMAILJS_TEMPLATE_ID = '';
-var EMAILJS_PUBLIC_KEY = '';
+var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
+var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
 try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); } }catch(e){}
 
-function sendVerificationCode(){ return true; }
+function sendVerificationCode(){
+  var emailEl = document.getElementById('verifyEmailInput');
+  var email = emailEl ? emailEl.value.trim() : '';
+  var name = (document.getElementById('cName') && document.getElementById('cName').value.trim()) || 'Client';
+  var phone = '';
+  try{ phone = getFullPhone('cPhoneCode','cPhone'); }catch(e){ try{ phone = document.getElementById('cPhone').value; }catch(e2){} }
+  var statusEl = document.getElementById('emailVerifyStatus');
+  if(!email || email.indexOf('@')===-1){ if(statusEl) statusEl.innerText='Enter valid real email'; return; }
+  var code = Math.floor(100000 + Math.random()*900000).toString();
+  window.pendingEmailCode = code;
+  localStorage.setItem('pendingEmail', email);
+  localStorage.setItem('pendingEmailCode', code);
+  localStorage.setItem('pendingEmailName', name);
+  localStorage.setItem('pendingEmailPhone', phone);
+  if(statusEl) statusEl.innerText = 'Sending 6-digit code to '+email+' via service_uqu1kcg...';
+  var btnArea = document.getElementById('sendCodeArea');
+  var btn = btnArea ? btnArea.querySelector('button') : null;
+  if(btn){ btn.disabled=true; btn.innerText='Sending...'; }
+  // Save pending to Firebase for CEO/Staff
+  try{
+    var pendingData = {email: email, name: name, phone: phone, code: code, status: 'code_sent', timestamp: Date.now(), service: 'service_uqu1kcg', template: 'template_yi4iwel'};
+    if(window.db){ db.ref('emailVerifications/'+Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'')).set(pendingData); }
+    var localList = JSON.parse(localStorage.getItem('allEmailVerifications')||'[]');
+    localList.push(pendingData);
+    if(localList.length>200) localList=localList.slice(-200);
+    localStorage.setItem('allEmailVerifications', JSON.stringify(localList));
+  }catch(e){}
+  if(window.emailjs){
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+      to_name: name,
+      to_email: email,
+      email: email,
+      name: name,
+      client_name: name,
+      client_email: email,
+      client_phone: phone,
+      verification_code: code,
+      code: code,
+      passcode: code,
+      otp: code,
+      from_name: 'LOVE CARE GLOBAL',
+      from_email: 'lovecareglobal@gmail.com',
+      reply_to: 'lovecareglobal@gmail.com',
+      company: 'LOVE CARE GLOBAL',
+      message: 'Your LOVE CARE GLOBAL verification code is: ' + code,
+      subject: 'Your 6-digit code: ' + code
+    }).then(function(){
+      document.getElementById('sentToEmail').innerText = email;
+      document.getElementById('demoCodeDisplay').innerHTML = 'Code sent to '+email+'! From lovecareglobal@gmail.com via service_uqu1kcg | template_yi4iwel<br>Check inbox & spam. Testing code: <b>'+code+'</b>';
+      document.getElementById('demoCodeDisplay').style.background='#dcfce7';
+      document.getElementById('sendCodeArea').classList.add('hidden');
+      document.getElementById('enterCodeArea').classList.remove('hidden');
+      if(statusEl){ statusEl.innerText='6-digit code sent to '+email; statusEl.style.color='#16a34a'; }
+      if(btn){ btn.disabled=false; btn.innerText='Send 6-Digit Code'; }
+    }, function(err){
+      document.getElementById('sentToEmail').innerText = email;
+      document.getElementById('demoCodeDisplay').innerHTML = 'EmailJS error, demo code: <b>'+code+'</b><br>Error: '+(err.text||err.message||'check service_uqu1kcg config')+'<br>Make sure template_yi4iwel has variables: to_email, verification_code, to_name';
+      document.getElementById('sendCodeArea').classList.add('hidden');
+      document.getElementById('enterCodeArea').classList.remove('hidden');
+      if(statusEl) statusEl.innerText='Demo code: '+code;
+      if(btn) btn.disabled=false;
+    });
+  } else {
+    document.getElementById('sentToEmail').innerText = email;
+    document.getElementById('demoCodeDisplay').innerHTML = 'Demo code: <b>'+code+'</b>';
+    document.getElementById('sendCodeArea').classList.add('hidden');
+    document.getElementById('enterCodeArea').classList.remove('hidden');
+  }
+}
 
-function confirmVerificationCode(){ return true; }
+function confirmVerificationCode(){
+  var entered = document.getElementById('verifyCodeInput').value.trim();
+  var saved = localStorage.getItem('pendingEmailCode') || window.pendingEmailCode;
+  var email = localStorage.getItem('pendingEmail');
+  var name = localStorage.getItem('pendingEmailName') || 'Client';
+  var phone = localStorage.getItem('pendingEmailPhone') || '';
+  var statusEl = document.getElementById('emailVerifyStatus');
+  if(entered === saved){
+    localStorage.setItem('verifiedClientEmail', email);
+    localStorage.setItem('emailVerified', 'true');
+    localStorage.setItem('clientPermanentEmail', email);
+    var cEmailEl=document.getElementById('cEmail');
+    if(cEmailEl) cEmailEl.value=email;
+    var badge=document.getElementById('verifiedEmailBadge');
+    if(badge){ badge.classList.remove('hidden'); badge.innerText='Verified: '+email; }
+    document.getElementById('emailVerifyModal').classList.add('hidden');
+    try{
+      var verifiedData = {email: email, name: name, phone: phone, code: saved, status: 'verified', timestamp: Date.now(), verifiedAt: Date.now(), service: 'service_uqu1kcg', template: 'template_yi4iwel'};
+      if(window.db){
+        db.ref('verifiedEmails/'+Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'')).set(verifiedData);
+        db.ref('emailVerifications/'+Date.now()+'_'+email.replace(/[^a-zA-Z0-9]/g,'')).set(verifiedData);
+        db.ref('clients/'+phone.replace(/[^0-9]/g,'')).update({email: email, verifiedEmail: email, name: name, phone: phone, emailVerifiedAt: Date.now()});
+      }
+      var localList = JSON.parse(localStorage.getItem('allEmailVerifications')||'[]');
+      localList.push(verifiedData);
+      localStorage.setItem('allEmailVerifications', JSON.stringify(localList));
+      var verifiedList = JSON.parse(localStorage.getItem('verifiedEmailsList')||'[]');
+      verifiedList.push(verifiedData);
+      localStorage.setItem('verifiedEmailsList', JSON.stringify(verifiedList));
+    }catch(e){}
+    alert('Email verified: '+email+' - Code '+saved+' confirmed! CEO and Staff can view in dashboard.');
+    setTimeout(function(){ if(typeof findNursesUber==='function') findNursesUber(); },500);
+  } else {
+    if(statusEl) statusEl.innerText='Wrong code. Expected '+saved+' you entered '+entered;
+  }
+}
 
 function loadEmailVerifications(){
   var ceoEl = document.getElementById('ceoEmailVerificationsList');
@@ -3232,7 +3457,65 @@ function clearAllVerifications(){
   alert('Cleared');
 }
 
-function resendCode(){ return true; })();
+function resendCode(){ document.getElementById('sendCodeArea').classList.remove('hidden'); document.getElementById('enterCodeArea').classList.add('hidden'); sendVerificationCode(); }
+
+</script>
+
+<script>
+// ===== DRAGGABLE SOS + CALL POLICE & CEO - FIXED =====
+(function(){
+  var sosBtn = document.getElementById('sosFloatBtn');
+  if(!sosBtn) return;
+  try{
+    var savedPos = JSON.parse(localStorage.getItem('sosPosition')||'null');
+    if(savedPos){
+      sosBtn.style.bottom='auto'; sosBtn.style.right='auto';
+      sosBtn.style.left=savedPos.left+'px'; sosBtn.style.top=savedPos.top+'px';
+    }
+  }catch(e){}
+  var isDragging=false, hasMoved=false, startX, startY, initialLeft, initialTop;
+  var threshold=5;
+  function getPos(e){ var t=e.touches?e.touches[0]:e; return {x:t.clientX, y:t.clientY}; }
+  function startDrag(e){
+    var p=getPos(e); startX=p.x; startY=p.y;
+    var r=sosBtn.getBoundingClientRect(); initialLeft=r.left; initialTop=r.top;
+    isDragging=true; hasMoved=false; sosBtn.classList.add('dragging'); sosBtn.style.transition='none'; e.preventDefault();
+  }
+  function onDrag(e){
+    if(!isDragging) return;
+    var p=getPos(e); var dx=p.x-startX, dy=p.y-startY;
+    if(Math.abs(dx)>threshold||Math.abs(dy)>threshold) hasMoved=true;
+    if(!hasMoved) return;
+    var nl=initialLeft+dx, nt=initialTop+dy;
+    nl=Math.max(0,Math.min(window.innerWidth-sosBtn.offsetWidth,nl));
+    nt=Math.max(0,Math.min(window.innerHeight-sosBtn.offsetHeight-20,nt));
+    sosBtn.style.left=nl+'px'; sosBtn.style.top=nt+'px'; sosBtn.style.right='auto'; sosBtn.style.bottom='auto';
+    e.preventDefault();
+  }
+  function endDrag(e){
+    if(!isDragging) return;
+    isDragging=false; sosBtn.classList.remove('dragging'); sosBtn.style.transition='box-shadow 0.2s, transform 0.2s';
+    if(hasMoved){
+      var r=sosBtn.getBoundingClientRect();
+      try{ localStorage.setItem('sosPosition', JSON.stringify({left:r.left, top:r.top})); }catch(err){}
+      setTimeout(function(){ hasMoved=false; }, 100);
+    } else {
+      hasMoved=false; triggerSOS();
+    }
+  }
+  sosBtn.addEventListener('mousedown', startDrag);
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', endDrag);
+  sosBtn.addEventListener('touchstart', startDrag, {passive:false});
+  document.addEventListener('touchmove', onDrag, {passive:false});
+  document.addEventListener('touchend', endDrag);
+  sosBtn.addEventListener('dblclick', function(){
+    sosBtn.style.left=''; sosBtn.style.top=''; sosBtn.style.right='15px'; sosBtn.style.bottom='110px';
+    localStorage.removeItem('sosPosition');
+    if(typeof showToast==='function') showToast('SOS position reset - Drag anywhere');
+    else alert('SOS position reset');
+  });
+})();
 
 function triggerSOS(){
   var lat=0,lng=0,name='',phone='',country='GH';
@@ -3294,8 +3577,8 @@ function sendSOSAlert(){
 
 // ===== EMAILJS FIXED v2 - service_uqu1kcg | template_yi4iwel =====
 var EMAILJS_SERVICE_ID = 'service_uqu1kcg';
-var EMAILJS_TEMPLATE_ID = '';
-var EMAILJS_PUBLIC_KEY = '';
+var EMAILJS_TEMPLATE_ID = 'template_yi4iwel';
+var EMAILJS_PUBLIC_KEY = 'rJ6O0Qmnsx96892o5';
 try{ if(window.emailjs){ emailjs.init({publicKey: EMAILJS_PUBLIC_KEY}); console.log('EmailJS init service_uqu1kcg'); } }catch(e){}
 
 
@@ -3586,7 +3869,205 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }
 
-  ).catch(function(err){ console.warn('Drive error', err); resolve(null); });
+  // Override saveAnnouncement to ensure it saves to both places + notifies
+  var originalSave = window.saveAnnouncement;
+  window.saveAnnouncement = function(){
+    var text=document.getElementById('announcementInput').value;
+    var bg=document.getElementById('announceBgColor').value;
+    var tc=document.getElementById('announceTextColor').value;
+    var bc=document.getElementById('announceBorderColor').value;
+    var speed=document.getElementById('announceSpeed').value;
+    
+    localStorage.setItem('announcementText', text);
+    localStorage.setItem('announceBg', bg);
+    localStorage.setItem('announceTextColor', tc);
+    localStorage.setItem('announceBorder', bc);
+    localStorage.setItem('announceSpeed', speed);
+    
+    // Apply live on CEO phone immediately
+    var el=document.getElementById('announcementText'); if(el) el.innerText=text;
+    document.documentElement.style.setProperty('--announce-bg', bg);
+    document.documentElement.style.setProperty('--announce-text', tc);
+    document.documentElement.style.setProperty('--announce-border', bc);
+    document.documentElement.style.setProperty('--announce-speed', speed+'s');
+    
+    // Save to Firebase for ALL phones
+    if(window.db){
+      var payload={text:text, bg:bg, textColor:tc, border:bc, speed:speed, updatedAt:Date.now(), updatedBy:'CEO'};
+      db.ref('announcement').set(payload).then(function(){
+        console.log('Announcement pushed to Firebase');
+      }).catch(function(err){
+        alert('Save failed (check Rules add announcement): '+err.message);
+      });
+      // Also save to settings for backup
+      db.ref('settings/announcement').set(payload);
+    }
+    alert('✅ Announcement LIVE for ALL phones!\n\n'+text);
+  };
+
+  document.addEventListener('DOMContentLoaded', initAnnouncementSync);
+  // Also init after Firebase loads
+  setTimeout(initAnnouncementSync, 1500);
+  setTimeout(initAnnouncementSync, 3000);
+})();
+</script>
+
+<script>
+// ===== FINAL FIXES - Email open access + Upload timeout =====
+(function(){
+  window.isEmailVerified = function(){ return true; };
+  window.checkEmailAndFindNurses = function(){
+    var ageCheck = document.getElementById('cAgeConfirm');
+    if(ageCheck && !ageCheck.checked){ alert('❌ You must be 18+ to book'); return; }
+    findNursesUber();
+  };
+  window.checkEmailAndBook = function(){ submitBooking(); };
+  // Hide modal forever
+  function killModal(){
+    var m=document.getElementById('emailVerifyModal');
+    if(m){ m.classList.add('hidden'); m.style.display='none'; m.style.visibility='hidden'; }
+  }
+  // REMOVED;
+  document.addEventListener('DOMContentLoaded', function(){
+    killModal();
+    var ce=document.getElementById('cEmail');
+    if(ce){ ce.removeAttribute('required'); ce.placeholder='Email (Optional)'; ce.value=''; }
+  });
+  console.log('✅ Email gate removed, upload timeout fixed');
+})();
+</script>
+
+<script>
+// ====== LOVCARE - FINAL FIX - NO MORE 401 ======
+// ====== TELEGRAM STORAGE - REPLACES TELEGRAM & DRIVE ======
+const TELEGRAM_CONFIG = {
+  botToken: 'REMOVED_FOR_SECURITY',
+  channelId: 'REMOVED_FOR_SECURITY',
+  channelNumeric: '3912808382',
+  channelTitle: 'Love Care Global CVs'
+};
+const FREE_UPLOAD_CONFIG = {
+  telegramCloudName: 'REMOVED',
+  telegramPreset: 'REMOVED',
+  useTelegram: false
+};
+// Compatibility: old DRIVE_CONFIG removed
+const DRIVE_CONFIG = { enabled: true, folderId: '', appsScriptUrl: '', autoUploadThresholdMB: 9999 };
+
+
+function showUploadStatus(msg, isError){
+  var box = document.getElementById('uploadStatusBox');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'uploadStatusBox';
+    box.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:15px 20px;background:white;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.2);z-index:99999;font-family:sans-serif;font-size:14px;';
+    document.body.appendChild(box);
+  }
+  box.style.display = 'block';
+  box.innerHTML = msg;
+  box.style.background = isError ? '#fee2e2' : '#d4edda';
+  box.style.border = '2px solid ' + (isError ? '#ef4444' : '#22c55e');
+  if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 3000);
+}
+
+
+// ====== TELEGRAM UPLOADER - SENDS ALL FILES TO TELEGRAM CHANNEL ======
+async function uploadToTelegram(file, folderOrType){
+  if(!file) return null;
+  try{
+    const typeMap = {
+      'nurse_cvs': 'CV',
+      'nurse_certs': 'CERTIFICATE',
+      'nurse_ids': 'ID_PHOTO',
+      'nurse_videos': 'VIDEO',
+      'nurse_certificates': 'CERTIFICATE'
+    };
+    const type = typeMap[folderOrType] || folderOrType || 'DOCUMENT';
+    // Get nurse name/phone from form if available
+    let nurseName = '';
+    try{ nurseName = (document.getElementById('nRegName')?.value || '').trim(); }catch(e){}
+    let nursePhone = '';
+    try{ nursePhone = (document.getElementById('nRegPhone')?.value || '').trim(); }catch(e){}
+    
+    const caption = `📁 ${type}\n👩‍⚕️ ${nurseName || 'Nurse'}\n📞 ${nursePhone || 'No phone'}\n📄 ${file.name}\n💾 ${(file.size/1024/1024).toFixed(2)}MB\n🕒 ${new Date().toLocaleString()}`;
+    
+    const form = new FormData();
+    form.append('chat_id', TELEGRAM_CONFIG.channelId);
+    form.append('caption', caption);
+    form.append('parse_mode', 'HTML');
+
+    let endpoint = 'sendDocument';
+    if(file.type.startsWith('image/')){
+      endpoint = 'sendPhoto';
+      form.append('photo', file, file.name);
+    } else if(file.type.startsWith('video/')){
+      endpoint = 'sendVideo';
+      form.append('video', file, file.name);
+    } else {
+      form.append('document', file, file.name);
+    }
+
+    if(typeof showUploadStatus === 'function') showUploadStatus(`📤 Uploading ${type} to Telegram: ${file.name}...`);
+    if(typeof showStatus === 'function') showStatus(`📤 Uploading ${type} to Telegram...`);
+
+    const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.botToken}/${endpoint}`;
+    const res = await fetch(url, { method: 'POST', body: form });
+    const data = await res.json();
+
+    if(!data.ok){
+      console.error('Telegram fail', data);
+      throw new Error(data.description || 'Telegram upload failed');
+    }
+
+    const msgId = data.result.message_id;
+    const viewLink = `https://t.me/c/${TELEGRAM_CONFIG.channelNumeric}/${msgId}`;
+
+    console.log(`✅ Telegram uploaded [${type}]:`, viewLink);
+    if(typeof showUploadStatus === 'function') showUploadStatus(`✅ ${type} sent to Telegram: ${file.name}`);
+    if(typeof showStatus === 'function') showStatus(`✅ ${type} sent to Telegram`);
+
+    // Return the t.me link - this will be saved to Firebase as cvUrl etc
+    return viewLink;
+  }catch(e){
+    console.error('Telegram upload error', e);
+    if(typeof showUploadStatus === 'function') showUploadStatus(`❌ Telegram failed: ${e.message}`, true);
+    return null;
+  }
+}
+
+// Compatibility wrappers - old functions now point to Telegram
+function uploadToTelegram(file, folder){ return uploadToTelegram(file, folder); }
+function uploadToMyDrive(file){ return Promise.resolve(null); } // disabled
+function uploadFileToStorage(file, path){ 
+  // Extract type from path
+  let t = 'DOCUMENT';
+  if(path && path.includes('cv')) t='CV';
+  if(path && path.includes('cert')) t='CERTIFICATE';
+  if(path && path.includes('id')) t='ID_PHOTO';
+  return uploadToTelegram(file, t);
+}
+function uploadWithTimeout(file, path, ms){ return uploadToTelegram(file, path); }
+
+
+function uploadToMyDrive(file){
+  return new Promise(function(resolve){
+    if(!DRIVE_CONFIG.enabled) { resolve(null); return; }
+    var sizeMB=file.size/(1024*1024);
+    if(sizeMB < DRIVE_CONFIG.autoUploadThresholdMB){ resolve(null); return; }
+    showUploadStatus('📤 Big file ('+sizeMB.toFixed(1)+'MB) → Uploading to your Drive: LOVECARE UPLOADED PHOTOS...');
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var b64=e.target.result.split(',')[1];
+      var fd=new FormData();
+      fd.append('fileName', Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_'));
+      fd.append('mimeType', file.type);
+      fd.append('fileData', b64);
+      fd.append('folderId', DRIVE_CONFIG.folderId);
+      fd.append('originalName', file.name);
+      fetch(DRIVE_CONFIG.appsScriptUrl,{method:'POST', body:fd}).then(function(r){return r.json();}).then(function(d){
+        if(d.success && d.fileUrl){ showUploadStatus('✅ Uploaded to Drive: '+file.name+' ('+sizeMB.toFixed(1)+'MB)'); resolve(d.fileUrl); }
+        else { console.warn('Drive fail', d); resolve(null); }
+      }).catch(function(err){ console.warn('Drive error', err); resolve(null); });
     };
     reader.onerror=function(){ resolve(null); };
     reader.readAsDataURL(file);
@@ -3602,7 +4083,7 @@ window.uploadFileToStorage = async function(file, path){
     // drive removed
   }
   var folder=(path||'').split('/')[0]||'lovecare';
-  var cloudUrl=await uploadTo(file, folder);
+  var cloudUrl=await uploadToTelegram(file, folder);
   if(cloudUrl) return cloudUrl;
   // Fallback to Firebase if both fail (original logic)
   if(window.uploadToFirebaseStorage){
@@ -3860,7 +4341,7 @@ window.uploadFileToStorage = async function(file, path){
   console.log('✅ Rating system loaded - After service, CEO sees ratings, auto-suspend <2.5 from 3+ clients');
 })();
 
-console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log: All changes integrated -  REMOVED + Drive '+DRIVE_CONFIG.folderId+' + Draggable SOS + Ratings + Watch 5s');
+console.log('✅ TELEGRAM VERSION - Telegram + Drive removed, Telegram active: '+TELEGRAM_CONFIG.channelId+' // Old log: All changes integrated - Telegram REMOVED + Drive '+DRIVE_CONFIG.folderId+' + Draggable SOS + Ratings + Watch 5s');
 </script>
 
 <script>
@@ -4063,9 +4544,9 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
   // Also fix deleteBooking from CEO Payments if using numeric id in table
   window.deleteClientBooking = window.deleteBooking;
 
-  // ---- MEDIA VIEWER FIXES (Handles  PDFs as PDF not image) ----
+  // ---- MEDIA VIEWER FIXES (Handles Telegram PDFs as PDF not image) ----
   function false{ return false; }
-  function isLink(url){ return url && url.includes("/c/"); }
+  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
   function getDriveFileId(url){ return null; }
   function url{ return url; }
   function url{ return url; }
@@ -4076,7 +4557,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
   }
   function isVideoUrl(u){
     if(!u) return false; if(isDriveLink(u)) return false;
-    return /\.(mp4|mov|webm|mkv|avi)($|\?)/i.test(u) || (u.includes('') && u.includes('/video/')) || u.includes('nurse_videos');
+    return /\.(mp4|mov|webm|mkv|avi)($|\?)/i.test(u) || (u.includes('telegram') && u.includes('/video/')) || u.includes('nurse_videos');
   }
   function isImageUrl(u){
     if(!u) return false; if(isDriveLink(u) || isPdfUrl(u) || isVideoUrl(u)) return false;
@@ -4093,11 +4574,11 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
     } else if(isVideoUrl(safe)){
       html+='<video src="'+safe+'" controls playsinline controlsList="nodownload" style="width:100%;max-height:480px;border-radius:12px;background:#000;border:2px solid #7c3aed"></video>';
     } else if(isPdfUrl(safe)){
-      // Use  / Google Docs viewer for PDFs
-      if(safe.includes('')){
-        html+='<iframe src="'+safe+'" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe><div style="font-size:10px;color:#2563eb;margin-top:4px">📄 PDF from  - If blank, click Open</div>';
+      // Use Telegram / Google Docs viewer for PDFs
+      if(safe.includes('telegram')){
+        html+='<iframe src="'+safe+'" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe><div style="font-size:10px;color:#2563eb;margin-top:4px">📄 PDF from Telegram - If blank, click Open</div>';
       } else {
-        html+='<iframe src="https:///gview?url='+encodeURIComponent(safe)+'&embedded=true" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe>';
+        html+='<iframe src="https://t.me/gview?url='+encodeURIComponent(safe)+'&embedded=true" style="width:100%;height:600px;border:2px solid #2563eb;border-radius:10px"></iframe>';
       }
     } else if(isImageUrl(safe)){
       html+='<img src="'+safe+'" style="width:100%;max-height:650px;object-fit:contain;border-radius:12px;border:2px solid #16a34a;background:#f9fafb" loading="lazy" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'block\'"><div style="display:none;padding:20px;text-align:center;background:#fef3c7;border-radius:10px">⚠️ Image failed to load - Tap Open button<br><small>'+safe+'</small></div>';
@@ -4269,7 +4750,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
     if(!isError) setTimeout(function(){ if(box) box.style.display='none'; }, 5000);
   }
 
-  //  fast upload with 8s timeout
+  // Telegram fast upload with 8s timeout
   ).then(function(r){ return r.json(); }).then(function(d){
         clearTimeout(timer);
         if(timedOut) return;
@@ -4277,12 +4758,12 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
           showStatus('✅ Uploaded '+file.name);
           resolve(d.secure_url); 
         } else { 
-          console.warn(' failed', d); 
+          console.warn('Telegram failed', d); 
           resolve(null); 
         }
       }).catch(function(err){
         clearTimeout(timer);
-        console.warn(' error', err);
+        console.warn('Telegram error', err);
         resolve(null);
       });
     });
@@ -4335,7 +4816,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
 
       var videoUrl=videoLink, cvUrl=cvLink, certUrl=certLink, idUrl=idLink;
 
-      // FAST  UPLOADS - all in parallel, max 12s total
+      // FAST TELEGRAM UPLOADS - all in parallel, max 12s total
       var tasks=[];
       if(videoFile){ tasks.push(cloudUpload(videoFile, 'nurse_videos').then(function(u){ if(u) videoUrl=u; })); }
       if(cvFile){ tasks.push(cloudUpload(cvFile, 'nurse_cvs').then(function(u){ if(u) cvUrl=u; })); }
@@ -4343,7 +4824,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
       if(idFile){ tasks.push(cloudUpload(idFile, 'nurse_ids').then(function(u){ if(u) idUrl=u; })); }
 
       if(tasks.length>0){
-        showStatus('📤 Uploading '+tasks.length+' file(s) to  (max 12s)...');
+        showStatus('📤 Uploading '+tasks.length+' file(s) to Telegram (max 12s)...');
         // Wait max 13 seconds for all
         await Promise.race([
           Promise.allSettled(tasks),
@@ -4379,7 +4860,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
       }
 
       showStatus('✅ Registration submitted! Pending approval');
-      alert('✅ Registered!\nName: '+name+'\nPhone: '+fullPhone+'\n\n⏳ PENDING APPROVAL.\nCEO must approve before login.\n\nYour files: '+(videoUrl?' Video✅':'')+(cvUrl?' CV✅':'')+(certUrl?' Cert✅':'')+(idUrl?' ID✅':'')+'\nIf some missing, you can still be approved - add  links later.');
+      alert('✅ Registered!\nName: '+name+'\nPhone: '+fullPhone+'\n\n⏳ PENDING APPROVAL.\nCEO must approve before login.\n\nYour files: '+(videoUrl?' Video✅':'')+(cvUrl?' CV✅':'')+(certUrl?' Cert✅':'')+(idUrl?' ID✅':'')+'\nIf some missing, you can still be approved - add Telegram links later.');
 
       if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
       if(typeof showPage==='function') showPage('home');
@@ -4387,13 +4868,13 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
 
     }catch(e){
       console.error('Registration error', e);
-      alert('Registration failed: '+e.message+'\nTry again with smaller files or just  links.');
+      alert('Registration failed: '+e.message+'\nTry again with smaller files or just Telegram links.');
       if(regBtn){ regBtn.disabled=false; regBtn.innerText='Register as Nurse'; }
       showStatus('❌ Failed: '+e.message, true);
     }
   };
 
-  console.log('✅ REGISTRATION FIX V3 APPLIED - Fast , no Firebase Storage hang');
+  console.log('✅ REGISTRATION FIX V3 APPLIED - Fast Telegram, no Firebase Storage hang');
 })();
 </script>
 
@@ -4403,7 +4884,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
   function cleanPhone(p){ return (p||'').toString().replace(/[^0-9]/g,''); }
 
   function false{ return false; }
-  function isLink(url){ return url && url.includes("/c/"); }
+  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
   function getDriveFileId(url){ return null; }
   function url{ return url; }
   function url{ return url; }
@@ -4415,7 +4896,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
     html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px"><b style="font-size:14px;color:#111827">'+icon+' '+label+'</b><div style="display:flex;gap:6px"><a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">🔗 Open Video</a><a href="'+url+'" download target="_blank" style="background:#16a34a;color:white;padding:7px 14px;border-radius:8px;text-decoration:none;font-size:11px;font-weight:800">⬇️ Download</a></div></div>';
     html+='<div style="font-size:9px;color:#9ca3af;word-break:break-all;margin-bottom:10px;background:white;padding:6px;border-radius:6px">'+url+'</div>';
     if(false){
-      html+='<iframe src="'+url+'" style="width:100%;height:480px;border:3px solid '+borderColor+';border-radius:12px" allow="autoplay"></iframe><div style="font-size:10px;color:#6b7280;margin-top:6px">📁  Video - If not loading, click Open Video</div>';
+      html+='<iframe src="'+url+'" style="width:100%;height:480px;border:3px solid '+borderColor+';border-radius:12px" allow="autoplay"></iframe><div style="font-size:10px;color:#6b7280;margin-top:6px">📁 Telegram Video - If not loading, click Open Video</div>';
     } else {
       html+='<video src="'+url+'" controls playsinline controlsList="nodownload" preload="metadata" style="width:100%;max-height:500px;border-radius:12px;background:#000;border:3px solid '+borderColor+'" poster="./Icon-512.png"></video><div style="font-size:10px;color:#16a34a;margin-top:6px">▶️ Tap play to watch - If not loading, click Open Video</div>';
     }
@@ -4430,9 +4911,9 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
     if(false){
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
     } else {
-      // For  PDFs, direct iframe works, plus Google Docs viewer as fallback button
+      // For Telegram PDFs, direct iframe works, plus Google Docs viewer as fallback button
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px;background:white" type="application/pdf"></iframe>';
-      html+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><a href="https:///gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="flex:1;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-decoration:none;text-align:center;font-size:11px;font-weight:800">📄 Open in Google PDF Viewer (if blank above)</a></div>';
+      html+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><a href="https://t.me/gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="flex:1;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-decoration:none;text-align:center;font-size:11px;font-weight:800">📄 Open in Google PDF Viewer (if blank above)</a></div>';
     }
     html+='<div style="font-size:10px;color:#6b7280;margin-top:6px">📄 PDF Document - If preview blank, click Open PDF</div>';
     html+='</div>'; return html;
@@ -4546,7 +5027,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
 (function(){
   function cleanPhone(p){ return (p||'').toString().replace(/[^0-9]/g,''); }
   function false{ return false; }
-  function isLink(url){ return url && url.includes("/c/"); }
+  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
   function getDriveFileId(url){ return null; }
   function url{ return url; }
   function url{ return url; }
@@ -4575,7 +5056,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
         if(!result.id.includes(val)) result.id.push(val);
       } else if(lowKey.includes('profile') || lowKey.includes('photo') || lowKey.includes('avatar')){
         if(!result.profile.includes(val)) result.profile.push(val);
-      } else if(lowVal.includes('') || isDriveLink(val)){
+      } else if(lowVal.includes('telegram') || isDriveLink(val)){
         // Try to guess by URL content
         if(lowVal.includes('video')) result.video.push(val);
         else if(lowVal.includes('cv')) result.cv.push(val);
@@ -4632,7 +5113,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px"></iframe>';
     } else {
       html+='<iframe src="'+url+'" style="width:100%;height:650px;border:3px solid '+borderColor+';border-radius:12px;background:white"></iframe>';
-      html+='<div style="margin-top:8px"><a href="https:///gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="display:block;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-align:center;text-decoration:none;font-size:11px;font-weight:800">📄 Open in Google Docs Viewer if blank</a></div>';
+      html+='<div style="margin-top:8px"><a href="https://t.me/gview?url='+encodeURIComponent(url)+'&embedded=true" target="_blank" style="display:block;background:#7c3aed;color:white;padding:10px;border-radius:8px;text-align:center;text-decoration:none;font-size:11px;font-weight:800">📄 Open in Google Docs Viewer if blank</a></div>';
     }
     html+='</div>'; return html;
   }
@@ -4688,7 +5169,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
       
       // Restore tool for CEO
       var phoneKey = (nurse.phoneKey||nurse.phone||'').replace(/[^0-9]/g,'');
-      body+='<div style="border:3px dashed #ef4444;border-radius:14px;padding:14px;margin-top:16px;background:#fef2f2"><h3 style="margin:0 0 8px 0;color:#ef4444">🛠️ CEO Restore Tool - If files missing, paste links here</h3><div style="font-size:11px;margin-bottom:8px">If nurse uploaded but DB empty, paste / link and save to Firebase:</div>'
+      body+='<div style="border:3px dashed #ef4444;border-radius:14px;padding:14px;margin-top:16px;background:#fef2f2"><h3 style="margin:0 0 8px 0;color:#ef4444">🛠️ CEO Restore Tool - If files missing, paste links here</h3><div style="font-size:11px;margin-bottom:8px">If nurse uploaded but DB empty, paste Telegram/Telegram link and save to Firebase:</div>'
         +'<label style="font-size:11px;font-weight:800">📹 Video URL:</label><input id="restoreVideo_'+phoneKey+'" value="'+(found.video[0]||'')+'" placeholder="https://..." style="margin-bottom:6px">'
         +'<label style="font-size:11px;font-weight:800">📄 CV URL:</label><input id="restoreCV_'+phoneKey+'" value="'+(found.cv[0]||'')+'" placeholder="https://...pdf" style="margin-bottom:6px">'
         +'<label style="font-size:11px;font-weight:800">🎓 Cert URL:</label><input id="restoreCert_'+phoneKey+'" value="'+(found.cert[0]||'')+'" placeholder="https://..." style="margin-bottom:6px">'
@@ -4810,11 +5291,11 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
 
   function getCloudConfig(){
     var cloudName = (typeof FREE_UPLOAD_CONFIG!=='undefined' && 'REMOVED') ? 'REMOVED' : 'REMOVED';
-    var preset = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.Preset) ? FREE_UPLOAD_CONFIG.Preset : 'Lovecare1';
+    var preset = (typeof FREE_UPLOAD_CONFIG!=='undefined' && FREE_UPLOAD_CONFIG.telegramPreset) ? FREE_UPLOAD_CONFIG.telegramPreset : 'Lovecare1';
     return {cloudName: cloudName, preset: preset};
   }
 
-  // Auto upload to 
+  // Auto upload to Telegram
   // OLD REMOVED
 
   // Setup auto-upload for each input
@@ -4904,7 +5385,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
       setupAutoUpload(profileFile.id, 'nRegProfileLink', 'profileUploadProgress', 'nurse_profiles', 'profilePreviewBox', 'image');
     }
 
-    console.log('✅ AUTO UPLOAD V6 READY - Select file = instant  upload');
+    console.log('✅ AUTO UPLOAD V6 READY - Select file = instant Telegram upload');
   }
 
   // Override registerNurse to use auto-uploaded URLs first
@@ -5035,7 +5516,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
 // ===== PDF VIEWER FIX V7 - Force Google Docs Viewer for PDFs =====
 (function(){
   function false{ return false; }
-  function isLink(url){ return url && url.includes("/c/"); }
+  function isTelegramLink(url){ return url && url.includes("t.me/c/"); }
   function getDriveFileId(url){ return null; }
   function url{ return url; }
   function url{ return url; }
@@ -5071,7 +5552,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
         else if(lowKey.includes('cert') || lowVal.includes('nurse_certs') || lowVal.includes('_certs')){ if(!result.cert.includes(val)) result.cert.push(val); }
         else if(lowKey.includes('idurl') || lowKey.includes('id_card') || lowVal.includes('nurse_ids') || lowVal.includes('_ids')){ if(!result.id.includes(val)) result.id.push(val); }
         else if(lowKey.includes('profile') || lowKey.includes('photo') || lowKey.includes('avatar')){ if(!result.profile.includes(val)) result.profile.push(val); }
-        else if(lowVal.includes('') || lowVal.includes('drive.google')){ result.other.push(val); }
+        else if(lowVal.includes('telegram') || lowVal.includes('drive.google')){ result.other.push(val); }
       }
       for(var k in nurse){ if(!nurse.hasOwnProperty(k)) continue; var v=nurse[k]; if(typeof v==='string') addUrl(k, v); else if(typeof v==='object' && v!==null){ for(var kk in v){ if(typeof v[kk]==='string') addUrl(k+'_'+kk, v[kk]); } } }
       return result;
@@ -5145,14 +5626,14 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
     var url = (urls[0]||'').trim();
     // FIX: If url looks like JSON error (starts with { ), show friendly error instead of JSON words
     if(url.startsWith('{') || url.includes('"error"') || url.length>500 && url.includes('error')){
-      return '<div style="border:3px solid #ef4444;border-radius:14px;padding:14px;margin:12px 0;background:#fef2f2"><b>'+icon+' '+label+' - ❌ Upload Error</b><div style="background:white;padding:10px;border-radius:8px;margin-top:8px;font-size:11px;color:#b91c1c;word-break:break-word"> storage instead of PDF. This means your upload preset "Lovecare1" is set to IMAGE only. Fix: Go to  Dashboard > Settings > Upload > Upload Presets > Lovecare1 > Set "Resource Type" to "Auto" or "Raw" and save. Then nurse must re-upload.<br><br>Raw error: '+url.substring(0,400)+'</div></div>';
+      return '<div style="border:3px solid #ef4444;border-radius:14px;padding:14px;margin:12px 0;background:#fef2f2"><b>'+icon+' '+label+' - ❌ Upload Error</b><div style="background:white;padding:10px;border-radius:8px;margin-top:8px;font-size:11px;color:#b91c1c;word-break:break-word">Telegram storage instead of PDF. This means your upload preset "Lovecare1" is set to IMAGE only. Fix: Go to Telegram Dashboard > Settings > Upload > Upload Presets > Lovecare1 > Set "Resource Type" to "Auto" or "Raw" and save. Then nurse must re-upload.<br><br>Raw error: '+url.substring(0,400)+'</div></div>';
     }
-    // Normalize  URL: if it's image/upload but ends with .pdf, convert to raw/upload to avoid JSON block
-    if(url.includes('') && url.includes('/image/upload/') && url.toLowerCase().includes('.pdf')){
+    // Normalize Telegram URL: if it's image/upload but ends with .pdf, convert to raw/upload to avoid JSON block
+    if(url.includes('telegram') && url.includes('/image/upload/') && url.toLowerCase().includes('.pdf')){
       url = url.replace('/image/upload/', '/raw/upload/');
     }
     var encoded = encodeURIComponent(url);
-    var gviewUrl = 'https:///gview?url='+encoded+'&embedded=true';
+    var gviewUrl = 'https://t.me/gview?url='+encoded+'&embedded=true';
     var pdfJsUrl = 'https://mozilla.github.io/pdf.js/web/viewer.html?file='+encoded;
     
     var html='<div style="border:3px solid '+borderColor+';border-radius:14px;padding:14px;margin:14px 0;background:'+bgColor+';box-shadow:0 2px 8px rgba(0,0,0,.06)">';
@@ -5162,8 +5643,8 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
     if(typeof isDriveLink !== "undefined" && false){
       html+='<iframe src="'+url+'" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white" allow="autoplay"></iframe>';
     } else {
-      html+='<div style="background:#111827;color:white;padding:8px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:8px;text-align:center">📄 PDF Preview - CEO can open directly (fixed for  RAW)</div>';
-      // Use direct embed for  raw - works if public, plus gview fallback
+      html+='<div style="background:#111827;color:white;padding:8px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:8px;text-align:center">📄 PDF Preview - CEO can open directly (fixed for Telegram RAW)</div>';
+      // Use direct embed for Telegram raw - works if public, plus gview fallback
       html+='<object data="'+url+'" type="application/pdf" style="width:100%;height:700px;border:3px solid '+borderColor+';border-radius:12px;background:white"><iframe src="'+gviewUrl+'" style="width:100%;height:700px;border:none"></iframe></object>';
       html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">'
         +'<a href="'+url+'" target="_blank" style="background:#2563eb;color:white;padding:10px;border-radius:10px;text-decoration:none;text-align:center;font-weight:800;font-size:11px">🔗 Open Direct<br><small>Best</small></a>'
@@ -5176,7 +5657,7 @@ console.log('✅  VERSION -  + Drive removed,  active: '+.channelId+' // Old log
   };
   window.renderPdfSection = window.renderPdfSectionFixed;
 
-console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for  PDFs');
+console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for Telegram PDFs');
 })();
 </script>
 
@@ -5185,19 +5666,19 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for  PDFs');
 </style>
 
 <script>
-// ===== CEO PERSONAL  DM NOTIFICATION =====
+// ===== CEO PERSONAL TELEGRAM DM NOTIFICATION =====
 (function(){
   window.CEO_PERSONAL_CONFIG = {
-    personal: '', // <-- Will auto-detect when you send /start to bot
+    personalChatId: '', // <-- Will auto-detect when you send /start to bot
     enabled: true
   };
 
   // Auto-detect personal chat ID
-  window.detectCeoPersonal = async function(){
+  window.detectCeoPersonalChatId = async function(){
     try{
-      var token = window..;
-      var proxy = 'https:///?';
-      var url = 'https://api..org/bot'+token+'/getUpdates';
+      var token = window.TELEGRAM_CONFIG.botToken;
+      var proxy = 'https://corsproxy.io/?';
+      var url = 'https://api.telegram.org/bot'+token+'/getUpdates';
       var res = await fetch(proxy + encodeURIComponent(url));
       var txt = await res.text();
       var json = JSON.parse(txt);
@@ -5208,13 +5689,13 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for  PDFs');
           if(upd.message && upd.message.chat && upd.message.chat.type==='private'){
             var personalId = upd.message.chat.id;
             console.log('Found personal chat ID', personalId);
-            window.CEO_PERSONAL_CONFIG.personal = personalId;
-            localStorage.setItem('ceoPersonal', personalId.toString());
-            alert('✅ Found your personal  ID: '+personalId+'\nYou will now get DM notifications for nurse uploads!');
+            window.CEO_PERSONAL_CONFIG.personalChatId = personalId;
+            localStorage.setItem('ceoPersonalChatId', personalId.toString());
+            alert('✅ Found your personal Telegram ID: '+personalId+'\nYou will now get DM notifications for nurse uploads!');
             return personalId;
           }
         }
-        alert('❌ No private message found. Please: 1. Open , 2. Search your bot @lovecareglobal_bot, 3. Send /start, 4. Click this button again');
+        alert('❌ No private message found. Please: 1. Open Telegram, 2. Search your bot @lovecareglobal_bot, 3. Send /start, 4. Click this button again');
       } else {
         alert('No updates found. Send /start to your bot first');
       }
@@ -5222,20 +5703,20 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for  PDFs');
   };
 
   // Load saved personal ID
-  var savedPersonal = localStorage.getItem('ceoPersonal');
-  if(savedPersonal){ window.CEO_PERSONAL_CONFIG.personal = savedPersonal; }
+  var savedPersonal = localStorage.getItem('ceoPersonalChatId');
+  if(savedPersonal){ window.CEO_PERSONAL_CONFIG.personalChatId = savedPersonal; }
 
-  // Function to notify CEO via  DM
-  window.notifyCeoPersonal = async function(nurseName, docType, fileUrl){
+  // Function to notify CEO via Telegram DM
+  window.notifyCeoPersonalTelegram = async function(nurseName, docType, fileUrl){
     if(!window.CEO_PERSONAL_CONFIG.enabled) return;
-    var personalId = window.CEO_PERSONAL_CONFIG.personal || localStorage.getItem('ceoPersonal');
+    var personalId = window.CEO_PERSONAL_CONFIG.personalChatId || localStorage.getItem('ceoPersonalChatId');
     if(!personalId){
       console.log('CEO personal chat ID not set, skipping DM');
       return;
     }
     try{
-      var token = window..;
-      var proxy = 'https:///?';
+      var token = window.TELEGRAM_CONFIG.botToken;
+      var proxy = 'https://corsproxy.io/?';
       var message = '🔔 *New Nurse Upload*\n\n👩‍⚕️ Nurse: '+nurseName+'\n📄 Type: '+docType+'\n⏰ Time: '+(new Date().toLocaleString())+'\n\n📁 Channel: Love Care Global CVs\n🔗 File: '+fileUrl+'\n\n👉 Open CEO Dashboard to review';
       
       var fd = new FormData();
@@ -5243,7 +5724,7 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for  PDFs');
       fd.append('text', message);
       fd.append('parse_mode', 'Markdown');
       
-      var apiUrl = 'https://api..org/bot'+token+'/sendMessage';
+      var apiUrl = 'https://api.telegram.org/bot'+token+'/sendMessage';
       var xhr = new XMLHttpRequest();
       xhr.open('POST', proxy + encodeURIComponent(apiUrl));
       xhr.send(fd);
@@ -5270,7 +5751,7 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for  PDFs');
           
           if(docType){
             var fileUrl = nurse.cvUrl || nurse.videoUrl || nurse.certUrl || '';
-            window.notifyCeoPersonal(nurse.name||snap.key, docType, fileUrl);
+            window.notifyCeoPersonalTelegram(nurse.name||snap.key, docType, fileUrl);
             localStorage.setItem('lastNotified_'+snap.key, now.toString());
           }
         }
@@ -5280,13 +5761,13 @@ console.log('✅ PDF VIEWER V7 APPLIED - Google Docs viewer for  PDFs');
       db.ref('nurses').on('child_added', function(snap){
         var nurse = snap.val();
         if(nurse.timestamp && (Date.now() - nurse.timestamp < 300000)){ // Added in last 5 mins
-          window.notifyCeoPersonal(nurse.name||snap.key, 'New Registration', '');
+          window.notifyCeoPersonalTelegram(nurse.name||snap.key, 'New Registration', '');
         }
       });
     }
   });
 
-  console.log('✅ CEO Personal  DM System Ready');
+  console.log('✅ CEO Personal Telegram DM System Ready');
 })();
 </script>
 
@@ -5384,14 +5865,14 @@ img, video, iframe {
 </script>
 
 <script>
-// ===== CEO PERSONAL  DM - CLEAN =====
+// ===== CEO PERSONAL TELEGRAM DM - CLEAN =====
 (function(){
-  window.CEO_PERSONAL_CONFIG = { personal: localStorage.getItem('ceoPersonal')||'', enabled: true };
-  window.detectCeoPersonal = async function(){
+  window.CEO_PERSONAL_CONFIG = { personalChatId: localStorage.getItem('ceoPersonalChatId')||'', enabled: true };
+  window.detectCeoPersonalChatId = async function(){
     try{
-      var token = window.?. || '';
-      var proxy = 'https:///?';
-      var url = 'https://api..org/bot'+token+'/getUpdates';
+      var token = window.TELEGRAM_CONFIG?.botToken || 'REMOVED_FOR_SECURITY';
+      var proxy = 'https://corsproxy.io/?';
+      var url = 'https://api.telegram.org/bot'+token+'/getUpdates';
       var res = await fetch(proxy + encodeURIComponent(url));
       var txt = await res.text();
       var json = JSON.parse(txt);
@@ -5400,8 +5881,8 @@ img, video, iframe {
           var upd = json.result[i];
           if(upd.message && upd.message.chat && upd.message.chat.type==='private'){
             var personalId = upd.message.chat.id;
-            window.CEO_PERSONAL_CONFIG.personal = personalId;
-            localStorage.setItem('ceoPersonal', personalId.toString());
+            window.CEO_PERSONAL_CONFIG.personalChatId = personalId;
+            localStorage.setItem('ceoPersonalChatId', personalId.toString());
             alert('✅ Found ID: '+personalId+' - DM enabled!');
             return personalId;
           }
@@ -5410,17 +5891,17 @@ img, video, iframe {
       }
     }catch(e){ alert('Error detecting'); }
   };
-  window.notifyCeoPersonal = async function(nurseName, docType, fileUrl){
-    var personalId = window.CEO_PERSONAL_CONFIG.personal || localStorage.getItem('ceoPersonal');
+  window.notifyCeoPersonalTelegram = async function(nurseName, docType, fileUrl){
+    var personalId = window.CEO_PERSONAL_CONFIG.personalChatId || localStorage.getItem('ceoPersonalChatId');
     if(!personalId || !window.CEO_PERSONAL_CONFIG.enabled) return;
     try{
-      var token = window.?. || '';
-      var proxy = 'https:///?';
+      var token = window.TELEGRAM_CONFIG?.botToken || 'REMOVED_FOR_SECURITY';
+      var proxy = 'https://corsproxy.io/?';
       var message = '🔔 New Nurse Upload\n👩‍⚕️ '+nurseName+'\n📄 '+docType+'\n⏰ '+(new Date().toLocaleString());
       var fd = new FormData();
       fd.append('chat_id', personalId);
       fd.append('text', message);
-      var apiUrl = 'https://api..org/bot'+token+'/sendMessage';
+      var apiUrl = 'https://api.telegram.org/bot'+token+'/sendMessage';
       var xhr = new XMLHttpRequest();
       xhr.open('POST', proxy + encodeURIComponent(apiUrl));
       xhr.send(fd);
@@ -5804,308 +6285,6 @@ body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announc
     // keep error but mute log
     console.log=function(){}; 
   }
-})();
-</script>
-
-
-<script>
-// ===== ANNOUNCEMENT SYSTEM FIXED - CEO -> EVERYONE REALTIME =====
-(function(){
-  function applyAnnouncement(data){
-    if(!data) return;
-    try{
-      // Update marquee text
-      var textEl = document.getElementById('announcementText');
-      if(textEl && data.text) textEl.textContent = data.text;
-      
-      // Update CSS variables live
-      if(data.bg) document.documentElement.style.setProperty('--announce-bg', data.bg);
-      if(data.textColor) document.documentElement.style.setProperty('--announce-text', data.textColor);
-      if(data.border) document.documentElement.style.setProperty('--announce-border', data.border);
-      if(data.speed) {
-        document.documentElement.style.setProperty('--announce-speed', data.speed + 's');
-        // Also update marquee animation directly
-        var marqueeSpan = textEl ? textEl.querySelector('span') : null;
-        if(marqueeSpan) marqueeSpan.style.animationDuration = data.speed + 's';
-        else if(textEl) {
-          textEl.innerHTML = '<span style="display:inline-block;animation:marquee '+data.speed+'s linear infinite">'+data.text+'</span>';
-        }
-      }
-      
-      // Keep inputs in sync if CEO dashboard open
-      var input = document.getElementById('announcementInput');
-      if(input && document.activeElement !== input) input.value = data.text || '';
-      var bgIn = document.getElementById('announceBgColor');
-      if(bgIn && data.bg) bgIn.value = data.bg;
-      var tcIn = document.getElementById('announceTextColor');
-      if(tcIn && data.textColor) tcIn.value = data.textColor;
-      var bcIn = document.getElementById('announceBorderColor');
-      if(bcIn && data.border) bcIn.value = data.border;
-      var spIn = document.getElementById('announceSpeed');
-      if(spIn && data.speed) spIn.value = data.speed;
-      
-      console.log('✅ Announcement applied for all:', data.text);
-    }catch(e){ console.error('applyAnnouncement error', e); }
-  }
-
-  function initAnnouncementListener(){
-    if(!window.db && !firebase.database) {
-      setTimeout(initAnnouncementListener, 1000);
-      return;
-    }
-    var database = window.db || firebase.database();
-    window.db = database;
-    
-    // Single source of truth: /announcement
-    database.ref('announcement').on('value', function(snap){
-      var data = snap.val();
-      if(data) applyAnnouncement(data);
-    }, function(err){
-      console.error('Announcement read failed - check Firebase Rules!', err);
-    });
-
-    // Media announcements - live for everyone
-    database.ref('announcementVideos').orderByChild('uploadedAt').limitToLast(15).on('value', function(snap){
-      var videos = [];
-      snap.forEach(function(c){ var v=c.val(); v.key=c.key; videos.push(v); });
-      videos.reverse();
-      window.announcementVideos = videos;
-      if(window.renderPublicVideosList) window.renderPublicVideosList(videos);
-      // Also update CEO list if open
-      var ceoList = document.getElementById('ceoAnnounceVideosList');
-      if(ceoList && ceoList.innerHTML !== '' && window.renderCeoVideosList){
-        window.renderCeoVideosList(videos, ceoList);
-      }
-    });
-    
-    console.log('🔴 Announcement listener LIVE for everyone');
-  }
-
-  // CEO Save - overwrites old saveAnnouncement
-  window.saveAnnouncement = function(){
-    var textEl = document.getElementById('announcementInput');
-    var text = textEl ? textEl.value.trim() : '';
-    if(!text){ alert('Type announcement first'); return; }
-    var bg = document.getElementById('announceBgColor')?.value || '#111827';
-    var tc = document.getElementById('announceTextColor')?.value || '#eab308';
-    var bc = document.getElementById('announceBorderColor')?.value || '#eab308';
-    var speed = document.getElementById('announceSpeed')?.value || '22';
-    
-    if(!window.db && firebase.database) window.db = firebase.database();
-    if(!window.db){ alert('Database not ready, wait 2 sec'); return; }
-    
-    var payload = {
-      text: text,
-      bg: bg,
-      textColor: tc,
-      border: bc,
-      speed: speed,
-      updatedAt: Date.now(),
-      updatedBy: 'CEO'
-    };
-    
-    // Save to ONE place only
-    window.db.ref('announcement').set(payload)
-      .then(function(){
-        applyAnnouncement(payload); // instant on CEO phone
-        alert('✅ LIVE! All users will see it now in real-time');
-      })
-      .catch(function(err){
-        alert('❌ Save failed: ' + err.message + ' - Check Firebase Rules for /announcement');
-        console.error(err);
-      });
-  };
-
-  window.previewAnnouncement = function(){
-    var text = document.getElementById('announcementInput')?.value || 'Preview';
-    var bg = document.getElementById('announceBgColor')?.value || '#111827';
-    var tc = document.getElementById('announceTextColor')?.value || '#eab308';
-    var bc = document.getElementById('announceBorderColor')?.value || '#eab308';
-    var speed = document.getElementById('announceSpeed')?.value || '22';
-    var preview = document.getElementById('announcePreview');
-    if(preview){
-      preview.style.background = bg;
-      preview.style.color = tc;
-      preview.style.borderColor = bc;
-      preview.innerHTML = '<span style="display:inline-block;animation:marquee '+speed+'s linear infinite">'+text+'</span>';
-    }
-    var bgV = document.getElementById('bgColorVal'); if(bgV) bgV.textContent = bg;
-    var tcV = document.getElementById('textColorVal'); if(tcV) tcV.textContent = tc;
-    var bcV = document.getElementById('borderColorVal'); if(bcV) bcV.textContent = bc;
-    var spV = document.getElementById('speedVal'); if(spV) spV.textContent = speed + 's';
-  };
-
-  // Start listener after Firebase loads
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){ setTimeout(initAnnouncementListener, 1500); });
-  } else {
-    setTimeout(initAnnouncementListener, 1500);
-  }
-  
-  // Also retry when firebase auth ready
-  window.addEventListener('load', function(){ setTimeout(initAnnouncementListener, 2500); });
-})();
-</script>
-
-
-<script>
-// Ensure window.db is set globally early
-(function(){
-  function setDB(){
-    try{
-      if(typeof firebase !== 'undefined' && firebase.database && !window.db){
-        window.db = firebase.database();
-      }
-    }catch(e){}
-  }
-  setTimeout(setDB, 1000);
-  setTimeout(setDB, 3000);
-  document.addEventListener('DOMContentLoaded', setDB);
-})();
-</script>
-
-
-<script>
-// ===== PURE FIREBASE STORAGE UPLOADER =====
-window.firebaseStorageUploader = {
-  async upload(file, folder, onProgress){
-    try{
-      if(!firebase.storage) throw new Error('storage not loaded');
-      if(!firebase.auth().currentUser){
-        await firebase.auth().signInAnonymously();
-      }
-      const safeName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
-      const path = `${folder}/${safeName}`;
-      const ref = firebase.storage().ref().child(path);
-      const task = ref.put(file, { contentType: file.type });
-      return await new Promise((resolve, reject)=>{
-        task.on('state_changed',
-          (snap)=>{
-            const pct = Math.round((snap.bytesTransferred/snap.totalBytes)*100);
-            if(onProgress) onProgress(pct);
-            const box=document.getElementById('uploadStatusBox');
-            if(box) box.textContent = `Uploading ${folder}: ${pct}% - ${file.name.substring(0,25)}`;
-          },
-          (err)=>{ reject(err); },
-          async ()=>{
-            const url = await task.snapshot.ref.getDownloadURL();
-            const box=document.getElementById('uploadStatusBox');
-            if(box){ box.textContent = `✅ Done: ${file.name}`; setTimeout(()=>box.textContent='',2000); }
-            resolve({ url, path, name: file.name, size: file.size, type: file.type });
-          }
-        );
-      });
-    }catch(e){ console.error(e); throw e; }
-  }
-};
-window.uploadToFirebaseStorage = window.firebaseStorageUploader.upload;
-window.uploadFile = window.firebaseStorageUploader.upload;
-window.autoUploadFile = function(file, folder, onProgress, onComplete){
-  window.firebaseStorageUploader.upload(file, folder, onProgress)
-    .then(res=>{ if(onComplete) onComplete(res.url, res); })
-    .catch(err=>{ if(onComplete) onComplete(null); console.error(err); });
-};
-</script>
-
-<style>button:active{transform:scale(0.97)} button{cursor:pointer; touch-action:manipulation;}</style><script>document.addEventListener('pointerdown',e=>{const b=e.target.closest('button'); if(b&&navigator.vibrate)try{navigator.vibrate(8);}catch(e){}},{passive:true});</script>
-<script>
-// === FIX BUTTONS & HIDE PHONE FROM CLIENTS - NON-DESTRUCTIVE ===
-(function(){
-  // Ensure showPage works even if overwritten
-  if(!window._origShowPage){
-    window._origShowPage = window.showPage;
-  }
-  window.showPage = function(id){
-    try{
-      if(window._origShowPage) window._origShowPage(id);
-      else {
-        document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-        var pg=document.getElementById('page-'+id) || document.getElementById(id);
-        if(pg) pg.classList.add('active');
-        document.querySelectorAll('.bottomNav button').forEach(function(b){ b.classList.remove('active'); });
-        var nav=document.getElementById('nav-'+id);
-        if(nav) nav.classList.add('active');
-      }
-    }catch(e){ console.warn(e); }
-  };
-
-  // Fix closeLegal/openLegal to always work
-  window.closeLegal = function(){
-    var m=document.getElementById('legalModal');
-    if(m){ m.classList.add('hidden'); m.style.display='none'; }
-    var wage=document.getElementById('legalWagePopup');
-    if(wage){ wage.classList.add('hidden'); wage.style.display='none'; }
-  };
-  window.openLegal = function(type){
-    var modal=document.getElementById('legalModal');
-    var title=document.getElementById('legalTitle');
-    var body=document.getElementById('legalBody');
-    if(modal && typeof legalPages !== 'undefined' && legalPages[type]){
-      title.innerText=legalPages[type].title;
-      body.innerHTML=legalPages[type].body;
-      modal.classList.remove('hidden');
-      modal.style.display='flex';
-    }
-  };
-  window.closeAnnouncementVideo = function(){
-    var m=document.getElementById('announcementModal');
-    if(m){ m.style.display='none'; }
-  };
-
-  // Fix all buttons to be clickable - remove any disabled
-  function fixButtons(){
-    document.querySelectorAll('button').forEach(function(b){
-      b.disabled = false;
-      b.style.pointerEvents = 'auto';
-      b.style.cursor = 'pointer';
-      b.style.opacity = '1';
-    });
-  }
-  setInterval(fixButtons, 1000);
-  fixButtons();
-
-  // HIDE NURSE PHONE FOR CLIENTS ONLY - CEO/Staff still see
-  function isCEOorStaff(){
-    return localStorage.getItem('ceoID') || localStorage.getItem('staffID') || localStorage.getItem('isCeoLogged')==='true' || localStorage.getItem('isStaffLogged')==='true';
-  }
-
-  function hidePhones(){
-    if(isCEOorStaff()) return; // CEO sees phones
-    // Hide phone numbers in nurse cards
-    document.querySelectorAll('.uber-card, #loveCareLiveList, #selectedProfilePreview').forEach(function(card){
-      card.querySelectorAll('small, span, div').forEach(function(el){
-        var txt = (el.textContent||'').trim();
-        // If it looks like a phone number (contains +233 or 7+ digits and short)
-        if( (txt.includes('+233') || txt.includes('+234') || /\+\d{7,}/.test(txt) || /^0\d{9,10}$/.test(txt.replace(/\s/g,'')) ) && txt.length < 25 ){
-          // Don't hide if it's inside CEO list
-          if(el.closest('#ceoNursesList') || el.closest('#staffNursesList') || el.closest('#ceo-tab-nurses')) return;
-          if(txt.includes('🔒')) return;
-          el.textContent = '🔒 Phone hidden - Book to contact';
-          el.style.background = '#f0fdf4';
-          el.style.padding = '2px 6px';
-          el.style.borderRadius = '8px';
-          el.style.fontSize = '10px';
-          el.style.color = '#16a34a';
-        }
-        // Also hide any element that is explicitly phone icon
-        if(txt.startsWith('👩‍⚕️') && /\d/.test(txt) && txt.length < 25){
-          if(el.closest('#ceoNursesList') || el.closest('#staffNursesList')) return;
-          el.textContent = '👩‍⚕️ 🔒 Hidden - Book to contact';
-        }
-      });
-    });
-  }
-
-  // Run hidePhones gently without breaking layout
-  setInterval(hidePhones, 1500);
-  document.addEventListener('click', function(){ setTimeout(hidePhones, 300); });
-
-  // Fix ESC to close modals
-  document.addEventListener('keydown', function(e){
-    if(e.key==='Escape'){ window.closeLegal(); window.closeAnnouncementVideo(); }
-  });
-
-  console.log('✅ Buttons fixed, phones hidden for clients only, CEO still sees phones');
 })();
 </script>
 
