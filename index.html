@@ -1153,13 +1153,19 @@ function showPage(id){
 if(id==='ceo-dashboard' && localStorage.getItem('isCEOLogged')!=='true') id='ceo-login';
 if(id==='staff-dashboard' &&!localStorage.getItem('staffID')) id='staff-login';
 if(id==='nurse-dashboard' &&!localStorage.getItem('nursePhone')) id='nurse-login';
-document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.display='none';});
-var el=document.getElementById('page-'+id); if(el){el.classList.add('active');el.style.display='block';}
+// INSTANT - no delay
+document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active'); p.style.display='none';});
+var el=document.getElementById('page-'+id); if(el){el.classList.add('active'); el.style.display='block';}
 document.querySelectorAll('.bottomNav button').forEach(b=>b.classList.remove('active'));
 var map={'home':'nav-home','nurse-public':'nav-nurse','booking-public':'nav-book','nurse-login':'nav-login','nurse-dashboard':'nav-login','staff-dashboard':'nav-login','ceo-dashboard':'nav-home','group-chat':'nav-chat'};
 var nid=map[id]; if(nid){var nb=document.getElementById(nid); if(nb) nb.classList.add('active');}
 window.scrollTo(0,0);
-if(id==='home') setTimeout(()=>{if(!uberMap)initUberMap();else{uberMap.invalidateSize();}},300);
+// DEFER heavy map work - don't block button response
+if(id==='home'){
+  requestAnimationFrame(function(){
+    setTimeout(function(){ try{ if(!uberMap) initUberMap(); else { uberMap.invalidateSize(); } }catch(e){} }, 100);
+  });
+}
 }
 function autoGPS(i,s){
   var se=document.getElementById(s); 
@@ -6180,8 +6186,8 @@ body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announc
     var logo=document.getElementById('logoTapArea'); if(!logo || logo.dataset.bound) return; logo.dataset.bound='1';
     var tapCount=0, tapTimer=null, longPressTimer=null, longPressed=false;
     function reset(){ tapCount=0; }
-    logo.addEventListener('click', function(e){ if(longPressed){ longPressed=false; return; } tapCount++; clearTimeout(tapTimer); tapTimer=setTimeout(reset,3000); if(tapCount>=5){ tapCount=0; alert('🔓 Staff Portal'); showPage('staff-login'); } });
-    function startLP(){ longPressed=false; longPressTimer=setTimeout(function(){ longPressed=true; if(navigator.vibrate) navigator.vibrate(100); alert('🔐 CEO Access'); showPage('ceo-login'); },1500); }
+    logo.addEventListener('click', function(e){ if(longPressed){ longPressed=false; return; } tapCount++; clearTimeout(tapTimer); tapTimer=setTimeout(reset,3000); if(tapCount>=5){ tapCount=0; var h=document.createElement('div'); h.innerText='🔓 Staff'; h.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#7c3aed;color:white;padding:8px 16px;border-radius:20px;z-index:99999;font-weight:800'; document.body.appendChild(h); setTimeout(function(){h.remove()},1200); showPage('staff-login'); } });
+    function startLP(){ longPressed=false; longPressTimer=setTimeout(function(){ longPressed=true; if(navigator.vibrate) navigator.vibrate(100); var h=document.createElement('div'); h.innerText='🔐 CEO'; h.style.cssText='position:fixed;top:80px;left:50%;transform:translateX(-50%);background:#111827;color:#eab308;padding:8px 16px;border-radius:20px;z-index:99999;font-weight:800;border:2px solid #eab308'; document.body.appendChild(h); setTimeout(function(){h.remove()},1200); showPage('ceo-login'); },1500); }
     function cancelLP(){ clearTimeout(longPressTimer); }
     logo.addEventListener('touchstart', startLP, {passive:true}); logo.addEventListener('touchend', cancelLP); logo.addEventListener('touchmove', cancelLP);
     logo.addEventListener('mousedown', startLP); logo.addEventListener('mouseup', cancelLP); logo.addEventListener('mouseleave', cancelLP);
@@ -6232,11 +6238,35 @@ body > :not(footer):not(.bottomNav):not(script):not(style):not(div):not(#announc
   }
   window.validateBudgetLive = function(){ try{ var orig=window._origValidate; }catch(e){} enforceMin(); };
   window._origCalculate = window.calculateTotal;
-  window.calculateTotal = function(){ var r=null; if(window._origCalculate) r=window._origCalculate.apply(this,arguments); setTimeout(enforceMin,50); return r; };
+  window.calculateTotal = function(){ var r=null; if(window._origCalculate) r=window._origCalculate.apply(this,arguments); enforceMin(); return r; };
   var origPay=window.payAndBookWithPaystack;
   window.payAndBookWithPaystack = function(){ if(!enforceMin()){ alert('❌ Below minimum - Increase offer'); return; } if(origPay) origPay.apply(this,arguments); else { var name=document.getElementById('cName').value.trim(); if(!name){ alert('Name required'); return; } alert('Paystack would open here'); } };
-  document.addEventListener('DOMContentLoaded', function(){ var b=document.getElementById('cBudget'); if(b){ b.addEventListener('input', enforceMin); } setTimeout(enforceMin,1000); });
-  setTimeout(enforceMin,1500);
+  document.addEventListener('DOMContentLoaded', function(){ var b=document.getElementById('cBudget'); if(b){ b.addEventListener('input', enforceMin); } setTimeout(enforceMin,200); });
+  setTimeout(enforceMin,300);
+})();
+</script>
+
+
+<script>
+// INSTANT BUTTON FEEDBACK - makes all buttons respond in <50ms
+(function(){
+  function makeFast(){
+    document.querySelectorAll('button').forEach(function(btn){
+      if(btn.dataset.fast) return; btn.dataset.fast='1';
+      // Add instant visual feedback on touchstart/mousedown
+      btn.addEventListener('touchstart', function(){ this.style.transform='scale(0.97)'; }, {passive:true});
+      btn.addEventListener('touchend', function(){ this.style.transform=''; }, {passive:true});
+      btn.addEventListener('mousedown', function(){ this.style.transform='scale(0.97)'; });
+      btn.addEventListener('mouseup', function(){ this.style.transform=''; });
+      btn.addEventListener('mouseleave', function(){ this.style.transform=''; });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', makeFast);
+  setTimeout(makeFast, 300);
+  setTimeout(makeFast, 1000);
+  // Re-run after dynamic content
+  var origRender = window.renderNearbyList;
+  window.renderNearbyList = function(){ if(origRender) origRender.apply(this,arguments); setTimeout(makeFast,100); };
 })();
 </script>
 
