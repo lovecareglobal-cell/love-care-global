@@ -4581,5 +4581,39 @@ window.autoUploadFile = function(file, folder, onProgress, onComplete){
 };
 </script>
 
-<style>button:active{transform:scale(0.97)} button{cursor:pointer; touch-action:manipulation;}</style><script>document.addEventListener('pointerdown',e=>{const b=e.target.closest('button'); if(b&&navigator.vibrate)try{navigator.vibrate(8);}catch(e){}},{passive:true});</script></body>
+<style>button:active{transform:scale(0.97)} button{cursor:pointer; touch-action:manipulation;}</style><script>document.addEventListener('pointerdown',e=>{const b=e.target.closest('button'); if(b&&navigator.vibrate)try{navigator.vibrate(8);}catch(e){}},{passive:true});</script>
+<script>
+function openLegal(type){
+  var modal=document.getElementById('legalModal');
+  var title=document.getElementById('legalTitle');
+  var body=document.getElementById('legalBody');
+  if(modal && typeof legalPages !== 'undefined' && legalPages[type]){
+    title.innerText=legalPages[type].title;
+    body.innerHTML=legalPages[type].body;
+    modal.classList.remove('hidden');
+    modal.style.display='flex';
+    modal.style.position='fixed';
+    modal.style.top='0'; modal.style.left='0'; modal.style.width='100%'; modal.style.height='100%';
+    modal.style.zIndex='999999';
+    modal.style.background='rgba(0,0,0,0.7)';
+    modal.style.justifyContent='center';
+    modal.style.alignItems='center';
+  }
+}
+function closeLegal(){
+  var m=document.getElementById('legalModal');
+  if(m){
+    m.classList.add('hidden');
+    m.style.display='none';
+  }
+}
+function closeAnnouncementVideo(){
+  var m=document.getElementById('announcementModal');
+  if(m){ m.style.display='none'; }
+  var body=document.getElementById('announceModalBody');
+  if(body) body.innerHTML='';
+}
+</script>
+
+</body>
 </html>
