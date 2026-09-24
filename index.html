@@ -6832,11 +6832,14 @@ window.openNurseFullProfile = function(nurse){
 </div>
 
 <script>
-// ===== REAL EXTERNAL LINKS - PATCHED =====
-window.PRIVACY_URL = "./privacy-policy.html";
-window.TERMS_URL = "./terms.html";
-window.TERMS2_URL = "./terms-of-service.html";
-window.MAIN_URL = "./";
+// ===== REAL EXTERNAL LINKS - PLAY STORE COMPLIANT - ABSOLUTE URLs =====
+window.PRIVACY_URL = "https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html";
+window.TERMS_URL = "https://lovecareglobal-cell.github.io/love-care-global/terms.html";
+window.TERMS2_URL = "https://lovecareglobal-cell.github.io/love-care-global/terms-of-service.html";
+window.ABOUT_URL = "https://lovecareglobal-cell.github.io/love-care-global/about.html";
+window.CONTACT_URL = "https://lovecareglobal-cell.github.io/love-care-global/contact.html";
+window.DELETE_URL = "https://lovecareglobal-cell.github.io/love-care-global/delete-account.html";
+window.MAIN_URL = "https://lovecareglobal-cell.github.io/love-care-global/";
 
 window.openPrivacyPolicy = function(){
   try{ window.open(window.PRIVACY_URL, '_blank'); }catch(e){ if(window.showPage) showPage('privacy'); }
@@ -6852,18 +6855,40 @@ window.openPrivacyPolicySafe = function(){ if(window.showPage) showPage('privacy
 console.log('✅ External links patched (relative):', window.PRIVACY_URL, window.TERMS_URL);
 </script>
 
-<!-- ===== FOOTER - ALWAYS WORKS OFFLINE - NO 404 ===== -->
-<div id="appFooter" style="position:fixed;bottom:0;left:0;right:0;background:#111827;color:white;padding:10px 12px;display:flex;justify-content:space-around;align-items:center;z-index:9998;font-size:11px;border-top:2px solid #7c3aed">
-  <button onclick="showPage('privacy')" style="background:none;border:none;color:#a78bfa;cursor:pointer;font-size:11px;text-decoration:underline">🔒 Privacy</button>
-  <button onclick="showPage('terms-full')" style="background:none;border:none;color:#a78bfa;cursor:pointer;font-size:11px;text-decoration:underline">📄 Terms</button>
-  <button onclick="openPrivacyPolicy()" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:10px">🌐 Privacy Online</button>
-  <button onclick="openTerms()" style="background:none;border:none;color:#6b7280;cursor:pointer;font-size:10px">🌐 Terms Online</button>
-</div>
+<!-- ===== NEW FOOTER - PLAY STORE COMPLIANT - REAL URLS - NO MODALS ===== -->
+<footer id="appFooter" style="position:fixed;bottom:0;left:0;right:0;background:#111827;color:#d1d5db;padding:0;z-index:9998;border-top:3px solid #7c3aed;font-family:Inter,system-ui,sans-serif">
+  <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px;padding:12px 10px;font-size:11.5px;line-height:1.4">
+    <a href="https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html" target="_blank" rel="noopener" style="color:#a78bfa;text-decoration:none;font-weight:600">🔒 Privacy Policy</a>
+    <span style="color:#374151">|</span>
+    <a href="https://lovecareglobal-cell.github.io/love-care-global/terms.html" target="_blank" rel="noopener" style="color:#a78bfa;text-decoration:none;font-weight:600">📄 Terms & Conditions</a>
+    <span style="color:#374151">|</span>
+    <a href="https://lovecareglobal-cell.github.io/love-care-global/about.html" target="_blank" rel="noopener" style="color:#9ca3af;text-decoration:none">About Us</a>
+    <span style="color:#374151">|</span>
+    <a href="https://lovecareglobal-cell.github.io/love-care-global/contact.html" target="_blank" rel="noopener" style="color:#9ca3af;text-decoration:none">Contact</a>
+    <span style="color:#374151">|</span>
+    <a href="https://lovecareglobal-cell.github.io/love-care-global/delete-account.html" target="_blank" rel="noopener" style="color:#f87171;text-decoration:none">Delete Account</a>
+    <span style="color:#374151">|</span>
+    <a href="https://lovecareglobal-cell.github.io/love-care-global/" target="_blank" rel="noopener" style="color:#6b7280;text-decoration:none">🏠 Home</a>
+  </div>
+  <div style="text-align:center;padding:0 10px 8px;font-size:9.5px;color:#6b7280;letter-spacing:0.3px">
+    © 2026 LOVE CARE GLOBAL • lovecareglobal@gmail.com • +233544121814 • <span style="word-break:break-all">https://lovecareglobal-cell.github.io/love-care-global</span>
+  </div>
+</footer>
 <style>
-/* Add padding so footer doesn't cover content */
-body{padding-bottom:60px!important}
-#page-privacy .card, #page-terms-full .card{margin-bottom:70px}
+/* Ensure content not hidden behind fixed footer */
+body{padding-bottom:78px !important}
+#page-privacy .card, #page-terms-full .card, .page .card:last-child{margin-bottom:90px}
+#appFooter a:hover{text-decoration:underline !important; color:white !important}
+@media(max-width:480px){ #appFooter div{gap:8px !important; font-size:10.5px !important} }
 </style>
+<script>
+// Override any old modal footer calls to use real URLs for Play Store compliance
+window.openPrivacyPolicy = function(){ window.open(window.PRIVACY_URL, '_blank', 'noopener'); };
+window.openTerms = function(){ window.open(window.TERMS_URL, '_blank', 'noopener'); };
+window.openTermsFull = function(){ window.open(window.TERMS2_URL, '_blank', 'noopener'); };
+window.openAbout = function(){ window.open(window.ABOUT_URL, '_blank', 'noopener'); };
+window.openContact = function(){ window.open(window.CONTACT_URL, '_blank', 'noopener'); };
+</script>
 
 </body>
 </html>
