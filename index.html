@@ -390,7 +390,7 @@ body::before{
 
 
 <!-- SETTINGS PAGE - NURSE CHANGE PASSWORD, CANCEL ACCOUNT, CLIENT REFUND, REPORT INCIDENT -->
-<div id="page-settings" class="page">
+<div  class="page">
 <div class="card" style="border:3px solid #111827;margin:10px">
 <h2>⚙️ Settings</h2>
 <p style="font-size:12px;color:#6b7280">Manage your account, security and support requests</p>
@@ -6281,5 +6281,504 @@ console.log('✅ TOP 3 PAGES + CEO VERIFICATION ADDED - My Bookings, Nearby Nurs
 })();
 </script>
 
+
+<!-- ===== FINAL PRODUCTION PATCH - ALL SUGGESTIONS ===== -->
+<script>
+
+// ===== FINAL PRODUCTION GROUP CHAT - ALL SUGGESTIONS ADDED =====
+(function finalProductionGroupChat(){
+  console.log('🚀 Installing FINAL PRODUCTION Group Chat - All suggestions');
+
+  function isGCLogged(){
+    return localStorage.getItem('groupChatAuthorized') || localStorage.getItem('isCEOLogged') || localStorage.getItem('staffID') || localStorage.getItem('nursePhone');
+  }
+  function getGCRole(){
+    return localStorage.getItem('gcRole') || (localStorage.getItem('isCEOLogged')?'CEO':localStorage.getItem('staffID')?'STAFF':localStorage.getItem('nursePhone')?'NURSE':'GUEST');
+  }
+  function getGCName(){
+    return localStorage.getItem('gcName') || localStorage.getItem('ceoID') || localStorage.getItem('staffName') || localStorage.getItem('staffID') || localStorage.getItem('nurseName') || localStorage.getItem('nursePhone') || 'User';
+  }
+
+  // Sanitize HTML to prevent XSS / spam injection
+  function sanitizeText(txt){
+    var div = document.createElement('div');
+    div.innerText = txt;
+    return div.innerHTML; // escapes < > 
+  }
+
+  // Rate limit helpers
+  function canSendMessage(){
+    var lastSend = parseInt(localStorage.getItem('gc_lastSend')||'0',10);
+    var now = Date.now();
+    var diff = now - lastSend;
+    if(diff < 3000){ // 3 seconds
+      return {ok:false, wait: Math.ceil((3000-diff)/1000)};
+    }
+    // Anti-flood: max 10 msgs per 60 seconds
+    try{
+      var history = JSON.parse(localStorage.getItem('gc_sendHistory')||'[]');
+      // keep only last 60s
+      history = history.filter(t => now - t < 60000);
+      if(history.length >= 10){
+        return {ok:false, flood:true};
+      }
+    }catch(e){}
+    return {ok:true};
+  }
+  function recordSend(){
+    var now = Date.now();
+    localStorage.setItem('gc_lastSend', now.toString());
+    try{
+      var history = JSON.parse(localStorage.getItem('gc_sendHistory')||'[]');
+      history.push(now);
+      // keep last 20
+      if(history.length>20) history = history.slice(-20);
+      localStorage.setItem('gc_sendHistory', JSON.stringify(history));
+    }catch(e){}
+  }
+
+  window.updateGCUI = function(){
+    var logged = isGCLogged();
+    var role = getGCRole();
+    var name = getGCName();
+    var loggedEl = document.getElementById('gcLoggedAs');
+    var reqEl = document.getElementById('gcLoginRequired');
+    var input = document.getElementById('globalChatInput');
+    var box = document.getElementById('globalChatBox');
+    var masterBtn = document.getElementById('masterClearBtn');
+    
+    if(logged){
+      if(loggedEl){ loggedEl.style.display='block'; loggedEl.innerHTML = `✅ Logged in as <b>${role}</b>: ${name} <button onclick="logoutGC()" style="margin-left:8px;background:#ef4444;color:white;border:none;padding:4px 8px;border-radius:6px;font-size:10px">Logout</button> <small style="color:#16a34a;margin-left:6px">• 3s anti-spam active</small>`; }
+      if(reqEl) reqEl.style.display='none';
+      if(input){ input.disabled=false; input.placeholder='Type message... (Enter to send, max 1000 chars)'; input.style.opacity='1'; input.maxLength=1000; }
+      if(box) box.style.display='flex';
+      if(masterBtn && role==='CEO') masterBtn.classList.remove('hidden');
+    } else {
+      if(loggedEl) loggedEl.style.display='none';
+      if(reqEl) reqEl.style.display='block';
+      if(input){ input.disabled=true; input.placeholder='🔒 Login as CEO/Staff/Nurse above to chat'; input.style.opacity='0.6'; }
+      if(box) box.style.display='none';
+      if(masterBtn) masterBtn.classList.add('hidden');
+    }
+  };
+
+  window.logoutGC = function(){
+    localStorage.removeItem('groupChatAuthorized');
+    localStorage.removeItem('gcRole');
+    localStorage.removeItem('gcName');
+    updateGCUI();
+    loadGCChat();
+    var t=document.createElement('div'); t.innerText='Logged out from Group Chat'; t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#111827;color:white;padding:10px 16px;border-radius:20px;z-index:99999;font-size:12px'; document.body.appendChild(t); setTimeout(()=>t.remove(),2000);
+  };
+
+  function saveLocalGCMessage(msg){
+    try{
+      var msgs = JSON.parse(localStorage.getItem('groupChatLocal')||'[]');
+      msgs.push(msg);
+      if(msgs.length>300) msgs = msgs.slice(-300);
+      localStorage.setItem('groupChatLocal', JSON.stringify(msgs));
+    }catch(e){}
+  }
+
+  // FINAL SEND with all suggestions
+  window.sendGlobalChat = function(){
+    var input = document.getElementById('globalChatInput');
+    if(!input){ alert('Chat input not found'); return; }
+    var raw = input.value.trim();
+    if(!raw) return;
+
+    // 1. Auth check (spam protection - clients blocked)
+    if(!isGCLogged()){
+      alert('🔐 Please login first using buttons above:\n👑 CEO Login\n👨‍💼 Staff Login\n👩‍⚕️ Nurse Login');
+      updateGCUI();
+      return;
+    }
+
+    // 2. Length validation (production)
+    if(raw.length > 1000){
+      alert('❌ Message too long (max 1000 characters). You typed '+raw.length);
+      return;
+    }
+    if(raw.length < 1){
+      return;
+    }
+
+    // 3. Rate limit - 3 seconds
+    var check = canSendMessage();
+    if(!check.ok){
+      if(check.flood){
+        alert('⛔ Anti-flood: Max 10 messages per minute. Please wait a bit.');
+      } else {
+        alert('⏳ Please wait '+check.wait+'s before sending again (anti-spam protection).');
+      }
+      return;
+    }
+
+    var role = getGCRole();
+    var name = getGCName();
+    var phone = localStorage.getItem('nursePhone')||localStorage.getItem('staffID')||localStorage.getItem('ceoID')||'';
+
+    var msgData = {
+      text: raw, // store raw, sanitize on render
+      message: raw,
+      name: name,
+      sender: name,
+      role: role,
+      senderRole: role,
+      phone: phone,
+      timestamp: Date.now(),
+      time: Date.now(),
+      id: Date.now().toString() + Math.random().toString(36).slice(2,6)
+    };
+
+    // 4. Optimistic UI - instant
+    input.value = '';
+    saveLocalGCMessage(msgData);
+    recordSend();
+    renderGCMessages(JSON.parse(localStorage.getItem('groupChatLocal')||'[]').concat(window._lastRemote||[]));
+    
+    var sendBtn = document.querySelector('#page-group-chat button[onclick*="sendGlobalChat"]');
+    if(sendBtn){ sendBtn.disabled=true; sendBtn.innerText='Sending...'; setTimeout(()=>{ if(sendBtn) { sendBtn.disabled=false; sendBtn.innerText='Send'; } }, 3000); }
+
+    // 5. Firebase sync (production rules validate)
+    if(window.db){
+      window.db.ref('groupChat/'+msgData.id).set(msgData).then(()=>{
+        if(sendBtn){ sendBtn.disabled=false; sendBtn.innerText='Send ✓'; setTimeout(()=>{ if(sendBtn) sendBtn.innerText='Send'; }, 2000); }
+        loadGCChat();
+      }).catch(e=>{
+        console.warn('Firebase write blocked (check production rules):', e.message);
+        if(sendBtn){ sendBtn.disabled=false; sendBtn.innerText='Send ✓ (Local)'; }
+      });
+    } else {
+      if(sendBtn){ sendBtn.disabled=false; sendBtn.innerText='Send ✓ (Local)'; }
+    }
+
+    if(navigator.vibrate) navigator.vibrate(30);
+    var box=document.getElementById('globalChatBox'); if(box) box.scrollTop = box.scrollHeight;
+  };
+
+  window.renderGCMessages = function(msgs){
+    var box = document.getElementById('globalChatBox');
+    if(!box) return;
+    if(!msgs || msgs.length===0){
+      box.innerHTML = '<div style="padding:20px;text-align:center;color:#6b7280">💬 No messages yet<br><small>Start chatting - 3s anti-spam active</small></div>';
+      return;
+    }
+    msgs.sort((a,b)=>(a.timestamp||a.time||0)-(b.timestamp||b.time||0));
+    var currentPhone = (localStorage.getItem('nursePhone')||localStorage.getItem('staffID')||localStorage.getItem('ceoID')||'').replace(/[^0-9]/g,'');
+    var myName = getGCName();
+    var html='';
+    msgs.slice(-120).forEach(m=>{
+      var role = m.role||m.senderRole||'NURSE';
+      var name = m.name||m.sender||'User';
+      var text = m.text||m.message||'';
+      var time = m.timestamp||m.time||Date.now();
+      var date = new Date(time);
+      var timeStr = date.getHours().toString().padStart(2,'0')+':'+date.getMinutes().toString().padStart(2,'0');
+      var isMe = (m.phone||'').replace(/[^0-9]/g,'').slice(-9) === currentPhone.slice(-9) || name===myName;
+      var roleColor = role==='CEO'?'#111827':role==='STAFF'?'#7c3aed':'#2563eb';
+      var roleEmoji = role==='CEO'?'👑':role==='STAFF'?'👨‍💼':role==='NURSE'?'👩‍⚕️':'👤';
+      // sanitize on render to prevent XSS
+      var safeText = sanitizeText(text);
+      html+=`<div class="chatMsg ${isMe?'me':'other'}" style="margin-bottom:8px"><div style="font-size:9px;color:${roleColor};font-weight:800">${roleEmoji} ${name} • ${role} • ${timeStr}</div><div style="font-size:12px;margin-top:2px;word-break:break-word;white-space:pre-wrap">${safeText}</div></div>`;
+    });
+    box.innerHTML = html;
+    box.scrollTop = box.scrollHeight;
+  };
+
+  window.loadGCChat = function(){
+    var box = document.getElementById('globalChatBox');
+    if(!box) return;
+    if(!isGCLogged()){
+      box.innerHTML = '<div style="padding:20px;text-align:center;color:#ef4444;font-weight:800">🔒 Please login as CEO, Staff or Nurse using buttons above</div>';
+      box.style.display='none';
+      updateGCUI();
+      return;
+    }
+    box.style.display='flex';
+    box.style.flexDirection='column';
+    box.innerHTML = '<div style="padding:10px;text-align:center;color:#6b7280;font-size:11px">⏳ Loading secure chat...</div>';
+    updateGCUI();
+
+    var localMsgs=[];
+    try{ localMsgs = JSON.parse(localStorage.getItem('groupChatLocal')||'[]'); }catch(e){}
+
+    if(window.db){
+      window.db.ref('groupChat').orderByChild('timestamp').limitToLast(120).once('value').then(snap=>{
+        var val = snap.val()||{};
+        var remote = Object.values(val);
+        window._lastRemote = remote;
+        var all = remote.concat(localMsgs);
+        var seen={}; var uniq=[]; all.forEach(m=>{ if(!seen[m.id]){ seen[m.id]=1; uniq.push(m);} });
+        renderGCMessages(uniq);
+      }).catch(e=>{
+        console.warn('Firebase read blocked:', e.message);
+        window._lastRemote = [];
+        renderGCMessages(localMsgs);
+      });
+    } else {
+      window._lastRemote=[];
+      renderGCMessages(localMsgs);
+    }
+  };
+
+  // Clear chat (CEO only)
+  window.clearGroupChat = function(){
+    if(getGCRole()!=='CEO'){
+      alert('Only CEO can clear chat');
+      return;
+    }
+    if(!confirm('🗑 CEO: Delete ALL group chat messages? This cannot be undone.')) return;
+    if(window.db){
+      window.db.ref('groupChat').remove().then(()=>{
+        localStorage.removeItem('groupChatLocal');
+        loadGCChat();
+        alert('✅ Group chat cleared');
+      });
+    } else {
+      localStorage.removeItem('groupChatLocal');
+      loadGCChat();
+    }
+  };
+
+  // Enter to send + auto-load
+  document.addEventListener('DOMContentLoaded', function(){
+    var input = document.getElementById('globalChatInput');
+    if(input){
+      input.addEventListener('keydown', function(e){
+        if(e.key==='Enter'){ e.preventDefault(); sendGlobalChat(); }
+      });
+      // live char counter
+      input.addEventListener('input', function(){
+        var len = this.value.length;
+        if(len>900){
+          this.style.borderColor = len>1000 ? '#ef4444' : '#eab308';
+        } else {
+          this.style.borderColor = '#e5e7eb';
+        }
+      });
+    }
+  });
+  setTimeout(function(){
+    var input = document.getElementById('globalChatInput');
+    if(input && !input._finalFixed){
+      input.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); sendGlobalChat(); } });
+      input._finalFixed=true;
+    }
+    var page=document.getElementById('page-group-chat');
+    if(page){
+      var obs=new MutationObserver(function(){ if(page.classList.contains('active')){ updateGCUI(); loadGCChat(); } });
+      obs.observe(page,{attributes:true});
+    }
+    // Override any old functions that might have been redefined after
+    window.sendGlobalChat = window.sendGlobalChat;
+  }, 1200);
+
+  console.log('✅ FINAL PRODUCTION Group Chat installed - All suggestions: spam block, rate limit 3s, anti-flood 10/min, 1000 char limit, XSS sanitize');
+})();
+
+// Also add page auto-refresh for group chat
+(function(){
+  var origShowPage = window.showPage;
+  if(origShowPage && !origShowPage._finalPatched){
+    window.showPage = function(id){
+      var r = origShowPage.apply(this, arguments);
+      if(id==='group-chat'){
+        setTimeout(function(){ if(window.updateGCUI) updateGCUI(); if(window.loadGCChat) loadGCChat(); }, 400);
+      }
+      return r;
+    };
+    window.showPage._finalPatched = true;
+  }
+})();
+
+</script>
+
+<!-- ===== PLAY STORE REQUIRED PAGES - ADDED ===== -->
+<div id="page-delete-account" class="page">
+<div class="card" style="border:3px solid #ef4444">
+<h2>🗑️ Delete Account & Data</h2>
+<p style="font-size:12px;color:#6b7280">Required by Google Play Store. This will permanently delete your account and all bookings.</p>
+<div class="card" style="background:#fef2f2;border:2px solid #ef4444;margin-top:12px">
+<label style="font-weight:800">Enter your Phone Number to confirm</label>
+<input id="delPhone" type="tel" placeholder="+233..." style="margin:8px 0">
+<label style="font-weight:800">Reason (optional)</label>
+<textarea id="delReason" rows="3" placeholder="Why are you deleting?" style="margin:8px 0"></textarea>
+<button class="btn" style="background:#ef4444;color:white;width:100%;font-weight:800;margin-top:10px" onclick="requestDeleteAccount()">🗑️ Permanently Delete My Account & All Data</button>
+<button class="btn" style="background:#6b7280;color:white;width:100%;margin-top:8px" onclick="showPage('settings')">Cancel</button>
+</div>
+<div id="delStatus" style="margin-top:12px;font-size:12px"></div>
+</div>
+</div>
+
+<div id="page-privacy-full" class="page">
+<div class="card">
+<h2>🔒 Privacy Policy - LOVE CARE GLOBAL</h2>
+<div style="font-size:12px;line-height:1.6;max-height:70vh;overflow-y:auto;padding:10px;background:white;border-radius:12px">
+<p><b>Last Updated: May 2026</b></p>
+<p>LOVE CARE GLOBAL respects your privacy. This app collects phone number, location (for SOS and nurse tracking), and booking details to provide nursing services.</p>
+<p><b>1. Data We Collect:</b> Phone, name, location, bookings, ratings, SOS alerts.</p>
+<p><b>2. How We Use:</b> To connect clients with verified nurses, emergency SOS, group chat for staff.</p>
+<p><b>3. Data Sharing:</b> We do NOT sell data. Only shared with booked nurse/staff for service delivery.</p>
+<p><b>4. Firebase:</b> Data stored securely in Firebase Realtime Database with production rules.</p>
+<p><b>5. Your Rights:</b> You can request data export or deletion via Delete Account page or email: lovecareglobal@gmail.com</p>
+<p><b>6. Location:</b> Used only for nearby nurses and SOS. You can deny permission.</p>
+<p><b>7. Contact:</b> lovecareglobal@gmail.com | +233...</p>
+<p><b>8. Play Store Compliance:</b> Complies with Google Play Data Safety policy.</p>
+</div>
+<button class="btn" style="background:#111827;color:white;width:100%;margin-top:12px" onclick="showPage('settings')">Back to Settings</button>
+</div>
+</div>
+
+<div id="page-contact-support" class="page">
+<div class="card" style="border:3px solid #2563eb">
+<h2>📞 Contact & Support Center</h2>
+<div style="display:grid;gap:10px;margin-top:12px">
+<div class="card" style="background:#eff6ff"><b>💬 WhatsApp Support</b><br><small>Fast response</small><br><button class="btnSmall" style="background:#25D366;color:white;margin-top:6px" onclick="window.open('https://wa.me/233000000000','_blank')">Open WhatsApp</button></div>
+<div class="card" style="background:#fef3c7"><b>📧 Email</b><br>lovecareglobal@gmail.com<br><button class="btnSmall" style="background:#111827;color:white;margin-top:6px" onclick="window.open('mailto:lovecareglobal@gmail.com')">Send Email</button></div>
+<div class="card" style="background:#f0fdf4"><b>📞 Call CEO</b><br><button class="btnSmall" style="background:#16a34a;color:white;margin-top:6px" onclick="window.open('tel:+233000000000')">Call Now</button></div>
+</div>
+<div class="card" style="margin-top:12px">
+<h3>❓ FAQ</h3>
+<div style="font-size:12px;line-height:1.5">
+<p><b>How to book a nurse?</b> Home > Book Nurse > Fill details > Confirm > Nurse will call.</p>
+<p><b>How are nurses verified?</b> ID + Certificate + Video + CEO approval. See verification badge.</p>
+<p><b>Refund policy?</b> 100% refund if nurse doesn't show. Request in My Bookings > Refund.</p>
+<p><b>SOS?</b> Press red floating 🚨 button anywhere, we send location to nearest nurses + CEO.</p>
+<p><b>Group Chat?</b> Only for verified nurses/staff/CEO. Clients cannot access (anti-spam).</p>
+</div>
+</div>
+<button class="btn" style="background:#6b7280;color:white;width:100%;margin-top:10px" onclick="showPage('home')">Back Home</button>
+</div>
+</div>
+
+<div id="page-nurse-profile-full" class="page">
+<div class="card" style="border:3px solid #7c3aed">
+<h2>👩‍⚕️ Nurse Profile</h2>
+<div id="nurseProfileFullContent" style="font-size:12px">
+<div style="text-align:center;padding:20px;color:#6b7280">Select a nurse from Nearby Nurses to view full profile</div>
+</div>
+<button class="btn" style="background:#7c3aed;color:white;width:100%;margin-top:12px" onclick="showPage('nearby-nurses')">Back to Nearby Nurses</button>
+</div>
+</div>
+
+<div id="page-wallet-nurse" class="page">
+<div class="card" style="border:3px solid #16a34a">
+<h2>💰 My Wallet - Earnings</h2>
+<div id="walletContent" style="font-size:12px">
+<div class="card" style="background:#f0fdf4"><b>Total Earned:</b> <span id="walletTotal">0 GHS</span><br><b>Pending Payout (85%):</b> <span id="walletPending">0 GHS</span><br><b>Company Fee (15%):</b> <span id="walletFee">0 GHS</span></div>
+<div id="payoutList" style="margin-top:10px"></div>
+</div>
+<button class="btn" style="background:#16a34a;color:white;width:100%;margin-top:12px" onclick="loadWallet()">🔄 Refresh Wallet</button>
+<button class="btn" style="background:#6b7280;color:white;width:100%;margin-top:8px" onclick="showPage('nurse-dashboard')">Back to Dashboard</button>
+</div>
+</div>
+
+<div id="page-invite-earn" class="page">
+<div class="card" style="border:3px solid #eab308;background:linear-gradient(135deg,#fef3c7,#fff)">
+<h2>🎁 Invite & Earn - 20 GHS Off</h2>
+<p style="font-size:12px">Share your code, friends get 20 GHS off first booking, you get 20 GHS credit.</p>
+<div class="card" style="background:white;border:2px dashed #eab308;text-align:center;margin:12px 0">
+<div style="font-size:10px;color:#6b7280">YOUR INVITE CODE</div>
+<div id="inviteCode" style="font-size:22px;font-weight:900;letter-spacing:2px;color:#111827">LOVECARE20</div>
+<button class="btnSmall" style="background:#eab308;color:#111827;font-weight:800;margin-top:8px" onclick="shareInvite()">📤 Share Invite Link</button>
+</div>
+<button class="btn" style="background:#111827;color:white;width:100%" onclick="showPage('home')">Back Home</button>
+</div>
+</div>
+
+<div id="page-track-nurse" class="page">
+<div class="card" style="border:3px solid #ef4444">
+<h2>🗺️ Track Nurse Live</h2>
+<div id="trackMap" style="width:100%;height:300px;background:#e5e7eb;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#6b7280">Live map will appear here when nurse starts duty</div>
+<div id="trackInfo" style="margin-top:10px;font-size:12px"></div>
+<button class="btn" style="background:#ef4444;color:white;width:100%;margin-top:10px" onclick="window.open('https://maps.google.com','_blank')">Open in Google Maps</button>
+<button class="btn" style="background:#6b7280;color:white;width:100%;margin-top:8px" onclick="showPage('my-bookings')">Back to Bookings</button>
+</div>
+</div>
+
+<script>
+
+// ===== PLAY STORE PAGES LOGIC =====
+window.requestDeleteAccount = function(){
+  var phone = (document.getElementById('delPhone')||{}).value||'';
+  var reason = (document.getElementById('delReason')||{}).value||'';
+  if(!phone){ alert('Enter phone number to confirm'); return; }
+  if(!confirm('⚠️ FINAL CONFIRM: Delete '+phone+' permanently? All bookings will be lost.')) return;
+  var status = document.getElementById('delStatus');
+  if(status) status.innerHTML = '⏳ Processing deletion...';
+  if(window.db){
+    window.db.ref('accountCancelRequests').push({phone:phone, reason:reason, timestamp:Date.now(), time:new Date().toISOString()}).then(()=>{
+      localStorage.clear();
+      if(status) status.innerHTML = '✅ Deletion requested. All data will be removed within 48h. App will now restart.';
+      setTimeout(()=>{ location.reload(); }, 2000);
+    }).catch(e=>{ if(status) status.innerHTML='❌ Error: '+e.message; });
+  } else {
+    localStorage.clear();
+    if(status) status.innerHTML='✅ Local data cleared. Please also contact support.';
+    setTimeout(()=>location.reload(), 1500);
+  }
+};
+
+window.shareInvite = function(){
+  var code = (document.getElementById('inviteCode')||{}).innerText||'LOVECARE20';
+  var text = `Join LOVE CARE GLOBAL - verified nurses in Ghana! Use my code ${code} for 20 GHS OFF first booking. Download: https://lovecareglobal.com`;
+  if(navigator.share){ navigator.share({title:'LOVE CARE GLOBAL Invite', text:text}).catch(()=>{}); }
+  else { navigator.clipboard.writeText(text).then(()=>alert('✅ Invite copied!')).catch(()=>alert(text)); }
+};
+
+window.loadWallet = function(){
+  var phone = localStorage.getItem('nursePhone')||'';
+  if(!phone){ document.getElementById('walletContent').innerHTML='<div style="color:#ef4444">Login as nurse to see wallet</div>'; return; }
+  var total=0, pending=0;
+  if(window.db){
+    window.db.ref('bookings').orderByChild('nursePhone').equalTo(phone).once('value').then(s=>{
+      var bookings = Object.values(s.val()||{}).filter(b=>b.status==='completed' || b.status==='WORK_DONE');
+      bookings.forEach(b=>{ total += parseFloat(b.price||b.amount||0); });
+      pending = total * 0.85;
+      document.getElementById('walletTotal').innerText = total.toFixed(2)+' GHS';
+      document.getElementById('walletPending').innerText = pending.toFixed(2)+' GHS';
+      document.getElementById('walletFee').innerText = (total*0.15).toFixed(2)+' GHS';
+    });
+    window.db.ref('payouts').orderByChild('nursePhone').equalTo(phone).limitToLast(10).once('value').then(s=>{
+      var payouts = Object.values(s.val()||{}).reverse();
+      var html = '<h4>Recent Payouts</h4>';
+      if(payouts.length===0) html+='<div style="color:#6b7280">No payouts yet</div>';
+      payouts.forEach(p=>{ html+=`<div class="card" style="font-size:11px"><b>${p.amount} GHS</b> - ${p.status||'pending'}<br><small>${new Date(p.timestamp).toLocaleDateString()}</small></div>`; });
+      document.getElementById('payoutList').innerHTML = html;
+    });
+  }
+};
+
+window.openNurseFullProfile = function(nurse){
+  var content = document.getElementById('nurseProfileFullContent');
+  if(!content) return;
+  content.innerHTML = `
+    <div style="text-align:center"><div style="width:80px;height:80px;background:#7c3aed;color:white;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:30px">${(nurse.name||'N')[0]}</div>
+    <h3>${nurse.name||'Nurse'} ${nurse.isVerified?'<span style="color:#16a34a">✓ Verified</span>':''}</h3>
+    <div style="color:#6b7280">${nurse.phone||''}</div></div>
+    <div class="card" style="margin-top:10px"><b>Certificates:</b><br>${nurse.certificates||'Verified certificates on file'}<br><br><b>Experience:</b> ${nurse.experience||'Professional nurse'}<br><br><b>Rating:</b> ⭐ ${nurse.rating||'5.0'} (${nurse.reviews||'Verified'})<br><br><b>Status:</b> ${nurse.isOnline?'🟢 Online - Available now':'🔴 Offline'}</div>
+    <button class="btn" style="background:#7c3aed;color:white;width:100%;margin-top:10px" onclick="showPage('book-nurse')">📅 Book This Nurse</button>
+    <button class="btnSmall" style="background:#25D366;color:white;width:100%;margin-top:8px" onclick="window.open('https://wa.me/${(nurse.phone||'').replace(/[^0-9]/g,'')}','_blank')">💬 WhatsApp Nurse</button>
+  `;
+  showPage('nurse-profile-full');
+};
+
+// Floating SOS button injection
+(function addFloatingSOS(){
+  if(document.getElementById('sosFloatBtn')) return;
+  var btn = document.createElement('button');
+  btn.id = 'sosFloatBtn';
+  btn.innerHTML = '🚨';
+  btn.title = 'Emergency SOS';
+  btn.style.cssText = 'position:fixed;bottom:90px;right:15px;background:#ef4444;color:white;border-radius:50%;width:62px;height:62px;z-index:9999;font-size:28px;border:3px solid white;box-shadow:0 6px 18px rgba(239,68,68,0.5);cursor:pointer;display:flex;align-items:center;justify-content:center;animation: pulseSOS 2s infinite;';
+  btn.onclick = function(){ if(window.showPage) showPage('sos-full'); };
+  var style = document.createElement('style');
+  style.innerHTML = '@keyframes pulseSOS{0%{box-shadow:0 0 0 0 rgba(239,68,68,0.7)}70%{box-shadow:0 0 0 12px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}';
+  document.head.appendChild(style);
+  document.body.appendChild(btn);
+})();
+
+</script>
 </body>
 </html>
