@@ -1,22 +1,20 @@
-# Love Care Global 🌍
-**Compassionate Care, Without Borders.**
+LOVE CARE GLOBAL - LINKS PATCHED
 
-A professional global caregiving platform. Not Ghana only - we serve Africa, Europe, Middle East & North America.
+Main Site: https://lovecareglobal-cell.github.io/love-care-global/
+Privacy Policy Online: https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html
+Terms Online: https://lovecareglobal-cell.github.io/love-care-global/terms.html
+Terms Full: https://lovecareglobal-cell.github.io/love-care-global/terms-of-service.html
 
-### ✨ Features
-- ✅ Verified Nurses - ID & Video Profile
-- 🎥 Secure video streaming via Cloudinary CDN
-- 🌍 Fast worldwide loading
-- 📱 PWA - Installable like native app
+Steps:
+1. Upload privacy-policy.html to your repo root so it is accessible at https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html
+2. Upload terms.html to same root so it is accessible at https://lovecareglobal-cell.github.io/love-care-global/terms.html
+3. Upload index-ULTIMATE-FINAL-WITH-LINKS.html renamed to index.html
 
-### 🔧 Tech Stack
-HTML5 / Firebase / Cloudinary (whkvne85) / PWA
+Test:
+- Open https://lovecareglobal-cell.github.io/love-care-global/ on phone
+- Go to Settings > Quick Links > Privacy Policy (Online) should open https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html
+- Same for Terms
 
-### 🚀 Live Demo
-**https://lovecareglobal-cell.github.io/love-care-global/**
-
-### 📧 Brand
-Managed by @lovecareglobal-cell
-Email: lovecareglobal@gmail.com (sent as Love Care Global)
-
-© 2026 Love Care Global - MIT License
+For Play Console:
+- App Content > Privacy Policy URL: https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html
+- Data Safety > Deletion: https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html + in-app Delete Account page
