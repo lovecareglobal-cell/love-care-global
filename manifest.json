@@ -1,60 +1,13 @@
 {
-  "name": "LOVE CARE GLOBAL - Professional Home Nursing Services",
-  "short_name": "Love Care",
-  "description": "LOVE CARE GLOBAL - Professional Home Nursing Services - Elderly Care, Baby Care, Hospital Support, Post-Surgery Care",
-  "start_url": "./index.html",
+  "name": "Love Care Global Home Nursing",
+  "short_name": "LoveCare Nursing",
+  "start_url": "/love-care-global/",
   "display": "standalone",
-  "background_color": "#f0fdf4",
-  "theme_color": "#16a34a",
-  "orientation": "any",
-  "icons": [
-    {
-      "src": "./Icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./Icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./Icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./Icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./Icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./Icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./Icon-384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "./Icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ]
+  "background_color": "#7c3aed",
+  "theme_color": "#111827",
+  "icons": [{
+    "src": "icon-512.png",
+    "sizes": "512x512",
+    "type": "image/png"
+  }]
 }
