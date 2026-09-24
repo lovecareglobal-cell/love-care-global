@@ -6900,5 +6900,143 @@ body{padding-bottom:85px !important}
 .footerLinks{display:none !important} /* Hide old circled buttons */
 @media(max-width:480px){ #appFooter div{gap:8px !important;font-size:11px !important} }
 </style>
+
+<!-- ===== LOVE CARE GLOBAL HOME NURSING - NATIVE FCM PUSH FOR BOOKINGS ===== -->
+<script type="module">
+// FCM Push for Love Care Global Home Nursing - Native + Web
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+import { getDatabase, ref, set, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const fcmConfig = {
+  apiKey: "AIzaSyB52-X1D8Cg-wUDWPds_tR7D8cF82dMdRg",
+  authDomain: "web-care-618e8.firebaseapp.com",
+  databaseURL: "https://web-care-618e8-default-rtdb.firebaseio.com",
+  projectId: "web-care-618e8",
+  storageBucket: "web-care-618e8.firebasestorage.app",
+  messagingSenderId: "1062578660694",
+  appId: "1:1062578660694:web:f94dfe12c929df05bce2f7"
+};
+
+let fcmApp, fcmMessaging, fcmDb;
+try {
+  fcmApp = initializeApp(fcmConfig, "fcmApp");
+  fcmMessaging = getMessaging(fcmApp);
+  fcmDb = getDatabase(fcmApp);
+  console.log("✅ FCM initialized for Love Care Global Home Nursing");
+} catch(e){ console.log("FCM init error", e); }
+
+window.LoveCareFCM = {
+  // Call this after nurse logs in
+  async registerNursePush(nurseId, phone) {
+    if(!fcmMessaging) return;
+    try {
+      // For web
+      if('Notification' in window && Notification.permission !== 'granted'){
+        const perm = await Notification.requestPermission();
+        if(perm !== 'granted') {
+          console.log("Push permission denied");
+          return;
+        }
+      }
+      // Capacitor native push
+      if(window.Capacitor && window.Capacitor.isNativePlatform()){
+        const { PushNotifications } = window.Capacitor.Plugins;
+        if(PushNotifications){
+          await PushNotifications.requestPermissions();
+          await PushNotifications.register();
+        }
+      }
+      // Get FCM token (web)
+      let token = null;
+      try {
+        token = await getToken(fcmMessaging, { vapidKey: "BK8XQv6mN8Zv1x2y3z4a5b6c7d8e9f0g1h2i3j4k5l6m7n8o9p0q1r2s3t4u5v6" });
+      } catch(e){ console.log("Web token fallback to native", e); }
+
+      // Save token to Firebase Realtime DB for nurse
+      if(nurseId){
+        const updates = {};
+        if(token) updates[`nurses/${nurseId}/fcmToken`] = token;
+        if(phone) updates[`nurses/${nurseId}/phone`] = phone;
+        updates[`nurses/${nurseId}/pushEnabled`] = true;
+        updates[`nurses/${nurseId}/lastPushRegister`] = new Date().toISOString();
+        await update(ref(fcmDb), updates);
+        console.log("✅ Nurse FCM token saved:", nurseId);
+      }
+      return token;
+    } catch(err){ console.error("FCM register error", err); }
+  },
+
+  // Send push when client books nurse (call from booking function)
+  async sendBookingPush(nurseId, bookingData){
+    // This saves a notification trigger that your Cloud Function can pick up
+    // For now, we save to /notifications/nurseId
+    if(!fcmDb || !nurseId) return;
+    const notifId = Date.now();
+    await set(ref(fcmDb, `notifications/${nurseId}/${notifId}`), {
+      type: "NEW_BOOKING",
+      title: "🔔 New Booking! - Love Care Global Home Nursing",
+      body: `${bookingData.clientName || 'Client'} booked you for ${bookingData.service || 'home care'} on ${bookingData.date || 'today'}`,
+      bookingId: bookingData.bookingId || notifId,
+      clientName: bookingData.clientName,
+      service: bookingData.service,
+      amount: bookingData.amount,
+      timestamp: new Date().toISOString(),
+      read: false
+    });
+  }
+};
+
+// Listen for foreground messages
+if(fcmMessaging){
+  onMessage(fcmMessaging, (payload) => {
+    console.log("📩 Foreground FCM:", payload);
+    const title = payload.notification?.title || "Love Care Global Home Nursing";
+    const body = payload.notification?.body || "New booking received";
+    // Show native-looking alert
+    if('Notification' in window && Notification.permission === 'granted'){
+      new Notification(title, { body, icon: '/icon-512.png' });
+    } else {
+      alert(title + "\n" + body);
+    }
+    // Play sound
+    try { new Audio('https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a650f3.mp3').play(); } catch(e){}
+  });
+}
+
+// Auto hook into your existing booking flow - override if exists
+window.hookBookingForPush = function(nurseId, bookingData){
+  if(window.LoveCareFCM) window.LoveCareFCM.sendBookingPush(nurseId, bookingData);
+};
+
+// Capacitor native listener
+if(window.Capacitor){
+  document.addEventListener('DOMContentLoaded', async () => {
+    try {
+      const { PushNotifications } = window.Capacitor.Plugins || {};
+      if(!PushNotifications) return;
+      PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        console.log("Native push received", notification);
+        alert(notification.title + "\n" + notification.body);
+      });
+      PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        console.log("Push action", action);
+        if(window.showPage) window.showPage('nurse-dashboard');
+      });
+    } catch(e){}
+  });
+}
+</script>
+
+<!-- Firebase Messaging Service Worker (must be in root as firebase-messaging-sw.js) -->
+<script>
+// Register service worker for FCM
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./firebase-messaging-sw.js')
+  .then(reg => console.log("✅ SW registered for FCM Push", reg.scope))
+  .catch(err => console.log("SW register fail", err));
+}
+</script>
+
 </body>
 </html>
