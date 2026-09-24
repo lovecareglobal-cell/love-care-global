@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>README - LOVE CARE GLOBAL</title>
+<style>
+body{font-family:Inter,system-ui,sans-serif;max-width:900px;margin:0 auto;padding:24px;line-height:1.7;color:#111827;background:#ffffff}
+h1{color:#7c3aed;font-size:32px} h2{color:#111827;margin-top:36px;border-bottom:2px solid #ede9fe;padding-bottom:8px}
+h3{color:#4c1d95} a{color:#7c3aed;text-decoration:none;font-weight:600} a:hover{text-decoration:underline}
+.badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-right:6px}
+.badge-live{background:#dcfce7;color:#166534} .badge-play{background:#ede9fe;color:#5b21b6} .badge-ghana{background:#fef9c3;color:#854d0e}
+.card{background:#f9fafb;border:1px solid #e5e7eb;border-radius:16px;padding:16px;margin:12px 0}
+.code{background:#111827;color:#e5e7eb;padding:14px;border-radius:12px;overflow-x:auto;font-family:monospace;font-size:13px;display:block}
+table{width:100%;border-collapse:collapse;margin:12px 0} th,td{border:1px solid #e5e7eb;padding:10px;text-align:left;font-size:14px} th{background:#f5f3ff}
+</style>
+</head>
+<body>
+
+<h1>❤️ LOVE CARE GLOBAL</h1>
+<p>
+<span class="badge badge-live">● LIVE</span>
+<span class="badge badge-play">PLAY STORE READY</span>
+<span class="badge badge-ghana">GHANA • ACCRA</span>
+</p>
+
+<p><b>Ghana's First On-Demand Verified Home Nursing Platform</b><br>
+Connecting families with verified nurses anytime, anywhere. Built for Google Play Store launch.</p>
+
+<p><b>Live App:</b> <a href="https://lovecareglobal-cell.github.io/love-care-global/">https://lovecareglobal-cell.github.io/love-care-global</a></p>
+
+<h2>🔗 Important URLs for Google Play Console</h2>
+<div class="card">
+<p>Use these exact URLs in Play Console:</p>
+<table>
+<tr><th>Field</th><th>URL</th></tr>
+<tr><td><b>Privacy Policy (required)</b></td><td><a href="https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html">https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html</a></td></tr>
+<tr><td><b>Terms & Conditions</b></td><td><a href="https://lovecareglobal-cell.github.io/love-care-global/terms.html">https://lovecareglobal-cell.github.io/love-care-global/terms.html</a></td></tr>
+<tr><td><b>Terms Fallback (backup)</b></td><td><a href="https://lovecareglobal-cell.github.io/love-care-global/terms-of-service.html">https://lovecareglobal-cell.github.io/love-care-global/terms-of-service.html</a></td></tr>
+<tr><td><b>Account Deletion (required)</b></td><td><a href="https://lovecareglobal-cell.github.io/love-care-global/delete-account.html">https://lovecareglobal-cell.github.io/love-care-global/delete-account.html</a></td></tr>
+<tr><td>About Us</td><td><a href="https://lovecareglobal-cell.github.io/love-care-global/about.html">https://lovecareglobal-cell.github.io/love-care-global/about.html</a></td></tr>
+<tr><td>Contact</td><td><a href="https://lovecareglobal-cell.github.io/love-care-global/contact.html">https://lovecareglobal-cell.github.io/love-care-global/contact.html</a></td></tr>
+<tr><td>Home</td><td><a href="https://lovecareglobal-cell.github.io/love-care-global/">https://lovecareglobal-cell.github.io/love-care-global/</a></td></tr>
+</table>
+</div>
+
+<h2>📁 Repository Structure</h2>
+<pre class="code">love-care-global/
+├── index.html                # Main App - Play Store compliant footer with real URLs
+├── privacy-policy.html       # Google Play Privacy Policy URL
+├── terms.html                # Primary Terms
+├── terms-of-service.html     # Fallback Terms (identical copy - prevents 404)
+├── about.html                # About Us page
+├── contact.html              # Contact page
+├── delete-account.html       # Account Deletion Instructions (required)
+└── README.html               # This file
+</pre>
+
+<h2>✅ What Was Fixed for Play Store?</h2>
+<div class="card">
+<h3>Before (Rejected):</h3>
+<ul>
+<li>Footer used <code>onclick="showPage('privacy')"</code> - internal modal only</li>
+<li>No real external URLs - Google bots see 404</li>
+<li>No account deletion page</li>
+</ul>
+<h3>After (Approved Pattern):</h3>
+<ul>
+<li>✅ Footer uses real <code>&lt;a href="https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html"&gt;</code></li>
+<li>✅ All links absolute, with <code>target="_blank" rel="noopener"</code></li>
+<li>✅ Privacy, Terms, About, Contact, Delete Account all live as separate .html files</li>
+<li>✅ Fallback copy <code>terms-of-service.html</code> added to prevent 404 when app calls second URL</li>
+<li>✅ Footer fixed, visible, not covering content</li>
+</ul>
+</div>
+
+<h2>🚀 How to Deploy to GitHub Pages</h2>
+<ol>
+<li>Go to your repo: <code>github.com/lovecareglobal-cell/love-care-global</code></li>
+<li>Upload/replace all 7 files to the root (main branch)</li>
+<li>Commit: <code>Play Store ready - real footer URLs + fallback pages</code></li>
+<li>Wait 2-3 mins for GitHub Pages to build</li>
+<li>Test:
+<ul>
+<li><a href="https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html">https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html</a> should load</li>
+<li><a href="https://lovecareglobal-cell.github.io/love-care-global/terms.html">https://lovecareglobal-cell.github.io/love-care-global/terms.html</a> should load</li>
+<li><a href="https://lovecareglobal-cell.github.io/love-care-global/terms-of-service.html">https://lovecareglobal-cell.github.io/love-care-global/terms-of-service.html</a> should load (fallback)</li>
+<li>Open <a href="https://lovecareglobal-cell.github.io/love-care-global/">https://lovecareglobal-cell.github.io/love-care-global/</a> and click footer links</li>
+</ul>
+</li>
+</ol>
+
+<h2>📱 App Features</h2>
+<ul>
+<li>🏥 Home Nursing Booking (Paystack payment)</li>
+<li>🚨 SOS Emergency with Location</li>
+<li>👩‍⚕️ Verified Nurses - ID + Certificate + Video + CEO approval</li>
+<li>💬 Group Chat (CEO/Staff/Nurse) with anti-spam</li>
+<li>📍 Find Nearby Nurses</li>
+<li>⭐ Ratings & Reviews</li>
+<li>🔒 Firebase Realtime Database - Secure Rules</li>
+</ul>
+
+<h2>📞 Contact</h2>
+<p>
+<b>Email:</b> lovecareglobal@gmail.com<br>
+<b>Phone/WhatsApp:</b> +233544121814<br>
+<b>Location:</b> Accra, Ghana<br>
+<b>Website:</b> <a href="https://lovecareglobal-cell.github.io/love-care-global/">https://lovecareglobal-cell.github.io/love-care-global</a>
+</p>
+
+<h2>© License</h2>
+<p>© 2026 LOVE CARE GLOBAL. All rights reserved.<br>
+This repository contains Play Store compliant legal pages for the official app.</p>
+
+<hr>
+<p style="text-align:center;font-size:12px;color:#6b7280">
+Built with ❤️ in Ghana for families everywhere.<br>
+Last Updated: May 13, 2026 | Play Store Ready Build
+</p>
+
+</body>
+</html>
