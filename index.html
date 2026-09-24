@@ -6803,7 +6803,7 @@ window.openNurseFullProfile = function(nurse){
 <p><b>5. Your Rights:</b> Export or deletion via Delete Account page or lovecareglobal@gmail.com</p>
 <p><b>6. Location:</b> Only for nearby nurses and SOS. You can deny permission.</p>
 <p><b>7. Contact:</b> lovecareglobal@gmail.com | +233544121814</p>
-<p style="margin-top:12px;font-size:10px;color:#6b7280;word-break:break-all">Online: ./privacy-policy.html<br>Full URL: https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html</p>
+<p style="margin-top:12px;font-size:10px;color:#6b7280;word-break:break-all">Online: https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html<br>Full URL: https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html</p>
 </div>
 <div style="display:flex;gap:8px;margin-top:12px">
 <button class="btnSmall" style="background:#7c3aed;color:white;flex:1" onclick="openPrivacyPolicy()">🌐 View Online (Play Store)</button>
@@ -6832,14 +6832,11 @@ window.openNurseFullProfile = function(nurse){
 </div>
 
 <script>
-// ===== REAL EXTERNAL LINKS - PLAY STORE COMPLIANT - ABSOLUTE URLs =====
+// ===== REAL EXTERNAL LINKS - PATCHED =====
 window.PRIVACY_URL = "https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html";
 window.TERMS_URL = "https://lovecareglobal-cell.github.io/love-care-global/terms.html";
 window.TERMS2_URL = "https://lovecareglobal-cell.github.io/love-care-global/terms-of-service.html";
-window.ABOUT_URL = "https://lovecareglobal-cell.github.io/love-care-global/about.html";
-window.CONTACT_URL = "https://lovecareglobal-cell.github.io/love-care-global/contact.html";
-window.DELETE_URL = "https://lovecareglobal-cell.github.io/love-care-global/delete-account.html";
-window.MAIN_URL = "https://lovecareglobal-cell.github.io/love-care-global/";
+window.MAIN_URL = "./";
 
 window.openPrivacyPolicy = function(){
   try{ window.open(window.PRIVACY_URL, '_blank'); }catch(e){ if(window.showPage) showPage('privacy'); }
@@ -6855,40 +6852,28 @@ window.openPrivacyPolicySafe = function(){ if(window.showPage) showPage('privacy
 console.log('✅ External links patched (relative):', window.PRIVACY_URL, window.TERMS_URL);
 </script>
 
-<!-- ===== NEW FOOTER - PLAY STORE COMPLIANT - REAL URLS - NO MODALS ===== -->
+
+
+
+<!-- ===== NEW FOOTER - PLAY STORE COMPLIANT - REAL URLS ONLY - NO MODALS ===== -->
 <footer id="appFooter" style="position:fixed;bottom:0;left:0;right:0;background:#111827;color:#d1d5db;padding:0;z-index:9998;border-top:3px solid #7c3aed;font-family:Inter,system-ui,sans-serif">
-  <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px;padding:12px 10px;font-size:11.5px;line-height:1.4">
-    <a href="https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html" target="_blank" rel="noopener" style="color:#a78bfa;text-decoration:none;font-weight:600">🔒 Privacy Policy</a>
+  <div style="display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:14px;padding:12px 10px;font-size:12px;line-height:1.4">
+    <a href="https://lovecareglobal-cell.github.io/love-care-global/privacy-policy.html" target="_blank" rel="noopener" style="color:#a78bfa;text-decoration:none;font-weight:700">🔒 Privacy Policy</a>
     <span style="color:#374151">|</span>
-    <a href="https://lovecareglobal-cell.github.io/love-care-global/terms.html" target="_blank" rel="noopener" style="color:#a78bfa;text-decoration:none;font-weight:600">📄 Terms & Conditions</a>
+    <a href="https://lovecareglobal-cell.github.io/love-care-global/terms.html" target="_blank" rel="noopener" style="color:#a78bfa;text-decoration:none;font-weight:700">📄 Terms</a>
     <span style="color:#374151">|</span>
-    <a href="https://lovecareglobal-cell.github.io/love-care-global/about.html" target="_blank" rel="noopener" style="color:#9ca3af;text-decoration:none">About Us</a>
+    <a href="https://lovecareglobal-cell.github.io/love-care-global/about.html" target="_blank" rel="noopener" style="color:#9ca3af;text-decoration:none">About</a>
     <span style="color:#374151">|</span>
     <a href="https://lovecareglobal-cell.github.io/love-care-global/contact.html" target="_blank" rel="noopener" style="color:#9ca3af;text-decoration:none">Contact</a>
     <span style="color:#374151">|</span>
     <a href="https://lovecareglobal-cell.github.io/love-care-global/delete-account.html" target="_blank" rel="noopener" style="color:#f87171;text-decoration:none">Delete Account</a>
-    <span style="color:#374151">|</span>
-    <a href="https://lovecareglobal-cell.github.io/love-care-global/" target="_blank" rel="noopener" style="color:#6b7280;text-decoration:none">🏠 Home</a>
   </div>
-  <div style="text-align:center;padding:0 10px 8px;font-size:9.5px;color:#6b7280;letter-spacing:0.3px">
-    © 2026 LOVE CARE GLOBAL • lovecareglobal@gmail.com • +233544121814 • <span style="word-break:break-all">https://lovecareglobal-cell.github.io/love-care-global</span>
-  </div>
+  <div style="text-align:center;padding:0 10px 8px;font-size:9.5px;color:#6b7280">© 2026 LOVE CARE GLOBAL • https://lovecareglobal-cell.github.io/love-care-global</div>
 </footer>
 <style>
-/* Ensure content not hidden behind fixed footer */
 body{padding-bottom:78px !important}
-#page-privacy .card, #page-terms-full .card, .page .card:last-child{margin-bottom:90px}
-#appFooter a:hover{text-decoration:underline !important; color:white !important}
-@media(max-width:480px){ #appFooter div{gap:8px !important; font-size:10.5px !important} }
+.page .card:last-child{margin-bottom:90px}
+#appFooter a:hover{text-decoration:underline !important;color:white !important}
 </style>
-<script>
-// Override any old modal footer calls to use real URLs for Play Store compliance
-window.openPrivacyPolicy = function(){ window.open(window.PRIVACY_URL, '_blank', 'noopener'); };
-window.openTerms = function(){ window.open(window.TERMS_URL, '_blank', 'noopener'); };
-window.openTermsFull = function(){ window.open(window.TERMS2_URL, '_blank', 'noopener'); };
-window.openAbout = function(){ window.open(window.ABOUT_URL, '_blank', 'noopener'); };
-window.openContact = function(){ window.open(window.CONTACT_URL, '_blank', 'noopener'); };
-</script>
-
 </body>
 </html>
