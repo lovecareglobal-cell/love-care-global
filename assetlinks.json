@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.lovecareglobal.homenursing",
+        "sha256_cert_fingerprints": ["C9:B7:01:4C:87:15:F5:76:E6:F7:33:00:64:CF:75:8B:7B:2E:65:AA:F0:0D:19:14:39:28:B3:CF:B5:00:F5:62"]
+      }
+    }]
