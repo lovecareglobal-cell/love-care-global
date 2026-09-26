@@ -44,7 +44,15 @@ input,select,textarea{width:100%;padding:12px;border:2px solid #e5e7eb;border-ra
 <div class="logo" id="logoTap" onclick="logoTap()">💜</div>
 <div><div style="font-weight:900;font-size:14px">LOVE CARE GLOBAL</div><div style="background:white;color:#16a34a;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:900">HOME NURSING</div></div>
 </div>
+<div style="display:flex;align-items:center;gap:6px">
 <button class="btnSmall" style="background:#ef4444;color:white;padding:10px 18px;border-radius:20px;font-weight:900" onclick="triggerSOS()">SOS</button>
+<div style="position:relative">
+<button class="btnSmall" style="background:white;color:#111;font-size:22px;font-weight:900;padding:8px 12px;border-radius:10px" onclick="toggleExitMenu()">⋮</button>
+<div id="exitDropdown" class="hidden" style="position:absolute;right:0;top:110%;background:white;border:2px solid #e5e7eb;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);min-width:140px;z-index:10001;overflow:hidden">
+<button style="background:white;color:#ef4444;width:100%;padding:14px;text-align:left;border:none;font-weight:800;font-size:14px;cursor:pointer" onclick="exitApp()">🚪 Exit App</button>
+</div>
+</div>
+</div>
 </div>
 
 
@@ -404,7 +412,7 @@ let logoTapCount=0,logoTapTimer=null;
 let staffAccessRevealed=false;
 function logoTap(){logoTapCount++;clearTimeout(logoTapTimer);logoTapTimer=setTimeout(()=>logoTapCount=0,2000);if(logoTapCount>=5){var hidden=document.getElementById('staffAccessHidden');if(hidden){hidden.classList.remove('hidden');hidden.style.display='block';}var chatNav=document.getElementById('nav-chat');if(chatNav)chatNav.classList.remove('hidden');staffAccessRevealed=true;localStorage.setItem('staffAccessRevealed','true');alert('✅ CEO & Staff access revealed - Check drawer menu');logoTapCount=0;}}
 function hideStaffAccess(){var h=document.getElementById('staffAccessHidden');if(h){h.classList.add('hidden');h.style.display='none';}staffAccessRevealed=false;localStorage.removeItem('staffAccessRevealed');if(!localStorage.getItem('isCEOLogged')&&!localStorage.getItem('staffID')&&!localStorage.getItem('nursePhone')){var c=document.getElementById('nav-chat');if(c){c.classList.add('hidden');}}}
-function toggleMenu(){var m=document.getElementById('menuOverlay');if(!m)return;var wasActive=m.classList.contains('active');if(wasActive){setTimeout(()=>{if(!localStorage.getItem('isCEOLogged')&&!localStorage.getItem('staffID'))hideStaffAccess();},400);}m.classList.toggle('active');}
+function toggleMenu(){var m=document.getElementById('menuOverlay');var wasActive=m.classList.contains('active');if(wasActive){setTimeout(()=>{if(!localStorage.getItem('isCEOLogged')&&!localStorage.getItem('staffID'))hideStaffAccess();},400);}m.classList.toggle('active');}if(!localStorage.getItem('isCEOLogged')&&!localStorage.getItem('staffID')&&!localStorage.getItem('nursePhone')){var c=document.getElementById('nav-chat');if(c){c.classList.add('hidden');}}}
 
 
 
@@ -646,6 +654,8 @@ function sendChatMessage(){var input=document.getElementById('chatInput');if(!in
 function masterDeleteChat(){if(!localStorage.getItem('isCEOLogged')){alert('CEO only');return;}if(!confirm('Master delete all chat?'))return;if(!confirm('Are you sure? This cannot be undone'))return;if(window.db){db.ref('groupChat').remove().then(()=>alert('Chat cleared'));}}
 
 function triggerSOS(){if(confirm('Trigger SOS emergency? Shares location with CEO')){alert('SOS triggered! CEO notified with your location');if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{if(window.db)db.ref('sos/'+Date.now()).set({lat:pos.coords.latitude,lng:pos.coords.longitude,time:Date.now()});});}}}
+function toggleExitMenu(){var d=document.getElementById('exitDropdown');if(!d)return;d.classList.toggle('hidden');document.addEventListener('click',function hideMenu(e){if(!e.target.closest('[onclick="toggleExitMenu()"]')&&!e.target.closest('#exitDropdown')){var dd=document.getElementById('exitDropdown');if(dd)dd.classList.add('hidden');document.removeEventListener('click',hideMenu);}});}
+function exitApp(){if(!confirm('🚪 Exit LOVE CARE GLOBAL?\nAre you sure you want to leave?'))return;var dd=document.getElementById('exitDropdown');if(dd)dd.classList.add('hidden');try{window.close();}catch(e){}setTimeout(()=>{document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#f0fdf4;font-family:sans-serif;text-align:center;padding:20px"><div style="font-size:64px">💜</div><h2 style="color:#16a34a">LOVE CARE GLOBAL</h2><p>App closed successfully.<br>You can close this tab.</p><button onclick="location.reload()" style="margin-top:20px;background:#16a34a;color:white;border:none;padding:12px 24px;border-radius:10px;font-weight:800">🔄 Reopen App</button></div>';},200);}
 
 function registerNurse(){document.getElementById('nurseRegResult').innerHTML='<span style="color:#16a34a">✅ Registration submitted! CEO will verify your license (International: N&MC, NMCN, NMC PIN, RN, SANC etc.) + National ID</span>';}
 
