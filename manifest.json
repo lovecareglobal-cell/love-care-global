@@ -1,8 +1,8 @@
 {
   "name": "LOVE CARE GLOBAL HOME NURSING",
   "short_name": "LoveCare",
-  "description": "LOVE CARE GLOBAL HOME NURSING - 8 Countries - All features restored: Find Nurse Near Me choose one, name at top of booking goes straight to nurse platform + CEO/staff notification, SOS calls CEO + police straight, 3 dots exit, CEO staff icon disappears, group chat edit/delete + login, blocks below minimum, nurse upload boxes CV License Certificate Photos with preview, Top Rated working, No bottom nav - GOOD ONE",
-  "start_url": "./index.html?utm_source=pwa_standalone_good_no_freeze",
+  "description": "LOVE CARE GLOBAL HOME NURSING - 8 Countries - Find Nurse Near Me choose one - Name at top of booking goes straight to nurse platform - CEO staff notification - SOS calls CEO + police straight - 3 dots exit - CEO staff icon disappears when finish - Group chat small edit delete + login before chatting - Blocks below minimum rate - No bottom nav - Good One",
+  "start_url": "./index.html?utm_source=pwa_standalone_good",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
@@ -60,34 +60,22 @@
       "sizes": "1024x1024",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "LOVE CARE GLOBAL HOME NURSING - All Features Restored - No Freeze"
+      "label": "LOVE CARE GLOBAL HOME NURSING - 8 Countries - Good One"
     },
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Good One - No Bottom Nav - Upload Boxes Working"
+      "label": "Home - No Bottom Nav - Top Rated Working"
     }
   ],
   "shortcuts": [
     {
       "name": "Find Nurse Near Me",
-      "short_name": "Find",
-      "description": "Find Nurse Near Me - Choose one - Name at top",
-      "url": "./index.html?page=home&utm_source=pwa_standalone_good_no_freeze",
-      "icons": [
-        {
-          "src": "icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Join as Nurse",
-      "short_name": "Join Nurse",
-      "description": "Upload CV, License, Certificate, Photos with preview",
-      "url": "./index.html?page=nurse-public&utm_source=pwa_standalone_good_no_freeze",
+      "short_name": "Find Nurse",
+      "description": "Find Nurse Near Me - Choose one - Name at top of booking - Goes straight to nurse platform",
+      "url": "./index.html?page=home&utm_source=pwa_standalone_good",
       "icons": [
         {
           "src": "icon-192.png",
@@ -98,8 +86,20 @@
     {
       "name": "Book Nurse",
       "short_name": "Book",
-      "description": "Book - Blocks below minimum",
-      "url": "./index.html?page=book-nurse&utm_source=pwa_standalone_good_no_freeze",
+      "description": "Book Nurse - 13 Services - Blocks below minimum",
+      "url": "./index.html?page=book-nurse&utm_source=pwa_standalone_good",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Nurse Login",
+      "short_name": "Nurse",
+      "description": "Nurse Login - Drawer visible",
+      "url": "./index.html?page=nurse-login&utm_source=pwa_standalone_good",
       "icons": [
         {
           "src": "icon-192.png",
@@ -110,8 +110,8 @@
     {
       "name": "Group Chat",
       "short_name": "Group",
-      "description": "Group Chat - Edit/Delete + Login",
-      "url": "./index.html?page=group-chat&utm_source=pwa_standalone_good_no_freeze",
+      "description": "Group Chat - Nurses/CEO/Staff only - Small edit delete + login",
+      "url": "./index.html?page=group-chat&utm_source=pwa_standalone_good",
       "icons": [
         {
           "src": "icon-192.png",
@@ -122,8 +122,8 @@
     {
       "name": "SOS",
       "short_name": "SOS",
-      "description": "SOS - CEO + Police straight call",
-      "url": "./index.html?action=sos&utm_source=pwa_standalone_good_no_freeze",
+      "description": "SOS - Calls CEO + Police straight",
+      "url": "./index.html?action=sos&utm_source=pwa_standalone_good",
       "icons": [
         {
           "src": "icon-192.png",
