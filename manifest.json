@@ -1,22 +1,94 @@
-{
-  "name": "Love Care Global Home Nursing",
-  "short_name": "Love Care Nursing",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#111827",
-  "theme_color": "#7c3aed",
-  "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+
+// LOVE CARE GLOBAL HOME NURSING - Manifest.js for PWABuilder
+// This file is for PWABuilder compatibility - manifest.json is primary
+// PWABuilder will read manifest.json, but this JS ensures dynamic loading
+
+const LoveCareManifest = {
+  name: "LOVE CARE GLOBAL HOME NURSING",
+  short_name: "LoveCare",
+  description: "Book verified nurses in Ghana & 20 countries. 13 nursing services, live navigation, SOS emergency, voice notes, secure Paystack payments, ratings. 15% platform fee, 85% to nurses.",
+  start_url: "./index.html?utm_source=pwa",
+  scope: "./",
+  display: "standalone",
+  orientation: "any",
+  background_color: "#f0fdf4",
+  theme_color: "#16a34a",
+  lang: "en",
+  dir: "ltr",
+  categories: ["medical", "health", "lifestyle", "business"],
+  icons: [
+    { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+    { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+    { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+    { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    { src: "icon-1024.png", sizes: "1024x1024", type: "image/png", purpose: "any" },
+    { src: "icon-transparent-512.png", sizes: "512x512", type: "image/png", purpose: "any" }
+  ],
+  shortcuts: [
+    { name: "Book Nurse", short_name: "Book", description: "Book verified nurse", url: "./index.html?page=book-nurse", icons: [{src: "icon-192.png", sizes: "192x192"}] },
+    { name: "Join as Nurse", short_name: "Join", description: "Join as verified nurse", url: "./index.html?page=nurse-public", icons: [{src: "icon-192.png", sizes: "192x192"}] },
+    { name: "SOS Emergency", short_name: "SOS", description: "SOS emergency", url: "./index.html?action=sos", icons: [{src: "icon-192.png", sizes: "192x192"}] }
   ]
+};
+
+// For PWABuilder - export for use
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = LoveCareManifest;
 }
+
+// Auto-inject manifest link if missing (for PWABuilder testing)
+(function() {
+  if (!document.querySelector('link[rel="manifest"]')) {
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = './manifest.json';
+    document.head.appendChild(link);
+    console.log('✅ PWA Manifest injected for PWABuilder');
+  }
+  
+  // Register service worker for PWABuilder
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./firebase-messaging-sw.js')
+        .then(function(reg) {
+          console.log('✅ SW registered for PWABuilder:', reg.scope);
+        })
+        .catch(function(err) {
+          console.log('SW registration failed, trying sw.js');
+          navigator.serviceWorker.register('./sw.js').catch(function(){});
+        });
+    });
+  }
+})();
+
+// PWABuilder required - handle PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  console.log('✅ PWA install prompt ready for PWABuilder');
+  // Show custom install button if needed
+  const installBtn = document.getElementById('pwaInstallBtn');
+  if (installBtn) installBtn.style.display = 'block';
+});
+
+window.installPWA = function() {
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        console.log('✅ PWA installed');
+      }
+      deferredPrompt = null;
+    });
+  }
+};
+
+// For PWABuilder Store packaging
+window.LoveCarePWA = {
+  manifest: LoveCareManifest,
+  version: "2.1.0",
+  buildDate: "2026-05-13",
+  ceoAccess: "KUSIPETER / Peterasa80@you!",
+  features: ["13 Services", "Dual Pricing", "Voice Notes", "Live Navigation", "Ratings", "Group Chat Edit/Delete", "SOS", "Firebase"]
+};
