@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LOVE CARE GLOBAL HOME NURSING</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<meta name="theme-color" content="#16a34a">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<style>
+:root{--green:#16a34a;--dark:#111827;--yellow:#eab308;--purple:#7c3aed}
+body{font-family:Inter,system-ui,sans-serif;margin:0;background:#f0fdf4;color:#111827;padding-bottom:10px}
+.header{position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(90deg,#16a34a,#eab308);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;color:white}
+.logo{width:48px;height:48px;background:white;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--green);cursor:pointer}
+.menuOverlay{position:fixed;top:0;left:-100%;width:80%;max-width:320px;height:100%;background:white;z-index:9999;transition:0.3s;overflow-y:auto;box-shadow:2px 0 12px rgba(0,0,0,0.3)}
+.menuOverlay.active{left:0}
+.page{display:none;padding:78px 12px 12px;min-height:100vh}
+.page.active{display:block}
+.card{background:white;border-radius:16px;padding:14px;margin:10px 0;border:2px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.btnSmall{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer;pointer-events:auto !important}
+.btnSubmit{width:100%;border:none;border-radius:12px;padding:14px;font-weight:800;cursor:pointer;margin-top:8px;pointer-events:auto !important}
+input,select,textarea{width:100%;padding:12px;border:2px solid #e5e7eb;border-radius:10px;margin:6px 0;box-sizing:border-box;font-family:inherit}
+.bottomNav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:3px solid var(--green);display:flex;justify-content:space-around;padding:8px 0;z-index:9998}
+.bottomNav button{border:none;background:none;font-size:11px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;color:#6b7280}
+.bottomNav button.active{color:var(--green)}
+.hidden{display:none !important}
+.ratePopup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:16px;padding:18px;z-index:400;max-width:380px;width:92%;border:3px solid var(--yellow)}
+.leaflet-container{z-index:1 !important}
+#map{height:300px;border-radius:12px;margin:8px 0;z-index:1}
+</style>
+</head>
+<body>
+
+<div class="header">
+<div style="display:flex;align-items:center;gap:8px">
+<button class="btnSmall" style="background:#facc15;color:#111;font-size:20px" onclick="toggleMenu()">☰</button>
+<div class="logo" id="logoTap" onclick="logoTap()">💜</div>
+<div><div style="font-weight:900;font-size:14px">LOVE CARE GLOBAL</div><div style="background:white;color:#16a34a;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:900">HOME NURSING</div></div>
+</div>
+<button class="btnSmall" style="background:#ef4444;color:white;padding:10px 18px;border-radius:20px;font-weight:900" onclick="triggerSOS()">SOS</button>
+</div>
+
+<div id="menuOverlay" class="menuOverlay">
+<div style="padding:14px">
+<h3 style="margin:0 0 10px">LOVE CARE GLOBAL HOME NURSING</h3>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('home');toggleMenu()">🏠 Home</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('book-nurse');toggleMenu()">📅 Book Nurse - 13 Services</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('nurse-public');toggleMenu()">👩‍⚕️ Join as Nurse (8 Countries)</button>
+<button class="btnSmall" style="background:#2563eb;color:white;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('page-nurse-login');toggleMenu()">👩‍⚕️ Nurse Login</button>
+<button class="btnSmall" style="background:#7c3aed;color:white;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('page-group-chat');toggleMenu()">💬 Group Chat (Nurses/CEO/Staff Only)</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('client-dashboard');toggleMenu()">📋 My Bookings</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="updateSettingsDisplay();showPage('page-settings');toggleMenu()">⚙️ Settings</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="openTermsModal();toggleMenu()">📄 Terms & Conditions</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="window.open('./terms.html','_blank')">📄 Terms (Standalone)</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="window.open('./privacy-policy.html','_blank')">🔒 Privacy (Standalone)</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="window.open('./about.html','_blank')">💜 About (Standalone)</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="window.open('./delete-account.html','_blank')">🗑️ Delete Account (Standalone)</button>
+
+<div id="staffAccessHidden" class="hidden" style="display:none">
+<hr>
+<div style="font-size:10px;color:#ef4444;font-weight:800">🔒 CEO & STAFF ONLY - Hidden Access (5x logo tap)</div>
+<div style="font-size:9px;color:#6b7280;margin-bottom:6px">Only CEO & Staff login hidden - Nurses & Group visible above</div>
+<button class="btnSmall" style="background:#eab308;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('page-ceo-login');toggleMenu()">👑 CEO Login - KUSIPETER</button>
+<button class="btnSmall" style="background:#0e7490;color:white;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('page-staff-login');toggleMenu()">👔 Staff Login</button>
+</div>
+<hr>
+<div style="font-size:10px;color:#6b7280">© 2026 LOVE CARE GLOBAL HOME NURSING<br>lovecareglobal@gmail.com<br>+233544121814<br>8 Countries: GH, NG, ZA, KE, US, UK, CA, AU</div>
+</div>
+</div>
+
+<!-- HOME -->
+<div id="page-home" class="page active">
+<div class="card" style="border:3px solid #16a34a">
+<h2 style="margin:0">Find Verified Nurses Near You - 8 Countries</h2>
+<p style="font-size:11px;color:#6b7280">GH, NG, ZA, KE, US, UK, CA, AU - 13 Services</p>
+<button class="btnSmall" style="background:#16a34a;color:white;width:100%;padding:14px" onclick="findNearbyNurses()">📍 Find Nurses Near Me</button>
+<div id="nearbyNursesList" style="margin-top:10px"></div>
+<div id="map" style="height:380px;border-radius:12px;margin:8px 0;z-index:1;border:3px solid #16a34a"></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">
+<button class="btnSmall" style="background:#16a34a;color:white;flex:1;padding:10px;font-size:11px" onclick="switchMapLayer('osm')">🗺️ OSM Map</button>
+<button class="btnSmall" style="background:#2563eb;color:white;flex:1;padding:10px;font-size:11px" onclick="switchMapLayer('google')">🌍 Google Map Tiles</button>
+<button class="btnSmall" style="background:#eab308;color:#111;flex:1;padding:10px;font-size:11px" onclick="openInGoogleMaps()">📍 Open in Google Maps App</button>
+</div>
+<div style="display:flex;gap:8px">
+<button class="btnSmall" style="background:#2563eb;color:white;flex:1;padding:12px" onclick="startLiveNavigation()">🧭 Start Live Navigation</button>
+<button class="btnSmall" style="background:#ef4444;color:white;flex:1;padding:12px" onclick="stopLiveNavigation()">⏹️ Stop Navigation</button>
+</div>
+<div id="liveNavStatus" style="font-size:11px;margin-top:6px;background:#f0fdf4;padding:8px;border-radius:8px;min-height:20px">📍 Tap Find Nurses to see live map - OSM + Google Maps available</div>
+</div>
+
+<div class="card" id="topRatedSection" style="border:3px solid #eab308">
+<h2>⭐ Top Rated Nurses - Highly Rated by Clients</h2>
+<p style="font-size:11px;color:#6b7280">Real ratings from clients after service completed</p>
+<div id="topRatedList" style="max-height:400px;overflow-y:auto">Loading top rated nurses...</div>
+<button class="btnSmall" style="background:#eab308;color:#111;width:100%;padding:12px;margin-top:8px" onclick="loadTopRatedNurses()">🔄 Refresh Top Rated</button>
+</div>
+</div>
+<!-- BOOK NURSE -->
+<div id="page-book-nurse" class="page">
+<div class="card" style="border:3px solid #16a34a">
+<h2>📅 Book Nurse - 13 Services</h2>
+<label>Country (8 Countries)</label>
+<select id="countrySelect" onchange="updateCountryPricing()">
+<option value="GH">🇬🇭 Ghana - GHS</option>
+<option value="NG">🇳🇬 Nigeria - NGN</option>
+<option value="ZA">🇿🇦 South Africa - ZAR</option>
+<option value="KE">🇰🇪 Kenya - KES</option>
+<option value="US">🇺🇸 USA - USD</option>
+<option value="UK">🇬🇧 UK - GBP</option>
+<option value="CA">🇨🇦 Canada - CAD</option>
+<option value="AU">🇦🇺 Australia - AUD</option>
+</select>
+<label>Service (13 Services)</label>
+<select id="serviceType">
+<option>Elderly Care</option><option>Post Surgery Care</option><option>Child/Pediatric Care</option><option>Chronic Disease Management</option><option>Physiotherapy Support</option><option>Wound Care & Dressing</option><option>General Nursing</option><option>ICU/Critical Care</option><option>Maternity & Newborn</option><option>Disability & Special Needs</option><option>Mental Health Support</option><option>Lab Sample Collection</option><option>Medication & Injection</option>
+</select>
+<label>Care Mode</label>
+<div style="display:flex;gap:6px">
+<button id="tabHourly" class="btnSmall" style="background:#16a34a;color:white;flex:1" onclick="switchRateTab('hourly')">Hourly</button>
+<button id="tabDaily" class="btnSmall" style="background:#e5e7eb;color:#111;flex:1" onclick="switchRateTab('daily')">Daily</button>
+<button id="tabWeekly" class="btnSmall" style="background:#e5e7eb;color:#111;flex:1" onclick="switchRateTab('weekly')">Weekly</button>
+<button id="tabMonthly" class="btnSmall" style="background:#e5e7eb;color:#111;flex:1" onclick="switchRateTab('monthly')">Monthly</button>
+</div>
+<div style="display:flex;gap:8px;margin-top:8px">
+<div style="flex:1"><label>Days</label><div style="display:flex;gap:4px"><button class="btnSmall" onclick="stepVal('inputDays',-1)">-</button><input type="number" id="inputDays" value="1" min="1" max="365" oninput="calculateTotal()"><button class="btnSmall" onclick="stepVal('inputDays',1)">+</button></div></div>
+<div style="flex:1"><label>Hrs/Day</label><div style="display:flex;gap:4px"><button class="btnSmall" onclick="stepVal('inputHrsPerDayDaily',-1)">-</button><input type="number" id="inputHrsPerDayDaily" value="8" min="1" max="24" oninput="calculateTotal()"><button class="btnSmall" onclick="stepVal('inputHrsPerDayDaily',1)">+</button></div></div>
+</div>
+<div id="rateInfo" style="background:#f0fdf4;padding:8px;border-radius:8px;margin:8px 0;font-size:11px">Loading...</div>
+<label>Phone Number</label><input type="tel" id="clientPhone" placeholder="+233...">
+<label>Your Offer</label><input type="number" id="clientOffer" placeholder="Enter amount" oninput="validateOffer()">
+<div id="offerValidationMsg" style="font-size:11px;display:none"></div>
+<button class="btnSubmit" style="background:#16a34a;color:white" id="bookNurseBtn" onclick="bookNurse()">✅ Book Nurse - Pay with Paystack</button>
+<div id="bookResult" style="font-size:11px;margin-top:8px"></div>
+</div>
+</div>
+
+<div id="page-nurse-public" class="page">
+<div class="card" style="border:3px solid #2563eb">
+<h2>👩‍⚕️ Join as Nurse</h2>
+<label>Full Name</label><input type="text" id="nurseName" placeholder="Your full name">
+<label>Phone</label><input type="tel" id="nursePhoneReg" placeholder="Phone">
+<label>Email</label><input type="email" id="nurseEmail" placeholder="Email">
+<label>License</label><input type="text" id="nurseLicenseNumber" placeholder="e.g. N&MC 12345">
+<button class="btnSubmit" style="background:#2563eb;color:white" onclick="registerNurse()">📝 Register as Nurse</button>
+<div id="nurseRegResult"></div>
+</div>
+</div>
+
+<div id="page-client-login" class="page"><div class="card"><h2>👤 Client Login</h2><label>Phone</label><input type="tel" id="clientLoginPhone"><label>Password</label><input type="password" id="clientLoginPass"><button class="btnSubmit" style="background:#16a34a;color:white" onclick="clientLogin()">Login</button></div></div>
+<div id="page-nurse-login" class="page"><div class="card"><h2>👩‍⚕️ Nurse Login</h2><label>Phone</label><input type="tel" id="nurseLoginPhone"><label>Password</label><input type="password" id="nurseLoginPass"><button class="btnSubmit" style="background:#2563eb;color:white" onclick="nurseLogin()">Login</button></div></div>
+<div id="page-ceo-login" class="page"><div class="card"><h2>👑 CEO Login</h2><label>ID</label><input type="text" id="ceoID"><label>Password</label><input type="password" id="ceoPass"><button class="btnSubmit" style="background:#eab308;color:#111" onclick="ceoLogin()">Login as CEO</button><div id="ceoLoginResult"></div></div></div>
+<div id="page-staff-login" class="page"><div class="card"><h2>👔 Staff Login</h2><label>Staff ID</label><input type="text" id="staffIDInput"><label>Password</label><input type="password" id="staffPass"><button class="btnSubmit" style="background:#0e7490;color:white" onclick="staffLogin()">Login</button></div></div>
+<div id="page-settings" class="page"><div class="card"><h2>⚙️ Settings</h2><div id="settingsPhone">Not logged</div><button class="btnSmall" style="background:#2563eb;color:white;width:100%;margin-top:8px" onclick="showPage('home')">🏠 Go Home</button></div></div>
+<div id="page-group-chat" class="page"><div class="card"><h2>💬 Group Chat</h2><div id="chatMessages" style="background:#f9fafb;padding:8px">Loading...</div><div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="chatInput" style="flex:1"><button class="btnSmall" style="background:#7c3aed;color:white" onclick="sendChatMessage()">Send</button></div></div></div>
+
+<!-- STOP HERE - DO NOT ADD </body></html> - Part 3 continues after this -->
+<div id="ratingModal" class="ratePopup hidden" style="display:none;border-color:#eab308;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;border-radius:16px;padding:18px;z-index:400;max-width:380px;width:92%;border:3px solid #eab308">
+<h3>⭐ Rate Your Nurse</h3>
+<div style="display:flex;gap:8px;justify-content:center;margin:12px 0">
+<button class="btnSmall starBtn" onclick="setRating(1)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button>
+<button class="btnSmall starBtn" onclick="setRating(2)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button>
+<button class="btnSmall starBtn" onclick="setRating(3)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button>
+<button class="btnSmall starBtn" onclick="setRating(4)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button>
+<button class="btnSmall starBtn" onclick="setRating(5)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button>
+</div>
+<div id="ratingStarsDisplay" style="text-align:center;font-size:14px;font-weight:800;color:#eab308">Tap stars to rate</div>
+<textarea id="ratingComment" rows="3" placeholder="Write experience..."></textarea>
+<button class="btnSubmit" style="background:#eab308;color:#111" onclick="submitRating()">Submit Rating</button>
+<button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:6px" onclick="closeRatingModal()">Cancel</button>
+</div>
+
+<div id="termsModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:500;display:flex;align-items:center;justify-content:center;display:none">
+<div style="background:white;width:92%;max-width:600px;height:85%;border-radius:16px;overflow:hidden;display:flex;flex-direction:column">
+<div style="padding:12px;background:#111827;color:white;display:flex;justify-content:space-between"><b>Terms</b><button onclick="closeTermsModal()" style="background:#ef4444;color:white;border:none;border-radius:8px;padding:6px 12px">X</button></div>
+<iframe id="termsIframe" src="./terms.html" style="flex:1;border:none;width:100%"></iframe>
+</div>
+</div>
+
+<div class="bottomNav">
+<button id="nav-home" class="active" onclick="showPage('home')">🏠<span>Home</span></button>
+<button onclick="showPage('book-nurse')">📅<span>Book</span></button>
+<button onclick="showPage('nurse-public')">👩‍⚕️<span>Join</span></button>
+<button id="nav-chat" class="hidden" onclick="showPage('page-group-chat')">💬<span>Chat</span></button>
+<button onclick="updateSettingsDisplay();showPage('page-settings')">⚙️<span>Settings</span></button>
+</div>
+
+<script>
+const firebaseConfig={apiKey:"AIzaSyB52-X1D8Cg-wUDWPds_tR7D8cF82dMdRg",authDomain:"web-care-618e8.firebaseapp.com",databaseURL:"https://web-care-618e8-default-rtdb.firebaseio.com",projectId:"web-care-618e8",storageBucket:"web-care-618e8.firebasestorage.app",messagingSenderId:"1062578660694",appId:"1:1062578660694:web:f94dfe12c929df05bce2f7"};
+try{firebase.initializeApp(firebaseConfig);window.db=firebase.database();window.storage=firebase.storage();}catch(e){}
+
+let logoTapCount=0,logoTapTimer=null,staffAccessRevealed=false;
+function logoTap(){logoTapCount++;clearTimeout(logoTapTimer);logoTapTimer=setTimeout(()=>logoTapCount=0,2000);if(logoTapCount>=5){var h=document.getElementById('staffAccessHidden');if(h){h.classList.remove('hidden');h.style.display='block';}var c=document.getElementById('nav-chat');if(c)c.classList.remove('hidden');staffAccessRevealed=true;localStorage.setItem('staffAccessRevealed','true');alert('✅ CEO & Staff revealed');logoTapCount=0;}}
+function hideStaffAccess(){var h=document.getElementById('staffAccessHidden');if(h){h.classList.add('hidden');h.style.display='none';}staffAccessRevealed=false;localStorage.removeItem('staffAccessRevealed');}
+function toggleMenu(){var m=document.getElementById('menuOverlay');if(!m)return;var wasActive=m.classList.contains('active');if(wasActive){setTimeout(()=>{if(!localStorage.getItem('isCEOLogged')&&!localStorage.getItem('staffID'))hideStaffAccess();},400);}m.classList.toggle('active');}
+function showPage(id){if(id==='page-group-chat'){var isNurse=localStorage.getItem('nursePhone');var isCEO=localStorage.getItem('isCEOLogged');var isStaff=localStorage.getItem('staffID');if(!isNurse&&!isCEO&&!isStaff){alert('🔒 Group Chat only for Nurses, CEO & Staff');return;}}document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));var t=document.getElementById(id)||document.getElementById('page-'+id)||document.getElementById('page-home');if(t)t.classList.add('active');window.scrollTo(0,0);}
+const HOURLY_RATES={GH:{currency:'GHS',rate:25,rateLong:18},NG:{currency:'NGN',rate:3000,rateLong:2200},ZA:{currency:'ZAR',rate:300,rateLong:220},KE:{currency:'KES',rate:3500,rateLong:2500},US:{currency:'USD',rate:25,rateLong:18},UK:{currency:'GBP',rate:20,rateLong:15},CA:{currency:'CAD',rate:30,rateLong:22},AU:{currency:'AUD',rate:35,rateLong:25}};
+let currentTotalHours=8,currentTotalMin=0;
+function getCurrentNurseRate(){var c=document.getElementById('countrySelect').value||'GH';var r=HOURLY_RATES[c]||HOURLY_RATES['GH'];var days=parseInt(document.getElementById('inputDays').value||1);var isLong=days>=7;return{amount:isLong?r.rateLong:r.rate,currency:r.currency,tier:isLong?'LONG':'SHORT'};}
+function stepVal(id,d){var el=document.getElementById(id);if(!el)return;var v=parseInt(el.value||0)+d;if(v<1)v=1;el.value=v;calculateTotal();}
+function calculateTotal(){var days=parseInt(document.getElementById('inputDays').value||1);var hrs=parseInt(document.getElementById('inputHrsPerDayDaily').value||8);currentTotalHours=days*hrs;var rate=getCurrentNurseRate();currentTotalMin=currentTotalHours*rate.amount;var info=document.getElementById('rateInfo');if(info)info.innerText='Rate: '+rate.amount+' '+rate.currency+' - Hours: '+currentTotalHours+'h - Min: '+currentTotalMin.toFixed(2)+' '+rate.currency;validateOffer();}
+function validateOffer(){var offerEl=document.getElementById('clientOffer');if(!offerEl)return false;var rate=getCurrentNurseRate();var totalMin=currentTotalMin||0;var offer=parseFloat(offerEl.value||0);var msg=document.getElementById('offerValidationMsg');var btn=document.getElementById('bookNurseBtn');if(!offerEl.value){if(msg)msg.style.display='none';if(btn){btn.disabled=false;btn.style.opacity='1';}return false;}if(offer<totalMin){if(msg){msg.style.display='block';msg.style.background='#fef2f2';msg.style.border='2px solid #ef4444';msg.style.color='#ef4444';msg.innerHTML='❌ BLOCKED Below min '+totalMin.toFixed(2);}if(btn){btn.disabled=true;btn.style.opacity='0.5';}return false;}else{if(msg){msg.style.display='block';msg.style.background='#f0fdf4';msg.style.border='2px solid #16a34a';msg.style.color='#16a34a';msg.innerHTML='✅ VALID';}if(btn){btn.disabled=false;btn.style.opacity='1';}return true;}}
+function updateCountryPricing(){calculateTotal();}
+function updateSettingsDisplay(){var p=document.getElementById('settingsPhone');if(p)p.innerText=localStorage.getItem('clientPhone')||localStorage.getItem('nursePhone')||'Not logged';}
+function findNearbyNurses(){var l=document.getElementById('nearbyNursesList');if(l)l.innerHTML='Finding...';setTimeout(()=>{if(l)l.innerHTML='<div style="padding:10px;background:white;border:2px solid #16a34a;border-radius:12px"><b>Nurse Ama</b> - 4.9★<br><button class="btnSmall" style="background:#16a34a;color:white;width:100%" onclick="showPage(\'book-nurse\')">Book Now</button></div>';},600);}
+function ceoLogin(){var id=document.getElementById('ceoID').value;var pass=document.getElementById('ceoPass').value;var res=document.getElementById('ceoLoginResult');if(id==='KUSIPETER'&&pass==='Peterasa80@you!'){localStorage.setItem('isCEOLogged','true');if(res)res.innerHTML='✅ CEO Logged in';showPage('home');}else{if(res)res.innerHTML='❌ Invalid';}}
+function staffLogin(){var id=document.getElementById('staffIDInput').value;if(!id)return;localStorage.setItem('staffID',id);alert('Staff logged');showPage('home');}
+function nurseLogin(){var p=document.getElementById('nurseLoginPhone').value;if(!p)return;localStorage.setItem('nursePhone',p);alert('Nurse logged');showPage('home');}
+function clientLogin(){var p=document.getElementById('clientLoginPhone').value;if(!p)return;localStorage.setItem('clientPhone',p);alert('Client logged');showPage('home');}
+function triggerSOS(){if(confirm('Trigger SOS?'))alert('SOS triggered!');}
+function registerNurse(){var r=document.getElementById('nurseRegResult');if(r)r.innerHTML='✅ Registration submitted!';}
+function bookNurse(){alert('✅ Booking created! Total: '+currentTotalMin.toFixed(2));}
+function sendChatMessage(){var i=document.getElementById('chatInput');if(!i||!i.value.trim())return;if(window.db)db.ref('groupChat/'+Date.now()).set({user:localStorage.getItem('nursePhone')||'User',message:i.value.trim(),time:Date.now()});i.value='';}
+function setRating(s){alert(s+' stars');}
+function submitRating(){alert('Rating submitted');closeRatingModal();}
+function closeRatingModal(){var m=document.getElementById('ratingModal');if(m){m.classList.add('hidden');m.style.display='none';}}
+function loadTopRatedNurses(){var l=document.getElementById('topRatedList');if(l)l.innerHTML='Demo: Ama 4.9★, Kwame 4.8★';}
+function openTermsModal(){var m=document.getElementById('termsModal');if(m){m.classList.remove('hidden');m.style.display='flex';}}
+function closeTermsModal(){var m=document.getElementById('termsModal');if(m){m.classList.add('hidden');m.style.display='none';}}
+function toggleVoiceRecording(){alert('Voice recording');}
+function playVoiceNote(){}
+function deleteVoiceNote(){}
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{calculateTotal();updateSettingsDisplay();},500);});
+var mainMap=null,osmLayer=null,googleLayer=null;
+function initLiveMap(){var el=document.getElementById('map');if(!el)return;try{mainMap=L.map('map').setView([5.6037,-0.1870],13);osmLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mainMap);}catch(e){}}
+function switchMapLayer(t){if(!mainMap){initLiveMap();return;}}
+function openInGoogleMaps(){window.open('https://www.google.com/maps/search/?api=1&query=5.6037,-0.1870','_blank');}
+document.addEventListener('DOMContentLoaded',()=>{setTimeout(initLiveMap,800);});
+</script>
+</body>
+</html>
