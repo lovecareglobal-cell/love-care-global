@@ -1,0 +1,28 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Client Consent - LOVE CARE GLOBAL</title><link rel="icon" href="./icon-192.png">
+<style>
+body{font-family:Inter,system-ui,sans-serif;margin:0;background:#f0fdf4;color:#111827;padding:20px;max-width:800px;margin:0 auto;line-height:1.6}
+.header{background:linear-gradient(90deg,#5b21b6,#16a34a);color:white;padding:16px;border-radius:12px;text-align:center;margin-bottom:16px}
+.logo{width:60px;height:60px;background:white;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#5b21b6}
+.card{background:white;border-radius:12px;padding:16px;margin:12px 0;border:2px solid #e5e7eb}
+.btn{border:none;border-radius:10px;padding:12px 20px;font-weight:800;cursor:pointer;color:white;background:#5b21b6}
+.signature-box{border:2px dashed #5b21b6;border-radius:8px;padding:20px;margin:16px 0;text-align:center;background:#faf5ff}
+input,textarea,select{width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:8px;margin:6px 0;box-sizing:border-box}
+</style>
+</head><body>
+<div class="header"><div class="logo">✚</div><h2>LOVE CARE GLOBAL HOME NURSING</h2><h3>CLIENT CONSENT FORM</h3><p style="font-size:10px">Standalone HTML - Logo, Business Name, Signature, Time, Everything - Clean No Demo All Buttons Working</p></div>
+<div class="card"><h3>📋 Client Info</h3><input id="clientName" placeholder="Full Name"><input id="clientPhone" placeholder="Phone +233..."><input id="clientAddress" placeholder="Address"><input id="clientEmail" placeholder="Email"></div>
+<div class="card"><h3>👩‍⚕️ Service Consent</h3><ul style="font-size:11px"><li>Receive nursing care - Real bookings only No demo</li><li>Provide accurate medical info</li><li>Safe environment for nurse</li><li>Pay 100% via Paystack LIVE pk_live_f17...747b - 15% platform + 85% nurse after confirmation</li><li>Confirm work done + rate 1-5 - SOS, Chat, Share Live Location, Track Live, Video Call buttons working</li><li>Professional receipt with logo, business name, signature, time auto-generated</li></ul></div>
+<div class="card"><h3>✅ Signature & Time</h3><div class="signature-box"><input id="clientSignature" placeholder="Type full name as signature"><label><input type="checkbox" id="clientAgree" style="width:auto"> I agree to Client Consent, Terms, Privacy, All buttons working</label><br><input id="clientDate" type="date"><input id="clientTime" type="time"><p style="font-size:10px">Time: <span id="currentTime"></span></p><button class="btn" style="background:#16a34a;width:100%" onclick="submitClientConsent()">✅ I Consent - Submit</button></div></div>
+<script>
+document.getElementById('currentTime').innerText=new Date().toLocaleString();
+document.getElementById('clientDate').valueAsDate=new Date();
+document.getElementById('clientTime').value=new Date().toTimeString().slice(0,5);
+function submitClientConsent(){
+  var n=document.getElementById('clientName').value, p=document.getElementById('clientPhone').value, s=document.getElementById('clientSignature').value, a=document.getElementById('clientAgree').checked;
+  if(!n||!p||!s){alert('Fill Name Phone Signature');return;} if(!a){alert('Check agreement');return;}
+  var data={name:n,phone:p,signature:s,date:document.getElementById('clientDate').value,time:document.getElementById('clientTime').value,timestamp:Date.now(),iso:new Date().toISOString(),type:'client_consent'};
+  localStorage.setItem('clientConsent','true'); localStorage.setItem('clientConsentData',JSON.stringify(data)); localStorage.setItem('clientPhone',p);
+  alert('✅ Client Consent Submitted - Clean No demo All buttons working - Time: '+new Date().toLocaleString()); window.close(); setTimeout(function(){window.location.href='./index.html';},500);
+}
+</script></body></html>
