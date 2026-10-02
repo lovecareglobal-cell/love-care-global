@@ -3,44 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nurse Consent - LOVE CARE GLOBAL</title>
+<title>Nurse Consent - Fillable - LOVE CARE GLOBAL</title>
 <style>
-body{font-family:Arial; font-size:24px; line-height:1.8; max-width:1000px; margin:auto; padding:20px;}
-h1{background:#0B4D6E;color:#fff;padding:25px;text-align:center;font-size:32px;border-radius:10px;}
-h2{background:#0E8A6E;color:#fff;padding:15px;border-radius:8px;font-size:28px;}
-.field{background:#f5f8fa;border:2px solid #000;padding:18px;margin:15px 0;border-radius:6px; font-size:24px;}
-.sig{border:4px solid #000;padding:30px;background:#fffbe6;margin:30px 0; font-size:24px;}
-.red{color:#b00000; font-weight:bold;}
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;font-size:24px;line-height:1.6;max-width:900px;margin:0 auto;padding:15px;background:#f0f4f8;color:#000;}
+h1{background:#0B4D6E;color:#fff;padding:20px;text-align:center;font-size:28px;border-radius:12px;}
+h2{background:#0E8A6E;color:#fff;padding:14px 18px;border-radius:8px;font-size:24px;margin-top:30px;}
+.card{background:white;border:3px solid #0B4D6E;border-radius:12px;padding:20px;margin:15px 0;}
+label{font-weight:bold;font-size:22px;display:block;margin:15px 0 6px 0;color:#0B4D6E;}
+input[type=text],input[type=tel],input[type=email],input[type=date],textarea{width:100%;font-size:24px;padding:18px;border:3px solid #333;border-radius:10px;background:#ffffe0;margin-bottom:10px;}
+input:focus,textarea:focus{background:#fff;border-color:#0E8A6E;outline:none;border-width:4px;}
+.check-item{background:#fff3f3;border:2px solid #cc0000;padding:15px;margin:10px 0;border-radius:8px;display:flex;align-items:center;font-size:22px;}
+.check-item input[type=checkbox]{width:35px;height:35px;margin-right:15px;transform:scale(1.8);}
+.sig-box{border:3px dashed #0B4D6E;background:#fffbe6;padding:15px;margin:20px 0;border-radius:10px;}
+button{background:#0B4D6E;color:white;padding:20px;font-size:26px;border:none;border-radius:12px;width:100%;margin:10px 0;font-weight:bold;}
+canvas{border:3px solid #000;width:100%;height:180px;background:white;border-radius:10px;touch-action:none;}
+.red{color:#b00000;font-weight:bold;}
 </style>
 </head>
 <body>
+<h1>LOVE CARE GLOBAL<br>NURSE / CAREGIVER CONSENT<br><span style="font-size:16px;">REAL FILLABLE - MUST SIGN BEFORE DEPLOYMENT</span></h1>
 
-<h1>LOVE CARE GLOBAL<br>NURSE / CAREGIVER CONSENT & CODE OF CONDUCT<br>Version 2.0 - Oct 2026 - MUST SIGN BEFORE DEPLOYMENT</h1>
-
-<h2>SECTION A: NURSE INFORMATION</h2>
-<div class="field">Full Name: ________________________________________ NMC Pin: ______________________ Expiry: ____/____/____</div>
-<div class="field">Phone: ________________________ Email: ________________________ Ghana Card: ______________________</div>
-<div class="field">Address: ________________________________________ Qualification: ________________________</div>
-
-<h2>SECTION B: CODE OF CONDUCT - ZERO TOLERANCE</h2>
-<ul style="font-size:24px;">
-<li><b class="red">1. NO EXTRA MONEY:</b> Will NOT collect cash/MoMo/gifts from client. All payments through company. Instant dismissal if caught.</li>
-<li><b class="red">2. NO SEXUAL RELATIONSHIP:</b> Will NOT have sexual/romantic relationship with client/family. Zero tolerance.</li>
-<li><b>3. NO SLEEPING ON DUTY:</b> Stay alert. No sleeping unless on break.</li>
-<li><b>4. NO PHONE ABUSE:</b> No TikTok/Facebook during care hours.</li>
-<li><b>5. NO THEFT/ABUSE:</b> No stealing, disrespect, neglect.</li>
-<li><b>6. REPORTING:</b> Report incident immediately - call + written report.</li>
-</ul>
-
-<h2>SECTION C: NON-COMPETE 12 MONTHS</h2>
-<p style="font-size:24px;">For <b>12 MONTHS after leaving, I will NOT contact, solicit, or work privately for any client served through LOVE CARE GLOBAL.</b> If breach, pay 6 months fees as damages.</p>
-
-<div class="sig">
-Nurse Name: _______________________________ Signature: ________________________ Date: ____/____/________<br><br>
-Manager: __________________ Signature: __________________ Date: ____/____/________
+<div class="card">
+<h2>SECTION A: NURSE INFORMATION - CLICK TO TYPE</h2>
+<label>Full Name:</label><input type="text" placeholder="Click here and type full name">
+<label>NMC Pin / License No:</label><input type="text" placeholder="Type NMC Pin">
+<label>Expiry Date:</label><input type="date">
+<label>Phone Number:</label><input type="tel" placeholder="055XXXXXXX">
+<label>Email:</label><input type="email" placeholder="Type email">
+<label>Ghana Card No:</label><input type="text" placeholder="Ghana Card">
+<label>Qualification:</label><input type="text" placeholder="e.g. RGN, BSc Nursing">
+<label>Residential Address:</label><textarea rows="2" placeholder="Type address"></textarea>
+<label>Emergency Contact - Name / Relationship / Phone:</label><input type="text" placeholder="e.g. Ama, Sister, 024XXXXXXX">
 </div>
 
-<button onclick="window.print()" style="padding:20px 40px; font-size:26px; background:#0B4D6E; color:white; border:none; border-radius:10px; width:100%;">🖨️ PRINT</button>
+<div class="card">
+<h2>SECTION B: CODE OF CONDUCT - ZERO TOLERANCE - MUST TICK ALL</h2>
+<div class="check-item"><input type="checkbox"> <span class="red">NO EXTRA MONEY:</span> I WILL NOT collect cash/MoMo/gifts from client</div>
+<div class="check-item"><input type="checkbox"> <span class="red">NO SEXUAL RELATIONSHIP:</span> I WILL NOT have sexual/romantic relationship with client/family</div>
+<div class="check-item"><input type="checkbox"> NO SLEEPING ON DUTY - I will stay alert</div>
+<div class="check-item"><input type="checkbox"> NO PHONE ABUSE - No TikTok/FB during care hours</div>
+<div class="check-item"><input type="checkbox"> NO THEFT/ABUSE/NEGLECT - Maintain dignity</div>
+<div class="check-item"><input type="checkbox"> NO unprescribed medication</div>
+<div class="check-item"><input type="checkbox"> I WILL wear uniform, be punctual, professional</div>
+<div class="check-item"><input type="checkbox"> I WILL report incidents IMMEDIATELY - Call + written report</div>
+</div>
 
+<div class="card">
+<h2>SECTION C: CONFIDENTIALITY & NON-COMPETE 12 MONTHS</h2>
+<p>For <b>12 MONTHS after leaving, I will NOT contact/solicit/work privately for any client served through LOVE CARE GLOBAL.</b> Breach = pay 6 months service fees as damages.</p>
+<div class="check-item"><input type="checkbox"> <b>I AGREE TO 12 MONTHS NON-COMPETE & CONFIDENTIALITY</b></div>
+</div>
+
+<div class="card">
+<h2>SECTION D: E-SIGNATURE</h2>
+<div class="sig-box">
+<label>Nurse Full Name (Type as Signature - Legally Binding):</label><input type="text" placeholder="Type full name as signature">
+<label>Date:</label><input type="date">
+<label>Draw Signature with Finger:</label><canvas id="sigNurse"></canvas>
+</div>
+<div class="sig-box">
+<label>For LOVE CARE GLOBAL - Manager Name:</label><input type="text" placeholder="Manager name">
+<label>Date:</label><input type="date">
+</div>
+</div>
+
+<button onclick="window.print()">🖨️ PRINT / SAVE AS PDF</button>
+<button style="background:#0E8A6E;" onclick="alert('Saved! Now Print > Save as PDF')">✅ SUBMIT</button>
+
+<script>
+function setupCanvas(id){
+var canvas=document.getElementById(id);var ctx=canvas.getContext('2d');
+canvas.width=canvas.offsetWidth*2;canvas.height=canvas.offsetHeight*2;ctx.scale(2,2);
+ctx.lineWidth=3;ctx.lineCap='round';ctx.strokeStyle='#000';var drawing=false;
+function pos(e){var r=canvas.getBoundingClientRect();var t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
+canvas.addEventListener('mousedown',function(e){drawing=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+canvas.addEventListener('mousemove',function(e){if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
+canvas.addEventListener('mouseup',function(){drawing=false;});
+canvas.addEventListener('touchstart',function(e){e.preventDefault();drawing=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
+canvas.addEventListener('touchend',function(){drawing=false;});
+}
+window.onload=function(){setupCanvas('sigNurse');};
+</script>
 </body>
 </html>
