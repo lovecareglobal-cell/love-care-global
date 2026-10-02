@@ -3,223 +3,230 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LOVE CARE GLOBAL - ALL CONSENT FORMS - REAL FILLABLE</title>
+<title>LOVE CARE GLOBAL - ALL FORMS - FINAL</title>
 <style>
 *{box-sizing:border-box}
 body{font-family:Arial,sans-serif;font-size:22px;line-height:1.6;max-width:950px;margin:0 auto;padding:12px;background:#e8eef3;color:#000;}
-h1{background:#0B4D6E;color:#fff;padding:22px;text-align:center;font-size:30px;border-radius:12px;margin:0 0 15px 0;line-height:1.3;}
+h1{background:#0B4D6E;color:#fff;padding:22px;text-align:center;font-size:30px;border-radius:12px;margin:0 0 15px 0;}
 .tab-bar{display:flex;gap:8px;margin:20px 0;flex-wrap:wrap;}
-.tab-btn{flex:1;min-width:120px;background:#ccc;color:#000;padding:18px 10px;font-size:20px;font-weight:bold;border:none;border-radius:10px;cursor:pointer;text-align:center;}
-.tab-btn.active{background:#0B4D6E;color:#fff;transform:scale(1.05);}
+.tab-btn{flex:1;min-width:120px;background:#ccc;color:#000;padding:18px 10px;font-size:20px;font-weight:bold;border:none;border-radius:10px;cursor:pointer;}
+.tab-btn.active{background:#0B4D6E;color:#fff;}
 .form-section{display:none;}
 .form-section.active{display:block;}
 h2{background:#0E8A6E;color:#fff;padding:14px 18px;border-radius:8px;font-size:24px;margin-top:25px;}
-.card{background:white;border:3px solid #0B4D6E;border-radius:12px;padding:20px;margin:15px 0;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+.card{background:white;border:3px solid #0B4D6E;border-radius:12px;padding:20px;margin:15px 0;}
 label{font-weight:bold;font-size:21px;display:block;margin:14px 0 6px 0;color:#0B4D6E;}
 input[type=text],input[type=tel],input[type=email],input[type=date],textarea,select{
-width:100%;font-size:22px;padding:16px;border:3px solid #222;border-radius:10px;background:#ffffd6;margin-bottom:10px;font-family:Arial;
+width:100%;font-size:22px;padding:16px;border:3px solid #222;border-radius:10px;background:#ffffd6;margin-bottom:10px;
 }
-input:focus,textarea:focus,select:focus{background:#ffffff;border-color:#0E8A6E;outline:none;border-width:4px;box-shadow:0 0 8px rgba(14,138,110,0.4);}
-.check-item{background:#f8f9fa;border:2px solid #aaa;padding:14px;margin:10px 0;border-radius:8px;display:flex;align-items:center;font-size:20px;line-height:1.4;}
+input:focus,textarea:focus{background:#fff;border-color:#0E8A6E;border-width:4px;outline:none;}
+.check-item{background:#f8f9fa;border:2px solid #aaa;padding:14px;margin:10px 0;border-radius:8px;display:flex;align-items:center;font-size:20px;}
 .check-item.red{background:#fff0f0;border-color:#cc0000;}
-.check-item input[type=checkbox]{width:32px;height:32px;min-width:32px;margin-right:14px;transform:scale(1.6);cursor:pointer;}
+.check-item input[type=checkbox]{width:32px;height:32px;min-width:32px;margin-right:14px;transform:scale(1.6);}
 .sig-box{border:3px dashed #0B4D6E;background:#fffbe6;padding:16px;margin:18px 0;border-radius:10px;}
-button.main{background:#0B4D6E;color:white;padding:18px;font-size:24px;border:none;border-radius:12px;width:100%;margin:10px 0;font-weight:bold;cursor:pointer;}
+button.main{background:#0B4D6E;color:white;padding:18px;font-size:24px;border:none;border-radius:12px;width:100%;margin:10px 0;font-weight:bold;}
 button.green{background:#0E8A6E;}
-button.red-btn{background:#cc0000;padding:10px;font-size:16px;width:auto;}
 canvas{border:3px solid #000;width:100%;height:170px;background:white;border-radius:10px;touch-action:none;display:block;margin:10px 0;}
-.small{font-size:16px;color:#555;text-align:center;margin-top:25px;line-height:1.4;}
+.small{font-size:16px;color:#555;text-align:center;margin-top:25px;}
 .yellow-tip{background:#ffeb3b;padding:12px;border-radius:8px;text-align:center;font-weight:bold;font-size:20px;margin:10px 0;border:2px solid #000;}
 </style>
 </head>
 <body>
 
-<h1>LOVE CARE GLOBAL HOME NURSING<br>ALL CONSENT FORMS<br><span style="font-size:15px;">REAL FILLABLE - Click Yellow Box to Type - Accra, Ghana - Version 2.0 Oct 2026</span></h1>
-
-<div class="yellow-tip">👆 CLICK ANY YELLOW BOX TO TYPE - KEYBOARD WILL APPEAR - BIG TEXT FOR PHONE 👆</div>
+<h1>LOVE CARE GLOBAL<br>ALL CONSENT FORMS<br><span style="font-size:14px;">FINAL VERSION - Client Simple, Nurse/Staff Detailed - Oct 2026</span></h1>
+<div class="yellow-tip">👆 CLICK YELLOW BOX TO TYPE - KEYBOARD WILL APPEAR 👆</div>
 
 <div class="tab-bar">
-<button class="tab-btn active" onclick="showForm('client')">1. CLIENT FORM</button>
-<button class="tab-btn" onclick="showForm('nurse')">2. NURSE FORM</button>
-<button class="tab-btn" onclick="showForm('staff')">3. STAFF FORM</button>
+<button class="tab-btn active" onclick="showForm('client')">1. CLIENT (Simple)</button>
+<button class="tab-btn" onclick="showForm('nurse')">2. NURSE (Detailed)</button>
+<button class="tab-btn" onclick="showForm('staff')">3. STAFF (Detailed)</button>
 </div>
 
-<!-- ==================== CLIENT FORM ==================== -->
+<!-- ==================== CLIENT FORM - SIMPLE ==================== -->
 <div id="client" class="form-section active">
 <div class="card">
-<h2>CLIENT CARE CONSENT & SERVICE AGREEMENT</h2>
-<p style="background:#0B4D6E;color:white;padding:12px;border-radius:8px;text-align:center;"><b>FOR CLIENTS - Fill on Phone - Legally Binding Under Ghana Law</b></p>
+<h2>CLIENT CARE CONSENT - SIMPLE FORM</h2>
+<p style="background:#0B4D6E;color:white;padding:12px;border-radius:8px;text-align:center;"><b>FOR CLIENTS ONLY - Simple & Fast - You are paying for service</b></p>
 
-<h2>SECTION A: CLIENT INFORMATION - CLICK YELLOW BOX TO TYPE</h2>
-<label>Full Name:</label><input type="text" id="c_name" placeholder="Click here and type your full name">
-<label>Date of Birth (DD/MM/YYYY):</label><input type="date" id="c_dob">
-<label>Gender:</label><select id="c_gender"><option value="">Select Gender</option><option>Male</option><option>Female</option><option>Other</option></select>
-<label>Ghana Card No / ID:</label><input type="text" id="c_ghana" placeholder="Type Ghana Card Number">
-<label>Phone Number:</label><input type="tel" id="c_phone" placeholder="055XXXXXXX - Click to type">
-<label>Email Address:</label><input type="email" id="c_email" placeholder="Type email address">
-<label>Residential Address / GPS / Landmark:</label><textarea rows="3" id="c_address" placeholder="Click here and type your full address, GPS, landmark"></textarea>
-<label>Next of Kin - Full Name:</label><input type="text" id="c_nok_name" placeholder="e.g. John Mensah">
-<label>Next of Kin - Relationship:</label><input type="text" id="c_nok_rel" placeholder="e.g. Brother, Sister, Spouse">
-<label>Next of Kin - Phone:</label><input type="tel" id="c_nok_phone" placeholder="024XXXXXXX">
-<label>Doctor / Hospital Name:</label><input type="text" id="c_doc_name" placeholder="Doctor / Hospital name">
-<label>Doctor Phone:</label><input type="tel" id="c_doc_phone" placeholder="Doctor phone">
-<label>Diagnosis / Reason for Care:</label><textarea rows="2" id="c_diag" placeholder="Type diagnosis"></textarea>
-<label>Allergies:</label><input type="text" id="c_allergy" placeholder="Type allergies or None">
-<label>Current Medications:</label><textarea rows="2" id="c_meds" placeholder="Type current medications"></textarea>
+<h2>SECTION A: YOUR INFORMATION</h2>
+<label>Full Name:</label><input type="text" placeholder="Click here and type your full name">
+<label>Phone Number:</label><input type="tel" placeholder="055XXXXXXX - Click to type">
+<label>WhatsApp Number (if different):</label><input type="tel" placeholder="Type WhatsApp number">
+<label>Location / Address / GPS:</label><textarea rows="2" placeholder="Click here and type your location - e.g. East Legon, House No..."></textarea>
 
-<h2>SECTION B: SERVICE REQUESTED - TAP TO TICK</h2>
-<div class="check-item"><input type="checkbox" id="c_s1"> General Nursing Care</div>
-<div class="check-item"><input type="checkbox" id="c_s2"> Elderly / Geriatric Care</div>
-<div class="check-item"><input type="checkbox" id="c_s3"> Post-Surgical Care</div>
-<div class="check-item"><input type="checkbox" id="c_s4"> Mother & Baby Care</div>
-<div class="check-item"><input type="checkbox" id="c_s5"> Wound Care / Dressing / Injection / IV Drip</div>
-<div class="check-item"><input type="checkbox" id="c_s6"> 24-Hour Live-In Care</div>
-<div class="check-item"><input type="checkbox" id="c_s7"> Day Shift (8-12 hrs)</div>
-<div class="check-item"><input type="checkbox" id="c_s8"> Night Shift</div>
+<h2>SECTION B: SERVICE YOU NEED - TAP TO TICK</h2>
+<div class="check-item"><input type="checkbox"> General Nursing Care at Home</div>
+<div class="check-item"><input type="checkbox"> Elderly Care</div>
+<div class="check-item"><input type="checkbox"> Post-Surgery / Wound Care</div>
+<div class="check-item"><input type="checkbox"> Mother & Baby Care</div>
+<div class="check-item"><input type="checkbox"> Injection / IV Drip / Vital Signs</div>
+<div class="check-item"><input type="checkbox"> 24-Hour Live-In Care</div>
+<div class="check-item"><input type="checkbox"> Day Shift / Night Shift</div>
+<label>When do you need nurse to start?</label><input type="date">
+<label>How long do you need service?</label><input type="text" placeholder="e.g. 2 weeks, 1 month, ongoing">
 
-<h2>SECTION C: INFORMED CONSENT - PLEASE READ BIG TEXT</h2>
-<div style="background:#f0f8ff;border:2px solid #0B4D6E;padding:15px;border-radius:8px;font-size:21px;line-height:1.7;">
-<p><b>1. I VOLUNTARILY CONSENT</b> to receive home nursing services from LOVE CARE GLOBAL and its licensed nurses.</p>
-<p><b>2. I UNDERSTAND</b> nature, benefits, risks, alternatives of home care explained in language I understand.</p>
-<p><b>3. I CONSENT TO</b> vital signs, medication, wound care, hygiene, mobility support as per doctor orders.</p>
-<p><b>4. I UNDERSTAND</b> home nursing is NOT emergency hospital. In emergency, I <b>AUTHORIZE</b> nurse to call ambulance and inform Next of Kin.</p>
-<p><b>5. I WILL GIVE</b> true medical history. If I hide info, I take responsibility.</p>
-<p><b>6. PRIVACY:</b> Under Ghana Data Protection Act 2012 (Act 843), my info will be kept CONFIDENTIAL.</p>
-<p><b>7. FEES:</b> Payment in ADVANCE. 24hr cancellation or 50% charge. No refund for services already done.</p>
-<p><b>8. LIABILITY:</b> LOVE CARE provides qualified nurses but DOES NOT GUARANTEE CURE. Liability limited to fees paid.</p>
+<h2>SECTION C: YOUR CONSENT - PLEASE READ</h2>
+<div style="background:#f0f8ff;border:2px solid #0B4D6E;padding:15px;border-radius:8px;font-size:21px;">
+<p><b>1. I AGREE</b> that LOVE CARE GLOBAL will provide a qualified licensed nurse for my care at home.</p>
+<p><b>2. I UNDERSTAND</b> home nursing is NOT hospital emergency. In emergency, nurse will call ambulance and inform me/family.</p>
+<p><b>3. FEES:</b> I agree to pay fees IN ADVANCE. 24 hours cancellation notice or I pay 50% charge.</p>
+<p><b>4. PRIVACY:</b> My information will be kept confidential under Ghana Law.</p>
+<p><b>5. LIABILITY:</b> LOVE CARE provides qualified nurses but does NOT guarantee cure. Liability limited to fees paid.</p>
 </div>
-<div class="check-item" style="background:#d4edda;border-color:#0E8A6E;border-width:3px;"><input type="checkbox" id="c_agree"> <b>I HAVE READ, UNDERSTOOD AND AGREE TO ALL TERMS ABOVE - BIG TEXT</b></div>
+<div class="check-item" style="background:#d4edda;border:3px solid #0E8A6E;"><input type="checkbox"> <b>I HAVE READ AND AGREE TO ALL TERMS ABOVE</b></div>
 
-<h2>SECTION D: DECLARATION & SIGNATURES - TYPE NAME AS SIGNATURE</h2>
+<h2>SECTION D: YOUR SIGNATURE</h2>
 <div class="sig-box">
-<label>Client Full Name (TYPE AS E-SIGNATURE - Legally Binding):</label><input type="text" placeholder="Type your full name as signature">
+<label>Type Your Full Name as Signature (Legally Binding):</label><input type="text" placeholder="Type your full name as signature">
 <label>Date:</label><input type="date">
-<label>Draw Signature with Finger (Optional but Recommended):</label><canvas id="sigClient"></canvas><button class="red-btn" onclick="clearCanvas('sigClient')">Clear Signature</button>
-</div>
-<div class="sig-box">
-<label>Next of Kin Full Name (Type as Signature):</label><input type="text" placeholder="Type next of kin full name">
-<label>Date:</label><input type="date">
-</div>
-<div class="sig-box">
-<label>Nurse / Witness Name & NMC License No:</label><input type="text" placeholder="Type nurse name and license number">
-<label>Date:</label><input type="date">
-</div>
-<div class="sig-box">
-<label>For LOVE CARE GLOBAL - Manager Name & Designation:</label><input type="text" placeholder="Manager name & designation">
-<label>Date:</label><input type="date">
+<label>Draw Signature with Finger (Optional):</label><canvas id="sigClient"></canvas>
 </div>
 </div>
-<button class="main" onclick="window.print()">🖨️ PRINT CLIENT FORM / SAVE AS PDF</button>
+<button class="main" onclick="window.print()">🖨️ PRINT / SAVE AS PDF - SEND TO LOVE CARE</button>
 </div>
 
-<!-- ==================== NURSE FORM ==================== -->
+<!-- ==================== NURSE FORM - DETAILED WITH NEXT OF KIN ==================== -->
 <div id="nurse" class="form-section">
 <div class="card">
-<h2>NURSE / CAREGIVER CONSENT & CODE OF CONDUCT</h2>
-<p style="background:#b00000;color:white;padding:12px;border-radius:8px;text-align:center;"><b>FOR NURSES - ZERO TOLERANCE - MUST SIGN BEFORE DEPLOYMENT</b></p>
+<h2>NURSE / CAREGIVER CONSENT & CODE OF CONDUCT - DETAILED</h2>
+<p style="background:#b00000;color:white;padding:12px;border-radius:8px;text-align:center;"><b>FOR NURSES - You will handle clients & company money - MUST provide Next of Kin & Guarantor</b></p>
 
-<h2>SECTION A: NURSE INFORMATION - CLICK YELLOW BOX TO TYPE</h2>
-<label>Full Name:</label><input type="text" placeholder="Type full name">
-<label>NMC Pin / License No:</label><input type="text" placeholder="Type NMC Pin / License No">
+<h2>SECTION A: YOUR INFORMATION</h2>
+<label>Full Name (as on Ghana Card):</label><input type="text" placeholder="Type full name">
+<label>NMC Pin / License No:</label><input type="text" placeholder="Type NMC Pin">
 <label>License Expiry Date:</label><input type="date">
 <label>Phone Number:</label><input type="tel" placeholder="055XXXXXXX">
-<label>Email:</label><input type="email" placeholder="Type email">
-<label>Ghana Card No:</label><input type="text" placeholder="Ghana Card No">
-<label>Qualification:</label><input type="text" placeholder="e.g. RGN, RM, BSc Nursing, HCA">
-<label>Residential Address:</label><textarea rows="2" placeholder="Type address"></textarea>
-<label>Emergency Contact - Name / Relationship / Phone:</label><input type="text" placeholder="e.g. Ama, Sister, 024XXXXXXX">
-
-<h2>SECTION B: DECLARATION</h2>
-<div class="check-item"><input type="checkbox"> My license is VALID, GENUINE, qualified. I will renew before expiry.</div>
-<div class="check-item"><input type="checkbox"> I CONSENT to deployment to clients assigned by LOVE CARE. No rejection without 48hrs notice.</div>
-<div class="check-item"><input type="checkbox"> I CONSENT to background check and quality monitoring.</div>
-
-<h2>SECTION C: CODE OF CONDUCT - ZERO TOLERANCE - MUST TICK ALL</h2>
-<div class="check-item red"><input type="checkbox"> <b>NO EXTRA MONEY:</b> I WILL NOT collect cash, MoMo, or gifts from client. All payments through company. Instant dismissal if caught.</div>
-<div class="check-item red"><input type="checkbox"> <b>NO SEXUAL RELATIONSHIP:</b> I WILL NOT have sexual/romantic relationship with client/family. Zero tolerance - immediate dismissal + report to NMC.</div>
-<div class="check-item red"><input type="checkbox"> <b>NO SLEEPING ON DUTY:</b> I will stay alert. No sleeping unless on official break.</div>
-<div class="check-item red"><input type="checkbox"> <b>NO PHONE ABUSE:</b> No TikTok/Facebook/WhatsApp chatting during care. Phone only for care coordination.</div>
-<div class="check-item red"><input type="checkbox"> <b>NO THEFT/ABUSE:</b> No stealing, disrespect, neglect, abuse. Maintain client dignity.</div>
-<div class="check-item red"><input type="checkbox"> <b>NO OUTSIDE MEDICATION:</b> Only give medication prescribed by doctor / company protocol.</div>
-<div class="check-item"><input type="checkbox"> UNIFORM & PUNCTUALITY: Wear uniform, be punctual, professional.</div>
-<div class="check-item"><input type="checkbox"> REPORTING: Report incident, deterioration, complaint to supervisor IMMEDIATELY - call + written report.</div>
-
-<h2>SECTION D: CONFIDENTIALITY & NON-COMPETE 12 MONTHS</h2>
-<div style="background:#fff3f3;border:3px solid #b00000;padding:15px;border-radius:8px;font-size:21px;">
-<p>I will keep ALL client info CONFIDENTIAL during and after employment.</p>
-<p>For <b>12 MONTHS after leaving, I will NOT contact, solicit, or work privately for any client served through LOVE CARE GLOBAL.</b> If client wants me, they must go through company.</p>
-<p>If I breach, I agree to pay 6 months service fees for that client as damages.</p>
-</div>
-<div class="check-item" style="background:#d4edda;border-color:#0E8A6E;border-width:3px;"><input type="checkbox"> <b>I AGREE TO 12 MONTHS NON-COMPETE & CONFIDENTIALITY</b></div>
-
-<h2>SECTION E: E-SIGNATURE - LEGALLY BINDING</h2>
-<div class="sig-box">
-<label>Nurse Full Name (TYPE AS SIGNATURE - Legally Binding):</label><input type="text" placeholder="Type full name as signature">
-<label>Date:</label><input type="date">
-<label>Draw Signature with Finger:</label><canvas id="sigNurse"></canvas><button class="red-btn" onclick="clearCanvas('sigNurse')">Clear Signature</button>
-</div>
-<div class="sig-box">
-<label>For LOVE CARE GLOBAL - Manager Name:</label><input type="text" placeholder="Manager name"><label>Date:</label><input type="date">
-</div>
-</div>
-<button class="main" onclick="window.print()">🖨️ PRINT NURSE FORM / SAVE AS PDF</button>
-</div>
-
-<!-- ==================== STAFF FORM ==================== -->
-<div id="staff" class="form-section">
-<div class="card">
-<h2>STAFF / ADMIN / DRIVER / MARKETER - CONFIDENTIALITY & CONDUCT AGREEMENT</h2>
-<p style="background:#0B4D6E;color:white;padding:12px;border-radius:8px;text-align:center;"><b>FOR STAFF - 2 YEARS CONFIDENTIALITY</b></p>
-
-<h2>SECTION A: STAFF INFORMATION</h2>
-<label>Full Name:</label><input type="text" placeholder="Type full name">
-<label>Role:</label><select><option value="">Select Role</option><option>Admin / Receptionist</option><option>Driver</option><option>Marketer</option><option>IT / Social Media</option><option>Finance</option><option>Other</option></select>
-<label>Phone Number:</label><input type="tel" placeholder="Phone number">
+<label>WhatsApp Number:</label><input type="tel" placeholder="WhatsApp">
 <label>Email:</label><input type="email" placeholder="Email">
 <label>Ghana Card No:</label><input type="text" placeholder="Ghana Card No">
+<label>Qualification:</label><input type="text" placeholder="e.g. RGN, RM, BSc, HCA">
+<label>Residential Address / GPS:</label><textarea rows="2" placeholder="Type full address"></textarea>
+
+<h2>SECTION B: NEXT OF KIN - REQUIRED (For Accountability)</h2>
+<div style="background:#fff3cd;border:3px solid #856404;padding:15px;border-radius:8px;">
+<p style="font-weight:bold;color:#856404;">Because you will be working with clients and may handle money, we need your Next of Kin for accountability.</p>
+<label>Next of Kin - Full Name:</label><input type="text" placeholder="Type Next of Kin full name">
+<label>Next of Kin - Relationship:</label><input type="text" placeholder="e.g. Mother, Father, Brother, Spouse">
+<label>Next of Kin - Phone Number:</label><input type="tel" placeholder="Phone number">
+<label>Next of Kin - Address:</label><input type="text" placeholder="Next of Kin address">
+<label>Next of Kin - Ghana Card No:</label><input type="text" placeholder="Ghana Card No">
+</div>
+
+<h2>SECTION C: GUARANTOR - REQUIRED (If you handle cash)</h2>
+<div style="background:#f8d7da;border:3px solid #b00000;padding:15px;border-radius:8px;">
+<p style="font-weight:bold;color:#b00000;">Guarantor will be contacted if there is financial loss or misconduct. Guarantor must be different from Next of Kin.</p>
+<label>Guarantor Full Name:</label><input type="text" placeholder="Guarantor full name">
+<label>Guarantor Relationship:</label><input type="text" placeholder="Relationship to you">
+<label>Guarantor Phone:</label><input type="tel" placeholder="Guarantor phone">
+<label>Guarantor Address / Work Place:</label><input type="text" placeholder="Address / Work place">
+<label>Guarantor Ghana Card No:</label><input type="text" placeholder="Ghana Card No">
+</div>
+
+<h2>SECTION D: EMERGENCY CONTACT</h2>
+<label>Emergency Contact - Name / Phone:</label><input type="text" placeholder="Name and phone for emergency">
+
+<h2>SECTION E: CODE OF CONDUCT - ZERO TOLERANCE - MUST TICK ALL</h2>
+<div class="check-item red"><input type="checkbox"> <b>NO EXTRA MONEY:</b> I WILL NOT collect cash, MoMo, or gifts from client. All payments through company account only. Instant dismissal + legal action if caught.</div>
+<div class="check-item red"><input type="checkbox"> <b>NO SEXUAL RELATIONSHIP:</b> Zero tolerance - I will NOT have sexual/romantic relationship with client or family.</div>
+<div class="check-item red"><input type="checkbox"> <b>NO THEFT/FRAUD:</b> I will NOT steal client money, belongings, drugs, or defraud company.</div>
+<div class="check-item red"><input type="checkbox"> <b>NO SLEEPING ON DUTY / PHONE ABUSE:</b> Stay alert. No TikTok/FB during duty.</div>
+<div class="check-item"><input type="checkbox"> I will wear uniform, be punctual, professional, respect client dignity</div>
+<div class="check-item"><input type="checkbox"> I will report incidents, deterioration, complaints IMMEDIATELY</div>
+<div class="check-item"><input type="checkbox"> I will NOT give unprescribed medication</div>
+
+<h2>SECTION F: FINANCIAL ACCOUNTABILITY</h2>
+<div style="background:#fff3cd;border:2px solid #856404;padding:15px;border-radius:8px;">
+<p><b>I UNDERSTAND:</b> If I handle client money for drugs, transport, etc., I must provide receipts. Any loss I cause, I will pay. Company may contact my Next of Kin / Guarantor for recovery.</p>
+</div>
+<div class="check-item"><input type="checkbox"> <b>I AGREE TO FINANCIAL ACCOUNTABILITY</b></div>
+
+<h2>SECTION G: CONFIDENTIALITY & NON-COMPETE 12 MONTHS</h2>
+<p>For <b>12 MONTHS after leaving, I will NOT contact/solicit/work privately for any client served through LOVE CARE.</b> Breach = pay 6 months service fees.</p>
+<div class="check-item" style="background:#d4edda;border:3px solid #0E8A6E;"><input type="checkbox"> <b>I AGREE TO 12 MONTHS NON-COMPETE & CONFIDENTIALITY</b></div>
+
+<h2>SECTION H: SIGNATURES</h2>
+<div class="sig-box">
+<label>Nurse Full Name (Type as Signature - Legally Binding):</label><input type="text" placeholder="Type full name">
+<label>Date:</label><input type="date">
+<label>Draw Signature:</label><canvas id="sigNurse"></canvas>
+</div>
+<div class="sig-box">
+<label>Next of Kin Full Name (Confirming they are aware):</label><input type="text" placeholder="Next of Kin name"><label>Date:</label><input type="date">
+</div>
+<div class="sig-box">
+<label>Guarantor Full Name & Signature:</label><input type="text" placeholder="Guarantor name"><label>Date:</label><input type="date">
+</div>
+</div>
+<button class="main" onclick="window.print()">🖨️ PRINT NURSE FORM</button>
+</div>
+
+<!-- ==================== STAFF FORM - DETAILED ==================== -->
+<div id="staff" class="form-section">
+<div class="card">
+<h2>STAFF CONFIDENTIALITY & CONDUCT - DETAILED</h2>
+<p style="background:#0B4D6E;color:white;padding:12px;border-radius:8px;text-align:center;"><b>FOR STAFF - Admin, Driver, Marketer, Finance - You handle company money & data</b></p>
+
+<h2>SECTION A: YOUR INFORMATION</h2>
+<label>Full Name:</label><input type="text" placeholder="Type full name">
+<label>Role:</label><select><option value="">Select Role</option><option>Admin / Receptionist</option><option>Driver</option><option>Marketer</option><option>Finance / Cashier</option><option>IT / Social Media</option><option>Other</option></select>
+<label>Phone Number:</label><input type="tel" placeholder="Phone">
+<label>Ghana Card No:</label><input type="text" placeholder="Ghana Card No">
+<label>Residential Address:</label><textarea rows="2" placeholder="Address"></textarea>
 <label>Date Joined:</label><input type="date">
-<label>Residential Address:</label><textarea rows="2" placeholder="Type address"></textarea>
+<label>Monthly Salary Agreed:</label><input type="text" placeholder="e.g. GHS 2000">
 
-<h2>SECTION B: CONFIDENTIALITY - 2 YEARS - READ BIG TEXT</h2>
-<div style="background:#f0f8ff;border:2px solid #0B4D6E;padding:15px;border-radius:8px;font-size:21px;">
-<p>1. I will have access to confidential info: client list, phones, addresses, fees, nurse data, business strategies, finances, passwords.</p>
-<p>2. I AGREE to keep ALL information strictly confidential during employment and for <b>2 YEARS after leaving</b>.</p>
-<p>3. I WILL NOT copy, photograph, download, or share data to personal phone, email, or outsiders.</p>
-<p>4. I WILL NOT disclose on social media, WhatsApp status, or to family/friends.</p>
+<h2>SECTION B: NEXT OF KIN - REQUIRED</h2>
+<div style="background:#fff3cd;border:3px solid #856404;padding:15px;border-radius:8px;">
+<label>Next of Kin Full Name:</label><input type="text" placeholder="Full name">
+<label>Relationship:</label><input type="text" placeholder="Relationship">
+<label>Phone:</label><input type="tel" placeholder="Phone">
+<label>Address:</label><input type="text" placeholder="Address">
+<label>Ghana Card No:</label><input type="text" placeholder="Ghana Card">
 </div>
 
-<h2>SECTION C: CODE OF CONDUCT - MUST TICK ALL</h2>
-<div class="check-item"><input type="checkbox"> NO BRIBERY / SIDE DEALS: I will NOT take money from clients, nurses, or vendors</div>
-<div class="check-item"><input type="checkbox"> NO COMPETING BUSINESS: During employment and 12 months after, I will NOT start or work for competing home nursing business using LOVE CARE contacts</div>
-<div class="check-item"><input type="checkbox"> NO CLIENT STEALING: I will NOT divert clients or nurses to another agency or private arrangement</div>
-<div class="check-item"><input type="checkbox"> HONESTY: Honest in reports, attendance, fuel, expenses, marketing</div>
-<div class="check-item"><input type="checkbox"> SOCIAL MEDIA: I will NOT post client photos, videos, medical info, or defame company</div>
-<div class="check-item"><input type="checkbox"> IT SYSTEMS: I will NOT share passwords or install unauthorized software. All accounts belong to company.</div>
-<div class="check-item"><input type="checkbox"> COMPANY PROPERTY: On exit, I will return ALL property: ID, uniforms, phones, documents, keys, and delete company data from personal devices</div>
+<h2>SECTION C: GUARANTOR - REQUIRED FOR MONEY HANDLERS</h2>
+<div style="background:#f8d7da;border:3px solid #b00000;padding:15px;border-radius:8px;">
+<p style="color:#b00000;font-weight:bold;">Required if you will handle cash, MoMo, fuel money, client payments, or procurement.</p>
+<label>Guarantor Full Name:</label><input type="text" placeholder="Guarantor name">
+<label>Relationship:</label><input type="text" placeholder="Relationship">
+<label>Phone:</label><input type="tel" placeholder="Phone">
+<label>Work Place / Address:</label><input type="text" placeholder="Work place">
+<label>Ghana Card No:</label><input type="text" placeholder="Ghana Card">
+</div>
 
-<h2>SECTION D: SIGNATURES</h2>
+<h2>SECTION D: FINANCIAL RULES - MUST TICK</h2>
+<div class="check-item red"><input type="checkbox"> <b>NO THEFT/FRAUD:</b> I will NOT steal or divert company money, fuel money, client payments</div>
+<div class="check-item red"><input type="checkbox"> <b>RECEIPTS:</b> For every money I collect or spend, I will provide receipt / MoMo screenshot same day</div>
+<div class="check-item red"><input type="checkbox"> <b>NO BRIBERY:</b> I will NOT take bribes from nurses, clients, or vendors</div>
+<div class="check-item"><input type="checkbox"> I will NOT share company passwords or client data</div>
+<div class="check-item"><input type="checkbox"> I will NOT post client info on social media</div>
+<div class="check-item"><input type="checkbox"> I will return ALL company property on exit</div>
+<div class="check-item"><input type="checkbox"> I understand if I cause financial loss, it will be deducted from salary and Guarantor/Next of Kin contacted</div>
+
+<h2>SECTION E: CONFIDENTIALITY 2 YEARS</h2>
+<p>Keep ALL info confidential during and 2 YEARS after leaving. No client stealing, no competing business for 12 months.</p>
+<div class="check-item" style="background:#d4edda;border:3px solid #0E8A6E;"><input type="checkbox"> <b>I AGREE TO CONFIDENTIALITY & NON-COMPETE</b></div>
+
+<h2>SECTION F: SIGNATURES</h2>
 <div class="sig-box">
-<label>Staff Full Name (TYPE AS SIGNATURE - Legally Binding):</label><input type="text" placeholder="Type full name as signature"><label>Date:</label><input type="date">
+<label>Staff Full Name (Type as Signature):</label><input type="text" placeholder="Type full name"><label>Date:</label><input type="date">
 </div>
 <div class="sig-box">
-<label>For LOVE CARE GLOBAL - Manager Name:</label><input type="text" placeholder="Manager name"><label>Date:</label><input type="date">
+<label>Next of Kin Signature (Confirming):</label><input type="text" placeholder="Next of Kin name"><label>Date:</label><input type="date">
 </div>
 <div class="sig-box">
-<label>Witness Name:</label><input type="text" placeholder="Witness name"><label>Date:</label><input type="date">
+<label>Guarantor Signature:</label><input type="text" placeholder="Guarantor name"><label>Date:</label><input type="date">
+</div>
+<div class="sig-box">
+<label>Manager Name & Signature:</label><input type="text" placeholder="Manager"><label>Date:</label><input type="date">
 </div>
 </div>
-<button class="main" onclick="window.print()">🖨️ PRINT STAFF FORM / SAVE AS PDF</button>
+<button class="main" onclick="window.print()">🖨️ PRINT STAFF FORM</button>
 </div>
 
-<button class="main green" onclick="window.print()" style="margin-top:30px;">🖨️ PRINT CURRENT FORM / SAVE AS PDF TO SEND VIA WHATSAPP</button>
+<button class="main green" onclick="window.print()" style="margin-top:30px;">🖨️ PRINT CURRENT FORM / SAVE AS PDF</button>
 
-<p class="small">
-LOVE CARE GLOBAL HOME NURSING<br>
-This electronic form is legally binding when you type your name as signature under Ghana Electronic Transactions Act, 2008 (Act 772)<br>
-All information kept confidential under Data Protection Act, 2012 (Act 843)<br>
-Accra, Ghana | info@lovecareglobal.com | Version 2.0 - Oct 2026<br>
-This form REPLACES all old forms
-</p>
+<p class="small">LOVE CARE GLOBAL HOME NURSING<br>Legally binding under Ghana Electronic Transactions Act 2008 (Act 772)<br>Confidential under Data Protection Act 2012 (Act 843)<br>Version 2.1 Final - Oct 2026 - CLIENT SIMPLE, NURSE/STAFF DETAILED WITH NEXT OF KIN & GUARANTOR</p>
 
 <script>
 function showForm(id){
@@ -229,9 +236,7 @@ document.getElementById(id).classList.add('active');
 event.target.classList.add('active');
 window.scrollTo(0,0);
 }
-function clearCanvas(id){
-var c=document.getElementById(id); var ctx=c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height);
-}
+function clearCanvas(id){var c=document.getElementById(id);var ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}
 function setupCanvas(id){
 var canvas=document.getElementById(id); if(!canvas) return;
 var ctx=canvas.getContext('2d');
