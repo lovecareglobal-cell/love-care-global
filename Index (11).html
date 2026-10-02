@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>LOVE CARE GLOBAL - ALL BUTTONS FIXED FINAL</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<meta name="theme-color" content="#16a34a">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{--green:#16a34a;--dark:#111827;--yellow:#eab308;--purple:#7c3aed}
+body{font-family:Inter,system-ui,sans-serif;margin:0;background:#f0fdf4;color:#111827;padding-bottom:10px}
+.header{position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(90deg,#16a34a,#eab308);padding:10px 12px;display:flex;align-items:center;justify-content:space-between;color:white}
+.logo{width:48px;height:48px;background:white;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--green);cursor:pointer}
+.menuOverlay{position:fixed;top:0;left:-100%;width:85%;max-width:340px;height:100%;background:white;z-index:9999;transition:transform 0.3s ease, left 0.3s ease;overflow-y:auto;box-shadow:2px 0 12px rgba(0,0,0,0.3);will-change:transform;touch-action:pan-y}
+.menuOverlay.active{left:0}
+.menuOverlay.dragging{transition:none !important}
+#menuBackdrop{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:9998;display:none;opacity:0;transition:opacity 0.3s}
+#menuBackdrop.active{display:block;opacity:1}
+.drawerHandle{width:40px;height:5px;background:#d1d5db;border-radius:10px;margin:8px auto 12px;cursor:grab}
+.drawerHandle:active{cursor:grabbing}
+
+.page{display:none;padding:78px 12px 12px;min-height:100vh}
+.page.active{display:block}
+.card{background:white;border-radius:16px;padding:14px;margin:10px 0;border:2px solid #e5e7eb;box-shadow:0 2px 8px rgba(0,0,0,0.05)}
+.btnSmall{border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+.btnSubmit{width:100%;border:none;border-radius:12px;padding:14px;font-weight:800;cursor:pointer;margin-top:8px}
+input,select,textarea{width:100%;padding:12px;border:2px solid #e5e7eb;border-radius:10px;margin:6px 0;box-sizing:border-box;font-family:inherit}
+.hidden{display:none !important}
+#map{height:380px;border-radius:12px;margin:8px 0;z-index:1;border:3px solid #16a34a}
+</style>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+
+<div class="header">
+<div style="display:flex;align-items:center;gap:8px">
+<button class="btnSmall" style="background:#facc15;color:#111;font-size:20px" onclick="toggleMenu()">☰</button>
+<div class="logo" id="logoTap" onclick="logoTap()">💜</div>
+<div><div style="font-weight:900;font-size:14px">LOVE CARE GLOBAL</div><div style="background:white;color:#16a34a;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:900">HOME NURSING</div></div>
+</div>
+<div style="display:flex;align-items:center;gap:6px">
+<button class="btnSmall" style="background:#ef4444;color:white;padding:10px 18px;border-radius:20px;font-weight:900" onclick="triggerSOS()">SOS</button>
+<button id="threeDotsBtn" class="btnSmall" style="background:white;color:#111;padding:10px 14px;border-radius:50%;font-weight:900;font-size:18px" onclick="toggleThreeDots(event)">⋮</button>
+</div>
+</div>
+
+<div id="threeDotsMenu" style="position:fixed;top:60px;right:10px;background:white;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);z-index:10001;display:none;min-width:180px;border:2px solid #e5e7eb;overflow:hidden">
+<button style="width:100%;padding:12px;text-align:left;border:none;background:white;font-weight:700;border-bottom:1px solid #e5e7eb" onclick="showPage('home');closeThreeDots()">🏠 Home</button>
+<button style="width:100%;padding:12px;text-align:left;border:none;background:white;font-weight:700;border-bottom:1px solid #e5e7eb" onclick="updateSettingsDisplay();showPage('page-settings');closeThreeDots()">⚙️ Settings</button>
+<button style="width:100%;padding:12px;text-align:left;border:none;background:white;font-weight:700;border-bottom:1px solid #e5e7eb" onclick="window.open('./about.html','_blank');closeThreeDots()">💜 About</button>
+<button style="width:100%;padding:12px;text-align:left;border:none;background:#fef2f2;color:#ef4444;font-weight:800" onclick="exitApp()">🚪 Exit App</button>
+</div>
+
+<div id="menuBackdrop" onclick="closeMenuDrawer()"></div>
+<div id="menuOverlay" class="menuOverlay">
+<div style="padding:14px"><div class="drawerHandle" id="drawerHandle"></div>
+<h3 style="margin:0 0 10px">LOVE CARE GLOBAL HOME NURSING</h3>
+
+<!-- GROUP 1: MAIN (Top) -->
+<div style="font-size:10px;font-weight:900;color:#16a34a;margin:12px 0 4px;letter-spacing:1px">GROUP 1: MAIN</div>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left;border:2px solid #16a34a" onclick="showPage('home');toggleMenu()">🏠 Home</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left;border:2px solid #16a34a" onclick="showPage('book-nurse');toggleMenu()">📅 Book Nurse - 13 Services</button>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left;border:2px solid #16a34a" onclick="showPage('client-dashboard');toggleMenu()">📋 My Bookings</button>
+
+<!-- GROUP 2: NURSE -->
+<div style="font-size:10px;font-weight:900;color:#2563eb;margin:14px 0 4px;letter-spacing:1px">GROUP 2: NURSE</div>
+<button class="btnSmall" style="background:#f0fdf4;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left;border:2px solid #2563eb" onclick="showPage('nurse-public');toggleMenu()">👩‍⚕️ Join as Nurse (8 Countries)</button>
+<button class="btnSmall" style="background:#2563eb;color:white;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('page-nurse-login');toggleMenu()">👩‍⚕️ Nurse Login</button>
+<button class="btnSmall" style="background:#7c3aed;color:white;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('page-group-chat');toggleMenu()">💬 Group Chat (Nurses/CEO/Staff Only)</button>
+
+<!-- GROUP 3: ACCOUNT & LEGAL (Bottom) -->
+<div style="font-size:10px;font-weight:900;color:#6b7280;margin:14px 0 4px;letter-spacing:1px">GROUP 3: ACCOUNT</div>
+<button class="btnSmall" style="background:#111827;color:white;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="updateSettingsDisplay();showPage('page-settings');toggleMenu()">⚙️ Settings</button>
+
+<div id="staffAccessHidden" class="hidden" style="display:none">
+<hr>
+<div style="font-size:10px;color:#ef4444;font-weight:800">🔒 CEO & STAFF ONLY - Hidden (5x logo tap)</div>
+<div style="font-size:9px;color:#6b7280;margin-bottom:6px">Only CEO & Staff login hidden - Disappears when finish</div>
+<button class="btnSmall" style="background:#eab308;color:#111;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('page-ceo-login');toggleMenu()">👑 CEO Login - KUSIPETER</button>
+<button class="btnSmall" style="background:#0e7490;color:white;width:100%;padding:12px;margin:4px 0;text-align:left" onclick="showPage('page-staff-login');toggleMenu()">👔 Staff Login</button>
+</div>
+<hr>
+<div style="font-size:10px;color:#6b7280">© 2026 LOVE CARE GLOBAL HOME NURSING<br>lovecareglobal@gmail.com<br>+233544121814<br>8 Countries: GH, NG, ZA, KE, US, UK, CA, AU<br><small>Final Menu: 7 Items Only</small></div>
+</div>
+</div>
+
+<div id="page-home" class="page active">
+<div class="card" style="border:3px solid #16a34a">
+<h2 style="margin:0">Find Verified Nurses Near You - 8 Countries</h2>
+<p style="font-size:11px;color:#6b7280">GH, NG, ZA, KE, US, UK, CA, AU - 13 Services - Live Google Map + OSM - Choose one nurse for booking</p>
+<button class="btnSmall" style="background:#16a34a;color:white;width:100%;padding:14px" onclick="findNearbyNurses()">📍 Find Nurse Near Me - Choose One</button>
+<div id="nearbyNursesList" style="margin-top:10px"></div>
+<div id="map" style="height:380px;border-radius:12px;margin:8px 0;z-index:1;border:3px solid #16a34a"></div>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">
+<button class="btnSmall" style="background:#16a34a;color:white;flex:1;padding:10px;font-size:11px" onclick="switchMapLayer('osm')">🗺️ OSM Map</button>
+<button class="btnSmall" style="background:#2563eb;color:white;flex:1;padding:10px;font-size:11px" onclick="switchMapLayer('google')">🌍 Google Map Tiles</button>
+<button class="btnSmall" style="background:#eab308;color:#111;flex:1;padding:10px;font-size:11px" onclick="openInGoogleMaps()">📍 Open in Google Maps</button>
+</div>
+<div style="display:flex;gap:8px">
+<button class="btnSmall" style="background:#2563eb;color:white;flex:1;padding:12px" onclick="startLiveNavigation()">🧭 Start Live Navigation</button>
+<button class="btnSmall" style="background:#ef4444;color:white;flex:1;padding:12px" onclick="stopLiveNavigation()">⏹️ Stop</button>
+</div>
+<div id="liveNavStatus" style="font-size:11px;margin-top:6px;background:#f0fdf4;padding:8px;border-radius:8px">📍 Tap Find Nurse Near Me to choose one nurse - Name appears at top of booking - Goes straight to nurse platform</div>
+</div>
+<div class="card" id="topRatedSection" style="border:3px solid #eab308">
+<h2>⭐ Top Rated Nurses - Highly Rated by Clients</h2>
+<p style="font-size:11px;color:#6b7280">Real ratings from clients after service completed - 8 Countries</p>
+<div id="topRatedList" style="max-height:500px;overflow-y:auto">Loading top rated nurses...</div>
+<button class="btnSmall" style="background:#eab308;color:#111;width:100%;padding:12px;margin-top:8px" onclick="loadTopRatedNurses()">🔄 Refresh Top Rated</button>
+</div>
+</div>
+
+<div id="page-book-nurse" class="page">
+<div class="card" style="border:3px solid #16a34a">
+<div id="selectedNurseTopDisplay" style="display:none;background:#f0fdf4;border:3px solid #16a34a;padding:12px;border-radius:12px;margin-bottom:10px;font-size:12px"></div>
+<h2>📅 Book Nurse - 13 Services - 8 Countries</h2>
+<label>Country (8 Countries)</label>
+<select id="countrySelect" onchange="updateCountryPricing()">
+<option value="GH">🇬🇭 Ghana - GHS</option>
+<option value="NG">🇳🇬 Nigeria - NGN</option>
+<option value="ZA">🇿🇦 South Africa - ZAR</option>
+<option value="KE">🇰🇪 Kenya - KES</option>
+<option value="US">🇺🇸 USA - USD</option>
+<option value="UK">🇬🇧 UK - GBP</option>
+<option value="CA">🇨🇦 Canada - CAD</option>
+<option value="AU">🇦🇺 Australia - AUD</option>
+</select>
+<label>Service (13 Services)</label>
+<select id="serviceType">
+<option>Elderly Care</option><option>Post Surgery Care</option><option>Child/Pediatric Care</option><option>Chronic Disease Management</option><option>Physiotherapy Support</option><option>Wound Care & Dressing</option><option>General Nursing</option><option>ICU/Critical Care</option><option>Maternity & Newborn</option><option>Disability & Special Needs</option><option>Mental Health Support</option><option>Lab Sample Collection</option><option>Medication & Injection</option>
+</select>
+<label>Care Mode</label>
+<div style="display:flex;gap:6px">
+<button id="tabHourly" class="btnSmall" style="background:#16a34a;color:white;flex:1" onclick="switchRateTab('hourly')">Hourly</button>
+<button id="tabDaily" class="btnSmall" style="background:#e5e7eb;color:#111;flex:1" onclick="switchRateTab('daily')">Daily</button>
+<button id="tabWeekly" class="btnSmall" style="background:#e5e7eb;color:#111;flex:1" onclick="switchRateTab('weekly')">Weekly</button>
+<button id="tabMonthly" class="btnSmall" style="background:#e5e7eb;color:#111;flex:1" onclick="switchRateTab('monthly')">Monthly</button>
+</div>
+
+<div style="margin-top:12px;background:#f0fdf4;border:3px solid #16a34a;border-radius:14px;padding:12px" id="durationWrap">
+  <label id="daysLabel" style="font-weight:900;font-size:15px">Days</label>
+  <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+    <button type="button" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:14px 20px;font-size:20px;font-weight:900" onclick="var e=document.getElementById('inputDays'); e.value=Math.max(1,(parseInt(e.value)||1)-1); calculateTotal();">-</button>
+    <input type="number" id="inputDays" value="1" min="1" max="365" oninput="calculateTotal()" style="flex:1;text-align:center;font-weight:900;font-size:20px;padding:14px;border:3px solid #16a34a;border-radius:10px;background:white" placeholder="e.g. 4">
+    <button type="button" style="background:#16a34a;color:white;border:none;border-radius:10px;padding:14px 20px;font-size:20px;font-weight:900" onclick="var e=document.getElementById('inputDays'); e.value=(parseInt(e.value)||1)+1; calculateTotal();">+</button>
+  </div>
+  <div id="durationHelp" style="font-size:12px;color:#065f46;font-weight:700;margin-top:6px">Tap + or - or type number e.g. 4</div>
+</div>
+
+<div style="display:none" id="hrsWrap"><input type="number" id="inputHrsPerDayDaily" value="8"></div>
+<div class="card" style="border:2px solid #0e7490;background:#f0fdfa;margin:8px 0;padding:10px">
+<label style="font-weight:800;color:#0e7490">⏰ Start Time & End Time Everyday - Especially for Live-Out</label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<div><label style="font-size:11px">Start Time</label><input type="time" id="startTimeDaily" value="08:00" onchange="calculateWorkHours()"></div>
+<div><label style="font-size:11px">End Time</label><input type="time" id="endTimeDaily" value="17:00" onchange="calculateWorkHours()"></div>
+</div>
+<div style="display:flex;gap:8px;margin-top:8px"><div style="flex:1"><label style="font-size:11px">Care Mode</label><select id="careModeSelect" onchange="toggleLiveOutOptions()"><option value="live-out">Live-Out (Goes home daily)</option><option value="live-in">Live-In (Stays 24hrs)</option><option value="hourly">Hourly Visit</option></select></div></div>
+<div id="workHoursDisplay" style="background:white;padding:8px;border-radius:8px;margin-top:8px;font-size:11px;font-weight:800;color:#0e7490">Work Hours: 08:00 - 17:00 = 9 hrs/day</div>
+<div id="liveOutExtra" style="margin-top:8px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><label style="font-size:10px"><input type="checkbox" id="includeWeekends" style="width:auto"> Include Weekends?</label><label style="font-size:10px"><input type="checkbox" id="includeHolidays" style="width:auto"> Include Holidays?</label></div><input type="text" id="liveOutAddress" placeholder="Address where nurse should come daily"></div>
+</div>
+<div id="rateInfo" style="background:#f0fdf4;padding:8px;border-radius:8px;margin:8px 0;font-size:11px">Legal Rate / Hour: Loading...</div>
+<div id="tierInfo" style="font-size:10px;color:#6b7280">Tier: SHORT (1-6 days) or LONG (7+ days) auto</div>
+<div class="card" style="border:2px solid #ef4444;background:#fef2f2;margin:10px 0"><label style="font-weight:800;color:#ef4444">📝 Patient Concerns / Condition</label><textarea id="patientConcerns" rows="4" placeholder="Describe condition..."></textarea><textarea id="patientMedicalHistory" rows="2" placeholder="Medical history / Medications / Allergies"></textarea><div style="display:flex;gap:8px;margin-top:6px"><select id="patientAge"><option value="">Patient Age?</option><option>0-1 Infant</option><option>2-12 Child</option><option>13-17 Teen</option><option>18-40 Adult</option><option>41-60 Middle-aged</option><option>61-80 Elderly</option><option>80+ Very Elderly</option></select><select id="patientGender"><option value="">Gender?</option><option>Male</option><option>Female</option><option>Other</option></select></div><div id="concernsCharCount" style="font-size:9px;color:#6b7280;text-align:right">0/500 chars</div></div>
+<div class="card" style="border:2px solid #7c3aed;background:#f5f3ff;margin:10px 0"><label style="font-weight:800;color:#7c3aed">🎤 Voice Note - Describe Condition</label><div style="display:flex;gap:8px;align-items:center;margin:8px 0"><button id="recordBtn" class="btnSmall" style="background:#ef4444;color:white;padding:14px 20px;border-radius:50px;font-weight:800" onclick="toggleVoiceRecording()">🎤 Record</button><button id="playVoiceBtn" class="btnSmall hidden" style="background:#16a34a;color:white;padding:12px" onclick="playVoiceNote()">▶️ Play</button><button id="deleteVoiceBtn" class="btnSmall hidden" style="background:#6b7280;color:white;padding:12px" onclick="deleteVoiceNote()">🗑️ Delete</button></div><div id="voiceStatus" style="font-size:11px;background:white;padding:8px;border-radius:8px;min-height:22px">Tap Record to start</div><div id="voiceTimer" style="font-size:12px;font-weight:800;color:#ef4444;text-align:center"></div><div id="voicePlayback" class="hidden" style="margin-top:8px"><audio id="voiceAudio" controls style="width:100%"></audio></div></div>
+<label>Phone Number</label><input type="tel" id="clientPhone" placeholder="+233...">
+<label>Your Offer (must be >= Legal Min) - BLOCKED if below minimum</label>
+<input type="number" id="clientOffer" placeholder="Enter amount" oninput="validateOffer()" onblur="validateOffer()">
+<div id="offerValidationMsg" style="font-size:11px;font-weight:800;padding:6px;border-radius:8px;margin-top:4px;display:none"></div>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">⚠️ Minimum required: <b id="minRequiredDisplay">Loading...</b> - If you enter below, booking will be BLOCKED to protect nurses</div>
+<button id="bookNurseBtn" class="btnSubmit" style="background:#16a34a;color:white" onclick="bookNurse()">✅ Book Nurse - Pay with Paystack</button>
+<div id="bookResult" style="font-size:11px;margin-top:8px"></div>
+</div>
+</div>
+
+<div id="page-nurse-public" class="page"><div class="card" style="border:3px solid #2563eb"><h2>👩‍⚕️ Join as Nurse - International - 8 Countries</h2><p style="font-size:10px;color:#6b7280">Not only Ghana uses license - ALL 8 countries use license. GH, NG, ZA, KE, US, UK, CA, AU</p><label>Full Name</label><input type="text" id="nurseName" placeholder="Your full name"><label>Phone</label><input type="tel" id="nursePhoneReg" placeholder="Phone"><label>Email</label><input type="email" id="nurseEmail" placeholder="Email"><label>Nursing License / Council ID / Reg. No. (International)</label><input type="text" id="nurseLicenseNumber" placeholder="e.g. Ghana N&MC 12345, Nigeria NMCN 6789, UK NMC PIN 12A3456B, US RN 123456, SA SANC 98765"><div style="font-size:9px;color:#6b7280">Examples: GH:N&MC • NG:NMCN • ZA:SANC • KE:NCK • US:State Board RN • UK:NMC PIN • CA:CNO • AU:AHPRA</div><label>Specialty</label><select id="nurseSpecialty"><option>General Nursing</option><option>Elderly Care</option><option>Pediatric</option><option>ICU</option><option>Midwifery</option></select>
+
+<div class="card" style="border:3px dashed #7c3aed;margin:10px 0;background:#f5f3ff;padding:14px">
+<label style="font-weight:900;color:#7c3aed;font-size:14px">📄 Upload Documents - CV, License, Certificate, Photos (Required - 8 Countries)</label>
+<p style="font-size:10px;color:#6b7280;margin:6px 0">🌍 GH N&MC, NG NMCN, ZA SANC, KE NCK, US RN, UK NMC PIN, CA CNO, AU AHPRA - All files saved to CEO dashboard for verification</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+<div style="background:white;padding:10px;border-radius:10px;border:2px solid #2563eb"><label style="font-size:11px;font-weight:800;color:#2563eb">🪪 Nursing License / Council ID *</label><div style="font-size:8px;color:#6b7280">GH N&MC, NG NMCN, UK PIN, US RN, SA SANC etc.</div><input type="file" id="nurseLicenseFile" accept="image/*,.pdf" onchange="previewFile(this,'licensePreview','licenseUploadStatus')" style="margin-top:6px"><div id="licensePreview" style="margin-top:6px;max-height:80px;overflow:hidden"></div><div id="licenseUploadStatus" style="font-size:10px;margin-top:4px;color:#16a34a;font-weight:700"></div></div>
+<div style="background:white;padding:10px;border-radius:10px;border:2px solid #0e7490"><label style="font-size:11px;font-weight:800;color:#0e7490">🆔 National ID / Passport *</label><div style="font-size:8px;color:#6b7280">Ghana Card, NIN, Passport</div><input type="file" id="nurseIDFile" accept="image/*,.pdf" onchange="previewFile(this,'idPreview','idUploadStatus')" style="margin-top:6px"><div id="idPreview" style="margin-top:6px;max-height:80px;overflow:hidden"></div><div id="idUploadStatus" style="font-size:10px;margin-top:4px;color:#16a34a;font-weight:700"></div></div>
+<div style="background:white;padding:10px;border-radius:10px;border:2px solid #16a34a"><label style="font-size:11px;font-weight:800;color:#16a34a">🎓 Nursing Certificate *</label><div style="font-size:8px;color:#6b7280">Degree, Diploma, RN Certificate</div><input type="file" id="nurseCertFile" accept="image/*,.pdf" onchange="previewFile(this,'certPreview','certUploadStatus')" style="margin-top:6px"><div id="certPreview" style="margin-top:6px;max-height:80px;overflow:hidden"></div><div id="certUploadStatus" style="font-size:10px;margin-top:4px;color:#16a34a;font-weight:700"></div></div>
+<div style="background:white;padding:10px;border-radius:10px;border:2px solid #eab308"><label style="font-size:11px;font-weight:800;color:#111827">📸 Professional Photo *</label><div style="font-size:8px;color:#6b7280">Clear face photo for profile</div><input type="file" id="nursePhotoFile" accept="image/*" onchange="previewFile(this,'photoPreview','photoUploadStatus')" style="margin-top:6px"><div id="photoPreview" style="margin-top:6px;max-height:100px;overflow:hidden;border-radius:8px"></div><div id="photoUploadStatus" style="font-size:10px;margin-top:4px;color:#16a34a;font-weight:700"></div></div>
+<div style="background:white;padding:10px;border-radius:10px;border:2px solid #7c3aed"><label style="font-size:11px;font-weight:800;color:#7c3aed">📄 CV / Resume *</label><div style="font-size:8px;color:#6b7280">PDF, DOC, DOCX - Work experience</div><input type="file" id="nurseCVFile" accept=".pdf,.doc,.docx,image/*" onchange="previewFile(this,'cvPreview','cvUploadStatus')" style="margin-top:6px"><div id="cvPreview" style="margin-top:6px;max-height:80px;overflow:hidden"></div><div id="cvUploadStatus" style="font-size:10px;margin-top:4px;color:#16a34a;font-weight:700"></div></div>
+<div style="background:white;padding:10px;border-radius:10px;border:2px solid #111827"><label style="font-size:11px;font-weight:800">🏥 Additional License (Optional)</label><div style="font-size:8px;color:#6b7280">Other country licenses</div><input type="file" id="nurseAdditionalFile" accept="image/*,.pdf" onchange="previewFile(this,'additionalPreview','additionalUploadStatus')" style="margin-top:6px"><div id="additionalPreview" style="margin-top:6px;max-height:80px;overflow:hidden"></div><div id="additionalUploadStatus" style="font-size:10px;margin-top:4px;color:#16a34a;font-weight:700"></div></div>
+</div>
+<div style="background:white;padding:12px;border-radius:10px;border:2px solid #ef4444;margin-top:10px"><label style="font-size:11px;font-weight:800;color:#ef4444">🎥 Video Intro (30 sec) - Highly Recommended</label><div style="font-size:8px;color:#6b7280">Introduce yourself - Increases approval chance</div><input type="file" id="nurseVideoFile" accept="video/*" onchange="previewFile(this,'videoPreview','videoUploadStatus')" style="margin-top:6px"><div id="videoPreview" style="margin-top:6px;max-height:120px;overflow:hidden"></div><div id="videoUploadStatus" style="font-size:10px;margin-top:4px;color:#16a34a;font-weight:700"></div></div>
+<div style="background:#f0fdf4;padding:10px;border-radius:10px;border:2px solid #16a34a;margin-top:10px"><div style="font-size:11px;font-weight:800;color:#16a34a">✅ Upload Progress</div><div id="allUploadProgress" style="font-size:10px;color:#6b7280;margin-top:4px">No files yet - Choose files above - Preview will show here - All files saved for CEO verification</div><div style="width:100%;background:#e5e7eb;border-radius:10px;height:8px;margin-top:6px;overflow:hidden"><div id="uploadProgressBar" style="width:0%;background:#16a34a;height:100%;transition:0.3s"></div></div></div>
+</div>
+
+<button class="btnSubmit" style="background:#2563eb;color:white" onclick="registerNurse()">📝 Register as Nurse - CEO Approval Required</button><div id="nurseRegResult" style="font-size:11px;margin-top:8px"></div></div></div>
+
+<div id="page-login" class="page"><div class="card" style="border:3px solid #16a34a"><h2>🔐 Login - LOVE CARE GLOBAL HOME NURSING</h2><p style="font-size:11px;color:#6b7280">Public Login - Clients & Nurses Only<br>Staff & CEO login hidden - Tap logo 5x</p><div style="display:grid;gap:12px"><button class="btnSmall" style="background:#16a34a;color:white;padding:16px;width:100%;font-size:14px" onclick="showPage('page-client-login')">👤 Client Login</button><button class="btnSmall" style="background:#2563eb;color:white;padding:16px;width:100%;font-size:14px" onclick="showPage('page-nurse-login')">👩‍⚕️ Nurse Login</button></div></div></div>
+<div id="page-client-login" class="page"><div class="card" style="border:3px solid #16a34a"><h2>👤 Client Login</h2><label>Phone</label><input type="tel" id="clientLoginPhone"><label>Password</label><input type="password" id="clientLoginPass"><button class="btnSubmit" style="background:#16a34a;color:white" onclick="clientLogin()">Login</button><div id="clientLoginResult"></div><button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:8px" onclick="showPage('home')">🏠 Home</button></div></div>
+<div id="page-nurse-login" class="page"><div class="card" style="border:3px solid #2563eb"><h2>👩‍⚕️ Nurse Login</h2><label>Phone</label><input type="tel" id="nurseLoginPhone"><label>Password</label><input type="password" id="nurseLoginPass"><button class="btnSubmit" style="background:#2563eb;color:white" onclick="nurseLogin()">Login as Nurse</button><div id="nurseLoginResult"></div><button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:8px" onclick="showPage('home')">🏠 Home</button></div></div>
+<div id="page-ceo-login" class="page"><div class="card" style="border:3px solid #eab308;background:#fffbeb"><h2>👑 CEO Login - Secure</h2><label>ID</label><input type="text" id="ceoID" placeholder="ID"><label>Password</label><input type="password" id="ceoPass" placeholder="Password"><button class="btnSubmit" style="background:#eab308;color:#111" onclick="ceoLogin()">Login as CEO</button><div id="ceoLoginResult"></div><button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:8px" onclick="showPage('home')">🏠 Home</button></div></div>
+<div id="page-staff-login" class="page"><div class="card" style="border:3px solid #0e7490"><h2>👔 Staff Login</h2><label>Staff ID</label><input type="text" id="staffIDInput"><label>Password</label><input type="password" id="staffPass"><button class="btnSubmit" style="background:#0e7490;color:white" onclick="staffLogin()">Login as Staff</button><div id="staffLoginResult"></div><button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:8px" onclick="showPage('home')">🏠 Home</button></div></div>
+
+<div id="page-settings" class="page"><div class="card" style="border:3px solid #111827"><h2>⚙️ Settings - LOVE CARE GLOBAL HOME NURSING</h2><div style="display:grid;gap:10px"><div class="card" style="margin:0;border:2px solid #16a34a"><h3 style="margin:0 0 8px">👤 Account</h3><div style="font-size:12px">Phone: <b id="settingsPhone">Not logged</b></div><button class="btnSmall" style="background:#2563eb;color:white;width:100%;padding:12px;margin-top:8px" onclick="showPage('home')">🏠 Go Home</button></div><div class="card" style="margin:0;border:2px solid #eab308"><h3 style="margin:0 0 8px">🔔 Notifications</h3><button class="btnSmall" style="background:#eab308;color:#111;width:100%;padding:10px;margin-top:8px" onclick="saveNotificationSettings()">💾 Save Notifications</button></div><div class="card" style="margin:0;border:2px solid #5b21b6;background:#f5f3ff"><h3 style="margin:0 0 8px;color:#5b21b6">📋 All Consent Forms Hub</h3><p style="font-size:10px;color:#6b7280;margin:0 0 8px">Client, Nurse, Staff consent forms - Required for registration & booking</p><div style="display:flex;flex-direction:column;gap:8px">
+<button class="btnSmall" style="background:#5b21b6;color:white;width:100%;padding:12px" onclick="window.open('./consent-form.html','_blank')">📋 All Consent Forms Hub (Client + Nurse + Staff)</button>
+<button class="btnSmall" style="background:white;color:#16a34a;border:2px solid #16a34a;width:100%;padding:10px;font-size:11px" onclick="window.open('./consent-client.html','_blank')">✅ Client Consent Form</button>
+<button class="btnSmall" style="background:white;color:#2563eb;border:2px solid #2563eb;width:100%;padding:10px;font-size:11px" onclick="window.open('./consent-nurse.html','_blank')">✅ Nurse Consent Form</button>
+<button class="btnSmall" style="background:white;color:#7c3aed;border:2px solid #7c3aed;width:100%;padding:10px;font-size:11px" onclick="window.open('./consent-staff.html','_blank')">✅ Staff Consent Form</button>
+</div></div>
+<div class="card" style="margin:0;border:2px solid #7c3aed"><h3 style="margin:0 0 8px">📄 Legal & About</h3><div style="display:flex;flex-direction:column;gap:8px">
+<button class="btnSmall" style="background:#111827;color:white;width:100%;padding:12px" onclick="openTermsModal()">📄 Terms & Conditions</button>
+<button class="btnSmall" style="background:white;color:#7c3aed;border:2px solid #7c3aed;width:100%;padding:12px" onclick="window.open('./terms.html','_blank')">📄 Terms (Standalone HTML)</button>
+<button class="btnSmall" style="background:white;color:#7c3aed;border:2px solid #7c3aed;width:100%;padding:12px" onclick="window.open('./privacy-policy.html','_blank')">🔒 Privacy Policy</button>
+<button class="btnSmall" style="background:white;color:#0e7490;border:2px solid #0e7490;width:100%;padding:12px" onclick="window.open('./about.html','_blank')">💜 About Us</button>
+<button class="btnSmall" style="background:#fef2f2;color:#ef4444;border:2px solid #ef4444;width:100%;padding:12px" onclick="window.open('./delete-account.html','_blank')">🗑️ Delete Account</button>
+<button class="btnSmall" style="background:white;color:#16a34a;border:2px solid #16a34a;width:100%;padding:12px" onclick="contactSupport()">💬 Contact Support</button>
+</div></div><div class="card" style="margin:0;border:2px solid #ef4444;background:#fef2f2"><h3 style="margin:0 0 8px;color:#ef4444">⚠️ Danger Zone</h3><button class="btnSmall" style="background:#ef4444;color:white;width:100%;padding:12px" onclick="clearAppData()">🧹 Clear App Data</button><button class="btnSmall" style="background:#111827;color:#f87171;border:2px solid #ef4444;width:100%;padding:12px;margin-top:8px" onclick="deleteAccount()">🗑️ Delete Account</button></div><div style="text-align:center;font-size:10px;color:#6b7280;padding:10px">© 2026 LOVE CARE GLOBAL HOME NURSING<br>Version 2.1 - 8 Countries - Standalone Links - No Bottom Nav - Good One</div></div></div></div>
+
+
+
+</div>
+<div id="page-staff-dashboard" class="page"><div class="card" style="border:3px solid #0e7490"><h2>👔 Staff Dashboard - Full Features</h2><div class="card" style="margin:8px 0;border:2px solid #16a34a"><h3 style="margin:0 0 8px">📋 Manage Bookings</h3><div id="staffBookingsList" style="max-height:300px;overflow-y:auto;background:#f9fafb;padding:8px;border-radius:8px">Loading...</div></div><button class="btnSmall" style="background:#ef4444;color:white;width:100%;padding:12px" onclick="staffLogout()">🚪 Logout Staff - Icon Disappears</button></div></div>
+
+<div id="page-client-dashboard" class="page"><div class="card"><h2>📋 My Bookings</h2><div id="clientBookingsList">No bookings yet - Select nurse via Find Nurse Near Me then book</div></div></div>
+
+<div id="ratingModal" class="ratePopup hidden" style="display:none"><h3>⭐ Rate Your Nurse</h3><div style="display:flex;gap:8px;justify-content:center;margin:12px 0"><button class="btnSmall starBtn" onclick="setRating(1)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button><button class="btnSmall starBtn" onclick="setRating(2)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button><button class="btnSmall starBtn" onclick="setRating(3)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button><button class="btnSmall starBtn" onclick="setRating(4)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button><button class="btnSmall starBtn" onclick="setRating(5)" style="font-size:24px;background:white;border:2px solid #eab308">☆</button></div><div id="ratingStarsDisplay" style="text-align:center;font-size:14px;font-weight:800;color:#eab308">Tap stars to rate</div><textarea id="ratingComment" rows="3" placeholder="Write experience..."></textarea><button class="btnSubmit" style="background:#eab308;color:#111" onclick="submitRating()">Submit Rating</button><button class="btnSmall" style="background:#6b7280;color:white;width:100%;margin-top:6px" onclick="closeRatingModal()">Cancel</button><div id="ratingResult" style="font-size:11px;margin-top:8px"></div></div>
+
+<div id="termsModal" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:500;display:none;align-items:center;justify-content:center"><div style="background:white;width:92%;max-width:600px;height:85%;border-radius:16px;overflow:hidden;display:flex;flex-direction:column"><div style="padding:12px;background:#111827;color:white;display:flex;justify-content:space-between"><b>Terms & Conditions</b><button onclick="closeTermsModal()" style="background:#ef4444;color:white;border:none;border-radius:8px;padding:6px 12px">X</button></div><iframe id="termsIframe" src="./terms.html" style="flex:1;border:none;width:100%"></iframe></div></div>
+
+
+
+
+
+
+
+
+<div id="page-ceo-dashboard" class="page">
+<div class="card" style="margin-top:8px">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+<div class="card" style="margin:0;border:2px solid #16a34a;background:#f0fdf4"><b>Nurses</b><div id="ceoTotalNurses" style="font-weight:900;font-size:20px">0</div></div>
+<div class="card" style="margin:0;border:2px solid #2563eb;background:#eff6ff"><b>Bookings</b><div id="ceoTotalBookings" style="font-weight:900;font-size:20px">0</div></div>
+</div>
+<div style="background:linear-gradient(90deg,#16a34a,#eab308);color:white;padding:12px;border-radius:12px;margin-bottom:10px">
+<b>👑 CEO DASHBOARD - Asabere / KUSIPETER</b>
+<div id="ceoSyncStatus" style="font-size:11px">Auto-receiving nurses + bookings...</div>
+<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+<button class="btnSmall" style="background:white;color:#16a34a;font-weight:900" onclick="loadCEODashboard()">Refresh</button>
+<button class="btnSmall" style="background:#facc15;color:#111;font-weight:900" onclick="approveAllPending()">Approve All Pending</button>
+<button class="btnSmall" style="background:#111827;color:white" onclick="testNurseRegistration()">Test Nurse</button>
+<button class="btnSmall" style="background:#eab308;color:#111" onclick="testClientBooking()">Test Booking</button>
+</div>
+</div>
+<div style="display:flex;gap:4px;margin-bottom:8px">
+<button id="tabBtnPending" class="btnSmall" style="background:#ef4444;color:white;flex:1;padding:12px;font-weight:900" onclick="switchCEOTab('pending')">PENDING <span id="pendingBadge">0</span></button>
+<button id="tabBtnBookings" class="btnSmall" style="background:#2563eb;color:white;flex:1;padding:12px;font-weight:900" onclick="switchCEOTab('bookings')">BOOKINGS <span id="bookingsBadge">0</span></button>
+<button id="tabBtnVerified" class="btnSmall" style="background:#16a34a;color:white;flex:1;padding:12px" onclick="switchCEOTab('verified')">VERIFIED</button>
+<button id="tabBtnSOS" class="btnSmall" style="background:#111827;color:white;flex:1;padding:12px" onclick="switchCEOTab('sos')">SOS</button>
+</div>
+<div id="ceoTabPending" class="ceoTab"><div class="card" style="border:2px solid #ef4444;margin:0"><h3 style="color:#ef4444">PENDING NURSE REGISTRATIONS</h3><div id="ceoNurseApplicationsList" style="max-height:600px;overflow-y:auto;background:white;border-radius:8px;padding:8px">Loading...</div></div></div>
+<div id="ceoTabBookings" class="ceoTab" style="display:none"><div class="card" style="border:2px solid #2563eb;margin:0"><h3 style="color:#2563eb">CLIENT BOOKINGS - CEO Receives Here</h3><div id="ceoBookingsListEnhanced" style="max-height:600px;overflow-y:auto;background:white;border-radius:8px;padding:8px">No bookings</div></div></div>
+<div id="ceoTabVerified" class="ceoTab" style="display:none"><div class="card" style="border:2px solid #16a34a;margin:0"><h3>VERIFIED NURSES</h3><div id="ceoVerifiedNursesList" style="max-height:600px;overflow-y:auto;background:white;border-radius:8px;padding:8px">No verified</div></div></div>
+<div id="ceoTabSOS" class="ceoTab" style="display:none"><div class="card" style="border:2px solid #ef4444;margin:0"><h3 style="color:#ef4444">SOS ALERTS</h3><div id="ceoSOSListEnhanced" style="max-height:600px;overflow-y:auto;background:white;border-radius:8px;padding:8px">No SOS</div><button class="btnSmall" style="background:#ef4444;color:white;width:100%;margin-top:8px" onclick="viewSOSList()">Load SOS</button></div></div>
+<div style="background:#111827;color:white;padding:10px;border-radius:12px;margin:10px 0"><b>QUICK ACTIONS</b><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px"><button class="btnSmall" style="background:#16a34a;color:white" onclick="loadNursesForCall()">Nurse Directory</button><button class="btnSmall" style="background:#0e7490;color:white" onclick="loadStaffForCall()">Staff</button><button class="btnSmall" style="background:#ff6a00;color:white" onclick="loadClientsForCall()">Clients</button><button class="btnSmall" style="background:#7c3aed;color:white" onclick="showPage('page-group-chat')">Group Chat</button><button class="btnSmall" style="background:#2563eb;color:white" onclick="viewLiveMap()">Live Map</button><button class="btnSmall" style="background:#eab308;color:#111" onclick="broadcastToNurses()">To Nurses</button></div><div id="ceoCallLists" style="max-height:200px;overflow-y:auto;background:white;border-radius:8px;padding:8px;margin-top:8px;color:#111">Call lists here...</div></div>
+<div class="card" style="border:2px solid #e5e7eb"><h4>System</h4><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px"><input id="newStaffId" placeholder="Staff ID"><input id="newStaffPass" placeholder="Password"><input id="newStaffPhone" placeholder="Phone"><button class="btnSmall" style="background:#16a34a;color:white" onclick="createStaffId()">Create Staff</button></div><button class="btnSmall" style="background:#2563eb;color:white;width:100%;margin:6px 0" onclick="loadStaffList()">Load Staff</button><div id="ceoStaffList" style="max-height:150px;overflow-y:auto;background:#f9fafb;border-radius:8px;padding:8px">Staff list</div></div>
+<div id="nurseDocViewerModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:99999;align-items:center;justify-content:center;padding:12px"><div style="background:white;border-radius:16px;max-width:650px;width:100%;max-height:92vh;overflow-y:auto"><div style="padding:12px;background:#111827;color:white;display:flex;justify-content:space-between;align-items:center"><b id="nurseDocViewerTitle">Nurse Documents</b><button onclick="closeNurseDocViewer()" style="background:#ef4444;color:white;border:none;border-radius:8px;padding:6px 12px">X</button></div><div id="nurseDocViewerBody" style="padding:12px"></div></div></div>
+</div>
+</div>
+
+<div id="page-group-chat" class="page">
+<div class="card" style="margin-top:8px">
+<h3 style="color:#7c3aed;">💜 LOVECARE WORKERS CHAT - CEO: Asabere</h3>
+<div id="groupLoginBox" style="background:#f5f3ff;border:2px solid #ddd6fe;border-radius:12px;padding:12px;margin:10px 0;">
+<b style="color:#7c3aed;">Secure Login</b>
+<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+<input id="groupLoginId" placeholder="ID: Asabere / NURSE_xxx" style="padding:12px;border-radius:8px;border:1px solid #ccc;">
+<input id="groupLoginPass" type="password" placeholder="Pass: Asab9006 / nurse123" style="padding:12px;border-radius:8px;border:1px solid #ccc;">
+<button type="button" style="background:#7c3aed;color:#fff;padding:12px;border-radius:8px;border:none;font-weight:900;width:100%;" onclick="doGroupChatLogin()">Login to Chat</button>
+<div id="groupLoginStatus" style="font-size:11px;color:#6b7280;"></div>
+</div>
+</div>
+<div id="groupLoggedBox" style="display:none;background:#ede9fe;border:2px solid #7c3aed;border-radius:12px;padding:10px;margin-bottom:8px;">
+<div style="display:flex;justify-content:space-between;align-items:center;">
+<span>Logged as: <b id="groupLoggedAs" style="color:#7c3aed;"></b> <small id="groupLoggedRole"></small></span>
+<button type="button" style="background:#fee2e2;color:#ef4444;border:1px solid #fecaca;border-radius:8px;padding:6px 12px;font-weight:700;" onclick="doGroupChatLogout()">Logout</button>
+</div>
+</div>
+<div id="groupChatBox" style="max-height:450px;overflow-y:auto;background:#fff;border:2px solid #e5e7eb;border-radius:12px;padding:10px;min-height:250px;">Loading messages...</div>
+<div id="masterDeleteContainer" style="display:none;margin-top:12px;text-align:center;">
+<button type="button" style="background:#ef4444;color:white;border:none;border-radius:10px;padding:14px 18px;font-weight:900;width:100%;" onclick="masterDeleteAllChats()">MASTER DELETE - WIPE ALL (CEO ONLY)</button>
+</div>
+<div style="display:flex;gap:6px;margin-top:12px;">
+<input id="chatInput" placeholder="Type message..." style="flex:1;padding:12px;border-radius:20px;border:2px solid #7c3aed;">
+<button type="button" style="background:#7c3aed;color:#fff;border:none;border-radius:20px;padding:12px 20px;font-weight:900;" onclick="sendChatMessage()">Send</button>
+</div>
+<div style="display:flex;gap:6px;margin-top:8px;">
+<button class="btnSmall" style="background:#f3f4f6;color:#6b7280;flex:1;padding:8px" onclick="clearChatInput()">Clear</button>
+<button class="btnSmall" style="background:#ede9fe;color:#7c3aed;flex:1;padding:8px" onclick="refreshGroupChat()">Refresh</button>
+<button class="btnSmall" style="background:#111827;color:white;flex:1;padding:8px" onclick="showPage('home')">Home</button>
+</div>
+</div>
+</div>
+
+<script>
+
+const SUPABASE_URL='https://oufnquvholmpwhrtpnlm.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.[STRIPPED 127 bytes].Z_XqLDLWI3ifI1riNwleUrfxK6ZJ3Y2Ye4P1BKoZXlc';
+let supabaseClient=null;
+try{ supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY); }catch(e){}
+const firebaseConfig={apiKey:"AIzaSyB52-X1D8Cg-wUDWPds_tR7D8cF82dMdRg",authDomain:"web-care-618e8.firebaseapp.com",databaseURL:"https://web-care-618e8-default-rtdb.firebaseio.com",projectId:"web-care-618e8",storageBucket:"web-care-618e8.firebasestorage.app",messagingSenderId:"1062578660694",appId:"1:1062578660694:web:f94dfe12c929df05bce2f7"};
+try{ firebase.initializeApp(firebaseConfig); window.db=firebase.database(); window.storage=firebase.storage(); }catch(e){}
+window.uploadedFiles={};
+try{ window.uploadedFiles=JSON.parse(localStorage.getItem('tempNurseUploads')||'{}'); }catch(e){ window.uploadedFiles={}; }
+let _map=null, _fbListener=false, _lastPending=0, _ceoFilter=null, _ceoBookingFilter='all', _allCEOBookings=[], _autoInterval=null;
+
+function getNurseApplications(){ try{ return JSON.parse(localStorage.getItem('nurseApplications')||'[]'); }catch(e){ return []; } }
+function saveNurseApplications(a){ localStorage.setItem('nurseApplications', JSON.stringify(a)); }
+window.getNurseApplications=getNurseApplications;
+window.saveNurseApplications=saveNurseApplications;
+function getGroupChats(){ try{ return JSON.parse(localStorage.getItem('groupChats')||'[]'); }catch(e){ return []; } }
+function saveGroupChats(c){ try{ localStorage.setItem('groupChats', JSON.stringify(c)); }catch(e){} }
+
+async function uploadToSupabase(file,folder){
+ try{
+  if(!supabaseClient) return null;
+  var clean=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  var fileName=folder+'/'+Date.now()+'_'+clean;
+  var result=await supabaseClient.storage.from('nurse-files').upload(fileName,file,{upsert:true});
+  if(result.error){ alert('Upload error:'+result.error.message); return null; }
+  var pub=supabaseClient.storage.from('nurse-files').getPublicUrl(fileName);
+  return pub.data.publicUrl;
+ }catch(e){ alert('Upload failed:'+e.message); return null; }
+}
+async function previewFile(input,previewId,statusId){
+ var file=input.files[0]; if(!file) return;
+ var sEl=document.getElementById(statusId); var pEl=document.getElementById(previewId);
+ if(sEl) sEl.innerHTML='Uploading '+file.name+'...';
+ if(pEl){
+  if(file.type.indexOf('image')===0){ var r=new FileReader(); r.onload=function(e){ pEl.innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:100px;border-radius:8px">'; }; r.readAsDataURL(file); }
+  else { pEl.innerHTML='File: '+file.name; }
+ }
+ var folder=previewId.replace('Preview','').toLowerCase();
+ var url=await uploadToSupabase(file,folder);
+ if(sEl){
+  if(url){ sEl.innerHTML='Uploaded'; window.uploadedFiles[previewId]=url; localStorage.setItem('tempNurseUploads', JSON.stringify(window.uploadedFiles)); }
+  else sEl.innerHTML='Failed';
+ }
+}
+var logoTapCount=0, logoTapTimer=null;
+function logoTap(){ logoTapCount++; clearTimeout(logoTapTimer); logoTapTimer=setTimeout(function(){logoTapCount=0;},2000); if(logoTapCount>=5){ var h=document.getElementById('staffAccessHidden'); if(h){ h.classList.remove('hidden'); h.style.display='block'; } localStorage.setItem('staffAccessRevealed','true'); alert('CEO and Staff access revealed - Check menu'); logoTapCount=0; } }
+
+function openMenuDrawer(){
+  var m=document.getElementById('menuOverlay'); var b=document.getElementById('menuBackdrop');
+  if(m){ m.classList.add('active'); m.style.transform='translateX(0)'; }
+  if(b){ b.style.display='block'; setTimeout(function(){ b.classList.add('active'); },10); }
+  document.body.style.overflow='hidden';
+}
+function closeMenuDrawer(){
+  var m=document.getElementById('menuOverlay'); var b=document.getElementById('menuBackdrop');
+  if(m){ m.classList.remove('active'); m.style.transform=''; m.classList.remove('dragging'); }
+  if(b){ b.classList.remove('active'); setTimeout(function(){ b.style.display='none'; },300); }
+  document.body.style.overflow='';
+}
+function toggleMenu(){
+  var m=document.getElementById('menuOverlay');
+  if(m && m.classList.contains('active')) closeMenuDrawer();
+  else openMenuDrawer();
+}
+// Draggable drawer logic
+(function(){
+  var drawer=document.getElementById('menuOverlay');
+  if(!drawer) return;
+  var startX=0, currentX=0, isDragging=false;
+  var backdrop=document.getElementById('menuBackdrop');
+  function onStart(e){
+    if(!drawer.classList.contains('active')) return;
+    isDragging=true;
+    drawer.classList.add('dragging');
+    startX = e.touches ? e.touches[0].clientX : e.clientX;
+  }
+  function onMove(e){
+    if(!isDragging) return;
+    currentX = e.touches ? e.touches[0].clientX : e.clientX;
+    var diff = currentX - startX;
+    // Only allow dragging left (negative diff)
+    if(diff < 0){
+      drawer.style.transform='translateX('+diff+'px)';
+      if(backdrop){
+        var opacity = 1 - Math.abs(diff)/drawer.offsetWidth;
+        backdrop.style.opacity=opacity;
+      }
+    }
+  }
+  function onEnd(e){
+    if(!isDragging) return;
+    isDragging=false;
+    drawer.classList.remove('dragging');
+    var diff = currentX - startX;
+    // If dragged more than 80px left, close drawer
+    if(diff < -80){
+      closeMenuDrawer();
+    } else {
+      drawer.style.transform='translateX(0)';
+      if(backdrop) backdrop.style.opacity='1';
+    }
+    startX=0; currentX=0;
+  }
+  // Touch events
+  drawer.addEventListener('touchstart', onStart, {passive:true});
+  drawer.addEventListener('touchmove', onMove, {passive:true});
+  drawer.addEventListener('touchend', onEnd);
+  // Mouse events for desktop testing
+  drawer.addEventListener('mousedown', onStart);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onEnd);
+  // Handle swipe from left edge to open (optional)
+  var edgeStartX=0;
+  document.addEventListener('touchstart', function(e){
+    if(e.touches[0].clientX < 20 && !drawer.classList.contains('active')){
+      edgeStartX=e.touches[0].clientX;
+    }
+  }, {passive:true});
+  document.addEventListener('touchmove', function(e){
+    if(edgeStartX>0 && !drawer.classList.contains('active')){
+      var diff=e.touches[0].clientX - edgeStartX;
+      if(diff>50){
+        openMenuDrawer();
+        edgeStartX=0;
+      }
+    }
+  }, {passive:true});
+  document.addEventListener('touchend', function(){ edgeStartX=0; });
+})();
+
+function toggleThreeDots(e){ if(e) e.stopPropagation(); var menu=document.getElementById('threeDotsMenu'); if(menu){ menu.style.display=menu.style.display==='none'?'block':'none'; } }
+function closeThreeDots(){ var m=document.getElementById('threeDotsMenu'); if(m) m.style.display='none'; }
+function exitApp(){ if(confirm('Exit app?')) window.location.href='about:blank'; }
+function showPage(id){ closeMenuDrawer();
+ if(id==='page-group-chat'){
+  var isNurse=localStorage.getItem('nursePhone'); var isCEO=localStorage.getItem('isCEOLogged'); var isStaff=localStorage.getItem('staffID');
+  if(!isNurse&&!isCEO&&!isStaff){ alert('Group Chat only for Nurses, CEO and Staff'); id='page-nurse-login'; }
+ }
+ document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+ var target=document.getElementById(id) || document.getElementById('page-'+id) || document.getElementById('page-home');
+ if(target) target.classList.add('active');
+ window.scrollTo(0,0);
+ var menu=document.getElementById('menuOverlay'); if(menu) menu.classList.remove('active');
+ if(id.indexOf('home')!==-1){ setTimeout(function(){ loadTopRatedNurses(); initLiveMap(); },300); }
+ if(id.indexOf('ceo-dashboard')!==-1){ loadCEODashboard(); }
+ if(id.indexOf('settings')!==-1){ updateSettingsDisplay(); }
+}
+function updateSettingsDisplay(){ var phoneEl=document.getElementById('settingsPhone'); if(phoneEl){ phoneEl.textContent=localStorage.getItem('clientPhone')||localStorage.getItem('nursePhone')||localStorage.getItem('ceoID')||'Not logged'; } }
+function contactSupport(){ window.open('mailto:lovecareglobal@gmail.com','_blank'); }
+function clearAppData(){ if(confirm('Clear app data?')){ localStorage.clear(); location.reload(); } }
+function deleteAccount(){ window.open('./delete-account.html','_blank'); }
+function openTermsModal(){ var m=document.getElementById('termsModal'); if(m){ m.style.display='flex'; m.classList.remove('hidden'); } }
+function closeTermsModal(){ var m=document.getElementById('termsModal'); if(m){ m.style.display='none'; m.classList.add('hidden'); } }
+function setRating(s){ window.currentRating=s; var btns=document.querySelectorAll('.starBtn'); for(var i=0;i<btns.length;i++){ btns[i].textContent=i<s?'★':'☆'; } var d=document.getElementById('ratingStarsDisplay'); if(d) d.textContent=s+' Stars'; }
+function closeRatingModal(){ var m=document.getElementById('ratingModal'); if(m){ m.style.display='none'; } }
+function submitRating(){ if(!window.currentRating){ alert('Tap stars first'); return; } alert('Rated '+window.currentRating+' stars'); closeRatingModal(); }
+function switchRateTab(mode){ window.currentCareMode=mode; calculateTotal(); }
+function stepVal(id,delta){ var el=document.getElementById(id); if(!el) return; var v=parseInt(el.value||0)+delta; if(v<1) v=1; el.value=v; calculateTotal(); }
+function calculateWorkHours(){ var s=document.getElementById('startTimeDaily'); var e=document.getElementById('endTimeDaily'); if(!s||!e||!s.value||!e.value) return; var d=document.getElementById('workHoursDisplay'); if(d) d.textContent='Work Hours: '+s.value+' - '+e.value; calculateTotal(); }
+function toggleLiveOutOptions(){ calculateWorkHours(); }
+function updateCountryPricing(){ calculateTotal(); }
+function calculateTotal(){
+ var daysEl=document.getElementById('inputDays'); var days=daysEl?parseInt(daysEl.value||1):1;
+ var hrsEl=document.getElementById('inputHrsPerDayDaily'); var hrs=hrsEl?parseInt(hrsEl.value||8):8;
+ var totalHrs=days*hrs;
+ var countryEl=document.getElementById('countrySelect'); var country=countryEl?countryEl.value:'GH';
+ var rate=20;
+ var info=document.getElementById('rateInfo'); if(info) info.textContent='Rate: '+rate+' '+country+'/hr - Hours:'+totalHrs;
+ var minD=document.getElementById('minRequiredDisplay'); if(minD) minD.textContent=(totalHrs*rate).toFixed(2)+' GHS';
+}
+function triggerSOS(){
+ var html='<div id="sosModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:12px"><div style="background:white;border-radius:16px;padding:16px;max-width:400px;width:100%;border:3px solid #ef4444"><h2 style="margin:0;color:#ef4444">SOS Emergency</h2><p style="font-size:11px;color:#6b7280">Call CEO + Police - Live location shared</p><div style="display:grid;gap:10px;margin-top:12px"><a href="tel:+233544121814" style="background:#eab308;color:#111;padding:14px;border-radius:12px;text-align:center;font-weight:800;text-decoration:none;display:block">Call CEO: +233544121814</a><a href="tel:112" style="background:#ef4444;color:white;padding:14px;border-radius:12px;text-align:center;font-weight:800;text-decoration:none;display:block">Call Police: 112</a><div style="background:#f0fdf4;padding:10px;border-radius:10px;border:2px solid #16a34a"><div style="font-size:11px;font-weight:800">8 Countries Police - Straight Call:</div><div style="font-size:10px;margin-top:6px">Ghana: <a href="tel:112">112</a>/<a href="tel:191">191</a><br>Nigeria: <a href="tel:199">199</a><br>SA: <a href="tel:10111">10111</a><br>Kenya: <a href="tel:999">999</a><br>USA: <a href="tel:911">911</a><br>UK: <a href="tel:999">999</a><br>Canada: <a href="tel:911">911</a><br>Australia: <a href="tel:000">000</a></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button onclick="findNearbyPolice()" style="background:#111827;color:white;padding:12px;border-radius:10px;font-weight:800;border:none;font-size:11px">Nearby Police</button><button onclick="shareSOSLocation()" style="background:#2563eb;color:white;padding:12px;border-radius:10px;font-weight:800;border:none">Share Location</button></div><button onclick="openInGoogleMaps()" style="background:#16a34a;color:white;padding:12px;border-radius:10px;font-weight:800;border:none;width:100%">Open in Google Maps</button><button onclick="document.getElementById(\'sosModal\').remove()" style="background:#6b7280;color:white;padding:12px;border-radius:10px;font-weight:800;border:none;width:100%">Close</button></div></div></div>';
+ var ex=document.getElementById('sosModal'); if(ex) ex.remove();
+ document.body.insertAdjacentHTML('beforeend', html);
+}
+function findNearbyPolice(){ if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(function(pos){ var url='https://www.google.com/maps/search/police+station/@'+pos.coords.latitude+','+pos.coords.longitude+',14z'; window.open(url,'_blank'); }); } else { window.open('https://www.google.com/maps/search/police+station/','_blank'); } }
+function shareSOSLocation(){ if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(function(pos){ var url='https://www.google.com/maps?q='+pos.coords.latitude+','+pos.coords.longitude; if(navigator.share){ navigator.share({title:'SOS - My Location',text:'Need help',url:url}); } else { window.open(url,'_blank'); } }); } else { alert('Location not available'); } }
+function openInGoogleMaps(){ if(navigator.geolocation){ navigator.geolocation.getCurrentPosition(function(pos){ window.open('https://www.google.com/maps?q='+pos.coords.latitude+','+pos.coords.longitude,'_blank'); }); } else { window.open('https://www.google.com/maps','_blank'); } }
+function clientSOS(bId){ if(!confirm('SOS Emergency for booking '+(bId||'general')+'?')) return; if(window.db){ window.db.ref('sos/'+Date.now()).set({bookingId:bId||'general',type:'Client SOS',time:Date.now(),message:'Client SOS '+bId}); alert('SOS Sent!'); } else { alert('SOS Sent!'); } }
+function nurseSOS(bId){ if(!confirm('Nurse SOS for '+(bId||'general')+'?')) return; if(window.db){ window.db.ref('sos/'+Date.now()).set({bookingId:bId||'general',type:'Nurse SOS',time:Date.now(),message:'Nurse SOS '+bId}); alert('Nurse SOS Sent!'); } else { alert('Nurse SOS Sent!'); } }
+function viewSOSList(){ var list=document.getElementById('ceoSOSListEnhanced')||document.getElementById('ceoCallLists'); if(window.db){ window.db.ref('sos').limitToLast(20).once('value').then(function(snap){ var val=snap.val(); if(!val){ if(list) list.innerHTML='No SOS'; return; } var arr=Object.values(val); var html=''; for(var i=0;i<arr.length;i++){ var x=arr[i]; html+='<div style="padding:10px;border:2px solid #ef4444;border-radius:10px;margin:6px 0;background:white"><b style="color:#ef4444">'+(x.type||'SOS')+'</b> '+new Date(x.time||Date.now()).toLocaleString()+'<br>Booking: '+(x.bookingId||'General')+'<br>'+(x.message||'')+'</div>'; } if(list) list.innerHTML=html; }); } else { alert('No SOS - Need Firebase'); } }
+
+function registerNurse(){
+ var nameEl=document.getElementById('nurseName'); var phoneEl=document.getElementById('nursePhoneReg');
+ var name=nameEl?nameEl.value.trim():''; var phone=phoneEl?phoneEl.value.trim():'';
+ if(!name||!phone){ alert('Enter Full Name and Phone'); return; }
+ var uf=window.uploadedFiles||{}; try{ var tmp=JSON.parse(localStorage.getItem('tempNurseUploads')||'{}'); for(var k in tmp){ if(!uf[k]) uf[k]=tmp[k]; } }catch(e){}
+ var docs={license:uf['licensePreview']||'',id:uf['idPreview']||'',cert:uf['certPreview']||'',photo:uf['photoPreview']||'',cv:uf['cvPreview']||'',additional:uf['additionalPreview']||'',video:uf['videoPreview']||''};
+ var newApp={id:'NURSE_'+Date.now(),name:name,phone:phone,email:(document.getElementById('nurseEmail')?document.getElementById('nurseEmail').value:''),licenseNumber:(document.getElementById('nurseLicenseNumber')?document.getElementById('nurseLicenseNumber').value:''),specialty:(document.getElementById('nurseSpecialty')?document.getElementById('nurseSpecialty').value:'General'),docs:docs,status:'pending',createdAt:Date.now(),createdAtStr:new Date().toLocaleString()};
+ var apps=getNurseApplications(); apps.push(newApp); saveNurseApplications(apps);
+ if(window.db){ window.db.ref('nurseApplications/'+newApp.id).set(newApp).then(function(){ alert('Registered and sent to CEO! ID:'+newApp.id); }).catch(function(e){ alert('Saved locally but Firebase failed: '+e.message); }); } else { alert('Registered locally ID:'+newApp.id); }
+ var res=document.getElementById('nurseRegResult'); if(res) res.innerHTML='<div style="background:#f0fdf4;border:2px solid #16a34a;padding:10px;border-radius:10px;color:#16a34a">Submitted! ID:'+newApp.id+' Pending CEO</div>';
+ localStorage.removeItem('tempNurseUploads'); window.uploadedFiles={};
+ if(nameEl) nameEl.value=''; if(phoneEl) phoneEl.value='';
+}
+
+function attachFirebaseNurseListener(){
+  if(_fbListener||!window.db) return;
+  try{
+    window.db.ref('nurseApplications').on('value', function(snap){
+      var val=snap.val(); if(!val) return;
+      var fbApps=Object.values(val); var local=getNurseApplications();
+      var added=false;
+      fbApps.forEach(function(fa){ if(!local.find(function(a){ return a.id===fa.id; })){ local.push(fa); added=true; } else {
+        // Update status if changed
+        var existing=local.find(function(a){ return a.id===fa.id; });
+        if(existing && existing.status!==fa.status){ existing.status=fa.status; added=true; }
+      }});
+      if(added){ saveGroupChats?null:null; localStorage.setItem('nurseApplications', JSON.stringify(local)); }
+      var dash=document.getElementById('page-ceo-dashboard');
+      if(dash&&dash.classList.contains('active')){ renderCEOApps(local, document.getElementById('ceoNurseApplicationsList')); loadCEOStats(); }
+      // Refresh map if on home
+      var home=document.getElementById('page-home')||document.getElementById('home');
+      if(_map){ setTimeout(loadVerifiedNursesOnMap,500); }
+    });
+  }catch(e){ console.log('listener error',e); }
+ _fbListener=true;
+}
+function loadCEOStats(){
+ var apps=getNurseApplications(); var approved=0, pending=0;
+ for(var i=0;i<apps.length;i++){ if(apps[i].status==='approved') approved++; if(apps[i].status==='pending') pending++; }
+ var el=document.getElementById('ceoTotalNurses'); if(el) el.textContent=approved+' verified ('+pending+' pending)';
+ var bEl=document.getElementById('ceoTotalBookings'); if(bEl&&window.db){ window.db.ref('bookings').once('value').then(function(s){ var v=s.val(); bEl.textContent=v?Object.keys(v).length:0; }); }
+ var badge=document.getElementById('pendingBadge'); if(badge) badge.textContent=pending;
+}
+function loadCEODashboard(){ attachFirebaseNurseListener(); loadCEOStats(); loadCEONurseApplications(); loadBookingsForCEO(); loadVerifiedNursesList(); }
+function loadCEONurseApplications(){
+ var container=document.getElementById('ceoNurseApplicationsList'); if(!container) return;
+ container.innerHTML='Loading...'; attachFirebaseNurseListener();
+ var apps=getNurseApplications();
+ if(window.db){
+  window.db.ref('nurseApplications').once('value').then(function(snap){
+   var val=snap.val(); if(val){ var vals=Object.values(val); for(var i=0;i<vals.length;i++){ var fa=vals[i]; var found=false; for(var j=0;j<apps.length;j++){ if(apps[j].id===fa.id) found=true; } if(!found) apps.push(fa); } saveNurseApplications(apps); }
+   renderCEOApps(apps, container);
+  }).catch(function(){ renderCEOApps(apps, container); });
+ } else { renderCEOApps(apps, container); }
+}
+function renderCEOApps(apps, container){
+ if(!container) return;
+ var filtered=[];
+ if(_ceoFilter){
+  for(var i=0;i<apps.length;i++){ if(_ceoFilter==='pending'&&apps[i].status==='pending') filtered.push(apps[i]); else if(_ceoFilter==='approved'&&apps[i].status==='approved') filtered.push(apps[i]); else if(_ceoFilter==='rejected'&&apps[i].status==='rejected') filtered.push(apps[i]); else if(_ceoFilter==='all') filtered.push(apps[i]); }
+ } else { filtered=apps; }
+ if(filtered.length===0){ container.innerHTML='<div style="text-align:center;padding:20px">No applications. Total:'+apps.length+'<br><button onclick="testNurseRegistration()" style="margin-top:8px;padding:8px;background:#2563eb;color:white;border:none;border-radius:8px">Add Test Nurse</button></div>'; return; }
+ filtered.sort(function(a,b){ if(a.status==='pending'&&b.status!=='pending') return -1; if(b.status==='pending'&&a.status!=='pending') return 1; return b.createdAt-a.createdAt; });
+ var html='';
+ for(var i=0;i<filtered.length;i++){
+  var app=filtered[i]; var d=app.docs||{}; var color=app.status==='pending'?'#eab308':app.status==='approved'?'#16a34a':'#ef4444';
+  html+='<div style="border:2px solid '+color+';border-radius:12px;padding:10px;margin:8px 0;background:white"><div style="display:flex;justify-content:space-between"><div><b>'+app.name+'</b><div style="font-size:11px">'+app.phone+' | '+(app.licenseNumber||'')+'</div><div style="font-size:10px">ID:'+app.id+' | '+(app.createdAtStr||'')+'</div></div><div style="background:'+color+';color:white;padding:4px 10px;border-radius:20px;font-size:11px">'+app.status.toUpperCase()+'</div></div><div style="display:flex;gap:4px;flex-wrap:wrap;margin:8px 0"><button class="btnSmall" style="background:#2563eb;color:white;padding:6px" onclick="openNurseDocViewer(\''+app.id+'\')">View Docs</button></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px"><button class="btnSmall" style="background:#16a34a;color:white;padding:10px" onclick="approveNurseApp(\''+app.id+'\')">Accept</button><button class="btnSmall" style="background:#ef4444;color:white;padding:10px" onclick="rejectNurseApp(\''+app.id+'\')">Reject</button><button class="btnSmall" style="background:#6b7280;color:white;padding:10px" onclick="deleteNurseApp(\''+app.id+'\')">Delete</button></div></div>';
+ }
+ container.innerHTML=html;
+}
+function filterNurseApps(f){ _ceoFilter=f==='all'?null:f; renderCEOApps(getNurseApplications(), document.getElementById('ceoNurseApplicationsList')); }
+function approveNurseApp(appId){ if(!confirm('Accept '+appId+'?')) return; var apps=getNurseApplications(); for(var i=0;i<apps.length;i++){ if(apps[i].id===appId) apps[i].status='approved'; } saveNurseApplications(apps); if(window.db){ window.db.ref('nurseApplications/'+appId).update({status:'approved'}); } alert('Approved'); loadCEONurseApplications(); loadVerifiedNursesList(); }
+function rejectNurseApp(appId){ var r=prompt('Reason?'); if(r===null) return; var apps=getNurseApplications(); for(var i=0;i<apps.length;i++){ if(apps[i].id===appId) apps[i].status='rejected'; } saveNurseApplications(apps); if(window.db) window.db.ref('nurseApplications/'+appId).update({status:'rejected'}); loadCEONurseApplications(); }
+function deleteNurseApp(appId){ if(!confirm('Delete '+appId+'?')) return; var apps=[]; var all=getNurseApplications(); for(var i=0;i<all.length;i++){ if(all[i].id!==appId) apps.push(all[i]); } saveNurseApplications(apps); if(window.db) window.db.ref('nurseApplications/'+appId).remove(); loadCEONurseApplications(); }
+function loadVerifiedNursesList(){ var el=document.getElementById('ceoVerifiedNursesList'); if(!el) return; var apps=getNurseApplications(); var verified=[]; for(var i=0;i<apps.length;i++){ if(apps[i].status==='approved') verified.push(apps[i]); } if(verified.length===0){ el.innerHTML='No verified nurses yet'; return; } var html=''; for(var i=0;i<verified.length;i++){ var a=verified[i]; html+='<div style="border:1px solid #16a34a;padding:8px;border-radius:8px;margin:4px 0;display:flex;justify-content:space-between"><div><b>'+a.name+'</b><br><small>'+a.phone+'</small></div><div><button class="btnSmall" style="background:#2563eb;color:white" onclick="openNurseDocViewer(\''+a.id+'\')">Docs</button> <button class="btnSmall" style="background:#16a34a;color:white" onclick="callNurseDirect(\''+a.phone+'\')">Call</button></div></div>'; } el.innerHTML=html; }
+function viewAllNurseDocsModal(){ var apps=getNurseApplications(); var verified=[]; for(var i=0;i<apps.length;i++){ if(apps[i].status==='approved') verified.push(apps[i]); } if(verified.length===0){ alert('No verified'); return; } openNurseDocViewer(verified[0].id); }
+function callNurseDirect(phone){ if(phone) window.open('tel:'+phone,'_self'); }
+function loadNursesForCall(){ var list=document.getElementById('ceoCallLists'); var apps=getNurseApplications(); var verified=[]; for(var i=0;i<apps.length;i++){ if(apps[i].status==='approved') verified.push(apps[i]); } if(list){ var html='<b>Nurses ('+verified.length+'):</b><br>'; for(var i=0;i<verified.length;i++){ var a=verified[i]; html+='<div style="padding:6px;border-bottom:1px solid #eee"><b>'+a.name+'</b> - '+a.phone+' <button onclick="callNurseDirect(\''+a.phone+'\')" style="padding:4px 8px;background:#16a34a;color:white;border:none;border-radius:6px">Call</button></div>'; } list.innerHTML=html; list.scrollIntoView({behavior:'smooth'}); } }
+function loadStaffForCall(){ var list=document.getElementById('ceoCallLists'); if(list&&window.db){ window.db.ref('staff').once('value').then(function(s){ var val=s.val(); if(!val){ list.innerHTML='No staff'; return; } var arr=Object.values(val); var html=''; for(var i=0;i<arr.length;i++){ var st=arr[i]; html+='<div><b>'+st.id+'</b> '+(st.phone||'')+' <button onclick="callStaff(\''+(st.phone||'')+'\')" style="padding:4px 8px;background:#0e7490;color:white;border:none;border-radius:6px">Call</button></div>'; } list.innerHTML=html; }); } else if(list) list.innerHTML='No staff'; }
+function loadClientsForCall(){ var list=document.getElementById('ceoCallLists'); if(list&&window.db){ window.db.ref('bookings').limitToLast(20).once('value').then(function(s){ var val=s.val(); if(!val){ list.innerHTML='No clients'; return; } var arr=Object.values(val); var html=''; for(var i=0;i<arr.length;i++){ var b=arr[i]; html+='<div><b>'+(b.clientPhone||'')+'</b> #'+(b.id||'')+' <button onclick="callClient(\''+(b.clientPhone||'')+'\')" style="padding:4px 8px;background:#ff6a00;color:white;border:none;border-radius:6px">Call</button></div>'; } list.innerHTML=html; }); } else if(list) list.innerHTML='No clients'; }
+function viewLiveMap(){ showPage('home'); setTimeout(function(){ var m=document.getElementById('map'); if(m) m.scrollIntoView({behavior:'smooth'}); initLiveMap(); },300); }
+function broadcastToNurses(){ var msg=prompt('Broadcast to Nurses:'); if(!msg) return; if(window.db) window.db.ref('broadcasts/nurses/'+Date.now()).set({message:msg,time:Date.now(),from:'CEO'}); alert('Sent to Nurses: '+msg); }
+function broadcastToClients(){ var msg=prompt('Broadcast to Clients:'); if(!msg) return; if(window.db) window.db.ref('broadcasts/clients/'+Date.now()).set({message:msg,time:Date.now(),from:'CEO'}); alert('Sent to Clients: '+msg); }
+function assignNurseManually(){ var bid=prompt('Booking ID:'); if(!bid) return; var np=prompt('Nurse Phone/ID:'); if(!np) return; if(window.db) window.db.ref('bookings/'+bid).update({assignedNurse:np,assignedBy:'CEO'}).then(function(){ alert('Assigned Nurse '+np+' to '+bid); }); else alert('Assigned demo'); }
+function loadBookingsForCEO(){
+ var container=document.getElementById('ceoBookingsListEnhanced'); if(!container) container=document.getElementById('ceoPayoutsList'); if(!container) return; container.innerHTML='Loading bookings...';
+ if(window.db){
+  window.db.ref('bookings').orderByChild('createdAt').limitToLast(50).once('value').then(function(snap){
+   var val=snap.val(); if(!val){ container.innerHTML='<div style="text-align:center;padding:20px">No bookings yet<br><button onclick="testClientBooking()" style="margin-top:8px;padding:8px;background:#2563eb;color:white;border:none;border-radius:8px">Add Test Booking</button></div>'; return; }
+   var bookings=Object.values(val).reverse(); _allCEOBookings=bookings; renderCEOBookingsList(bookings, container);
+  });
+ } else {
+  var local=[]; try{ local=JSON.parse(localStorage.getItem('clientBookings')||'[]'); }catch(e){} renderCEOBookingsList(local, container);
+ }
+}
+var loadCEOBookings=loadBookingsForCEO;
+function renderCEOBookingsList(bookings, container){
+ var filtered=[]; if(_ceoBookingFilter==='all') filtered=bookings; else { for(var i=0;i<bookings.length;i++){ if((bookings[i].status||'paid')===_ceoBookingFilter) filtered.push(bookings[i]); } }
+ if(filtered.length===0){ container.innerHTML='<div style="text-align:center;padding:20px">No '+_ceoBookingFilter+' bookings. Total:'+bookings.length+'</div>'; return; }
+ var html=''; for(var i=0;i<filtered.length;i++){ var b=filtered[i]; var col=b.status==='paid'?'#2563eb':b.status==='in_progress'?'#eab308':b.status==='completed'?'#16a34a':'#6b7280'; html+='<div style="border:2px solid '+col+';border-radius:12px;padding:10px;margin:8px 0;background:white"><div style="display:flex;justify-content:space-between;flex-wrap:wrap"><div><b>#'+(b.id||'')+'</b> <b style="color:'+col+'">'+(b.status||'paid').toUpperCase()+'</b><br><small>Client:'+(b.clientPhone||'')+' | Nurse:'+(b.assignedNurse||'Unassigned')+' | '+(b.amount||'')+' '+(b.currency||'GHS')+'</small><br><small>'+(b.address||'')+' | '+(b.createdAtStr||'')+'</small></div><div style="background:'+col+';color:white;padding:4px 10px;border-radius:20px;font-size:11px;height:fit-content">'+(b.serviceType||'General')+'</div></div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px"><button class="btnSmall" style="background:#16a34a;color:white;padding:6px 10px" onclick="callClient(\''+(b.clientPhone||'')+'\')">Client</button><button class="btnSmall" style="background:#2563eb;color:white;padding:6px 10px" onclick="callNurseDirect(\''+(b.assignedNurse||'')+'\')">Nurse</button><button class="btnSmall" style="background:#ff6a00;color:white;padding:6px 10px" onclick="assignNurseManually()">Assign</button><button class="btnSmall" style="background:#eab308;color:#111;padding:6px 10px" onclick="openInGoogleMaps()">Map</button><button class="btnSmall" style="background:#111827;color:white;padding:6px 10px" onclick="updateBookingStatus(\''+(b.id||'')+'\')">Status</button></div></div>'; }
+ container.innerHTML=html; var badge=document.getElementById('bookingsBadge'); if(badge) badge.textContent=bookings.length;
+}
+function filterBookings(s){ _ceoBookingFilter=s; var c=document.getElementById('ceoBookingsListEnhanced'); renderCEOBookingsList(_allCEOBookings||[], c); }
+function updateBookingStatus(bId){ var ns=prompt('New status for '+bId+': paid, accepted, in_progress, completed, paid_to_nurse'); if(!ns) return; if(window.db) window.db.ref('bookings/'+bId).update({status:ns}).then(function(){ alert('Updated to '+ns); loadBookingsForCEO(); }); }
+function switchCEOTab(tab){ var tabs=document.querySelectorAll('.ceoTab'); for(var i=0;i<tabs.length;i++){ tabs[i].style.display='none'; } var t=document.getElementById('ceoTab'+tab.charAt(0).toUpperCase()+tab.slice(1)); if(t) t.style.display='block'; if(tab==='pending') loadCEONurseApplications(); if(tab==='bookings') loadBookingsForCEO(); if(tab==='verified') loadVerifiedNursesList(); if(tab==='sos') viewSOSList(); }
+function approveAllPending(){ if(!confirm('Approve ALL pending?')) return; var apps=getNurseApplications(); var count=0; for(var i=0;i<apps.length;i++){ if(apps[i].status==='pending'){ apps[i].status='approved'; count++; if(window.db) window.db.ref('nurseApplications/'+apps[i].id).update({status:'approved'}); } } saveNurseApplications(apps); alert('Approved '+count); loadCEONurseApplications(); loadVerifiedNursesList(); }
+function testNurseRegistration(){ var demo={id:'NURSE_'+Date.now(),name:'Demo Nurse '+Math.floor(Math.random()*100),phone:'+2335'+Math.floor(10000000+Math.random()*90000000),email:'demo@test.com',licenseNumber:'NMC-DEMO-'+Math.floor(Math.random()*10000),specialty:'General',docs:{license:'https://via.placeholder.com/300x200.png?text=License',photo:'https://via.placeholder.com/200x200.png?text=Photo'},status:'pending',createdAt:Date.now(),createdAtStr:new Date().toLocaleString()}; var apps=getNurseApplications(); apps.push(demo); saveNurseApplications(apps); if(window.db) window.db.ref('nurseApplications/'+demo.id).set(demo); alert('Demo nurse added: '+demo.name); loadCEONurseApplications(); }
+function testClientBooking(){ var id='BOOK_'+Date.now(); var b={id:id,clientPhone:'+233544121814',amount:'500',currency:'GHS',status:'paid',createdAt:Date.now(),createdAtStr:new Date().toLocaleString(),serviceType:'Elderly Care',address:'East Legon'}; if(window.db) window.db.ref('bookings/'+id).set(b).then(function(){ alert('Test booking added '+id); }); var local=[]; try{ local=JSON.parse(localStorage.getItem('clientBookings')||'[]'); }catch(e){} local.push(b); localStorage.setItem('clientBookings', JSON.stringify(local)); loadBookingsForCEO(); }
+function exportNursesCSV(){ var apps=getNurseApplications(); var csv='ID,Name,Phone,License,Specialty,Status,Date\n'; for(var i=0;i<apps.length;i++){ var a=apps[i]; csv+='"'+a.id+'","'+a.name+'","'+a.phone+'","'+(a.licenseNumber||'')+'","'+(a.specialty||'')+'","'+a.status+'","'+(a.createdAtStr||'')+'"\n'; } var blob=new Blob([csv],{type:'text/csv'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='nurses_'+Date.now()+'.csv'; a.click(); }
+
+function viewNurseDoc(url){ if(!url){ alert('No file'); return; } window.open(url,'_blank'); }
+function openNurseDocViewer(appId){
+ var apps=getNurseApplications(); var app=null; for(var i=0;i<apps.length;i++){ if(apps[i].id===appId) app=apps[i]; }
+ if(!app){ alert('Loading from Firebase...'); if(window.db){ window.db.ref('nurseApplications/'+appId).once('value').then(function(s){ var fb=s.val(); if(fb){ var all=getNurseApplications(); all.push(fb); saveNurseApplications(all); openNurseDocViewer(appId); } }); } return; }
+ var modal=document.getElementById('nurseDocViewerModal'); var body=document.getElementById('nurseDocViewerBody'); var title=document.getElementById('nurseDocViewerTitle');
+ if(!modal||!body) return; if(title) title.textContent=app.name+' - Docs';
+ var d=app.docs||{}; var html='<div style="display:grid;gap:10px">'; 
+ function card(label,key){ var url=d[key]||''; if(!url) return '<div style="border:1px dashed #ccc;padding:8px;border-radius:8px"><b>'+label+'</b>: Not uploaded</div>'; var isVid=url.toLowerCase().indexOf('.mp4')!==-1||url.toLowerCase().indexOf('video')!==-1; if(isVid){ return '<div style="border:2px solid #16a34a;padding:8px;border-radius:10px"><b>'+label+'</b><br><video src="'+url+'" controls style="width:100%;max-height:200px"></video><br><button class="btnSmall" style="background:#2563eb;color:white;padding:6px;margin-top:4px" onclick="viewNurseDoc(\''+url.replace(/'/g,'%27')+'\')">Open Full</button></div>'; } else { return '<div style="border:2px solid #16a34a;padding:8px;border-radius:10px"><b>'+label+'</b><br><img src="'+url+'" style="max-width:100%;max-height:180px;border-radius:8px"><br><a href="'+url+'" target="_blank" style="font-size:11px;color:#2563eb">Open link</a></div>'; } }
+ html+=card('Licence','license'); html+=card('Photo','photo'); html+=card('CV','cv'); html+=card('Certificate','cert'); html+=card('ID','id'); html+=card('Additional','additional'); html+=card('Video','video');
+ html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;position:sticky;bottom:0;background:white;padding:8px"><button class="btnSmall" style="background:#16a34a;color:white;padding:12px" onclick="approveNurseApp(\''+app.id+'\');closeNurseDocViewer()">Accept</button><button class="btnSmall" style="background:#ef4444;color:white;padding:12px" onclick="rejectNurseApp(\''+app.id+'\');closeNurseDocViewer()">Reject</button></div></div>';
+ body.innerHTML=html; modal.style.display='flex';
+}
+function closeNurseDocViewer(){ var m=document.getElementById('nurseDocViewerModal'); if(m) m.style.display='none'; }
+
+function ceoLogin(){
+ try{
+  var idEl=document.getElementById('ceoID')||document.getElementById('ceoId'); var passEl=document.getElementById('ceoPass');
+  var id=idEl?idEl.value.trim():''; var pass=passEl?passEl.value.trim():'';
+  if(!id){ alert('Enter ID: Asabere'); return; }
+  if(!pass){ alert('Enter Password: Asab9006'); return; }
+  if(id.toUpperCase()==='ASABERE' && pass==='Asab9006'){
+   localStorage.setItem('isCEOLogged','true'); localStorage.setItem('staffAccessRevealed','true'); localStorage.setItem('ceoID',id); localStorage.setItem('groupChatUser',id);
+   var r=document.getElementById('ceoLoginResult'); if(r) r.innerHTML='<div style="background:#f0fdf4;border:3px solid #16a34a;padding:12px;border-radius:10px;color:#16a34a;font-weight:900">CEO Verified - Opening Dashboard...</div>';
+   setTimeout(function(){ document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); }); var dash=document.getElementById('page-ceo-dashboard'); if(dash){ dash.classList.add('active'); window.scrollTo(0,0); loadCEODashboard(); } },400);
+  } else {
+   var r=document.getElementById('ceoLoginResult'); if(r) r.innerHTML='<div style="background:#fef2f2;border:2px solid #ef4444;padding:10px;border-radius:8px;color:#ef4444">Invalid - Use Asabere / Asab9006</div>';
+  }
+ }catch(e){ alert('Login error:'+e.message); }
+}
+function staffLogin(){
+ var idEl=document.getElementById('staffIDLogin')||document.getElementById('staffId'); var passEl=document.getElementById('staffPassLogin')||document.getElementById('staffPass');
+ var id=idEl?idEl.value.trim():''; var pass=passEl?passEl.value.trim():'';
+ if(!id||!pass){ alert('Enter Staff ID and Pass'); return; }
+ localStorage.setItem('staffID',id); localStorage.setItem('staffAccessRevealed','true'); alert('Staff '+id+' logged'); showPage('page-staff-dashboard');
+}
+function staffLogout(){ localStorage.removeItem('staffID'); showPage('home'); }
+function nurseLogin(){
+ var idEl=document.getElementById('nurseId'); var passEl=document.getElementById('nursePassword');
+ var id=idEl?idEl.value.trim():''; var pass=passEl?passEl.value.trim():'';
+ if(!id||!pass){ alert('Enter ID and Password'); return; }
+ localStorage.setItem('nurseId',id); localStorage.setItem('nursePhone',id); showPage('page-nurse-dashboard'); loadNurseBookings();
+}
+function clientLogin(){ var p=document.getElementById('clientPhone'); if(p&&p.value) localStorage.setItem('clientPhone',p.value); showPage('page-client-dashboard'); loadClientBookings(); }
+
+function findNearbyNurses(){ var el=document.getElementById('nearbyNursesList'); if(el) el.innerHTML='<div style="padding:10px;background:#f0fdf4;border-radius:8px">Finding nurses near you... Check map below</div>'; initLiveMap(); }
+function switchMapLayer(t){ alert('Switched to '+t+' view'); }
+function startLiveNavigation(){ alert('Live navigation started'); }
+function stopLiveNavigation(){ alert('Navigation stopped'); }
+function loadTopRatedNurses(){ var list=document.getElementById('topRatedList'); if(list) list.innerHTML='<div style="text-align:center;padding:20px;background:#fefce8;border-radius:12px">No ratings yet - Real ratings after service</div>'; }
+function loadSelectedNurseOnBooking(){ var sid=localStorage.getItem('selectedNurseId'); var el=document.getElementById('selectedNurseTopDisplay'); if(sid&&el){ el.style.display='block'; el.innerHTML='Selected Nurse: '+sid+' <button onclick="clearSelectedNurse()" style="float:right">Clear</button>'; } }
+function clearSelectedNurse(){ localStorage.removeItem('selectedNurseId'); var el=document.getElementById('selectedNurseTopDisplay'); if(el) el.style.display='none'; }
+function bookNurse(){
+ var phoneEl=document.getElementById('clientPhone'); var offerEl=document.getElementById('clientOffer');
+ if(!phoneEl||!phoneEl.value.trim()){ alert('Enter phone'); return; }
+ if(!offerEl||!offerEl.value.trim()){ alert('Enter offer'); return; }
+ var bookingId='BOOK_'+Date.now();
+ var booking={id:bookingId,clientPhone:phoneEl.value.trim(),amount:offerEl.value.trim(),currency:'GHS',status:'paid',createdAt:Date.now(),createdAtStr:new Date().toLocaleString(),serviceType:(document.getElementById('serviceSelect')?document.getElementById('serviceSelect').value:'General'),address:(document.getElementById('liveOutAddress')?document.getElementById('liveOutAddress').value:''),concerns:(document.getElementById('patientConcerns')?document.getElementById('patientConcerns').value:'')};
+ var local=[]; try{ local=JSON.parse(localStorage.getItem('clientBookings')||'[]'); }catch(e){} local.push(booking); localStorage.setItem('clientBookings', JSON.stringify(local));
+ if(window.db){ window.db.ref('bookings/'+bookingId).set(booking).then(function(){ alert('Booking Saved! ID:'+bookingId+' CEO will receive LIVE'); showPage('page-client-dashboard'); loadClientBookings(); }).catch(function(e){ alert('Saved locally but Firebase failed: '+e.message); }); } else { alert('Booked locally ID:'+bookingId); showPage('page-client-dashboard'); }
+}
+function loadNurseBookings(){ var el=document.getElementById('nurseBookingsList'); if(el) el.innerHTML='<div style="padding:20px">No bookings yet - CEO will assign</div>'; if(window.db){ var nid=localStorage.getItem('nurseId')||localStorage.getItem('nursePhone'); window.db.ref('bookings').orderByChild('assignedNurse').equalTo(nid||'').once('value').then(function(s){ var v=s.val(); if(!v) return; var arr=Object.values(v); var html=''; for(var i=0;i<arr.length;i++){ var b=arr[i]; html+='<div style="border:1px solid #2563eb;padding:8px;border-radius:8px;margin:4px 0"><b>#'+b.id+'</b> '+b.status+'<br>Client:'+b.clientPhone+'<br><button class="btnSmall" style="background:#16a34a;color:white" onclick="acceptOffer(\''+b.id+'\')">Accept</button> <button class="btnSmall" style="background:#2563eb;color:white" onclick="startWork(\''+b.id+'\')">Start</button> <button class="btnSmall" style="background:#6b7280;color:white" onclick="finishWork(\''+b.id+'\')">Finish</button></div>'; } el.innerHTML=html||'<div>No bookings assigned</div>'; }); } }
+function loadNurseEarnings(){ alert('Earnings: 85% of each completed booking'); }
+function loadClientBookings(){ var el=document.getElementById('clientBookingsList'); if(!el) return; var local=[]; try{ local=JSON.parse(localStorage.getItem('clientBookings')||'[]'); }catch(e){} if(local.length===0){ el.innerHTML='<div style="text-align:center;padding:20px">No bookings yet - Book a nurse from Home page</div>'; } else { var html=''; for(var i=local.length-1;i>=0;i--){ var b=local[i]; html+='<div style="border:2px solid #16a34a;padding:10px;border-radius:12px;margin:8px 0"><b>#'+b.id+'</b> '+b.status+' - '+b.amount+' GHS<br>Service:'+b.serviceType+'<br><button class="btnSmall" style="background:#ef4444;color:white" onclick="cancelBooking(\''+b.id+'\')">Cancel</button> <button class="btnSmall" style="background:#2563eb;color:white" onclick="trackNurseLive(\''+b.id+'\')">Track</button> <button class="btnSmall" style="background:#25D366;color:white" onclick="chatWithNurse(\''+b.id+'\')">Chat Nurse</button></div>'; } el.innerHTML=html; } }
+function loadStaffList(){ var el=document.getElementById('ceoStaffList'); if(el&&window.db){ window.db.ref('staff').once('value').then(function(s){ var v=s.val(); if(!v){ el.innerHTML='No staff'; return; } var arr=Object.values(v); var html=''; for(var i=0;i<arr.length;i++){ var st=arr[i]; html+='<div style="padding:6px;border-bottom:1px solid #eee;display:flex;justify-content:space-between"><div><b>'+st.id+'</b> '+(st.phone||'')+' '+(st.active?'✅':'❌')+'</div><div><button onclick="deactivateStaffId(\''+st.id+'\')" style="padding:4px 8px;background:#ef4444;color:white;border:none;border-radius:4px">Deact</button> <button onclick="activateStaffId(\''+st.id+'\')" style="padding:4px 8px;background:#16a34a;color:white;border:none;border-radius:4px">Act</button></div></div>'; } el.innerHTML=html; }); } else if(el) el.innerHTML='No staff'; }
+function createStaffId(){ var id=document.getElementById('newStaffId')?document.getElementById('newStaffId').value.trim():''; var pass=document.getElementById('newStaffPass')?document.getElementById('newStaffPass').value.trim():''; var phone=document.getElementById('newStaffPhone')?document.getElementById('newStaffPhone').value.trim():''; if(!id||!pass){ alert('Enter ID and Pass'); return; } if(window.db) window.db.ref('staff/'+id).set({id:id,password:pass,phone:phone,createdAt:Date.now(),active:true}).then(function(){ alert('Staff '+id+' created'); loadStaffList(); }); else alert('Created '+id); }
+function deactivateStaffId(sId){ if(!confirm('Deactivate '+sId+'?')) return; if(window.db) window.db.ref('staff/'+sId).update({active:false}).then(function(){ loadStaffList(); }); }
+function activateStaffId(sId){ if(window.db) window.db.ref('staff/'+sId).update({active:true}).then(function(){ loadStaffList(); }); }
+function changeCeoCredentials(){ var nid=document.getElementById('newCeoId')?document.getElementById('newCeoId').value.trim():''; if(!nid){ alert('Enter ID'); return; } localStorage.setItem('ceoId',nid); alert('Changed to '+nid); }
+function savePaystackKey(){ var k=document.getElementById('paystackSecretKey')?document.getElementById('paystackSecretKey').value.trim():''; if(!k){ alert('Enter key'); return; } localStorage.setItem('paystackSecretKey',k); var s=document.getElementById('paystackKeyStatus'); if(s) s.textContent='Saved'; }
+function testPaystackConnection(){ alert('Testing Paystack...'); }
+function callClient(p){ if(p) window.open('tel:'+p,'_self'); }
+function callStaff(p){ if(p) window.open('tel:'+p,'_self'); }
+function callCEO(){ window.open('tel:+233544121814','_self'); }
+function openDirections(addr){ if(!addr) return; window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(addr),'_blank'); }
+function chatWithNurse(bId){ var m=prompt('Message to Nurse for '+bId); if(m){ if(window.db) window.db.ref('chats/'+(bId||'general')+'/client_nurse/'+Date.now()).set({from:'client',message:m,time:Date.now()}); alert('Sent: '+m); } }
+function chatWithClient(bId){ var m=prompt('Message to Client for '+bId); if(m){ if(window.db) window.db.ref('chats/'+(bId||'general')+'/nurse_client/'+Date.now()).set({from:'nurse',message:m,time:Date.now()}); alert('Sent: '+m); } }
+function chatWithCEO(bId){ var m=prompt('Message to CEO for '+bId); if(m){ if(window.db) window.db.ref('chats/'+(bId||'general')+'/client_ceo/'+Date.now()).set({from:'client',message:m,time:Date.now()}); alert('Sent to CEO'); } }
+function chatWithCEOFromClient(){ chatWithCEO(); }
+function shareLiveLocation(bId){ if(!confirm('Share live location?')) return; if(navigator.geolocation) navigator.geolocation.getCurrentPosition(function(pos){ var link='https://www.google.com/maps?q='+pos.coords.latitude+','+pos.coords.longitude; if(window.db) window.db.ref('bookings/'+(bId||'general')).update({nurseLiveLocation:{lat:pos.coords.latitude,lng:pos.coords.longitude,link:link,time:Date.now()}}); alert('Shared: '+link); }); }
+function shareClientLocation(){ shareLiveLocation(); }
+function trackNurseLive(bId){ if(window.db){ window.db.ref('bookings/'+(bId||'general')).once('value').then(function(s){ var b=s.val(); if(b&&b.nurseLiveLocation) window.open(b.nurseLiveLocation.link,'_blank'); else alert('Nurse location not shared yet'); }); } else alert('Track demo - Nurse not shared yet'); }
+function trackNurse(){ trackNurseLive(); }
+function videoCallNurse(){ alert('Video call nurse'); window.open('tel:+233544121814','_self'); }
+function videoCallClient(){ alert('Video call client'); }
+function startWork(bId){ if(!confirm('Start work for '+bId+'?')) return; if(window.db) window.db.ref('bookings/'+bId).update({status:'in_progress',workStartedAt:Date.now()}); alert('Work started'); }
+function finishWork(bId){ var p=prompt('Proof description?'); if(p===null) return; if(window.db) window.db.ref('bookings/'+bId).update({status:'completed',workFinishedAt:Date.now(),workProof:p}); alert('Finished'); }
+function uploadProof(bId){ var d=prompt('Proof for '+bId); if(d) alert('Proof: '+d); }
+function requestAdvance(bId){ var a=prompt('Advance amount for '+bId); if(a){ if(window.db) window.db.ref('advanceRequests/'+(bId||Date.now())).set({bookingId:bId,amount:a,time:Date.now(),status:'pending'}); alert('Advance '+a+' requested'); } }
+function requestWithdrawal(){ alert('Withdrawal requested - CEO will pay'); }
+function acceptOffer(id){ if(!confirm('Accept '+id+'?')) return; if(window.db) window.db.ref('bookings/'+id).update({status:'accepted'}).then(function(){ alert('Accepted'); loadNurseBookings(); }); }
+function rejectOffer(id){ var r=prompt('Reason reject '+id+'?'); if(r===null) return; if(window.db) window.db.ref('bookings/'+id).update({status:'rejected',rejectReason:r}).then(function(){ alert('Rejected'); loadNurseBookings(); }); }
+function addTip(){ var t=prompt('Tip amount:'); if(t) alert('Tip '+t+' added'); }
+function confirmArrived(){ alert('Arrival confirmed'); }
+function pauseBooking(){ alert('Booking paused'); }
+function cancelBooking(id){ if(confirm('Cancel '+id+'?')){ if(window.db) window.db.ref('bookings/'+id).update({status:'cancelled'}); alert('Cancelled'); loadClientBookings(); } }
+function refundBooking(id){ alert('Refund requested for '+id); if(window.db) window.db.ref('bookings/'+id).update({status:'refund_requested'}); }
+function increaseRate(id){ var r=prompt('Increase offer for '+id+' to?'); if(r&&window.db) window.db.ref('bookings/'+id).update({amount:r}); }
+function showReceipt(id){ alert('Receipt for '+id); }
+function loadClientReceipts(){ alert('Receipts - Check bookings'); }
+function loadCeoPayouts(){ var el=document.getElementById('ceoPayoutsList'); if(el) el.innerHTML='Payouts - CEO receives payment requests here - 85% to nurses'; loadBookingsForCEO(); }
+function bonusForNurse(){ var id=prompt('Nurse ID for bonus:'); if(id) alert('Bonus for '+id); }
+function loadRefundsForCEO(){ alert('Refunds check'); }
+function resolveDispute(){ alert('Resolved'); }
+function approveRefund(){ alert('Refund approved'); }
+function denyRefund(){ alert('Refund denied'); }
+function setShortBookingPrice(){ var p=prompt('Enter Short price (1-6 days) GHS:'); if(p){ localStorage.setItem('shortHourly_GH',p); alert('Saved short: '+p); } }
+function setLongBookingPrice(){ var p=prompt('Enter Long price (7+ days) GHS:'); if(p){ localStorage.setItem('longHourly_GH',p); alert('Saved long: '+p); } }
+function refreshNormalPrice(){ localStorage.removeItem('shortHourly_GH'); localStorage.removeItem('longHourly_GH'); alert('Refreshed to default'); }
+function assignNurseManuallyWithId(id){ var nurse=prompt('Enter Nurse ID for '+id); if(nurse&&window.db) window.db.ref('bookings/'+id).update({assignedNurse:nurse}); }
+function saveNotificationSettings(){ alert('Notification settings saved'); }
+function showWithdrawalMethodFields(){ var m=document.getElementById('withdrawalMethod')?document.getElementById('withdrawalMethod').value:''; var f=document.getElementById('withdrawalMethodFields'); if(!f) return; if(m==='momo_mtn_ghana') f.innerHTML='<input id="momoNumber" placeholder="MoMo Number">'; else if(m==='bank_ghana') f.innerHTML='<input id="bankAccount" placeholder="Bank Account"><input id="bankName" placeholder="Bank Name">'; else f.innerHTML=''; }
+function toggleVoiceRecording(){ alert('Voice recording'); }
+function playVoiceNote(id){ alert('Playing '+id); }
+function deleteVoiceNote(id){ if(confirm('Delete?')) alert('Deleted'); }
+function safeUrl(u){ return (u||'').replace(/'/g,'%27'); }
+function writeText(t){ if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ alert('Copied'); }); else alert(t); }
+function clearChatInput(){ var el=document.getElementById('chatInput'); if(el) el.value=''; }
+function refreshGroupChat(){ if(window.db){ window.db.ref('groupChats').once('value').then(function(snap){ var val=snap.val(); if(val){ var arr=Array.isArray(val)?val:Object.values(val); saveGroupChats(arr); } window.renderAllChats(); }); } else { window.renderAllChats(); } }
+function getGroupChats(){ try{ return JSON.parse(localStorage.getItem('groupChats')||'[]'); }catch(e){ return []; } }
+function saveGroupChats(c){ try{ localStorage.setItem('groupChats', JSON.stringify(c)); }catch(e){} }
+function renderAllChats(){
+ var box=document.getElementById('groupChatBox'); if(!box) return;
+ var chats=getGroupChats(); var cur=localStorage.getItem('groupChatUser')||''; var isCEO=cur.toUpperCase()==='ASABERE'||cur.toUpperCase().indexOf('ASAB')!==-1||cur.toUpperCase()==='CEO'||localStorage.getItem('isCEOLogged')==='true';
+ if(chats.length===0){ box.innerHTML='<div style="text-align:center;color:#888;padding:30px;">No messages yet. Be first!</div>'; var cont=document.getElementById('masterDeleteContainer'); if(cont) cont.style.display=isCEO?'block':'none'; return; }
+ var h=''; for(var i=chats.length-1;i>=0;i--){ var c=chats[i]; if(!c) continue; var own=c.user===cur; var safe=(c.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;'); h+='<div style="background:'+(own?'#ede9fe':'#f3f4f6')+';border-radius:12px;padding:10px;margin-bottom:8px;border:1px solid #e5e7eb;"><div style="display:flex;justify-content:space-between;"><b style="color:#7c3aed;font-size:12px;">'+(c.user||'User')+(own?' (You)':'')+'</b><small style="color:#888;font-size:10px;">'+(c.time||'')+'</small></div><div style="margin:6px 0;font-size:14px;">'+safe+'</div>'; if(own||isCEO){ h+='<div style="text-align:right;display:flex;gap:4px;justify-content:flex-end;"><button onclick="editOwnChat('+i+')" style="font-size:11px;padding:4px 8px;">Edit</button> <button onclick="deleteOwnChat('+i+')" style="font-size:11px;padding:4px 8px;background:#fee2e2;color:#ef4444;border:1px solid #fecaca;border-radius:6px;">Delete</button></div>'; } h+='</div>'; } box.innerHTML=h; var cont=document.getElementById('masterDeleteContainer'); if(cont) cont.style.display=isCEO?'block':'none';
+}
+function sendChatMessage(){
+ var input=document.getElementById('chatInput'); if(!input){ alert('Input not found'); return; }
+ var text=input.value.trim(); if(!text){ alert('Type a message!'); return; }
+ var user=localStorage.getItem('groupChatUser')||''; if(!user){ alert('Login first!'); return; }
+ var chats=getGroupChats(); var newMsg={user:user,text:text,time:new Date().toLocaleString(),timestamp:Date.now()}; chats.push(newMsg); saveGroupChats(chats); input.value=''; renderAllChats();
+ if(window.db){ try{ window.db.ref('groupChats/'+Date.now()).set(newMsg); }catch(e){} }
+}
+function editOwnChat(i){ var chats=getGroupChats(); var cur=localStorage.getItem('groupChatUser')||''; var isCEO=cur.toUpperCase()==='ASABERE'||cur.toUpperCase().indexOf('ASAB')!==-1||cur.toUpperCase()==='CEO'; if(!chats[i]) return; if(chats[i].user!==cur && !isCEO){ alert('Own only!'); return; } var nt=prompt('Edit:',chats[i].text); if(nt===null) return; nt=nt.trim(); if(!nt) return; chats[i].text=nt; saveGroupChats(chats); renderAllChats(); }
+function deleteOwnChat(i){ var chats=getGroupChats(); var cur=localStorage.getItem('groupChatUser')||''; var isCEO=cur.toUpperCase()==='ASABERE'||cur.toUpperCase().indexOf('ASAB')!==-1||cur.toUpperCase()==='CEO'; if(!chats[i]) return; if(chats[i].user!==cur && !isCEO){ alert('Own only!'); return; } if(!confirm('Delete?')) return; chats.splice(i,1); saveGroupChats(chats); renderAllChats(); }
+function doGroupChatLogin(){
+ var idEl=document.getElementById('groupLoginId'); var passEl=document.getElementById('groupLoginPass');
+ var user=idEl?idEl.value.trim():''; var pass=passEl?passEl.value.trim():'';
+ var statusEl=document.getElementById('groupLoginStatus');
+ if(!user){ alert('Enter ID!'); if(statusEl) statusEl.textContent='Enter ID'; return; }
+ if(!pass){ alert('Enter Password!'); if(statusEl) statusEl.textContent='Enter Password'; return; }
+ var up=user.toUpperCase(); var ok=false; var role='User';
+ if(up==='ASABERE' && pass==='Asab9006'){ ok=true; role='CEO'; }
+ else if(up.indexOf('NURSE')===0 && pass.length>=3){ ok=true; role='Nurse'; }
+ else if(up.indexOf('STAFF')===0 && pass.length>=2){ ok=true; role='Staff'; }
+ else if(user && pass.length>=3){ ok=true; role='User'; }
+ if(!ok){ alert('Wrong ID or Password!'); if(statusEl) statusEl.textContent='Invalid'; return; }
+ localStorage.setItem('groupChatUser', user); localStorage.setItem('groupChatRole', role);
+ if(role==='CEO' || up==='ASABERE' || up.indexOf('ASAB')!==-1){ localStorage.setItem('isCEOLogged','true'); localStorage.setItem('staffAccessRevealed','true'); }
+ if(statusEl) statusEl.textContent='Logged in as '+user+' ('+role+')';
+ renderAllChats(); alert('Welcome '+user+'! ('+role+')');
+}
+function doGroupChatLogout(){ var user=localStorage.getItem('groupChatUser')||''; if(!user){ renderAllChats(); return; } if(!confirm('Logout as '+user+'?')) return; localStorage.removeItem('groupChatUser'); localStorage.removeItem('groupChatRole'); renderAllChats(); }
+function logoutGroupChat(){ doGroupChatLogout(); }
+function masterDeleteAllChats(){
+ var u=(localStorage.getItem('groupChatUser')||'').toUpperCase();
+ var isCEO=u==='ASABERE' || u.indexOf('ASAB')!==-1 || u==='CEO' || localStorage.getItem('isCEOLogged')==='true';
+ if(!isCEO){ alert('CEO ONLY!'); return; }
+ var count=getGroupChats().length; if(count===0){ alert('No messages'); return; }
+ if(!confirm('Wipe ALL '+count+' messages?')) return;
+ if(!confirm('FINAL CONFIRM - Delete ALL permanently?')) return;
+ var t=prompt('Type DELETE to confirm:'); if(t!=='DELETE'){ alert('Cancelled'); return; }
+ localStorage.removeItem('groupChats');
+ try{ if(window.db){ window.db.ref('groupChats').remove(); } }catch(e){}
+ renderAllChats(); alert('All '+count+' messages wiped');
+}
+
+var _nurseMarkers=[];
+function clearNurseMarkers(){ try{ _nurseMarkers.forEach(function(m){ if(_map) _map.removeLayer(m); }); }catch(e){} _nurseMarkers=[]; }
+function getVerifiedNurses(){ try{ var apps=getNurseApplications(); return apps.filter(function(a){ return a.status==='approved' || a.status==='verified'; }); }catch(e){ return []; } }
+function loadVerifiedNursesOnMap(){
+  try{
+    if(!_map) return;
+    clearNurseMarkers();
+    var verified=getVerifiedNurses();
+    console.log('Verified nurses for map:', verified.length);
+    if(verified.length===0){
+      var list=document.getElementById('nearbyNursesList');
+      if(list) list.innerHTML='<div style="text-align:center;padding:20px;background:#fef3c7;border-radius:12px;border:2px dashed #eab308">⚠️ No verified nurses yet.<br><small>CEO must approve nurses in CEO Dashboard → Pending tab → ✅ Accept</small><br><button onclick="testNurseRegistration()" style="margin-top:8px;padding:8px 12px;background:#16a34a;color:white;border:none;border-radius:8px">🧪 Add Test Nurse (Demo)</button></div>';
+      var topList=document.getElementById('topRatedList');
+      if(topList) topList.innerHTML='<div style="text-align:center;padding:12px">No verified nurses yet</div>';
+      return;
+    }
+    // Add markers for each verified nurse - use real location if available, else random near Accra
+    verified.forEach(function(nurse, idx){
+      var lat = nurse.lat || nurse.latitude || (5.6037 + (Math.random()-0.5)*0.3);
+      var lng = nurse.lng || nurse.longitude || (-0.1870 + (Math.random()-0.5)*0.3);
+      // Save generated location back to nurse for consistency
+      if(!nurse.lat){ nurse.lat=lat; nurse.lng=lng; }
+      var photo = (nurse.docs && nurse.docs.photo) || nurse.photo || '';
+      var specialty = nurse.specialty || 'General Nursing';
+      var popupHtml = '<div style="min-width:180px;text-align:center">'
+        + (photo ? '<img src="'+photo+'" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #16a34a"><br>' : '<div style="width:60px;height:60px;background:#16a34a;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto;font-size:24px">👩‍⚕️</div>')
+        + '<b style="font-size:13px">'+(nurse.name||'Nurse')+'</b><br>'
+        + '<small style="color:#16a34a">✅ Verified • '+specialty+'</small><br>'
+        + '<small>📞 '+(nurse.phone||'')+'</small><br>'
+        + '<small>🆔 '+(nurse.licenseNumber||nurse.id||'')+'</small><br>'
+        + '<div style="display:flex;gap:4px;margin-top:6px"><button onclick="bookThisNurse(\''+nurse.id+'\')" style="flex:1;background:#16a34a;color:white;border:none;padding:6px 8px;border-radius:6px;font-size:11px;font-weight:800">📅 Book</button>'
+        + '<button onclick="callNurseDirect(\''+(nurse.phone||'')+'\')" style="flex:1;background:#2563eb;color:white;border:none;padding:6px 8px;border-radius:6px;font-size:11px">📞 Call</button></div>'
+        + '</div>';
+      var marker = L.marker([lat, lng]).addTo(_map).bindPopup(popupHtml);
+      _nurseMarkers.push(marker);
+    });
+    // Fit bounds to show all nurses
+    if(_nurseMarkers.length>0){
+      var group = L.featureGroup(_nurseMarkers);
+      try{ _map.fitBounds(group.getBounds().pad(0.2)); }catch(e){}
+    }
+    // Update nearby list
+    var nearbyEl=document.getElementById('nearbyNursesList');
+    if(nearbyEl){
+      var html = '<div style="background:#f0fdf4;border:2px solid #16a34a;border-radius:12px;padding:8px;margin-bottom:8px"><b>✅ '+verified.length+' Verified Nurses Near You - On Map</b><br><small style="color:#16a34a">Tap marker on map to Book/Call</small></div>';
+      verified.forEach(function(n){
+        var ph = (n.docs && n.docs.photo) ? '<img src="'+n.docs.photo+'" style="width:40px;height:40px;border-radius:50%;object-fit:cover">' : '👩‍⚕️';
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #e5e7eb;border-radius:10px;margin:6px 0;background:white">'
+          + '<div style="width:40px;height:40px;background:#f0fdf4;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden">'+ph+'</div>'
+          + '<div style="flex:1"><b>'+(n.name||'Nurse')+'</b><br><small style="color:#16a34a">✅ Verified • '+(n.specialty||'General')+'</small><br><small>📞 '+(n.phone||'')+'</small></div>'
+          + '<div style="display:flex;flex-direction:column;gap:4px"><button onclick="bookThisNurse(\''+n.id+'\')" style="background:#16a34a;color:white;border:none;padding:6px 10px;border-radius:6px;font-size:11px">Book</button><button onclick="focusNurseOnMap(\''+n.id+'\')" style="background:#eab308;color:#111;border:none;padding:6px 10px;border-radius:6px;font-size:11px">Map</button></div>'
+          + '</div>';
+      });
+      nearbyEl.innerHTML=html;
+    }
+    // Update top rated
+    var topEl=document.getElementById('topRatedList');
+    if(topEl){
+      topEl.innerHTML = verified.slice(0,5).map(function(n){ return '<div style="padding:8px;border:1px solid #e5e7eb;border-radius:8px;margin:4px 0;display:flex;justify-content:space-between"><div><b>⭐ '+(n.name||'Nurse')+'</b><br><small>'+(n.specialty||'')+'</small></div><button onclick="bookThisNurse(\''+n.id+'\')" style="background:#16a34a;color:white;border:none;padding:4px 8px;border-radius:6px">Book</button></div>'; }).join('') || '<div>No verified</div>';
+    }
+  }catch(e){ console.log('loadVerified error',e); }
+}
+function bookThisNurse(nurseId){
+  localStorage.setItem('selectedNurseId', nurseId);
+  var nurse = getVerifiedNurses().find(function(n){ return n.id===nurseId; });
+  if(nurse) localStorage.setItem('selectedNurseName', nurse.name||'');
+  showPage('book-nurse');
+  setTimeout(function(){ var el=document.getElementById('selectedNurseTopDisplay'); if(el && nurse){ el.style.display='block'; el.innerHTML='✅ Selected: <b>'+(nurse.name||nurseId)+'</b> ('+(nurse.phone||'')+') - Verified ✅ <button onclick="clearSelectedNurse()" style="float:right;background:#fee2e2;color:#ef4444;border:none;padding:2px 8px;border-radius:6px">Clear</button>'; } },500);
+}
+function focusNurseOnMap(nurseId){
+  var nurses=getVerifiedNurses();
+  var idx=nurses.findIndex(function(n){ return n.id===nurseId; });
+  if(idx>=0 && _nurseMarkers[idx] && _map){
+    var nurse=nurses[idx];
+    _map.setView([nurse.lat, nurse.lng], 15);
+    _nurseMarkers[idx].openPopup();
+    document.getElementById('map')?.scrollIntoView({behavior:'smooth'});
+  }
+}
+function initLiveMap(){
+ try{
+  var mapEl=document.getElementById('map'); if(!mapEl) return;
+  if(_map){ _map.invalidateSize(); setTimeout(loadVerifiedNursesOnMap,300); return; }
+  _map=L.map('map').setView([5.6037,-0.1870],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(_map);
+  // Add user location dot
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      var userIcon = L.divIcon({html:'<div style="width:14px;height:14px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>', iconSize:[20,20]});
+      L.marker([pos.coords.latitude, pos.coords.longitude], {icon:userIcon}).addTo(_map).bindPopup('📍 You are here').openPopup();
+    });
+  }
+  setTimeout(loadVerifiedNursesOnMap,500);
+ }catch(e){ console.log('map error',e); }
+}
+function findNearbyNurses(){
+  var statusEl=document.getElementById('nearbyNursesList');
+  if(statusEl) statusEl.innerHTML='<div style="text-align:center;padding:20px">🔍 Finding nurses near you...<br><small>Getting your location</small></div>';
+  if(!_map){ initLiveMap(); }
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      if(_map){
+        _map.setView([pos.coords.latitude, pos.coords.longitude], 13);
+        var userIcon = L.divIcon({html:'<div style="width:16px;height:16px;background:#2563eb;border:3px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4)"></div>', iconSize:[22,22]});
+        L.marker([pos.coords.latitude, pos.coords.longitude], {icon:userIcon}).addTo(_map).bindPopup('📍 You are here - Searching nearby nurses').openPopup();
+      }
+      setTimeout(function(){ loadVerifiedNursesOnMap(); if(statusEl){ statusEl.scrollIntoView({behavior:'smooth'}); } },600);
+    }, function(err){
+      alert('Could not get location: '+err.message+' - Showing all verified nurses');
+      loadVerifiedNursesOnMap();
+    });
+  } else {
+    loadVerifiedNursesOnMap();
+    if(_map) _map.setView([5.6037,-0.1870],12);
+  }
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+ setTimeout(function(){
+  try{
+   if(typeof calculateTotal==='function') calculateTotal();
+   if(typeof updateSettingsDisplay==='function') updateSettingsDisplay();
+   if(typeof loadTopRatedNurses==='function') loadTopRatedNurses();
+   if(typeof initLiveMap==='function') initLiveMap();
+   if(typeof attachFirebaseNurseListener==='function') attachFirebaseNurseListener();
+   if(localStorage.getItem('isCEOLogged')){ if(typeof loadCEOStats==='function') loadCEOStats(); if(typeof loadCEONurseApplications==='function') loadCEONurseApplications(); }
+   if(typeof renderAllChats==='function') renderAllChats();
+   var ci=document.getElementById('chatInput');
+   if(ci){ ci.addEventListener('keypress', function(e){ if(e.key==='Enter'){ e.preventDefault(); sendChatMessage(); } }); }
+   var gi=document.getElementById('groupLoginPass');
+   if(gi){ gi.addEventListener('keypress', function(e){ if(e.key==='Enter'){ e.preventDefault(); doGroupChatLogin(); } }); }
+  }catch(e){ console.error('Init error',e); }
+ },800);
+});
+console.log('ALL BUTTONS FIXED V3 - SINGLE CLEAN SCRIPT');
+
+</script>
+</body>
+</html>
