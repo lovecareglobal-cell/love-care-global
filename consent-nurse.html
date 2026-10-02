@@ -1,28 +1,46 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nurse Consent - LOVE CARE GLOBAL</title><link rel="icon" href="./icon-192.png">
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nurse Consent - LOVE CARE GLOBAL</title>
 <style>
-body{font-family:Inter,system-ui,sans-serif;margin:0;background:#f0fdf4;color:#111827;padding:20px;max-width:800px;margin:0 auto;line-height:1.6}
-.header{background:linear-gradient(90deg,#5b21b6,#16a34a);color:white;padding:16px;border-radius:12px;text-align:center;margin-bottom:16px}
-.logo{width:60px;height:60px;background:white;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#5b21b6}
-.card{background:white;border-radius:12px;padding:16px;margin:12px 0;border:2px solid #e5e7eb}
-.btn{border:none;border-radius:10px;padding:12px 20px;font-weight:800;cursor:pointer;color:white;background:#5b21b6}
-.signature-box{border:2px dashed #5b21b6;border-radius:8px;padding:20px;margin:16px 0;text-align:center;background:#faf5ff}
-input,textarea,select{width:100%;padding:10px;border:2px solid #e5e7eb;border-radius:8px;margin:6px 0;box-sizing:border-box}
+body{font-family:Arial; font-size:24px; line-height:1.8; max-width:1000px; margin:auto; padding:20px;}
+h1{background:#0B4D6E;color:#fff;padding:25px;text-align:center;font-size:32px;border-radius:10px;}
+h2{background:#0E8A6E;color:#fff;padding:15px;border-radius:8px;font-size:28px;}
+.field{background:#f5f8fa;border:2px solid #000;padding:18px;margin:15px 0;border-radius:6px; font-size:24px;}
+.sig{border:4px solid #000;padding:30px;background:#fffbe6;margin:30px 0; font-size:24px;}
+.red{color:#b00000; font-weight:bold;}
 </style>
-</head><body>
-<div class="header"><div class="logo">✚</div><h2>LOVE CARE GLOBAL HOME NURSING</h2><h3>NURSE CONSENT FORM</h3><p style="font-size:10px">Standalone HTML - Logo, Business Name, Signature, Time - Clean No Demo All Buttons Working</p></div>
-<div class="card"><h3>👩‍⚕️ Nurse Info</h3><input id="nurseName" placeholder="Full Name"><input id="nurseId" placeholder="Nurse ID / License"><input id="nursePhone" placeholder="Phone +233..."><input id="nurseSpecialty" placeholder="Specialty"></div>
-<div class="card"><h3>📋 Professional Consent - All Buttons Working</h3><ul style="font-size:11px"><li>Provide professional care - Real bookings No demo</li><li>Accept Offer / Counter / Reject buttons working</li><li>Share Live Location, Start Work, Finish + Photo, Upload Proof, SOS, Chat, Advance buttons working</li><li>Receive 85% via MoMo/Bank/Paystack Transfer after client confirmation - Pay 85% LIVE button working</li><li>Professional receipt with logo, business name, signature, time auto-generated</li></ul></div>
-<div class="card"><h3>✅ Signature & Time</h3><div class="signature-box"><input id="nurseSignature" placeholder="Type full name as signature"><label><input type="checkbox" id="nurseAgree" style="width:auto"> I agree to Nurse Consent, All buttons working</label><br><input id="nurseDate" type="date"><input id="nurseTime" type="time"><p style="font-size:10px">Time: <span id="currentTime"></span></p><button class="btn" style="background:#2563eb;width:100%" onclick="submitNurseConsent()">✅ I Consent - Submit</button></div></div>
-<script>
-document.getElementById('currentTime').innerText=new Date().toLocaleString();
-document.getElementById('nurseDate').valueAsDate=new Date();
-document.getElementById('nurseTime').value=new Date().toTimeString().slice(0,5);
-function submitNurseConsent(){
-  var n=document.getElementById('nurseName').value, id=document.getElementById('nurseId').value, p=document.getElementById('nursePhone').value, s=document.getElementById('nurseSignature').value, a=document.getElementById('nurseAgree').checked;
-  if(!n||!id||!p||!s){alert('Fill Name ID Phone Signature');return;} if(!a){alert('Check agreement');return;}
-  var data={name:n,nurseId:id,phone:p,signature:s,date:document.getElementById('nurseDate').value,time:document.getElementById('nurseTime').value,timestamp:Date.now(),iso:new Date().toISOString(),type:'nurse_consent'};
-  localStorage.setItem('nurseConsent','true'); localStorage.setItem('nurseId',id); localStorage.setItem('nursePhone',p); localStorage.setItem('nurseName',n);
-  alert('✅ Nurse Consent Submitted - Clean No demo - Time: '+new Date().toLocaleString()); window.close(); setTimeout(function(){window.location.href='./index.html';},500);
-}
-</script></body></html>
+</head>
+<body>
+
+<h1>LOVE CARE GLOBAL<br>NURSE / CAREGIVER CONSENT & CODE OF CONDUCT<br>Version 2.0 - Oct 2026 - MUST SIGN BEFORE DEPLOYMENT</h1>
+
+<h2>SECTION A: NURSE INFORMATION</h2>
+<div class="field">Full Name: ________________________________________ NMC Pin: ______________________ Expiry: ____/____/____</div>
+<div class="field">Phone: ________________________ Email: ________________________ Ghana Card: ______________________</div>
+<div class="field">Address: ________________________________________ Qualification: ________________________</div>
+
+<h2>SECTION B: CODE OF CONDUCT - ZERO TOLERANCE</h2>
+<ul style="font-size:24px;">
+<li><b class="red">1. NO EXTRA MONEY:</b> Will NOT collect cash/MoMo/gifts from client. All payments through company. Instant dismissal if caught.</li>
+<li><b class="red">2. NO SEXUAL RELATIONSHIP:</b> Will NOT have sexual/romantic relationship with client/family. Zero tolerance.</li>
+<li><b>3. NO SLEEPING ON DUTY:</b> Stay alert. No sleeping unless on break.</li>
+<li><b>4. NO PHONE ABUSE:</b> No TikTok/Facebook during care hours.</li>
+<li><b>5. NO THEFT/ABUSE:</b> No stealing, disrespect, neglect.</li>
+<li><b>6. REPORTING:</b> Report incident immediately - call + written report.</li>
+</ul>
+
+<h2>SECTION C: NON-COMPETE 12 MONTHS</h2>
+<p style="font-size:24px;">For <b>12 MONTHS after leaving, I will NOT contact, solicit, or work privately for any client served through LOVE CARE GLOBAL.</b> If breach, pay 6 months fees as damages.</p>
+
+<div class="sig">
+Nurse Name: _______________________________ Signature: ________________________ Date: ____/____/________<br><br>
+Manager: __________________ Signature: __________________ Date: ____/____/________
+</div>
+
+<button onclick="window.print()" style="padding:20px 40px; font-size:26px; background:#0B4D6E; color:white; border:none; border-radius:10px; width:100%;">🖨️ PRINT</button>
+
+</body>
+</html>
