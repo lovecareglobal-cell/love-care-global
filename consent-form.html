@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LOVE CARE GLOBAL - General Consent - All 3 Roles - International</title>
+<title>LOVE CARE GLOBAL HOME NURSING - General Consent - International</title>
 <style>
 *{box-sizing:border-box}
 body{font-family:Arial,sans-serif;font-size:22px;line-height:1.6;max-width:800px;margin:0 auto;padding:10px;background:#ffffff;color:#000;}
-h1{background:#0B4D6E;color:#fff;padding:18px;text-align:center;font-size:24px;border-radius:12px;margin:0 0 12px 0;}
+h1{background:#0B4D6E;color:#fff;padding:20px;text-align:center;font-size:22px;border-radius:12px;margin:0 0 12px 0;line-height:1.2;}
+h1.main{font-size:26px;display:block;font-weight:bold;letter-spacing:0.5px;}
+h1.sub{display:block;font-size:12px;margin-top:6px;font-weight:normal;opacity:0.9;}
 .card{background:#ffffff;border:3px solid #0B4D6E;border-radius:12px;padding:18px;margin:12px 0;}
 label{font-weight:bold;font-size:20px;display:block;margin:12px 0 5px 0;color:#0B4D6E;}
 input,textarea,select{width:100%;font-size:20px;padding:15px;border:3px solid #000;border-radius:10px;background:#ffffcc;margin-bottom:10px;font-family:Arial;color:#000;}
@@ -21,7 +23,7 @@ input,textarea,select{width:100%;font-size:20px;padding:15px;border:3px solid #0
 button.main{background:#0B4D6E;color:white;padding:18px;font-size:22px;border:none;border-radius:12px;width:100%;margin:10px 0;font-weight:bold;}
 button.green{background:#0E8A6E;}
 canvas{border:3px solid #000;width:100%;height:160px;background:white;border-radius:10px;touch-action:none;display:block;margin:10px 0;}
-.tip{background:#0B4D6E;color:white;padding:12px;border-radius:8px;text-align:center;font-weight:bold;font-size:18px;margin:10px 0;}
+.tip{background:#0B4D6E;color:white;padding:12px;border-radius:8px;text-align:center;font-weight:bold;font-size:17px;margin:10px 0;}
 .hidden{display:none!important;}
 .visible{display:block!important;}
 .req{color:#b00000;}
@@ -30,88 +32,86 @@ h2{background:#0E8A6E;color:#fff;padding:10px 14px;border-radius:8px;font-size:2
 </head>
 <body>
 
-<h1>💜 LOVE CARE GLOBAL 🌍<br>GENERAL CONSENT FORM<br><span style="font-size:11px;">For CLIENT + NURSE + STAFF - International 8 Countries - No Ghana Card</span></h1>
+<h1>
+<span class="main">💜 LOVE CARE GLOBAL<br>HOME NURSING 🌍</span>
+<span class="sub">GENERAL CONSENT FORM - For CLIENT + NURSE + STAFF<br>International - 8 Countries - Ghana 🇬🇭 Nigeria 🇳🇬 Kenya 🇰🇪 SA 🇿🇦 Uganda 🇺🇬 Rwanda 🇷🇼 UK 🇬🇧 USA 🇺🇸<br>Version 6.2 CORRECT NAME - Oct 2026</span>
+</h1>
 
 <div class="card">
 <div class="role-box">
 <label style="color:#000;font-size:22px;">STEP 1: WHO ARE YOU? SELECT ROLE <span class="req">*</span></label>
 <select id="roleSelect" onchange="changeRole()">
 <option value="">-- TAP HERE TO SELECT --</option>
-<option value="client">I AM A CLIENT - Need Nursing Service</option>
-<option value="nurse">I AM A NURSE / CAREGIVER - Want To Work</option>
-<option value="staff">I AM A STAFF - Admin / Driver / Marketer</option>
+<option value="client">I AM A CLIENT - Need Home Nursing Service</option>
+<option value="nurse">I AM A NURSE / CAREGIVER - Want To Work With LOVE CARE GLOBAL HOME NURSING</option>
+<option value="staff">I AM A STAFF - Admin / Driver / Marketer / Finance / IT</option>
 </select>
 <p id="roleInfo" style="font-size:16px;margin-top:10px;font-weight:bold;color:#000;"></p>
 </div>
-<div class="tip">👆 Select role above - Form will appear below instantly - No white screen!</div>
+<div class="tip">👆 Select your role above - Form appears below instantly!</div>
 </div>
 
-<!-- COMMON - VISIBLE BY DEFAULT NOW -->
 <div class="card visible" id="commonSection">
-<h2>YOUR INFORMATION - International</h2>
+<h2>YOUR INFORMATION - International - LOVE CARE GLOBAL HOME NURSING</h2>
 <label>Full Name (as on ID/Passport) <span class="req">*</span>:</label><input type="text" placeholder="Type full name">
-<label>Country <span class="req">*</span>:</label>
-<select><option value="">Select Country</option><option>Ghana 🇬🇭</option><option>Nigeria 🇳🇬</option><option>Kenya 🇰🇪</option><option>South Africa 🇿🇦</option><option>Uganda 🇺🇬</option><option>Rwanda 🇷🇼</option><option>UK 🇬🇧</option><option>USA 🇺🇸</option><option>Canada 🇨🇦</option><option>Other</option></select>
+<label>Country <span class="req">*</span>:</label><select><option value="">Select Country</option><option>Ghana 🇬🇭</option><option>Nigeria 🇳🇬</option><option>Kenya 🇰🇪</option><option>South Africa 🇿🇦</option><option>Uganda 🇺🇬</option><option>Rwanda 🇷🇼</option><option>UK 🇬🇧</option><option>USA 🇺🇸</option><option>Canada 🇨🇦</option><option>Other</option></select>
 <label>ID Type:</label><select><option value="">Select ID Type</option><option>National ID</option><option>Passport</option><option>Driver's License</option><option>Professional License</option><option>Other</option></select>
-<label>ID / Passport Number:</label><input type="text" placeholder="ID number - Optional for client, Required for Nurse/Staff">
+<label>ID / Passport Number:</label><input type="text" placeholder="ID number">
 <label>Phone (with country code) <span class="req">*</span>:</label><input type="tel" placeholder="+233..., +234..., +254...">
-<label>WhatsApp:</label><input type="tel" placeholder="WhatsApp number">
+<label>WhatsApp:</label><input type="tel" placeholder="WhatsApp">
 <label>Email:</label><input type="email" placeholder="Email">
-<label>Address / City / GPS <span class="req">*</span>:</label><textarea rows="2" placeholder="Your full address"></textarea>
+<label>Address / City / GPS <span class="req">*</span>:</label><textarea rows="2" placeholder="Full address"></textarea>
 </div>
 
-<!-- CLIENT -->
 <div id="clientSection" class="card hidden">
-<h2>CLIENT - Service Needed</h2>
-<label>Service Needed:</label><select><option value="">Select Service</option><option>General Nursing Care</option><option>Elderly Care</option><option>Post-Surgery / Wound</option><option>Mother & Baby</option><option>Injection / IV / Vital Signs</option><option>24-Hour Live-In</option><option>Day / Night Shift</option></select>
+<h2>CLIENT - Home Nursing Service Needed</h2>
+<label>Service Needed:</label><select><option value="">Select Service</option><option>General Nursing Care at Home</option><option>Elderly Care</option><option>Post-Surgery / Wound</option><option>Mother & Baby Care</option><option>Injection / IV / Vital Signs</option><option>24-Hour Live-In Nurse</option><option>Day / Night Shift</option></select>
 <label>Start Date <span class="req">*</span>:</label><input type="date">
 <label>Duration:</label><select><option value="">Select Duration</option><option>1-3 Days</option><option>1 Week</option><option>2 Weeks</option><option>1 Month</option><option>Ongoing</option></select>
 <label>Patient Name (if not you):</label><input type="text" placeholder="e.g. My mother, Myself">
-<div style="background:#f0f8ff;border:2px solid #0B4D6E;padding:12px;border-radius:8px;font-size:18px;"><p><b>1.</b> LOVE CARE will provide qualified nurse.</p><p><b>2.</b> Home nursing is NOT emergency - nurse will call ambulance if needed.</p><p><b>3.</b> Pay IN ADVANCE to company account, not to nurse. 24hr cancel = 50% charge.</p><p><b>4.</b> Info kept confidential.</p></div>
-<div class="check-item green"><input type="checkbox"> <b>I AGREE TO CLIENT TERMS</b></div>
+<div style="background:#f0f8ff;border:2px solid #0B4D6E;padding:12px;border-radius:8px;font-size:18px;"><p><b>1.</b> LOVE CARE GLOBAL HOME NURSING will provide qualified licensed nurse for home care.</p><p><b>2.</b> Home nursing is NOT emergency hospital - nurse will call ambulance if needed.</p><p><b>3.</b> Pay IN ADVANCE to LOVE CARE GLOBAL HOME NURSING official account, not to nurse. 24hr cancel = 50% charge.</p><p><b>4.</b> Info kept confidential under Data Protection Laws.</p></div>
+<div class="check-item green"><input type="checkbox"> <b>I AGREE TO LOVE CARE GLOBAL HOME NURSING CLIENT TERMS</b></div>
 </div>
 
-<!-- NURSE -->
 <div id="nurseSection" class="card hidden">
-<h2 style="background:#b00000;">NURSE - Next of Kin + Guarantor Required</h2>
+<h2 style="background:#b00000;">NURSE - For LOVE CARE GLOBAL HOME NURSING - Next of Kin + Guarantor Required</h2>
 <label>Qualification <span class="req">*</span>:</label><input type="text" placeholder="RGN, BSc, HCA, Caregiver">
 <label>License Expiry:</label><input type="date">
 <div style="background:#fff3cd;border:3px solid #856404;padding:12px;border-radius:10px;"><h2 style="background:#856404;margin:-12px -12px 12px -12px;">NEXT OF KIN - REQUIRED</h2><label>Name <span class="req">*</span>:</label><input type="text" placeholder="Full name"><label>Relationship <span class="req">*</span>:</label><input type="text" placeholder="Relationship"><label>Phone <span class="req">*</span>:</label><input type="tel" placeholder="Phone"></div>
 <div style="background:#f8d7da;border:3px solid #b00000;padding:12px;border-radius:10px;margin-top:12px;"><h2 style="background:#b00000;margin:-12px -12px 12px -12px;">GUARANTOR - REQUIRED</h2><label>Name <span class="req">*</span>:</label><input type="text" placeholder="Name"><label>Phone <span class="req">*</span>:</label><input type="tel" placeholder="Phone"><label>Work Place:</label><input type="text" placeholder="Work place"></div>
-<div class="check-item red"><input type="checkbox"> <b>NO EXTRA MONEY</b> - All payments via company only</div>
+<div class="check-item red"><input type="checkbox"> <b>NO EXTRA MONEY</b> - All via LOVE CARE GLOBAL HOME NURSING company account only</div>
 <div class="check-item red"><input type="checkbox"> <b>NO SEXUAL RELATIONSHIP</b> with client</div>
 <div class="check-item red"><input type="checkbox"> <b>NO THEFT/FRAUD</b></div>
-<div class="check-item green"><input type="checkbox"> <b>I AGREE TO FINANCIAL ACCOUNTABILITY & 12 MONTHS NON-COMPETE</b></div>
+<div class="check-item green"><input type="checkbox"> <b>I AGREE TO FINANCIAL ACCOUNTABILITY & 12 MONTHS NON-COMPETE WITH LOVE CARE GLOBAL HOME NURSING</b></div>
 </div>
 
-<!-- STAFF -->
 <div id="staffSection" class="card hidden">
-<h2>STAFF - Next of Kin + Guarantor Required</h2>
+<h2>STAFF - For LOVE CARE GLOBAL HOME NURSING</h2>
 <label>Your Role <span class="req">*</span>:</label><select><option value="">Select Role</option><option>Admin</option><option>Driver</option><option>Marketer</option><option>Finance</option><option>IT</option><option>HR</option><option>Other</option></select>
-<div style="background:#fff3cd;border:3px solid #856404;padding:12px;border-radius:10px;"><h2 style="background:#856404;margin:-12px -12px 12px -12px;">NEXT OF KIN - REQUIRED</h2><label>Name <span class="req">*</span>:</label><input type="text" placeholder="Name"><label>Relationship:</label><input type="text" placeholder="Relationship"><label>Phone <span class="req">*</span>:</label><input type="tel" placeholder="Phone"></div>
+<div style="background:#fff3cd;border:3px solid #856404;padding:12px;border-radius:10px;"><h2 style="background:#856404;margin:-12px -12px 12px -12px;">NEXT OF KIN - REQUIRED</h2><label>Name <span class="req">*</span>:</label><input type="text" placeholder="Name"><label>Phone <span class="req">*</span>:</label><input type="tel" placeholder="Phone"></div>
 <div style="background:#f8d7da;border:3px solid #b00000;padding:12px;border-radius:10px;margin-top:12px;"><h2 style="background:#b00000;margin:-12px -12px 12px -12px;">GUARANTOR - REQUIRED FOR MONEY HANDLERS</h2><label>Name <span class="req">*</span>:</label><input type="text" placeholder="Name"><label>Phone:</label><input type="tel" placeholder="Phone"></div>
 <div class="check-item red"><input type="checkbox"> NO THEFT/FRAUD</div>
-<div class="check-item red"><input type="checkbox"> RECEIPTS for any money</div>
+<div class="check-item red"><input type="checkbox"> RECEIPTS for any money handled for LOVE CARE GLOBAL HOME NURSING</div>
 <div class="check-item green"><input type="checkbox"> <b>I AGREE TO CONFIDENTIALITY 2 YEARS & NON-COMPETE 12 MONTHS</b></div>
 </div>
 
-<!-- SIGNATURE - VISIBLE -->
 <div class="card visible" id="signatureSection">
-<h2 style="background:#0B4D6E;">SIGNATURE - Legally Binding</h2>
+<h2 style="background:#0B4D6E;">SIGNATURE - For LOVE CARE GLOBAL HOME NURSING - Legally Binding</h2>
 <div class="sig-box">
 <label>Type Full Name as Signature <span class="req">*</span>:</label><input type="text" placeholder="Type full name as signature">
 <label>Date <span class="req">*</span>:</label><input type="date">
 <label>Draw Signature (Optional):</label><canvas id="sigGeneral"></canvas>
 <button onclick="clearCanvas('sigGeneral')" style="background:#cc0000;padding:8px 14px;font-size:14px;width:auto;border-radius:6px;color:white;border:none;font-weight:bold;">Clear - Draw Again</button>
+<p style="font-size:13px;color:#555;margin-top:10px;">By signing, you agree to LOVE CARE GLOBAL HOME NURSING terms. Legally binding under Electronic Transactions Laws. Data protected under Data Protection Laws of your country.</p>
 </div>
 </div>
 
 <div class="card visible" id="printSection">
-<button class="main" onclick="window.print()">🖨️ PRINT / SAVE AS PDF</button>
-<button class="main green" onclick="if(document.getElementById('roleSelect').value==''){alert('Please SELECT YOUR ROLE first at top!');}else{alert('Thank you! Now click PRINT and Save as PDF, then send to LOVE CARE GLOBAL WhatsApp');}">✅ SUBMIT - FINISH</button>
+<button class="main" onclick="window.print()">🖨️ PRINT / SAVE AS PDF - LOVE CARE GLOBAL HOME NURSING</button>
+<button class="main green" onclick="if(document.getElementById('roleSelect').value==''){alert('Please SELECT YOUR ROLE first at top!');}else{alert('Thank you for consenting to LOVE CARE GLOBAL HOME NURSING! Now click PRINT and Save as PDF, then send via WhatsApp');}">✅ SUBMIT TO LOVE CARE GLOBAL HOME NURSING - FINISH</button>
 </div>
 
-<p style="font-size:11px;text-align:center;color:#555;">LOVE CARE GLOBAL 🌍 8 Countries | International - No Ghana Card | www.lovecareglobal.com<br>Version 6.1 FIXED WHITE SCREEN - General Form For All 3 - Oct 2026</p>
+<p style="font-size:11px;text-align:center;color:#555;margin-top:20px;">LOVE CARE GLOBAL HOME NURSING 🌍<br>International - 8 Countries - No Ghana Card<br>www.lovecareglobal.com<br>Version 6.2 - CORRECT FULL NAME - General Form For All 3 Roles - Oct 2026<br>© LOVE CARE GLOBAL HOME NURSING - All Rights Reserved</p>
 
 <script>
 function changeRole(){
@@ -120,26 +120,14 @@ var client = document.getElementById('clientSection');
 var nurse = document.getElementById('nurseSection');
 var staff = document.getElementById('staffSection');
 var info = document.getElementById('roleInfo');
-client.className = 'card hidden';
-nurse.className = 'card hidden';
-staff.className = 'card hidden';
-if(role === 'client'){client.className = 'card visible';info.innerHTML = '✅ CLIENT - Simple - No Next of Kin';info.style.color='#0E8A6E';}
-else if(role === 'nurse'){nurse.className = 'card visible';info.innerHTML = '⚠️ NURSE - Next of Kin + Guarantor Required';info.style.color='#b00000';}
-else if(role === 'staff'){staff.className = 'card visible';info.innerHTML = '⚠️ STAFF - Next of Kin + Guarantor Required';info.style.color='#b00000';}
+client.className = 'card hidden'; nurse.className = 'card hidden'; staff.className = 'card hidden';
+if(role === 'client'){client.className = 'card visible';info.innerHTML = '✅ CLIENT - LOVE CARE GLOBAL HOME NURSING - Simple - No Next of Kin';info.style.color='#0E8A6E';}
+else if(role === 'nurse'){nurse.className = 'card visible';info.innerHTML = '⚠️ NURSE - LOVE CARE GLOBAL HOME NURSING - Next of Kin + Guarantor Required';info.style.color='#b00000';}
+else if(role === 'staff'){staff.className = 'card visible';info.innerHTML = '⚠️ STAFF - LOVE CARE GLOBAL HOME NURSING - Next of Kin + Guarantor Required';info.style.color='#b00000';}
 else{info.innerHTML = '';}
 }
 function clearCanvas(id){var c=document.getElementById(id);var ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}
-function setupCanvas(id){
-var canvas=document.getElementById(id); if(!canvas) return; var ctx=canvas.getContext('2d');
-canvas.width=canvas.offsetWidth*2;canvas.height=canvas.offsetHeight*2;ctx.scale(2,2);ctx.lineWidth=3;ctx.lineCap='round';ctx.strokeStyle='#000';var drawing=false;
-function pos(e){var r=canvas.getBoundingClientRect();var t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}
-canvas.addEventListener('mousedown',function(e){drawing=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
-canvas.addEventListener('mousemove',function(e){if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
-canvas.addEventListener('mouseup',function(){drawing=false;});
-canvas.addEventListener('touchstart',function(e){e.preventDefault();drawing=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});
-canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();},{passive:false});
-canvas.addEventListener('touchend',function(){drawing=false;});
-}
+function setupCanvas(id){var canvas=document.getElementById(id); if(!canvas) return; var ctx=canvas.getContext('2d');canvas.width=canvas.offsetWidth*2;canvas.height=canvas.offsetHeight*2;ctx.scale(2,2);ctx.lineWidth=3;ctx.lineCap='round';ctx.strokeStyle='#000';var drawing=false;function pos(e){var r=canvas.getBoundingClientRect();var t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}canvas.addEventListener('mousedown',function(e){drawing=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});canvas.addEventListener('mousemove',function(e){if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});canvas.addEventListener('mouseup',function(){drawing=false;});canvas.addEventListener('touchstart',function(e){e.preventDefault();drawing=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();},{passive:false});canvas.addEventListener('touchend',function(){drawing=false;});}
 window.onload=function(){setupCanvas('sigGeneral'); document.getElementById('commonSection').className='card visible';};
 </script>
 </body>
