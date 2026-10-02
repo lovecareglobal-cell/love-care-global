@@ -3,91 +3,146 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LOVE CARE GLOBAL HOME NURSING - Consent Form</title>
+<title>LOVE CARE GLOBAL HOME NURSING - Informed Consent - 1st Time Only</title>
 <style>
 *{box-sizing:border-box}
-body{font-family:Arial,sans-serif;font-size:19px;max-width:700px;margin:0 auto;padding:12px;background:#ffffff;color:#000;line-height:1.6}
-h1{background:#0B4D6E;color:#fff;padding:18px;text-align:center;border-radius:12px;font-size:22px}
-h1 b{display:block;font-size:26px}
-.card{border:3px solid #0B4D6E;border-radius:12px;padding:16px;margin:12px 0;background:#fff}
-label{font-weight:bold;display:block;margin:10px 0 4px 0;color:#0B4D6E}
-input,select{width:100%;padding:13px;font-size:19px;border:3px solid #000;border-radius:10px;background:#ffffcc;margin-bottom:8px}
-.policy{border:3px solid #000;background:#f9f9f9;padding:12px;border-radius:10px;max-height:350px;overflow-y:auto;font-size:16px}
-.check{border:2px solid #000;padding:10px;margin:8px 0;border-radius:8px;background:#d4edda;display:flex;align-items:center}
-.check input{width:26px;height:26px;margin-right:10px;transform:scale(1.3)}
-button{background:#0B4D6E;color:#fff;padding:16px;width:100%;font-size:20px;border:none;border-radius:12px;font-weight:bold;margin:8px 0}
-button.green{background:#0E8A6E}
-canvas{border:3px solid #000;width:100%;height:140px;background:#fff;border-radius:10px;touch-action:none;display:block;margin:8px 0}
+body{font-family:Arial,sans-serif;font-size:16px;max-width:700px;margin:0 auto;padding:8px;background:#ffffff;color:#000;line-height:1.5}
+h1{font-size:18px;margin:0 0 4px 0;font-weight:bold;color:#000}
+.sub{font-size:13px;color:#555;margin-bottom:8px}
+.policy-box{border:2px solid #ccc;background:#f9f9f9;padding:12px;border-radius:10px;font-size:14px;line-height:1.6;max-height:300px;overflow-y:auto}
+.policy-box b{color:#000}
+label{font-weight:bold;font-size:15px;display:block;margin:12px 0 4px 0;color:#000}
+input,select{width:100%;padding:12px;font-size:16px;border:2px solid #0E8A6E;border-radius:10px;background:#fff;margin-bottom:6px;outline:none}
+input:focus,select:focus{border-color:#0B4D6E;background:#ffffcc}
+.check-box{border:2px solid #0E8A6E;border-radius:10px;padding:12px;margin:12px 0;background:#fff}
+.check-item{display:flex;align-items:center;margin:8px 0;font-size:14px}
+.check-item input{width:20px;height:20px;min-width:20px;margin-right:10px;transform:scale(1.2)}
+.btn-row{display:flex;gap:10px;margin:14px 0}
+.btn-consent{flex:2;background:#0E8A6E;color:#fff;padding:14px;font-size:16px;border:none;border-radius:10px;font-weight:bold;cursor:pointer}
+.btn-refuse{flex:1;background:#e53935;color:#fff;padding:14px;font-size:15px;border:none;border-radius:10px;font-weight:bold;cursor:pointer}
+.small{font-size:11px;color:#777;text-align:center;margin-top:6px}
 .req{color:red}
+.success{background:#d4edda;border:3px solid #0E8A6E;padding:20px;border-radius:12px;text-align:center;display:none}
 </style>
 </head>
 <body>
 
-<h1><b>💜 LOVE CARE GLOBAL HOME NURSING 🌍</b>CONSENT FORM<br><span style="font-size:12px">Read Policy & Agree - Name, Phone, Email, Signature</span></h1>
+<div id="formArea">
+<h1>Informed Consent Form - 1st Time Only</h1>
+<div class="sub">Please read and consent before using the app. This will not show again after submission. Saved to Firebase.</div>
 
-<div class="card">
-<h2 style="background:#0B4D6E;color:#fff;padding:8px;border-radius:6px;text-align:center;margin:0 0 10px 0">📜 COMPANY POLICY - Please Read</h2>
-<div class="policy">
-<p><b>1. About Us:</b> LOVE CARE GLOBAL HOME NURSING provides qualified nurses for home care in Ghana, Nigeria, Kenya, South Africa, Uganda, Rwanda, UK, USA.</p>
-<p><b>2. Payment:</b> All fees paid IN ADVANCE to company account only. Never pay nurse cash directly. 24hr cancellation notice or 50% charge.</p>
-<p><b>3. Service:</b> Home nursing is NOT emergency hospital. Nurse will call ambulance if emergency. We provide qualified staff but do not guarantee cure.</p>
-<p><b>4. Code:</b> NO extra money collection, NO sexual relationship with client, NO theft, NO sleeping on duty, NO phone abuse. Receipts required for any money handled.</p>
-<p><b>5. Confidentiality:</b> Keep client/company info confidential. For Nurses/Staff: 12 months non-compete - will not steal clients. 2 years confidentiality for staff.</p>
-<p><b>6. Privacy:</b> Your Name, Phone, Email, Address kept confidential under Data Protection Laws & GDPR. We do not sell data.</p>
-<p><b>7. Agreement:</b> By signing below, you agree this electronic signature is legally binding under Electronic Transactions Laws.</p>
-<p style="text-align:center;font-weight:bold;color:#0B4D6E">End of Policy - LOVE CARE GLOBAL HOME NURSING</p>
+<div class="policy-box">
+<b>1. Purpose:</b> Connecting clients with verified nurses for home care across 8 countries.<br><br>
+<b>2. Data:</b> Name, phone, location, health needs, documents for nurses. Stored securely in Firebase/Supabase.<br><br>
+<b>3. Services:</b> 13 services - elderly, child, wound, ICU, maternity, physio etc. Nurses verified by CEO.<br><br>
+<b>4. Privacy:</b> Data not shared without consent except for care delivery.<br><br>
+<b>5. Risks:</b> Provide accurate info. Misconduct leads to block/deactivate. Report via written/audio to CEO.<br><br>
+<b>6. Emergency:</b> SOS connects to emergency but does not replace hospital.<br><br>
+<b>7. Payment:</b> Paystack, dual pricing.
 </div>
 
-<div class="check"><input type="checkbox" id="a1"> <b>I have read and agree to LOVE CARE GLOBAL HOME NURSING policy</b></div>
-<div class="check"><input type="checkbox" id="a2"> <b>I agree to Privacy - My data kept confidential</b></div>
-<div class="check"><input type="checkbox" id="a3"> <b>I agree my signature below is legally binding</b></div>
+<label>Full Name <span class="req">*</span></label>
+<input type="text" id="fullName" placeholder="Your full name">
+
+<label>Role <span class="req">*</span></label>
+<select id="role">
+<option value="">Select role</option>
+<option>CLIENT - I Need Home Nursing</option>
+<option>NURSE - I Want To Work</option>
+<option>STAFF - Admin / Driver / Marketer / Finance / IT</option>
+</select>
+
+<label>Phone <span class="req">*</span></label>
+<input type="tel" id="phone" placeholder="054...">
+
+<div class="check-box">
+<div class="check-item"><input type="checkbox" id="c1"> <span>I have read and understood consent <span class="req">*</span></span></div>
+<div class="check-item"><input type="checkbox" id="c2"> <span>I agree to privacy & data processing <span class="req">*</span></span></div>
+<div class="check-item"><input type="checkbox" id="c3"> <span>I am 18+ or guardian consent & accurate info <span class="req">*</span></span></div>
 </div>
 
-<div class="card">
-<h2 style="background:#0E8A6E;color:#fff;padding:8px;border-radius:6px;margin:0 0 10px 0">YOUR DETAILS</h2>
+<label>Signature (Type full name) <span class="req">*</span></label>
+<input type="text" id="signature" placeholder="Type full name as signature">
 
-<label>Full Name <span class="req">*</span>:</label>
-<input type="text" id="name" placeholder="Type your full name">
-
-<label>Phone Number <span class="req">*</span>:</label>
-<input type="tel" id="phone" placeholder="e.g. +233551234567">
-
-<label>Email Address <span class="req">*</span>:</label>
-<input type="email" id="email" placeholder="e.g. yourname@gmail.com">
-
-<label>Country <span class="req">*</span>:</label>
-<select id="country"><option value="">Select Country</option><option>Ghana 🇬🇭</option><option>Nigeria 🇳🇬</option><option>Kenya 🇰🇪</option><option>South Africa 🇿🇦</option><option>Uganda 🇺🇬</option><option>Rwanda 🇷🇼</option><option>UK 🇬🇧</option><option>USA 🇺🇸</option><option>Other</option></select>
-
-<label>Date <span class="req">*</span>:</label>
-<input type="date" id="date">
-
-<div style="border:3px dashed #0B4D6E;background:#fffbe6;padding:12px;border-radius:10px;margin-top:10px">
-<label>Signature - Type Name + Draw with Finger <span class="req">*</span>:</label>
-<input type="text" id="sigName" placeholder="Type full name as signature">
-<canvas id="sig"></canvas>
-<button onclick="clearSig()" style="background:#cc0000;padding:6px 12px;font-size:13px;width:auto">Clear Signature</button>
-</div>
+<div class="btn-row">
+<button class="btn-consent" onclick="consentAndContinue()">✅ I Consent & Continue</button>
+<button class="btn-refuse" onclick="refuseConsent()">Refuse</button>
 </div>
 
-<div class="card">
-<button class="green" onclick="submitForm()">✅ I AGREE - SUBMIT CONSENT</button>
-<button onclick="window.print()">🖨️ PRINT / SAVE AS PDF</button>
-<p id="msg" style="text-align:center;font-weight:bold;margin-top:10px"></p>
+<div class="small">After first submission, form will not pop again. Firebase: consents/</div>
 </div>
 
-<p style="font-size:11px;text-align:center;color:#555">LOVE CARE GLOBAL HOME NURSING 🌍 - General Consent - Name, Phone, Email, Signature - International - Oct 2026<br>© LOVE CARE GLOBAL HOME NURSING</p>
+<div id="successArea" class="success">
+<h2 style="color:#0E8A6E;margin:0 0 10px 0">✅ Consent Submitted!</h2>
+<p id="successMsg" style="font-size:16px"></p>
+<p style="font-size:13px;color:#555">This form will not show again. You can now continue using LOVE CARE GLOBAL HOME NURSING App.</p>
+</div>
 
 <script>
-function clearSig(){var c=document.getElementById('sig');var ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);}
-var canvas=document.getElementById('sig');var ctx=canvas.getContext('2d');canvas.width=canvas.offsetWidth*2;canvas.height=canvas.offsetHeight*2;ctx.scale(2,2);ctx.lineWidth=3;ctx.lineCap='round';ctx.strokeStyle='#000';var d=false;function p(e){var r=canvas.getBoundingClientRect();var t=e.touches?e.touches[0]:e;return{x:t.clientX-r.left,y:t.clientY-r.top};}canvas.addEventListener('mousedown',function(e){d=true;var o=p(e);ctx.beginPath();ctx.moveTo(o.x,o.y);});canvas.addEventListener('mousemove',function(e){if(!d)return;var o=p(e);ctx.lineTo(o.x,o.y);ctx.stroke();});canvas.addEventListener('mouseup',function(){d=false;});canvas.addEventListener('touchstart',function(e){e.preventDefault();d=true;var o=p(e);ctx.beginPath();ctx.moveTo(o.x,o.y);},{passive:false});canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!d)return;var o=p(e);ctx.lineTo(o.x,o.y);ctx.stroke();},{passive:false});canvas.addEventListener('touchend',function(){d=false;});
-function submitForm(){
-if(!document.getElementById('a1').checked||!document.getElementById('a2').checked||!document.getElementById('a3').checked){document.getElementById('msg').innerHTML='❌ Please tick all 3 agreement boxes';document.getElementById('msg').style.color='red';return;}
-if(!document.getElementById('name').value||!document.getElementById('phone').value||!document.getElementById('email').value){document.getElementById('msg').innerHTML='❌ Please fill Name, Phone, Email';document.getElementById('msg').style.color='red';return;}
-document.getElementById('msg').innerHTML='✅ Thank you '+document.getElementById('name').value+'! Consent submitted to LOVE CARE GLOBAL HOME NURSING. Please PRINT/SAVE AS PDF and send via WhatsApp. You can now access the app.';
-document.getElementById('msg').style.color='green';
-if(window.parent){window.parent.postMessage({type:'consentSubmitted',name:document.getElementById('name').value,phone:document.getElementById('phone').value,email:document.getElementById('email').value},'*');}
+// Check if already consented - hide form if yes
+if(localStorage.getItem('lovecare_consent_done')==='yes'){
+ document.getElementById('formArea').style.display='none';
+ document.getElementById('successArea').style.display='block';
+ document.getElementById('successMsg').innerHTML='Welcome back! You already consented as <b>'+localStorage.getItem('lovecare_name')+'</b>';
+ if(window.parent){window.parent.postMessage({type:'consentAlreadyDone'},'*');}
 }
-window.onload=function(){document.getElementById('date').valueAsDate=new Date();}
+
+function consentAndContinue(){
+ var name=document.getElementById('fullName').value.trim();
+ var role=document.getElementById('role').value;
+ var phone=document.getElementById('phone').value.trim();
+ var sig=document.getElementById('signature').value.trim();
+ var c1=document.getElementById('c1').checked;
+ var c2=document.getElementById('c2').checked;
+ var c3=document.getElementById('c3').checked;
+
+ if(!name){alert('❌ Please enter Full Name');return;}
+ if(!role){alert('❌ Please select Role');return;}
+ if(!phone){alert('❌ Please enter Phone');return;}
+ if(!sig){alert('❌ Please type full name as signature');return;}
+ if(!c1||!c2||!c3){alert('❌ Please tick all 3 checkboxes');return;}
+ if(sig.toLowerCase()!==name.toLowerCase()){if(!confirm('Signature "'+sig+'" does not match Name "'+name+'". Continue anyway?')) return;}
+
+ // Save locally - so form disappears next time
+ localStorage.setItem('lovecare_consent_done','yes');
+ localStorage.setItem('lovecare_name',name);
+ localStorage.setItem('lovecare_role',role);
+ localStorage.setItem('lovecare_phone',phone);
+ localStorage.setItem('lovecare_consent_date',new Date().toISOString());
+
+ // Show success and hide form
+ document.getElementById('formArea').style.display='none';
+ document.getElementById('successArea').style.display='block';
+ document.getElementById('successMsg').innerHTML='Thank you <b>'+name+'</b> ('+role+')<br>Phone: '+phone+'<br>Consent saved to Firebase: consents/';
+
+ // Send message to parent app - app will hide iframe/popup and save to Firebase
+ if(window.parent){
+   window.parent.postMessage({
+     type:'consentSubmitted',
+     fullName:name,
+     role:role,
+     phone:phone,
+     signature:sig,
+     consentDate:new Date().toISOString(),
+     company:'LOVE CARE GLOBAL HOME NURSING'
+   },'*');
+ }
+
+ // If you use Firebase directly in this page, add your Firebase save here
+ // firebase.firestore().collection('consents').add({...})
+}
+
+function refuseConsent(){
+ if(confirm('If you Refuse, you cannot use LOVE CARE GLOBAL HOME NURSING App. Are you sure you want to Refuse?')){
+   localStorage.setItem('lovecare_consent_done','refused');
+   if(window.parent){
+     window.parent.postMessage({type:'consentRefused'},'*');
+   }
+   alert('You refused consent. App access denied. Close this window.');
+   document.getElementById('formArea').innerHTML='<div style="padding:20px;text-align:center;background:#ffe0e0;border:3px solid #e53935;border-radius:12px"><h2 style="color:#b00000">❌ Consent Refused</h2><p>You refused to consent. You cannot use LOVE CARE GLOBAL HOME NURSING App.</p><p>Close and re-open app to try again.</p></div>';
+ }
+}
 </script>
+
 </body>
 </html>
