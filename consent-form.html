@@ -3,20 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LOVE CARE GLOBAL HOME NURSING - Informed Consent - 1st Time Only</title>
+<title>LOVE CARE GLOBAL HOME NURSING - Consent with Hand Signature</title>
 <style>
 *{box-sizing:border-box}
-body{font-family:Arial,sans-serif;font-size:16px;max-width:700px;margin:0 auto;padding:8px;background:#ffffff;color:#000;line-height:1.5}
-h1{font-size:18px;margin:0 0 4px 0;font-weight:bold;color:#000}
+body{font-family:Arial,sans-serif;font-size:16px;max-width:700px;margin:0 auto;padding:8px;background:#fff;color:#000;line-height:1.5}
+h1{font-size:18px;margin:0 0 4px 0;font-weight:bold}
 .sub{font-size:13px;color:#555;margin-bottom:8px}
-.policy-box{border:2px solid #ccc;background:#f9f9f9;padding:12px;border-radius:10px;font-size:14px;line-height:1.6;max-height:300px;overflow-y:auto}
-.policy-box b{color:#000}
-label{font-weight:bold;font-size:15px;display:block;margin:12px 0 4px 0;color:#000}
+.policy-box{border:2px solid #ccc;background:#f9f9f9;padding:12px;border-radius:10px;font-size:14px;line-height:1.6;max-height:280px;overflow-y:auto}
+label{font-weight:bold;font-size:15px;display:block;margin:12px 0 4px 0}
 input,select{width:100%;padding:12px;font-size:16px;border:2px solid #0E8A6E;border-radius:10px;background:#fff;margin-bottom:6px;outline:none}
 input:focus,select:focus{border-color:#0B4D6E;background:#ffffcc}
 .check-box{border:2px solid #0E8A6E;border-radius:10px;padding:12px;margin:12px 0;background:#fff}
 .check-item{display:flex;align-items:center;margin:8px 0;font-size:14px}
 .check-item input{width:20px;height:20px;min-width:20px;margin-right:10px;transform:scale(1.2)}
+.sig-box{border:2px solid #0E8A6E;border-radius:10px;padding:10px;margin:10px 0;background:#fffbe6}
+canvas{border:2px dashed #000;width:100%;height:150px;background:#fff;border-radius:10px;touch-action:none;display:block;margin:8px 0}
+.btn-clear{background:#e53935;color:#fff;padding:6px 14px;font-size:12px;border:none;border-radius:6px;width:auto;cursor:pointer}
 .btn-row{display:flex;gap:10px;margin:14px 0}
 .btn-consent{flex:2;background:#0E8A6E;color:#fff;padding:14px;font-size:16px;border:none;border-radius:10px;font-weight:bold;cursor:pointer}
 .btn-refuse{flex:1;background:#e53935;color:#fff;padding:14px;font-size:15px;border:none;border-radius:10px;font-weight:bold;cursor:pointer}
@@ -47,9 +49,9 @@ input:focus,select:focus{border-color:#0B4D6E;background:#ffffcc}
 <label>Role <span class="req">*</span></label>
 <select id="role">
 <option value="">Select role</option>
-<option>CLIENT - I Need Home Nursing</option>
-<option>NURSE - I Want To Work</option>
-<option>STAFF - Admin / Driver / Marketer / Finance / IT</option>
+<option>CLIENT</option>
+<option>NURSE</option>
+<option>STAFF</option>
 </select>
 
 <label>Phone <span class="req">*</span></label>
@@ -64,6 +66,13 @@ input:focus,select:focus{border-color:#0B4D6E;background:#ffffcc}
 <label>Signature (Type full name) <span class="req">*</span></label>
 <input type="text" id="signature" placeholder="Type full name as signature">
 
+<div class="sig-box">
+<label style="margin:0 0 6px 0;color:#0B4D6E">✍️ Signature with HAND - Draw with finger <span class="req">*</span></label>
+<canvas id="handSig"></canvas>
+<button class="btn-clear" onclick="clearSig()">Clear Hand Signature</button>
+<p style="font-size:11px;color:#555;margin:4px 0 0 0">Draw your signature above with finger/mouse</p>
+</div>
+
 <div class="btn-row">
 <button class="btn-consent" onclick="consentAndContinue()">✅ I Consent & Continue</button>
 <button class="btn-refuse" onclick="refuseConsent()">Refuse</button>
@@ -74,12 +83,48 @@ input:focus,select:focus{border-color:#0B4D6E;background:#ffffcc}
 
 <div id="successArea" class="success">
 <h2 style="color:#0E8A6E;margin:0 0 10px 0">✅ Consent Submitted!</h2>
-<p id="successMsg" style="font-size:16px"></p>
-<p style="font-size:13px;color:#555">This form will not show again. You can now continue using LOVE CARE GLOBAL HOME NURSING App.</p>
+<p id="successMsg"></p>
+<p style="font-size:13px">Form will not show again. You can now continue using LOVE CARE GLOBAL HOME NURSING App.</p>
 </div>
 
 <script>
-// Check if already consented - hide form if yes
+// Hand signature canvas setup
+var canvas=document.getElementById('handSig');
+var ctx=canvas.getContext('2d');
+var drawing=false;
+var hasDrawn=false;
+
+function resizeCanvas(){
+ var ratio = window.devicePixelRatio || 1;
+ canvas.width = canvas.offsetWidth * ratio * 2;
+ canvas.height = 150 * ratio * 2;
+ canvas.style.height='150px';
+ ctx.scale(ratio*2,ratio*2);
+ ctx.lineWidth=2.5;
+ ctx.lineCap='round';
+ ctx.strokeStyle='#000';
+}
+resizeCanvas();
+
+function getPos(e){
+ var rect=canvas.getBoundingClientRect();
+ var t=e.touches?e.touches[0]:e;
+ return {x:t.clientX-rect.left, y:t.clientY-rect.top};
+}
+
+canvas.addEventListener('mousedown',function(e){drawing=true;hasDrawn=true;var p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+canvas.addEventListener('mousemove',function(e){if(!drawing)return;var p=getPos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
+canvas.addEventListener('mouseup',function(){drawing=false;});
+canvas.addEventListener('touchstart',function(e){e.preventDefault();drawing=true;hasDrawn=true;var p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});
+canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!drawing)return;var p=getPos(e);ctx.lineTo(p.x,p.y);ctx.stroke();},{passive:false});
+canvas.addEventListener('touchend',function(){drawing=false;});
+
+function clearSig(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ hasDrawn=false;
+}
+
+// Check if already consented
 if(localStorage.getItem('lovecare_consent_done')==='yes'){
  document.getElementById('formArea').style.display='none';
  document.getElementById('successArea').style.display='block';
@@ -96,50 +141,46 @@ function consentAndContinue(){
  var c2=document.getElementById('c2').checked;
  var c3=document.getElementById('c3').checked;
 
- if(!name){alert('❌ Please enter Full Name');return;}
- if(!role){alert('❌ Please select Role');return;}
- if(!phone){alert('❌ Please enter Phone');return;}
- if(!sig){alert('❌ Please type full name as signature');return;}
- if(!c1||!c2||!c3){alert('❌ Please tick all 3 checkboxes');return;}
- if(sig.toLowerCase()!==name.toLowerCase()){if(!confirm('Signature "'+sig+'" does not match Name "'+name+'". Continue anyway?')) return;}
+ if(!name){alert('❌ Enter Full Name');return;}
+ if(!role){alert('❌ Select Role');return;}
+ if(!phone){alert('❌ Enter Phone');return;}
+ if(!sig){alert('❌ Type signature');return;}
+ if(!hasDrawn){alert('❌ Please draw hand signature with finger');return;}
+ if(!c1||!c2||!c3){alert('❌ Tick all 3 boxes');return;}
 
- // Save locally - so form disappears next time
+ // Save hand signature as image data
+ var handSigData = canvas.toDataURL('image/png');
+
  localStorage.setItem('lovecare_consent_done','yes');
  localStorage.setItem('lovecare_name',name);
  localStorage.setItem('lovecare_role',role);
  localStorage.setItem('lovecare_phone',phone);
- localStorage.setItem('lovecare_consent_date',new Date().toISOString());
+ localStorage.setItem('lovecare_hand_sig',handSigData);
 
- // Show success and hide form
  document.getElementById('formArea').style.display='none';
  document.getElementById('successArea').style.display='block';
- document.getElementById('successMsg').innerHTML='Thank you <b>'+name+'</b> ('+role+')<br>Phone: '+phone+'<br>Consent saved to Firebase: consents/';
+ document.getElementById('successMsg').innerHTML='Thank you <b>'+name+'</b> ('+role+')<br>Phone: '+phone+'<br>Consent with hand signature saved!';
 
- // Send message to parent app - app will hide iframe/popup and save to Firebase
  if(window.parent){
    window.parent.postMessage({
      type:'consentSubmitted',
      fullName:name,
      role:role,
      phone:phone,
-     signature:sig,
+     signatureTyped:sig,
+     signatureHand:handSigData,
      consentDate:new Date().toISOString(),
      company:'LOVE CARE GLOBAL HOME NURSING'
    },'*');
  }
-
- // If you use Firebase directly in this page, add your Firebase save here
- // firebase.firestore().collection('consents').add({...})
 }
 
 function refuseConsent(){
- if(confirm('If you Refuse, you cannot use LOVE CARE GLOBAL HOME NURSING App. Are you sure you want to Refuse?')){
+ if(confirm('Refuse? You cannot use app if you refuse.')){
    localStorage.setItem('lovecare_consent_done','refused');
-   if(window.parent){
-     window.parent.postMessage({type:'consentRefused'},'*');
-   }
-   alert('You refused consent. App access denied. Close this window.');
-   document.getElementById('formArea').innerHTML='<div style="padding:20px;text-align:center;background:#ffe0e0;border:3px solid #e53935;border-radius:12px"><h2 style="color:#b00000">❌ Consent Refused</h2><p>You refused to consent. You cannot use LOVE CARE GLOBAL HOME NURSING App.</p><p>Close and re-open app to try again.</p></div>';
+   if(window.parent){window.parent.postMessage({type:'consentRefused'},'*');}
+   alert('Access denied');
+   document.getElementById('formArea').innerHTML='<div style="padding:20px;text-align:center;background:#ffe0e0;border:3px solid #e53935;border-radius:12px"><h2 style="color:#b00000">❌ Consent Refused</h2><p>Cannot use LOVE CARE GLOBAL HOME NURSING App without consent.</p></div>';
  }
 }
 </script>
