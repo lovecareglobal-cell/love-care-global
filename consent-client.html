@@ -3,54 +3,124 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Client Consent - LOVE CARE GLOBAL</title>
+<title>Client Consent - Fillable</title>
 <style>
-body{font-family:Arial; font-size:24px; line-height:1.8; max-width:1000px; margin:auto; padding:20px; color:#000;}
-h1{background:#0B4D6E;color:#fff;padding:25px;text-align:center;font-size:32px;border-radius:10px;}
-h2{background:#0E8A6E;color:#fff;padding:15px;border-radius:8px;font-size:28px;}
-.field{background:#f5f8fa;border:2px solid #000;padding:18px;margin:15px 0;border-radius:6px; font-size:24px;}
-.sig{border:4px solid #000;padding:30px;background:#fffbe6;margin:30px 0;font-size:24px;}
-li{margin:15px 0; font-size:23px;}
+body{font-family:Arial; font-size:24px; max-width:900px; margin:auto; padding:15px; background:#f0f4f8;}
+h1{background:#0B4D6E;color:#fff;padding:20px;text-align:center;font-size:28px;border-radius:12px;}
+h2{background:#0E8A6E;color:#fff;padding:14px;border-radius:8px;font-size:24px;}
+.card{background:white;border:3px solid #0B4D6E;border-radius:12px;padding:20px;margin:15px 0;}
+label{font-weight:bold; font-size:22px; display:block; margin:15px 0 6px 0; color:#0B4D6E;}
+input,textarea{width:100%; font-size:24px; padding:18px; border:3px solid #333; border-radius:10px; background:#ffffe0; margin-bottom:10px;}
+input:focus{background:#fff; border-color:#0E8A6E; border-width:4px;}
+.check-item{background:#f8f9fa; border:2px solid #ccc; padding:15px; margin:10px 0; border-radius:8px; display:flex; align-items:center;}
+.check-item input{width:35px; height:35px; margin-right:15px; transform:scale(1.5);}
+.sig-box{border:3px dashed #0B4D6E; background:#fffbe6; padding:15px; margin:20px 0; border-radius:10px;}
+button{background:#0B4D6E; color:white; padding:20px; font-size:26px; border:none; border-radius:12px; width:100%; margin:10px 0;}
+canvas{border:3px solid #000; width:100%; height:180px; background:white; border-radius:10px;}
 </style>
 </head>
 <body>
 
-<h1>LOVE CARE GLOBAL HOME NURSING<br>CLIENT CARE CONSENT<br>Accra, Ghana | Version 2.0 - Oct 2026</h1>
+<h1>LOVE CARE GLOBAL<br>CLIENT CONSENT - REAL FILLABLE</h1>
 
-<h2>SECTION A: CLIENT INFORMATION</h2>
-<div class="field">Full Name: ____________________________________________ DOB: ____/____/______ Gender: __________</div>
-<div class="field">Ghana Card No: ________________________ Phone: ________________________ Email: ________________________</div>
-<div class="field">Address / GPS: ________________________________________ Landmark: ________________________</div>
-<div class="field">Next of Kin: Name: ________________________ Relationship: __________ Phone: ____________________</div>
-<div class="field">Doctor / Hospital: ________________________ Phone: ____________________ Diagnosis: ____________________</div>
-<div class="field">Allergies: _________________________ Current Medications: ___________________________________________</div>
+<div class="card">
+<h2>CLIENT INFORMATION - CLICK BOX TO TYPE</h2>
 
-<h2>SECTION B: SERVICE REQUESTED (Tick)</h2>
-<p style="font-size:24px;">
-[ ] General Nursing [ ] Elderly Care [ ] Post-Surgical [ ] Mother & Baby [ ] Wound Care [ ] Injection/IV [ ] 24hr Live-In [ ] Day Shift [ ] Night Shift
-</p>
+<label>Full Name:</label>
+<input type="text" placeholder="Click here and type your full name">
 
-<h2>SECTION C: INFORMED CONSENT - BIG TEXT</h2>
-<ul>
-<li><b>1. I VOLUNTARILY CONSENT</b> to receive home nursing from LOVE CARE GLOBAL and its licensed nurses.</li>
-<li><b>2. I UNDERSTAND</b> nature, benefits, risks, alternatives explained in language I understand.</li>
-<li><b>3. I CONSENT TO</b> vital signs, medication, wound care, hygiene, mobility support as per doctor orders.</li>
-<li><b>4. I UNDERSTAND</b> home nursing is NOT emergency hospital. In emergency, I AUTHORIZE nurse to call ambulance and inform Next of Kin.</li>
-<li><b>5. I WILL GIVE</b> true medical history. If I hide info, I take responsibility.</li>
-<li><b>6. I AGREE</b> to privacy under Ghana Data Protection Act 2012 - information kept confidential.</li>
-<li><b>7. I AGREE</b> to pay fees IN ADVANCE. 24hr cancellation or 50% charge. No refund for services done.</li>
-<li><b>8. LOVE CARE provides qualified nurses but DOES NOT GUARANTEE CURE. Liability limited to fees paid.</b></li>
-</ul>
+<label>Date of Birth & Gender:</label>
+<input type="text" placeholder="e.g. 15/05/1980, Female">
 
-<div class="sig">
-<b>DECLARATION: I have READ, UNDERSTOOD, and AGREE to all terms. I had chance to ask questions.</b><br><br>
-Client Name: ________________________________ Signature: ________________________ Date: ____/____/________<br><br>
-Next of Kin: _______________________________ Signature: ________________________ Date: ____/____/________<br><br>
-Nurse / Witness: ____________________________ Signature: ________________________ Date: ____/____/________ Lic No: ___________<br><br>
-For LOVE CARE GLOBAL: Name: ________________ Designation: _____________ Signature: ________________ Date: __________
+<label>Ghana Card No:</label>
+<input type="text" placeholder="Type Ghana Card Number">
+
+<label>Phone Number:</label>
+<input type="tel" placeholder="0551234567 - Click to type">
+
+<label>Email:</label>
+<input type="email" placeholder="Type email">
+
+<label>Residential Address / GPS:</label>
+<textarea rows="3" placeholder="Click here and type your address"></textarea>
+
+<label>Next of Kin - Name, Relationship, Phone:</label>
+<input type="text" placeholder="e.g. John Mensah, Brother, 024XXXXXXX">
+
+<label>Doctor / Hospital / Diagnosis:</label>
+<textarea rows="3" placeholder="Type doctor details"></textarea>
+
+<label>Allergies & Current Medications:</label>
+<textarea rows="3" placeholder="Type allergies and medications"></textarea>
 </div>
 
-<button onclick="window.print()" style="padding:20px 40px; font-size:26px; background:#0B4D6E; color:white; border:none; border-radius:10px; width:100%;">🖨️ PRINT THIS FORM</button>
+<div class="card">
+<h2>SERVICE REQUESTED - Tick Boxes</h2>
+<div class="check-item"><input type="checkbox"> General Nursing Care</div>
+<div class="check-item"><input type="checkbox"> Elderly / Geriatric Care</div>
+<div class="check-item"><input type="checkbox"> Post-Surgical Care</div>
+<div class="check-item"><input type="checkbox"> Mother & Baby Care</div>
+<div class="check-item"><input type="checkbox"> Wound Care / Injection / IV</div>
+<div class="check-item"><input type="checkbox"> 24-Hour Live-In Care</div>
+<div class="check-item"><input type="checkbox"> Day Shift / Night Shift</div>
+</div>
+
+<div class="card">
+<h2>CONSENT - Read and Tick</h2>
+<p>1. I VOLUNTARILY CONSENT to receive home nursing from LOVE CARE GLOBAL.<br><br>
+2. I UNDERSTAND risks and that home nursing is NOT emergency hospital.<br><br>
+3. In EMERGENCY, I AUTHORIZE nurse to call ambulance.<br><br>
+4. I agree to pay IN ADVANCE. 24hr cancellation or 50% charge.</p>
+<div class="check-item"><input type="checkbox"> <b>I HAVE READ AND AGREE TO ALL TERMS</b></div>
+</div>
+
+<div class="card">
+<h2>DECLARATION & E-SIGNATURE</h2>
+
+<div class="sig-box">
+<label>Client Full Name (Type as Signature):</label>
+<input type="text" placeholder="Type your full name as signature - Legally binding">
+<label>Date:</label>
+<input type="date">
+<label>Draw Signature with Finger (Optional):</label>
+<canvas id="sig1"></canvas>
+</div>
+
+<div class="sig-box">
+<label>Next of Kin Full Name (Type as Signature):</label>
+<input type="text" placeholder="Type next of kin name">
+<label>Date:</label>
+<input type="date">
+</div>
+
+<div class="sig-box">
+<label>Nurse / Witness Name & License No:</label>
+<input type="text" placeholder="Type nurse name and license">
+<label>Date:</label>
+<input type="date">
+</div>
+
+</div>
+
+<button onclick="window.print()">🖨️ PRINT / SAVE AS PDF</button>
+<button style="background:#0E8A6E;" onclick="alert('Saved! Now use browser menu > Print > Save as PDF to send via WhatsApp')">✅ SUBMIT</button>
+
+<script>
+// Signature pad for finger drawing
+function setupCanvas(id){
+var canvas=document.getElementById(id); var ctx=canvas.getContext('2d');
+canvas.width=canvas.offsetWidth*2; canvas.height=canvas.offsetHeight*2; ctx.scale(2,2);
+ctx.lineWidth=3; ctx.lineCap='round'; ctx.strokeStyle='#000'; var drawing=false;
+function pos(e){var r=canvas.getBoundingClientRect(); var t=e.touches?e.touches[0]:e; return{x:t.clientX-r.left,y:t.clientY-r.top};}
+canvas.addEventListener('mousedown',function(e){drawing=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+canvas.addEventListener('mousemove',function(e){if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
+canvas.addEventListener('mouseup',function(){drawing=false;});
+canvas.addEventListener('touchstart',function(e){e.preventDefault();drawing=true;var p=pos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!drawing)return;var p=pos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
+canvas.addEventListener('touchend',function(){drawing=false;});
+}
+window.onload=function(){setupCanvas('sig1');};
+</script>
 
 </body>
 </html>
