@@ -1,33 +1,26 @@
-name: lovecare_global
-description: LOVE CARE GLOBAL HOME NURSING - Verified nurses to your doorstep
-publish_to: 'none'
+name: love_care_global
+description: LOVE CARE GLOBAL - Professional Online Nurse. Flutter port of Index-4-FIXED-VIDEO-SOUND.html
+publish_to: "none"
 version: 1.0.0+1
-
 environment:
-  sdk: '>=3.0.0 <4.0.0'
-
+  sdk: ">=3.3.0 <4.0.0"
 dependencies:
   flutter:
     sdk: flutter
-  firebase_core: ^3.6.0
+  firebase_core: ^3.8.0
+  firebase_database: ^11.3.0
   firebase_auth: ^5.3.0
-  firebase_database: ^11.1.0
-  firebase_storage: ^12.3.0
-  firebase_messaging: ^15.1.0
-  onesignal_flutter: ^5.2.0
-  image_picker: ^1.1.0
-  video_player: ^2.9.0
-  chewie: ^1.8.0
-  google_maps_flutter: ^2.6.0
-  geolocator: ^13.0.0
-  url_launcher: ^6.3.0
-  shared_preferences: ^2.3.0
-  cupertino_icons: ^1.0.8
-
+  video_player: ^2.9.5
+  url_launcher: ^6.3.1
+  just_audio: ^0.9.42
+  cached_network_image: ^3.4.1
+  google_fonts: ^6.2.1
+  shared_preferences: ^2.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
-
 flutter:
   uses-material-design: true
+  assets:
+    - assets/
