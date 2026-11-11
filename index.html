@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LOVE CARE GLOBAL - Flutter App</title>
+<meta name="description" content="LOVE CARE GLOBAL HOME NURSING - Flutter App for Play Store. Background notifications even when app is closed.">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:#0E0A1C;color:#fff}
+.wrap{max-width:900px;margin:0 auto;padding:24px 18px 60px}
+.badge{display:inline-block;background:#A855F7;color:#fff;padding:6px 14px;border-radius:999px;font-weight:700;font-size:13px}
+h1{font-size:42px;line-height:1.05;margin:16px 0 8px}h1 span{color:#C084FC}
+p{color:#D8B4FE;line-height:1.6}.card{background:#1E1533;border:1px solid #3B2A5E;border-radius:18px;padding:18px;margin:16px 0}
+h2{margin:6px 0 12px}.btn{display:block;text-align:center;background:#A855F7;color:#fff;text-decoration:none;padding:15px;border-radius:14px;font-weight:800;margin:10px 0}
+.btn2{background:#fff;color:#111}.btn3{background:#22C55E;color:#fff}
+a{color:#C084FC}table{width:100%;border-collapse:collapse}td{padding:10px 6px;border-bottom:1px solid #3B2A5E;vertical-align:top}td:first-child{font-weight:700;white-space:nowrap}
+code{background:#2A1F45;padding:2px 7px;border-radius:6px}.small{font-size:13px;color:#B9A6E6}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.grid{grid-template-columns:1fr}h1{font-size:32px}}
+</style></head><body><div class="wrap">
+<span class="badge">💜 LOVE CARE GLOBAL • FLUTTER APP</span>
+<h1>LOVE CARE GLOBAL<br><span>HOME NURSING</span></h1>
+<p>Flutter version of LOVE CARE GLOBAL HOME NURSING PWA — for the real Play Store app, with background notifications even when the app is closed.</p>
+
+<div class="card">
+<h2>🔗 All Links</h2>
+<table>
+<tr><td>🌐 Live Site</td><td><a href="https://lovecareglobal-cell.github.io/love-care-global/">https://lovecareglobal-cell.github.io/love-care-global/</a></td></tr>
+<tr><td>💻 Flutter Repo</td><td><a href="https://github.com/lovecareglobal-cell/love-care-global">github.com/lovecareglobal-cell/love-care-global</a></td></tr>
+<tr><td>📱 PWA Repo (HTML)</td><td><a href="https://github.com/lovecareglobal-cell/love-care-global-cell">github.com/lovecareglobal-cell/love-care-global-cell</a></td></tr>
+<tr><td>📄 README</td><td><a href="https://github.com/lovecareglobal-cell/love-care-global/blob/main/README.md">README.md with all pages</a></td></tr>
+<tr><td>🔥 Firebase</td><td><a href="https://console.firebase.google.com/">console.firebase.google.com</a></td></tr>
+<tr><td>🔔 OneSignal</td><td><a href="https://dashboard.onesignal.com/">dashboard.onesignal.com</a></td></tr>
+<tr><td>💳 Paystack</td><td><a href="https://dashboard.paystack.com/">dashboard.paystack.com</a></td></tr>
+<tr><td>▶️ Play Console</td><td><a href="https://play.google.com/console/">play.google.com/console</a></td></tr>
+</table>
+</div>
+
+<div class="card"><h2>📱 Get The App</h2>
+<a class="btn" href="https://github.com/lovecareglobal-cell/love-care-global">⬇ Download Flutter Code from GitHub</a>
+<a class="btn btn2" href="https://github.com/lovecareglobal-cell/love-care-global/blob/main/README.md">📄 Read README — All Pages & Routes</a>
+<p class="small">Play Store build: <code>flutter build appbundle --release</code> → upload <code>app-release.aab</code> to Play Console. This Pages site is only a landing page — the real app is Flutter, not this HTML.</p>
+</div>
+
+<div class="card"><h2>🧭 Pages In The App</h2><div class="grid">
+<div><b>🏠 Home</b><br>index.dart — Home Page<br><span class="small">index.html → lib/screens/index.dart</span></div>
+<div><b>👩‍⚕️ Nurse</b><br>Register • Login • Dashboard • Group Chat • Settings • Complaint • Withdrawal • Job Offer</div>
+<div><b>👤 Client</b><br>Register • Login • Dashboard • Book Nurse • Book 50% • Bookings • Chat • Refund • Rating • SOS</div>
+<div><b>👑 CEO</b><br>Dashboard (14 pages) • Registration Center • Finance • Pricing • Live Tracking • Penalize • Refund • Force Delete</div>
+</div></div>
+
+<div class="card"><h2>⚙️ Setup</h2>
+<p>1. <code>flutter pub get</code><br>2. Put <code>google-services.json</code> in <code>android/app/</code> and <code>GoogleService-Info.plist</code> in <code>ios/Runner/</code><br>3. Replace <code>YOUR_ONESIGNAL_APP_ID</code> in <code>lib/main.dart</code><br>4. <code>flutter run</code></p>
+</div>
+
+<div class="card"><h2>⚠️ Why It Showed README Before</h2>
+<p>GitHub Pages only looks for <code>index.html</code> in repo root. It does <b>NOT</b> run <code>index.dart</code>. If there is no <code>index.html</code>, Pages shows <code>README.md</code> instead. <b>Fix:</b> upload <b>this file</b> as <code>index.html</code> in root. Keep Dart files in <code>lib/</code> — not flat in root.</p>
+<p class="small">Correct structure:<br><code>README.md</code> • <code>index.html</code> • <code>pubspec.yaml</code> • <code>lib/main.dart</code> • <code>lib/screens/index.dart</code> • <code>lib/screens/nurse-login.dart</code> …</p>
+</div>
+
+<a class="btn btn3" href="https://github.com/lovecareglobal-cell/love-care-global">Open Repo →</a>
+<p class="small" style="text-align:center">LOVE CARE GLOBAL • Same Firebase as PWA • Photo + Phone + Video + CEO Approval required for Nurse Login • Only Sound Settings for alerts</p>
+</div></body></html>
