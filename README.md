@@ -6,10 +6,9 @@
 
 | What | Link |
 |---|---|
-| ðŸŒ **Live Site (Flutter Repo Pages)** | https://lovecareglobal-cell.github.io/love-care-global/ |
+| ðŸŒ **Live Site (Pages)** | https://lovecareglobal-cell.github.io/love-care-global/ |
 | ðŸ’» **This Repo (Flutter)** | https://github.com/lovecareglobal-cell/love-care-global |
 | ðŸ“± **PWA (Old Repo - HTML)** | https://github.com/lovecareglobal-cell/love-care-global-cell |
-| ðŸ  **Home / Index (Live)** | https://lovecareglobal-cell.github.io/love-care-global/ |
 | âš™ï¸ **GitHub Pages Settings** | https://github.com/lovecareglobal-cell/love-care-global/settings/pages |
 | ðŸ”¥ **Firebase Console** | https://console.firebase.google.com/ |
 | ðŸ”” **OneSignal Dashboard** | https://dashboard.onesignal.com/ |
@@ -18,14 +17,28 @@
 
 ---
 
+## âš ï¸ IMPORTANT: Do NOT Rename index.dart to index.html
+
+**Keep BOTH files. They are different:**
+
+| File | Where | What it does |
+|---|---|---|
+| `index.dart` | `lib/screens/index.dart` | **Real Home Page of Flutter app** - runs on Play Store |
+| `index.html` | `index.html` in **root** | **Only a landing page for GitHub Pages** - so Pages stops showing README |
+
+> If you rename `index.dart` -> `index.html`, Flutter will break. `main.dart` needs `screens/index.dart`.
+> If you have NO `index.html` in root, GitHub Pages shows `README.md` instead. That is why it showed README before.
+
+---
+
 ## PWA vs Flutter
 
 | | PWA | Flutter |
 |---|---|---|
-| **Repo** | Old repo â€” `main` branch | This repo â€” `main` branch |
+| **Repo** | Old repo - `main` branch | This repo - `main` branch |
 | **Code** | HTML / JS | Dart / Flutter |
 | **For** | PWABuilder / TWA | Real Play Store app |
-| **Notifications** | Only when app is open / PWA installed | Background notifications â€” even when app is closed (FCM + OneSignal) |
+| **Notifications** | Only when app is open / PWA installed | Background notifications - even when app is closed (FCM + OneSignal) |
 | **Live Site** | Old repo Pages | https://lovecareglobal-cell.github.io/love-care-global/ |
 
 > **Do NOT mix them.** Keep PWA on the old repo, Flutter on this repo.
@@ -58,19 +71,19 @@ flutter build web --release
 
 ---
 
-## Structure
+## Correct Folder Structure
 
 ```
 love-care-global/
 â”œâ”€â”€ README.md                  <- This file
 â”œâ”€â”€ index.html                 <- Landing page for GitHub Pages (NOT the app)
 â”œâ”€â”€ pubspec.yaml               <- Dependencies
-â”œâ”€â”€ android/app/google-services.json   <- YOUR Firebase file (do NOT commit keys publicly if you can avoid it)
+â”œâ”€â”€ android/app/google-services.json   <- YOUR Firebase file
 â”œâ”€â”€ ios/Runner/GoogleService-Info.plist
 â”œâ”€â”€ lib/
 â”‚   â”œâ”€â”€ main.dart              <- App entry, FCM + OneSignal, home: IndexScreen()
 â”‚   â””â”€â”€ screens/
-â”‚       â”œâ”€â”€ index.dart         <- index.html (HOME PAGE)
+â”‚       â”œâ”€â”€ index.dart         <- index.html (HOME PAGE) - DO NOT RENAME
 â”‚       â”œâ”€â”€ nurse_register.dart, nurse_login.dart, nurse_dashboard.dart
 â”‚       â”œâ”€â”€ client_register.dart, client_login.dart, client_dashboard.dart
 â”‚       â”œâ”€â”€ book_nurse.dart, book_nurse_50.dart, my_bookings.dart
@@ -79,15 +92,17 @@ love-care-global/
 â”‚       â””â”€â”€ ... (full list below)
 ```
 
+> **Do NOT put .dart files flat in root.** They must be in `lib/` and `lib/screens/`.
+
 ---
 
-## All Pages â€” HTML â†’ Flutter â€” Links
+## All Pages - HTML â†’ Flutter - Links
 
 ### ðŸ  Home / Index
 
-| HTML | Flutter | Route | Live / Repo Link |
+| HTML | Flutter | Route | Link |
 |---|---|---|---|
-| `index.html` / `index_4.html` | `lib/screens/index.dart` | `/` (home) | [Live Home](https://lovecareglobal-cell.github.io/love-care-global/) Â· [index.dart](https://github.com/lovecareglobal-cell/love-care-global/blob/main/lib/screens/index.dart) |
+| `index.html` / `index_4.html` | `lib/screens/index.dart` | `/` (home) | [Live Home](https://lovecareglobal-cell.github.io/love-care-global/) Â· [index.dart](https://github.com/lovecareglobal-cell/love-care-global/blob/main/lib/screens/index.dart) Â· [index.html](https://github.com/lovecareglobal-cell/love-care-global/blob/main/index.html) |
 
 ### ðŸ‘©â€âš•ï¸ Nurse
 
@@ -121,18 +136,18 @@ love-care-global/
 | `rating.html` | `lib/screens/rating.dart` | `/rating` |
 | `sos.html` | `lib/screens/sos.dart` | `/sos` |
 
-### ðŸ”Š Sound / Alerts â€” ONLY Sound Settings
+### ðŸ”Š Sound / Alerts - ONLY Sound Settings
 
 | HTML | Flutter | Route |
 |---|---|---|
 | `sound-settings.html` | `lib/screens/sound_settings.dart` | `/sound-settings` |
-| `alert-settings.html` | `lib/screens/alert_settings.dart` (legacy â€” use Sound Settings only) | `/alert-settings` |
+| `alert-settings.html` | `lib/screens/alert_settings.dart` (legacy - use Sound Settings only) | `/alert-settings` |
 
 > **Rule:** No alert buttons anywhere. Only **Sound Settings** for sound / alerts. Same for nurses, clients, and CEO.
 
-### ðŸ‘‘ CEO â€” Dashboard (14 Pages)
+### ðŸ‘‘ CEO - Dashboard (14 Pages)
 
-**CEO Home:** `lib/screens/ceo_dashboard.dart` â€” Route `/ceo-dashboard` â€” [ceo_dashboard.dart](https://github.com/lovecareglobal-cell/love-care-global/blob/main/lib/screens/ceo_dashboard.dart)
+**CEO Home:** `lib/screens/ceo_dashboard.dart` - Route `/ceo-dashboard` - [ceo_dashboard.dart](https://github.com/lovecareglobal-cell/love-care-global/blob/main/lib/screens/ceo_dashboard.dart)
 
 | # | HTML | Flutter | Route |
 |---|---|---|---|
@@ -155,21 +170,21 @@ love-care-global/
 
 | HTML | Flutter | Route | What it does |
 |---|---|---|---|
-| `ceo-control.html` | `lib/screens/ceo_control.dart` | `/ceo-control` | CEO Control â€” Clean |
-| `cleanup-auto-approval.html` | `lib/screens/cleanup_auto_approval.dart` | `/cleanup-auto-approval` | Fix auto-approved bug â€” move nurses back to PENDING |
+| `ceo-control.html` | `lib/screens/ceo_control.dart` | `/ceo-control` | CEO Control - Clean |
+| `cleanup-auto-approval.html` | `lib/screens/cleanup_auto_approval.dart` | `/cleanup-auto-approval` | Fix auto-approved bug - move nurses back to PENDING |
 | `force-delete.html` | `lib/screens/force_delete.dart` | `/force-delete` | Force delete nurse by email from EVERYWHERE |
 
 ---
 
 ## Strict Rules (Do NOT Break)
 
-1. **Nurse login:** Photo + Phone + Video + CEO Approval required. If login fails, do NOT save email at auth â€” delete auth user.
+1. **Nurse login:** Photo + Phone + Video + CEO Approval required. If login fails, do NOT save email at auth - delete auth user.
 2. **Registration uploads:** Video must be used and saved at Firebase. CV + Video must upload.
 3. **National ID:** System must detect if National ID uploaded is good and real from each country.
-4. **CEO Registration Center:** DELETE button under each registration, pending or accepted â€” delete account + all particulars from Firebase.
+4. **CEO Registration Center:** DELETE button under each registration, pending or accepted - delete account + all particulars from Firebase.
 5. **CEO Banner / Group Chat video:** Video must play WITH SOUND. Not stuck on "Sending to Home Page".
 6. **Only Sound Settings** for sound / alerts. No alert buttons.
-7. **Same Firebase** project / data in Flutter as HTML â€” same RTDB paths, Storage paths, logic.
+7. **Same Firebase** project / data in Flutter as HTML - same RTDB paths, Storage paths, logic.
 
 ---
 
@@ -186,13 +201,13 @@ love-care-global/
 
 ---
 
-## GitHub Pages â€” Why It Showed README Before
+## GitHub Pages - Why It Showed README Before
 
 GitHub Pages builds from `main` branch, `/ (root)`. If there is no `index.html` in root, Pages falls back to rendering `README.md`.
 
 Fix used in this repo:
 - `index.html` at root = landing page for https://lovecareglobal-cell.github.io/love-care-global/
-- Real Flutter app is NOT run from that link â€” it is built with `flutter build appbundle` for Play Store, or `flutter build web` for web.
+- Real Flutter app is NOT run from that link - it is built with `flutter build appbundle` for Play Store, or `flutter build web` for web.
 
 To turn Pages OFF: Repo â†’ Settings â†’ Pages â†’ Source: None â†’ Save.
 
@@ -200,10 +215,10 @@ To turn Pages OFF: Repo â†’ Settings â†’ Pages â†’ Source: None �
 
 ## Upload Checklist
 
-- [ ] Upload `README.md` (this file) to repo root â€” replace old README
-- [ ] Upload `index.html` to repo root
-- [ ] Upload `lib/screens/index.dart` + updated `lib/main.dart`
-- [ ] Upload all `lib/screens/*.dart` files
+- [ ] Upload `README.md` (this file) to repo root - replace old README
+- [ ] Upload `index.html` to repo root - DO NOT rename index.dart
+- [ ] Keep `lib/screens/index.dart` - DO NOT rename to index.html
+- [ ] Upload all `lib/screens/*.dart` files into `lib/screens/` - NOT flat in root
 - [ ] `flutter pub get`
 - [ ] Add `google-services.json` + `GoogleService-Info.plist`
 - [ ] Replace `YOUR_ONESIGNAL_APP_ID` in `lib/main.dart`
