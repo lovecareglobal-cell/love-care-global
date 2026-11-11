@@ -4,20 +4,29 @@
   <base href="$FLUTTER_BASE_HREF">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="LOVE CARE GLOBAL HOME NURSING - Join as Nurse, Book a Nurse.">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="LOVE CARE GLOBAL">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-  <link rel="icon" type="image/png" href="favicon.png"/>
-  <title>LOVE CARE GLOBAL - HOME NURSING</title>
+  <meta name="description" content="Love Care Global - Home Nursing, With Love.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Love Care Global</title>
   <link rel="manifest" href="manifest.json">
-  <style>body{margin:0;background:#0E0A1C;color:#fff;font-family:system-ui,Arial;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center}.spin{width:44px;height:44px;border:4px solid #3B2A5E;border-top-color:#A855F7;border-radius:50%;animation:s 1s linear infinite;margin:0 auto}@keyframes s{to{transform:rotate(360deg)}}</style>
+  <script>
+    var serviceWorkerVersion = null;
+  </script>
+  <script src="flutter.js" defer></script>
 </head>
 <body>
-  <div><div class="spin"></div><h1>LOVE CARE <span style="color:#C084FC">GLOBAL</span></h1><p>HOME NURSING<br>Loading Main Page...</p></div>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        },
+        onEntrypointLoaded: function(engineInitializer) {
+          engineInitializer.initializeEngine().then(function(appRunner) {
+            appRunner.runApp();
+          });
+        }
+      });
+    });
+  </script>
 </body>
 </html>
