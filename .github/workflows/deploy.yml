@@ -3,20 +3,76 @@ name: Deploy Flutter Web
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
           channel: 'stable'
-      - run: flutter pub get
-      - run: flutter build web --release --base-href /love-care-global/
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+          cache: true
+
+      - name: Fix web/index.html - auto-create correct one
+        run: |
+          mkdir -p web
+          cat > web/index.html <<'HTML'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <base href="$FLUTTER_BASE_HREF">
+            <meta charset="UTF-8">
+            <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="description" content="LOVE CARE GLOBAL HOME NURSING">
+            <meta name="mobile-web-app-capable" content="yes">
+            <meta name="apple-mobile-web-app-capable" content="yes">
+            <link rel="icon" type="image/png" href="favicon.png"/>
+            <title>LOVE CARE GLOBAL - HOME NURSING</title>
+            <link rel="manifest" href="manifest.json">
+          </head>
+          <body>
+            <div style="background:#0E0A1C;color:#fff;font-family:Arial;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center"><div><h1>LOVE CARE GLOBAL</h1><p>HOME NURSING<br>Loading Main Page...</p></div></div>
+            <script src="flutter_bootstrap.js" async></script>
+          </body>
+          </html>
+          HTML
+          echo "--- web/index.html now ---"
+          head -5 web/index.html
+          grep -q 'FLUTTER_BASE_HREF' web/index.html && echo "PLACEHOLDER OK" || (echo "PLACEHOLDER MISSING" && exit 1)
+
+      - name: Get packages
+        run: flutter pub get
+
+      - name: Build Web - index.dart
+        run: flutter build web --release --base-href /love-care-global/
+
+      - name: Upload to Pages
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./build/web
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
