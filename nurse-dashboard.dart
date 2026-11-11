@@ -232,7 +232,7 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
 
   Future<void> _playCustomSound() async {
     final prefs = await SharedPreferences.getInstance();
-    final custom = prefs.getString('alert_custom_song') ?? prefs.getString('nurse_custom_song');
+    final custom = prefs.getString('lcg_custom_song');
     if (custom != null && custom.isNotEmpty) {
       try { await _player.play(UrlSource(custom)); return; } catch (_) {}
     }
@@ -277,13 +277,13 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
     }
     return Scaffold(
       backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: const Text('Nurse Dashboard', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.pushNamed(context, '/nurse-settings')), IconButton(icon: const Icon(Icons.notifications), onPressed: () => Navigator.pushNamed(context, '/alert-settings', arguments: {'role': 'nurse'}))]),
+      appBar: AppBar(title: const Text('Nurse Dashboard', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.pushNamed(context, '/nurse-settings')), IconButton(icon: const Icon(Icons.notifications), onPressed: () => Navigator.pushNamed(context, '/sound-settings'))]),
       drawer: Drawer(child: Container(color: const Color(0xFF120E26), child: ListView(padding: EdgeInsets.zero, children: [
         DrawerHeader(decoration: const BoxDecoration(color: Color(0xFF1C1238)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [CircleAvatar(radius: 28, backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null, child: photoUrl.isEmpty ? Text(nurseName.isNotEmpty ? nurseName[0] : 'N') : null), const SizedBox(height: 8), Text(nurseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text(nurseEmail, style: const TextStyle(color: Colors.white60, fontSize: 11))])),
         ListTile(title: const Text('My Job Offers', style: TextStyle(color: Colors.white)), onTap: () => Navigator.pushNamed(context, '/my-job-offers')),
         ListTile(title: const Text('Withdraw Earnings', style: TextStyle(color: Color(0xFFFACC15))), onTap: () => Navigator.pushNamed(context, '/nurse-withdrawal')),
         ListTile(title: const Text('Nurse Group Chat', style: TextStyle(color: Colors.white)), onTap: () => Navigator.pushNamed(context, '/nurse-group-chat')),
-        ListTile(title: const Text('Alert Settings', style: TextStyle(color: Colors.white)), onTap: () => Navigator.pushNamed(context, '/alert-settings', arguments: {'role': 'nurse'})),
+        ListTile(title: const Text('Sound Settings', style: TextStyle(color: Colors.white)), onTap: () => Navigator.pushNamed(context, '/sound-settings')),
         ListTile(title: const Text('Nurse Settings', style: TextStyle(color: Colors.white)), onTap: () => Navigator.pushNamed(context, '/nurse-settings')),
         ListTile(title: const Text('🚨 SOS', style: TextStyle(color: Colors.red)), onTap: () => Navigator.pushNamed(context, '/sos')),
       ]))),
