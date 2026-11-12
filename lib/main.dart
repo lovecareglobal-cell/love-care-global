@@ -6,6 +6,11 @@ import 'screens/client_registration.dart';
 import 'screens/nurse_login.dart';
 import 'screens/nurse_registration.dart';
 import 'screens/ceo_control_page.dart';
+import 'screens/community_guidance.dart';
+import 'screens/privacy_policy.dart';
+import 'screens/refund_policy.dart';
+import 'screens/delete_account_policy.dart';
+import 'screens/terms_and_conditions.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +45,11 @@ class LoveCareApp extends StatelessWidget {
         '/nurse-login': (context) => const NurseLoginPage(),
         '/nurse-registration': (context) => const NurseRegistrationPage(),
         '/ceo-control': (context) => const CeoControlPage(),
+        '/community': (context) => const CommunityGuidelinesPage(),
+        '/privacy': (context) => const PrivacyPolicyPage(),
+        '/refund': (context) => const RefundPolicyPage(),
+        '/delete-account': (context) => const DeleteAccountPolicyPage(),
+        '/terms': (context) => const TermsAndConditionsPage(),
       },
     );
   }
@@ -178,6 +188,18 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                   const SizedBox(height: 12),
                   _actionCard('👑', 'CEO CONTROL', 'Approve Nurses - ceo-registration-center', () => Navigator.pushNamed(context, '/ceo-control')),
                   const SizedBox(height: 20),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    children: [
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: const Text('Terms', style: TextStyle(color: Colors.white70, fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const Text('Privacy', style: TextStyle(color: Colors.white70, fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const Text('Community', style: TextStyle(color: Colors.white70, fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const Text('Refund', style: TextStyle(color: Colors.white70, fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const Text('Delete Account', style: TextStyle(color: Colors.white70, fontSize: 12))),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                   const Text('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.grey, fontSize: 11)),
                   const SizedBox(height: 20),
                 ],
