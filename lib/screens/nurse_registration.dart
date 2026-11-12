@@ -17,6 +17,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   bool _loading = false;
   bool _hasPhoto = false;
   bool _hasVideo = false;
+  bool _showPass = false; // NEW: For show/hide password eye
   String _msg = '';
 
   // ===== GUARD 1: CHECK IF ACCOUNT EXISTS ANYWHERE =====
@@ -142,7 +143,19 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
               const SizedBox(height: 12),
               TextField(controller: _phoneCtrl, decoration: const InputDecoration(hintText: 'Phone', border: OutlineInputBorder())),
               const SizedBox(height: 12),
-              TextField(controller: _passCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'Password', border: OutlineInputBorder())),
+              // FIXED: Password with Show/Hide Eye
+              TextField(
+                controller: _passCtrl,
+                obscureText: !_showPass,
+                decoration: InputDecoration(
+                  hintText: 'Password',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_showPass ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _showPass = !_showPass),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
               ElevatedButton(onPressed: () => setState(() => _step = 2), child: const Text('Next - Photo & Video')),
             ],
