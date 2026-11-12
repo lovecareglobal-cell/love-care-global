@@ -133,7 +133,7 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
 
   Future<void> _updateBooking(String id, Map data, String? triggerTitle, String? triggerStatus) async {
     final b = all.firstWhere((x) => x['bookingId'] == id, orElse: () => {});
-    await FirebaseDatabase.instance.ref('bookings/$id').update(data);
+    await FirebaseDatabase.instance.ref('bookings/$id').update(Map<String, Object?>.from(data));
     if (triggerTitle != null) {
       await _sendSoundTrigger('client', {'bookingId': id, 'status': triggerStatus ?? data['status'], 'title': triggerTitle, 'toPhone': b['clientPhone'], 'toUid': b['clientUid'] ?? b['clientId'], 'toEmail': b['clientEmail']});
     }
