@@ -14,6 +14,26 @@ import 'screens/refund_policy.dart';
 import 'screens/delete_account_policy.dart';
 import 'screens/terms_and_conditions.dart';
 
+// CEO FILES - ALL RED MARKED + NURSE GROUP CHAT - NO HOME BANNER
+import 'screens/ceo_dashboard.dart';
+import 'screens/ceo_bookings_progress.dart';
+import 'screens/ceo_complainant.dart';
+import 'screens/ceo_control_chat.dart';
+import 'screens/ceo_control_pricing.dart';
+import 'screens/ceo_finance.dart';
+import 'screens/ceo_live_tracking_map.dart';
+import 'screens/ceo_notification_room.dart';
+import 'screens/ceo_penalize.dart';
+import 'screens/ceo_refund_management.dart';
+import 'screens/ceo_registration_center.dart';
+import 'screens/ceo_service.dart';
+import 'screens/chat_room.dart';
+import 'screens/cleanup_auto_approval.dart';
+import 'screens/force_delete.dart';
+import 'screens/hr_page.dart';
+import 'screens/sound_settings.dart';
+import 'screens/nurse_group_chat.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Firebase Init - MUST be first before runApp
@@ -48,14 +68,38 @@ class LoveCareApp extends StatelessWidget {
         '/client-registration': (context) => const ClientRegistrationPage(),
         '/nurse-login': (context) => const NurseLoginPage(),
         '/nurse-registration': (context) => const NurseRegistrationPage(),
-        // SECRET CEO LINK - KEPT! No button shows it, only you know the URL
-        '/ceo-control': (context) => const CeoControlPage(),
         '/community': (context) => const CommunityGuidelinesPage(),
         '/privacy': (context) => const PrivacyPolicyPage(),
         '/refund': (context) => const RefundPolicyPage(),
         '/delete-account': (context) => const DeleteAccountPolicyPage(),
         '/terms': (context) => const TermsAndConditionsPage(),
+        '/home': (context) => const LoveCareHomePage(),
+
+        // CEO - SECRET - NO BUTTON, NO README, ONLY YOU KNOW
+        '/lc-ceo-9x7k2q-2026': (context) => const CEODashboardScreen(),
+        '/ceo-control': (context) => const CeoControlPage(),
+        '/ceo-bookings-progress': (context) => const CEOBookingsProgressScreen(),
+        '/ceo-complainant': (context) => const CEOComplainantScreen(),
+        '/ceo-control-chat': (context) => const CEOControlChatScreen(),
+        '/ceo-control-pricing': (context) => const CEOControlPricingScreen(),
+        '/ceo-finance': (context) => const CEOFinanceScreen(),
+        '/ceo-live-tracking-map': (context) => const CEOLiveTrackingMapScreen(),
+        '/ceo-notification-room': (context) => const CEONotificationRoomScreen(),
+        '/ceo-penalize': (context) => const CEOPenalizeScreen(),
+        '/ceo-refund-management': (context) => const CEORefundManagementScreen(),
+        '/ceo-registration-center': (context) => const CEORegistrationCenterScreen(),
+        '/force-delete': (context) => const ForceDeleteScreen(),
+        '/hr-page': (context) => const HRPageScreen(),
+        '/sound-settings': (context) => const SoundSettingsScreen(),
+        '/chat-room': (context) => const ChatRoomScreen(),
+        '/nurse-group-chat': (context) => const NurseGroupChatScreen(),
+        // NO HOME BANNER - REMOVED - file does not exist
+        // ceo_service + cleanup_auto_approval na service files, no route needed
       },
+      // If old home-banner link try open, go Dashboard instead of crash
+      onUnknownRoute: (settings) => MaterialPageRoute(
+        builder: (context) => const CEODashboardScreen(),
+      ),
     );
   }
 }
