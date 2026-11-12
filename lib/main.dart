@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'screens/auth_choice.dart';
+import 'screens/auth_choice_page.dart';
 import 'screens/client_login.dart';
 import 'screens/client_registration.dart';
 import 'screens/nurse_login.dart';
