@@ -73,13 +73,9 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
         return;
       }
       setState(() { _loading = false; _msg = '✅ Welcome Client!'; });
-      // GO TO CLIENT HOME - this was missing before!
+      // FIXED: No /client-home in app - go back to Home, user is logged in
       if (!mounted) return;
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/client-home',
-        (route) => false,
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       setState(() {
         _loading = false;
@@ -133,6 +129,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
                     ),
                   ),
                   const SizedBox(height: 14),
+                  // PASSWORD WITH EYE - ALREADY THERE, KEPT
                   TextField(
                     controller: _passCtrl,
                     obscureText: !_showPass,
@@ -168,7 +165,8 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
             ),
             const SizedBox(height: 16),
             TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/client-register'),
+              // FIXED: Was /client-register (does NOT exist) -> now /client-registration
+              onPressed: () => Navigator.pushNamed(context, '/client-registration'),
               child: const Text("Don't have account? Register as Client",
                   style: TextStyle(color: Colors.white)),
             ),
