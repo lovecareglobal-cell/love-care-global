@@ -22,7 +22,10 @@ class RefundPolicyPage extends StatelessWidget {
           Text('If service was poor, Client must report within 24 hours with photos / proof. CEO reviews within 48 hours. If approved, partial or full refund.'),
           SizedBox(height: 16),
           Text('5. How Refund Is Paid', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('Refunds go to same Mobile Money or Card used. Processing 3-7 working days.'),
+          Text('Refunds go to same Mobile Money or Card used. Processing 3-7 working days. Contact: refunds@lovecareglobal.com'),
+          SizedBox(height: 16),
+          Text('6. Nurse Withdrawal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('Nurse can withdraw earnings every Monday. Minimum withdrawal GHS 50. Withdrawal fee may apply. Fraudulent earnings will be held.'),
         ],
       ),
     );
