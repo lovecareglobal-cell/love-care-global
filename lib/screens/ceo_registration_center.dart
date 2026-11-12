@@ -323,7 +323,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
               OutlinedButton(onPressed: () => _deleteAccount(rec), child: const Text('Delete', style: TextStyle(fontSize: 11, color: Colors.red))),
             ]),
           ])));
-        }))),
+        })),
       ]),
     );
   }
