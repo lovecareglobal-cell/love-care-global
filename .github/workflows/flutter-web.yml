@@ -1,8 +1,8 @@
-name: Deploy Flutter Web
+name: Build Web
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,42 +10,37 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      # PIN Flutter - 'stable' floating forward is what broke
+      # firebase_auth_web 5.8.13 (PromiseJsImpl) in your last run.
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.32.0'
-          channel: 'stable'
+          flutter-version: "3.35.4"
+          channel: "stable"
           cache: true
 
-      - name: Get packages
-        run: flutter pub get
+      - run: flutter --version
+      - run: flutter clean
+      - run: flutter pub get
 
-      - name: Build Web
-        run: flutter build web --release --base-href /love-care-global/
+      # Build for GitHub Pages: base-href MUST match repo name
+      - run: flutter build web --release --base-href /lovecareglobal-cell.github.io/
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
 
   deploy:
+    needs: build
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
+      - id: deployment
         uses: actions/deploy-pages@v4
