@@ -459,7 +459,7 @@ class _NurseGroupChatScreenState extends State<NurseGroupChatScreen> {
                                         runSpacing: 8,
                                         children: images.map<Widget>((img) {
                                           final url = _mediaUrl(img);
-                                          return ClipRRect(borderRadius: BorderRadius.circular(10), child: url.startsWith('data:') || url.startsWith('http') ? Image.network(url, width: 140, height: 140, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: 140, height: 60, color: Colors.white10, child: const Center(child: Text('🖼️ Image', style: TextStyle(color: Colors.white54, fontSize: 11))))) : Container(width: 140, height: 60, color: Colors.white10, child: const Center(child: Text('🖼️ $url', style: TextStyle(color: Colors.white54, fontSize: 11)))));
+                                          return ClipRRect(borderRadius: BorderRadius.circular(10), child: url.startsWith('data:') || url.startsWith('http') ? Image.network(url, width: 140, height: 140, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: 140, height: 60, color: Colors.white10, child: const Center(child: Text('🖼️ Image', style: TextStyle(color: Colors.white54, fontSize: 11))))) : Container(width: 140, height: 60, color: Colors.white10, child: Center(child: Text('🖼️ $url', style: TextStyle(color: Colors.white54, fontSize: 11)))));
                                         }).toList(),
                                       ),
                                     ),
