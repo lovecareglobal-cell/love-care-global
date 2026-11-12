@@ -11,35 +11,47 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # ---- Firebase - PINNED SET, do NOT mix old + new ----
-  # firebase_auth_web 5.8.13 in your log is too OLD for Dart 3.9/3.10
-  # (that is the 'PromiseJsImpl not found' error).
-  # This set uses the new web interop and all resolve together.
+  # ---- Firebase - ONE pinned set, do not mix versions ----
   firebase_core: ^3.12.0
   firebase_auth: ^5.5.0
   firebase_database: ^11.3.0
   firebase_storage: ^12.3.0
+  # NEW - your code uses this in client_login, client_registration,
+  # nurse_login, nurse_registration, chat_room, etc.
+  # Missing this = 'FirebaseFirestore isn't defined' (lines 95-104 in your log)
+  cloud_firestore: ^5.6.0
 
-  # ---- Web interop fix for PromiseJsImpl ----
+  # Web interop - fixes PromiseJsImpl error from firebase_auth_web 5.8.13
   web: ^1.1.0
 
-  # ---- Maps - THESE WERE MISSING, caused:
-  # 'Couldn't resolve package flutter_map / latlong2'
-  # in lib/screens/ceo_live_tracking_map.dart ----
+  # ---- Audio - TWO different AudioPlayers in your code ----
+  # just_audio is used in the CEO voice / home screen
+  just_audio: ^0.9.42
+  # audioplayers is used in ceo_notification_room, alert_settings,
+  # my_job_offer, nurse_dashboard
+  # Missing this = "Type 'AudioPlayer' not found" (lines 64, 68, 88, 92)
+  audioplayers: ^6.4.0
+
+  # ---- Maps - BOTH are used, do not delete either ----
+  # google_maps_flutter is used in book_nurse, book_nurse_50
+  # Missing this = "Type 'GoogleMapController' / 'Marker' not found"
+  google_maps_flutter: ^2.10.0
+  # flutter_map + latlong2 is used in ceo_live_tracking_map
   flutter_map: ^8.2.1
   latlong2: ^0.9.1
 
-  # ---- Media / UI used across the app ----
+  # ---- Share - used in sos.dart ----
+  # Missing this = "Couldn't resolve package 'share_plus'"
+  share_plus: ^10.1.2
+
+  # ---- Other packages your screens import ----
   video_player: ^2.9.5
-  just_audio: ^0.9.42
   url_launcher: ^6.3.1
   cached_network_image: ^3.4.1
   google_fonts: ^6.2.1
   shared_preferences: ^2.3.2
   file_picker: ^8.1.4
   image_picker: ^1.1.2
-
-  # ---- Location / permissions (used by tracking / registration) ----
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
 
