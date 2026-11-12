@@ -53,7 +53,8 @@ class AuthChoicePage extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 onPressed: () {
-                  Navigator.pushNamed(context, '/login');
+                  // FIXED: Was '/login' which does NOT exist - now uses real popup
+                  AuthChoice.showLoginPopup(context);
                 },
                 child: const Text('Already have account? Login',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
