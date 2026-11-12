@@ -156,7 +156,31 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             ),
           ),
           // SOS Big
-          Padding(padding: const EdgeInsets.fromLTRB(12, 0, 12, 20), child: SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () {}, icon: const Icon(Icons.emergency), label: const Text('🚨 Emergency SOS', style: TextStyle(fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFFFACC15), width: 2))))),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.emergency),
+                label: const Text(
+                  '🚨 Emergency SOS',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(
+                      color: Color(0xFFFACC15),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
           const Text('CEO: Asabere Peter • +233544121814', style: TextStyle(color: Colors.white38, fontSize: 10)),
           const SizedBox(height: 20),
         ]),
