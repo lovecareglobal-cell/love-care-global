@@ -64,9 +64,9 @@ class _CEOControlPricingScreenState extends State<CEOControlPricingScreen> {
       } catch (_) {}
     }
     if (loaded != null) {
-      _cedisCtrl.text = (loaded['cedis'] ?? 0).toString();
-      _dollarsCtrl.text = (loaded['dollars'] ?? 0).toString();
-      setState(() { savedStatus = 'Loaded from $loadedFrom'; successMsg = 'Loaded ${loaded['cedis']} GH₵ + \$${loaded['dollars']} from $loadedFrom — FINAL FIX'; errorMsg = null; });
+      _cedisCtrl.text = (loaded?['cedis'] ?? 0).toString();
+      _dollarsCtrl.text = (loaded?['dollars'] ?? 0).toString();
+      setState(() { savedStatus = 'Loaded from $loadedFrom'; successMsg = 'Loaded ${loaded?['cedis'] ?? 0} GH₵ + \$${loaded?['dollars'] ?? 0} from $loadedFrom — FINAL FIX'; errorMsg = null; });
       _calcPreview();
     } else {
       _toast('No pricing — Enter new and Save — FINAL FIX');
