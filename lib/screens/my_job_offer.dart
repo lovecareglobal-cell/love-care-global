@@ -287,11 +287,50 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
             Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('📜 History — Paid / Confirmed', style: TextStyle(fontWeight: FontWeight.bold)), TextButton(onPressed: _deleteAllHistory, child: const Text('Delete All', style: TextStyle(color: Colors.red)))]),
               if (historyData.isEmpty) const Text('No history yet', style: TextStyle(color: Colors.white60, fontSize: 11)),
-              ...historyData.map((b) => Container(margin: const EdgeInsets.only(top: 8), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: Row(children: [
-                Expanded(child: GestureDetector(onTap: () => _showDetails(b), child: Text('Booking ID ${b['bookingId']} - ${b['paidAtStr'] ?? b['clientConfirmedAtStr'] ?? ''} - ${b['paid'] == true || b['status'] == 'ceo_paid' ? '✅ PAID - Receipt Sent' : ''} - ${b['status']}', style: const TextStyle(fontSize: 12))))),
-                if (b['receipt'] != null) TextButton(onPressed: () => showDialog(context: context, builder: (_) => AlertDialog(title: const Text('Receipt from CEO'), content: Image.network(b['receipt'].toString()), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))])), child: const Text('Receipt')),
-                IconButton(icon: const Icon(Icons.delete, color: Colors.red, size: 18), onPressed: () => _deleteHistory(b['bookingId'])),
-              ]))),
+              ...historyData.map((b) {
+                return Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _showDetails(b),
+                          child: Text(
+                            'Booking ID ${b['bookingId']} - ${b['paidAtStr'] ?? b['clientConfirmedAtStr'] ?? ''} - ${b['paid'] == true || b['status'] == 'ceo_paid' ? '✅ PAID - Receipt Sent' : ''} - ${b['status']}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                      if (b['receipt'] != null)
+                        TextButton(
+                          onPressed: () => showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('Receipt from CEO'),
+                              content: Image.network(b['receipt'].toString()),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          child: const Text('Receipt'),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                        onPressed: () => _deleteHistory(b['bookingId']),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
             ])),
             const SizedBox(height: 12),
           ],
