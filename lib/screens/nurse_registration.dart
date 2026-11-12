@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 
 class NurseRegistrationPage extends StatefulWidget {
@@ -64,20 +65,60 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         videoUrl = await _upload(_video!, 'nurses/$uid/video.mp4');
       }
 
-      // 3. Save to Firestore - SAME place CEO reads
+      // 3. Save to Firestore (for the nurse's own app)
       await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).set({
         'uid': uid,
         'name': _name.text.trim(),
+        'fullName': _name.text.trim(),
         'username': _username.text.trim(),
         'email': _email.text.trim(),
         'phone': _phone.text.trim(),
         'role': 'nurse',
+        'type': 'nurse',
         'status': 'pending',
         'isApproved': false,
         'photoUrl': photoUrl ?? '',
+        'photoURL': photoUrl ?? '',
+        'photo': photoUrl ?? '',
         'videoUrl': videoUrl ?? '',
+        'videoURL': videoUrl ?? '',
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      // 4. ALSO save to Realtime Database - THIS is what CEO Registration Center reads.
+      // CEO does NOT read Firestore at all. It only reads RTDB paths like
+      // ceoRegistrationCenter/nurses, nurses, nurse_registrations.
+      // Without this write, registration says "successful" but CEO sees nothing.
+      // Do NOT set hasAll4: true here - CEO treats hasAll4==true as already approved
+      // and would hide the nurse from the Pending tab.
+      final rtdbData = <String, Object?>{
+        'uid': uid,
+        'id': uid,
+        'name': _name.text.trim(),
+        'fullName': _name.text.trim(),
+        'username': _username.text.trim(),
+        'email': _email.text.trim(),
+        'phone': _phone.text.trim(),
+        'role': 'nurse',
+        'type': 'nurse',
+        'status': 'pending',
+        'isApproved': false,
+        'approved': false,
+        'hasAll4': false,
+        'photo': photoUrl ?? '',
+        'photoUrl': photoUrl ?? '',
+        'photoURL': photoUrl ?? '',
+        'videoUrl': videoUrl ?? '',
+        'videoURL': videoUrl ?? '',
+        'idURL': '',
+        'licenceURL': '',
+        'certURL': '',
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+      };
+      // Write to ALL 3 RTDB paths the CEO screen checks, so it cannot miss it.
+      await FirebaseDatabase.instance.ref('ceoRegistrationCenter/nurses/$uid').set(rtdbData);
+      await FirebaseDatabase.instance.ref('nurses/$uid').set(rtdbData);
+      await FirebaseDatabase.instance.ref('nurse_registrations/$uid').set(rtdbData);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registered! Wait for CEO approval')));
