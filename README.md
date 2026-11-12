@@ -31,40 +31,7 @@ https://lovecareglobal-cell.github.io/love-care-global/
 
 ---
 
-## 👑 CEO ONLY - SECRET - DO NOT SHARE
 
-**CEO Control Center:**
-https://lovecareglobal-cell.github.io/love-care-global/#/ceo-control
-
-**CEO Dashboard:**
-https://lovecareglobal-cell.github.io/love-care-global/#/ceo-dashboard
-
-> ⚠️ No button for CEO on Home Page. Only you know this link.
-> CEO reviews all Nurses and Approves / Rejects.
-
----
-
-## 📁 SOURCE FILES - GITHUB
-
-**Repo:**
-https://github.com/lovecareglobal-cell/love-care-global
-
-**Main File:**
-https://github.com/lovecareglobal-cell/love-care-global/blob/main/lib/main.dart
-
-**CEO Dashboard File:**
-https://github.com/lovecareglobal-cell/love-care-global/blob/main/lib/screens/ceo_dashboard.dart
-
-**CEO Control File:**
-https://github.com/lovecareglobal-cell/love-care-global/blob/main/lib/screens/ceo_control_page.dart
-
-**Firebase Options:**
-https://github.com/lovecareglobal-cell/love-care-global/blob/main/lib/firebase_options.dart
-
-**All Screens Folder:**
-https://github.com/lovecareglobal-cell/love-care-global/tree/main/lib/screens
-
----
 
 ## ⚙️ HOW IT WORKS
 
