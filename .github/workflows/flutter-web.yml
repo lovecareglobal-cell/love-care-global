@@ -24,54 +24,27 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.32.0'
           channel: 'stable'
           cache: true
-
-      - name: Fix web/index.html - auto-create correct one
-        run: |
-          mkdir -p web
-          cat > web/index.html <<'HTML'
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <base href="$FLUTTER_BASE_HREF">
-            <meta charset="UTF-8">
-            <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <meta name="description" content="LOVE CARE GLOBAL HOME NURSING">
-            <meta name="mobile-web-app-capable" content="yes">
-            <meta name="apple-mobile-web-app-capable" content="yes">
-            <link rel="icon" type="image/png" href="favicon.png"/>
-            <title>LOVE CARE GLOBAL - HOME NURSING</title>
-            <link rel="manifest" href="manifest.json">
-          </head>
-          <body>
-            <div style="background:#0E0A1C;color:#fff;font-family:Arial;display:flex;align-items:center;justify-content:center;height:100vh;text-align:center"><div><h1>LOVE CARE GLOBAL</h1><p>HOME NURSING<br>Loading Main Page...</p></div></div>
-            <script src="flutter_bootstrap.js" async></script>
-          </body>
-          </html>
-          HTML
-          echo "--- web/index.html now ---"
-          head -5 web/index.html
-          grep -q 'FLUTTER_BASE_HREF' web/index.html && echo "PLACEHOLDER OK" || (echo "PLACEHOLDER MISSING" && exit 1)
 
       - name: Get packages
         run: flutter pub get
 
-      - name: Build Web - index.dart
+      - name: Build Web
         run: flutter build web --release --base-href /love-care-global/
 
-      - name: Upload to Pages
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
 
   deploy:
-    needs: build
-    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
