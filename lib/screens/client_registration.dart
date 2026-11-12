@@ -15,27 +15,51 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   final _otpCtrl = TextEditingController();
   bool _showOtp = false;
   bool _loading = false;
-  bool _showPass = false; // NEW: For show/hide password eye
+  bool _showPass = false;
   String _msg = '';
+  String _passMsg = '';
   String _fakeEmail = '';
 
-  Future<String?> _checkExists(String username, String phone, String email) async {
-    final db = FirebaseFirestore.instance;
-    final u = username.trim().toLowerCase();
-    final p = phone.trim();
-    // Check Clients
-    final byUser = await db.collection('clients').where('username', isEqualTo: u).limit(1).get();
-    if (byUser.docs.isNotEmpty) return 'client';
-    final byPhone = await db.collection('clients').where('phone', isEqualTo: p).limit(1).get();
-    if (byPhone.docs.isNotEmpty) return 'client';
-    // Check Nurses - BLOCK DOUBLE
-    final nursePhone = await db.collection('nurses').where('phone', isEqualTo: p).limit(1).get();
-    if (nursePhone.docs.isNotEmpty) return 'nurse';
-    final nurseEmail = await db.collection('nurses').where('email', isEqualTo: email).limit(1).get();
-    if (nurseEmail.docs.isNotEmpty) return 'nurse';
-    final pendingNurse = await db.collection('pending_nurses').where('phone', isEqualTo: p).limit(1).get();
-    if (pendingNurse.docs.isNotEmpty) return 'pending_nurse';
-    return null;
+  // 1. COUNTRY CODE - SAME AS NURSE
+  String _countryCode = '+233';
+  final _codes = ['+233', '+234', '+225', '+228', '+44', '+1', '+33', '+49', '+27'];
+  final _codeNames = {'+233': 'Ghana', '+234': 'Nigeria', '+225': "Côte d'Ivoire", '+228': 'Togo', '+44': 'UK', '+1': 'USA/Canada', '+33': 'France', '+49': 'Germany', '+27': 'South Africa'};
+
+  // 2. STRONG PASSWORD CHECK - SAME AS NURSE
+  String _checkPassword(String p) {
+    if (p.isEmpty) return '';
+    if (p.length < 8) return '❌ Too short - Need 8+ characters';
+    if (!RegExp(r'[A-Z]').hasMatch(p)) return '❌ Add 1 CAPITAL letter (A-Z)';
+    if (!RegExp(r'[a-z]').hasMatch(p)) return '❌ Add 1 small letter (a-z)';
+    if (!RegExp(r'[0-9]').hasMatch(p)) return '❌ Add 1 number (0-9)';
+    if (!RegExp(r'[!@#\$%^&*]').hasMatch(p)) return '❌ Add 1 symbol (!@#\$ etc)';
+    return '✅ Strong Password - Good!';
+  }
+  bool get _isStrong => _checkPassword(_passCtrl.text).startsWith('✅');
+  Color get _passColor => _isStrong ? Colors.green : (_passCtrl.text.length < 4 ? Colors.red : Colors.orange);
+  double get _passStrength {
+    var s = 0.0;
+    if (_passCtrl.text.length >= 8) s += 0.2;
+    if (RegExp(r'[A-Z]').hasMatch(_passCtrl.text)) s += 0.2;
+    if (RegExp(r'[a-z]').hasMatch(_passCtrl.text)) s += 0.2;
+    if (RegExp(r'[0-9]').hasMatch(_passCtrl.text)) s += 0.2;
+    if (RegExp(r'[!@#\$%^&*]').hasMatch(_passCtrl.text)) s += 0.2;
+    return s;
+  }
+
+  String get _fullPhone => '$_countryCode${_phoneCtrl.text.trim()}';
+
+  Future<String?> _checkExists(String user, String phone, String email) async {
+    try {
+      final db = FirebaseFirestore.instance;
+      final c1 = await db.collection('clients').where('username', isEqualTo: user.toLowerCase()).limit(1).get().timeout(const Duration(seconds: 8));
+      if (c1.docs.isNotEmpty) return 'client';
+      final c2 = await db.collection('clients').where('phone', isEqualTo: phone).limit(1).get().timeout(const Duration(seconds: 8));
+      if (c2.docs.isNotEmpty) return 'client';
+      final n1 = await db.collection('nurses').where('phone', isEqualTo: phone).limit(1).get().timeout(const Duration(seconds: 8));
+      if (n1.docs.isNotEmpty) return 'nurse';
+      return null;
+    } catch (_) { return null; }
   }
 
   Future<void> _cleanup(String? uid) async {
@@ -52,13 +76,17 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
 
   Future<void> _sendOtp() async {
     final user = _userCtrl.text.trim();
-    final phone = _phoneCtrl.text.trim();
-    if (user.isEmpty || phone.isEmpty || _passCtrl.text.isEmpty) {
+    final phone = _fullPhone;
+    if (user.isEmpty || _phoneCtrl.text.trim().isEmpty || _passCtrl.text.isEmpty) {
       setState(() => _msg = 'Fill username, phone, password');
       return;
     }
+    // BLOCK WEAK PASSWORD BEFORE OTP
+    if (!_isStrong) {
+      setState(() => _msg = 'Password too weak! $_passMsg');
+      return;
+    }
     setState(() { _loading = true; _msg = 'Checking double account...'; });
-    // Fake email for Firebase Auth - Client uses Username, not Email
     _fakeEmail = '${user.toLowerCase()}@lovecare.client';
     final exists = await _checkExists(user, phone, _fakeEmail);
     if (exists != null) {
@@ -73,6 +101,10 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
       setState(() => _msg = 'Wrong OTP');
       return;
     }
+    if (!_isStrong) {
+      setState(() => _msg = 'Password too weak! $_passMsg');
+      return;
+    }
     setState(() => _loading = true);
     String? uid;
     try {
@@ -81,7 +113,8 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
       final data = {
         'uid': uid,
         'username': _userCtrl.text.trim().toLowerCase(),
-        'phone': _phoneCtrl.text.trim(),
+        'phone': _fullPhone,
+        'countryCode': _countryCode,
         'email': _fakeEmail,
         'role': 'client',
         'isComplete': true,
@@ -111,21 +144,22 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
             const SizedBox(height: 16),
             TextField(controller: _userCtrl, decoration: const InputDecoration(hintText: 'Username', border: OutlineInputBorder())),
             const SizedBox(height: 12),
-            TextField(controller: _phoneCtrl, decoration: const InputDecoration(hintText: 'Phone +233...', border: OutlineInputBorder())),
+            // COUNTRY CODE + PHONE
+            Row(children: [
+              Container(padding: const EdgeInsets.symmetric(horizontal: 8), decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(4)),
+                child: DropdownButton<String>(value: _countryCode, underline: const SizedBox(), items: _codes.map((c) => DropdownMenuItem(value: c, child: Text('$c ${_codeNames[c]}'))).toList(), onChanged: (v) => setState(() => _countryCode = v ?? '+233'))),
+              const SizedBox(width: 8),
+              Expanded(child: TextField(controller: _phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(hintText: 'Phone e.g. 241234567', border: OutlineInputBorder()))),
+            ]),
+            Text('Saved as: $_fullPhone', style: const TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(height: 12),
-            // FIXED: Password with Show/Hide Eye
-            TextField(
-              controller: _passCtrl,
-              obscureText: !_showPass,
-              decoration: InputDecoration(
-                hintText: 'Password',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(_showPass ? Icons.visibility_off : Icons.visibility),
-                  onPressed: () => setState(() => _showPass = !_showPass),
-                ),
-              ),
-            ),
+            // STRONG PASSWORD
+            TextField(controller: _passCtrl, obscureText: !_showPass, onChanged: (v) => setState(() => _passMsg = _checkPassword(v)),
+              decoration: InputDecoration(hintText: 'Password - Strong Required', border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_showPass ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _showPass = !_showPass)))),
+            const SizedBox(height: 6),
+            LinearProgressIndicator(value: _passStrength, backgroundColor: Colors.grey.shade200, color: _passColor, minHeight: 6),
+            const SizedBox(height: 4),
+            Text(_passMsg.isEmpty ? 'Need: 8+ chars, 1 CAPITAL, 1 small, 1 number, 1 symbol (!@#)' : _passMsg, style: TextStyle(fontSize: 12, color: _passColor, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             if (_showOtp) ...[
               TextField(controller: _otpCtrl, decoration: const InputDecoration(hintText: 'OTP - 123456', border: OutlineInputBorder())),
@@ -133,7 +167,10 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
             ],
             if (_msg.isNotEmpty) Text(_msg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 12),
-            ElevatedButton(onPressed: _loading ? null : (_showOtp ? _register : _sendOtp), child: Text(_showOtp ? 'Verify & Register' : 'Send OTP')),
+            if (!_showOtp)
+              ElevatedButton(onPressed: _loading ? null : _sendOtp, child: Text(_loading ? 'Checking...' : 'Send OTP')),
+            if (_showOtp)
+              ElevatedButton(onPressed: _loading ? null : _register, child: Text(_loading ? 'Registering...' : 'Register')),
           ],
         ),
       ),
