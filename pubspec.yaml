@@ -1,5 +1,5 @@
 name: love_care_global
-description: "Love Care Global - Trusted Care, With Love. CEO-verified Nurses. Safe Clients."
+description: "Love Care Global - Trusted Care, With Love"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,35 +10,38 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Firebase - Core
+  # ===== FIREBASE - MUST HAVE =====
   firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  cloud_firestore: ^4.13.6
-  firebase_database: ^10.4.0
+  firebase_auth: ^4.16.0
+  cloud_firestore: ^4.14.0
   firebase_storage: ^11.5.6
+  firebase_database: ^10.4.0
   firebase_messaging: ^14.7.10
 
-  # Storage / Files
+  # ===== BASIC - MUST HAVE =====
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.2
+  intl: ^0.19.0
   shared_preferences: ^2.2.2
-  file_picker: ^6.1.1
+  url_launcher: ^6.2.5
   image_picker: ^1.0.7
+  http: ^1.2.2
+  uuid: ^4.5.0
+  file_picker: ^6.1.1
 
-  # Sound / Vibration / Notification
-  audioplayers: ^5.2.1
-  vibration: ^1.8.4
-  flutter_local_notifications: ^16.3.2
-  permission_handler: ^11.3.0
+  # ===== UI - SAFE ONES ONLY =====
+  flutter_rating_bar: ^4.0.1
+  pin_code_fields: ^8.0.1
+  cached_network_image: ^3.3.1
+  share_plus: ^7.2.2
 
-  # Maps / Location - FIX FOR book_nurse, book_nurse_50, sos, nurse_dashboard
+  # ===== ADDED - THE MISSING ONES =====
   google_maps_flutter: ^2.5.0
   geolocator: ^10.1.0
-
-  # Share / Links
-  share_plus: ^8.0.0
-  url_launcher: ^6.2.4
-
-  # Date / Format
-  intl: ^17.0.0
+  audioplayers: ^5.2.1
+  vibration: ^1.8.4
+  permission_handler: ^11.3.0
+  flutter_local_notifications: ^16.3.2
 
 dev_dependencies:
   flutter_test:
@@ -47,20 +50,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - assets/
-    - assets/images/
-    - assets/sounds/
-
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
-  #         style: italic
-  #   - family: Trajan Pro
-  #     fonts:
-  #       - asset: fonts/TrajanPro.ttf
-  #       - asset: fonts/TrajanPro_Bold.ttf
-  #         weight: 700
