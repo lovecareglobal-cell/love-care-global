@@ -308,7 +308,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
             Text('📍 ${rec['gpsName'] ?? ''} ${rec['lat'] != null ? '(${(rec['lat'] as num).toStringAsFixed(4)}, ${(rec['lng'] as num).toStringAsFixed(4)})' : ''}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
             Text('UID: ${rec['uid']} • ${rec['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((rec['createdAt'] as num).toInt()) : ''}', style: const TextStyle(fontSize: 10, color: Colors.white60)),
             const SizedBox(height: 10),
-            GridView(count: 1, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: 1.2, crossAxisSpacing: 8, mainAxisSpacing: 8), children: [
+            GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), childAspectRatio: 1.2, crossAxisSpacing: 8, mainAxisSpacing: 8, children: [
               _docBox(rec['photo'], 'Photo', rec['hasPhoto'] == true, 'image'),
               if (rec['type'] == 'nurse') _docBox(rec['idURL'], 'ID', rec['hasId'] == true, 'image'),
               if (rec['type'] == 'nurse') _docBox(rec['licenceURL'], 'Licence', rec['hasLicence'] == true, 'image'),
