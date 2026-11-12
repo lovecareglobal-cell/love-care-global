@@ -15,6 +15,7 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   final _otpCtrl = TextEditingController();
   bool _showOtp = false;
   bool _loading = false;
+  bool _showPass = false; // NEW: For show/hide password eye
   String _msg = '';
   String _fakeEmail = '';
 
@@ -112,7 +113,19 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
             const SizedBox(height: 12),
             TextField(controller: _phoneCtrl, decoration: const InputDecoration(hintText: 'Phone +233...', border: OutlineInputBorder())),
             const SizedBox(height: 12),
-            TextField(controller: _passCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'Password', border: OutlineInputBorder())),
+            // FIXED: Password with Show/Hide Eye
+            TextField(
+              controller: _passCtrl,
+              obscureText: !_showPass,
+              decoration: InputDecoration(
+                hintText: 'Password',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_showPass ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _showPass = !_showPass),
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
             if (_showOtp) ...[
               TextField(controller: _otpCtrl, decoration: const InputDecoration(hintText: 'OTP - 123456', border: OutlineInputBorder())),
