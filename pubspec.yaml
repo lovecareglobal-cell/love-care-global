@@ -87,7 +87,7 @@ dependencies:
   table_calendar: ^3.1.2
   timeline_tile: ^2.0.0
   flutter_slidable: ^3.1.0
-  expandable: ^6.0.1
+  expandable: ^5.0.1
   carousel_slider: ^5.0.0
   smooth_page_indicator: ^1.2.0
   flutter_sms: ^2.3.0
