@@ -18,7 +18,9 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Firebase Init - MUST be first before runApp
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (e) {
     debugPrint('Firebase init failed (web/demo mode): $e');
   }
