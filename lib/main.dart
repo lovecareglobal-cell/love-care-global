@@ -45,6 +45,7 @@ class LoveCareApp extends StatelessWidget {
         '/client-registration': (context) => const ClientRegistrationPage(),
         '/nurse-login': (context) => const NurseLoginPage(),
         '/nurse-registration': (context) => const NurseRegistrationPage(),
+        // SECRET CEO LINK - KEPT! No button shows it, only you know the URL
         '/ceo-control': (context) => const CeoControlPage(),
         '/community': (context) => const CommunityGuidelinesPage(),
         '/privacy': (context) => const PrivacyPolicyPage(),
@@ -178,7 +179,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
               ),
             ),
             const SizedBox(height: 20),
-            // QUICK ACTIONS
+            // QUICK ACTIONS - CEO BUTTON REMOVED HERE
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -186,8 +187,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                   _actionCard('🩺', 'I am a NURSE', 'Register / Login - CEO Approval Required', () => Navigator.pushNamed(context, '/nurse-registration')),
                   const SizedBox(height: 12),
                   _actionCard('❤️', 'I am a CLIENT', 'Register / Login - Username + Password', () => Navigator.pushNamed(context, '/client-registration')),
-                  const SizedBox(height: 12),
-                  _actionCard('👑', 'CEO CONTROL', 'Approve Nurses - ceo-registration-center', () => Navigator.pushNamed(context, '/ceo-control')),
                   const SizedBox(height: 20),
                   Wrap(
                     alignment: WrapAlignment.center,
