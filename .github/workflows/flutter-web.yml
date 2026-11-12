@@ -23,12 +23,13 @@ jobs:
       - run: flutter --version
       - run: flutter clean
       - run: flutter pub get
-      # FIX: this repo is a USER site (lovecareglobal-cell.github.io)
-      # so base-href MUST be "/" — NOT "/lovecareglobal-cell.github.io/"
-      # The old value made the browser look for
-      # /lovecareglobal-cell.github.io/main.dart.js which does NOT exist
-      # -> blank white page, even though the build was green.
-      - run: flutter build web --release --base-href /
+      # CORRECT base-href for THIS repo:
+      # Repo = lovecareglobal-cell/love-care-global  (a PROJECT repo, not a user-site repo)
+      # GitHub Pages URL = https://lovecareglobal-cell.github.io/love-care-global/
+      # So base-href MUST be /love-care-global/
+      # "/" was wrong -> app looked for files at the root, found nothing -> blank white
+      # "/lovecareglobal-cell.github.io/" was also wrong -> same blank white
+      - run: flutter build web --release --base-href /love-care-global/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
