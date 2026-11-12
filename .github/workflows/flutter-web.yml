@@ -15,22 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # PIN Flutter - 'stable' floating forward is what broke
-      # firebase_auth_web 5.8.13 (PromiseJsImpl) in your last run.
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.35.4"
           channel: "stable"
           cache: true
-
       - run: flutter --version
       - run: flutter clean
       - run: flutter pub get
-
-      # Build for GitHub Pages: base-href MUST match repo name
-      - run: flutter build web --release --base-href /lovecareglobal-cell.github.io/
-
+      # FIX: this repo is a USER site (lovecareglobal-cell.github.io)
+      # so base-href MUST be "/" — NOT "/lovecareglobal-cell.github.io/"
+      # The old value made the browser look for
+      # /lovecareglobal-cell.github.io/main.dart.js which does NOT exist
+      # -> blank white page, even though the build was green.
+      - run: flutter build web --release --base-href /
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/web
