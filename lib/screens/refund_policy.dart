@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'terms-and-conditions.dart';
+import 'terms_and_conditions.dart';
 
 class RefundPolicyPage extends StatelessWidget {
   const RefundPolicyPage({super.key});
