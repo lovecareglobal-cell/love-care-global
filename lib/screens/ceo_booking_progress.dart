@@ -1,277 +1,361 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:intl/intl.dart';
 
-// Alias for main.dart - main.dart calls CEOBookingProgressScreen
-// This file's real class is CeoBookingsProgressPage
-class CEOBookingProgressScreen extends CeoBookingsProgressPage {
+class CEOBookingsProgressScreen extends StatefulWidget {
+  const CEOBookingsProgressScreen({super.key});
+  @override
+  State<CEOBookingsProgressScreen> createState() => _CEOBookingsProgressScreenState();
+}
+
+// Aliases - so main.dart + old files still work
+class CEOBookingsProgressPage extends CEOBookingsProgressScreen {
+  const CEOBookingsProgressPage({super.key});
+}
+class CeoBookingsProgressScreen extends CEOBookingsProgressScreen {
+  const CeoBookingsProgressScreen({super.key});
+}
+class CEOBookingProgressScreen extends CEOBookingsProgressScreen {
   const CEOBookingProgressScreen({super.key});
 }
 
-class CeoBookingsProgressPage extends StatefulWidget {
-  const CeoBookingsProgressPage({super.key});
-  @override
-  State<CeoBookingsProgressPage> createState() => _CeoBookingsProgressPageState();
-}
-
-class _CeoBookingsProgressPageState extends State<CeoBookingsProgressPage> {
+class _CEOBookingsProgressScreenState extends State<CEOBookingsProgressScreen> {
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
-  final AudioPlayer _audio = AudioPlayer();
-
   List<Map<String, dynamic>> allBookings = [];
   String currentFilter = 'all';
-  final Set<String> _seenKeys = {};
+  bool isLoading = true;
+
+  final List<Map<String, String>> filters = [
+    {'key': 'all', 'label': 'All'},
+    {'key': 'pending', 'label': 'Pending'},
+    {'key': 'accepted', 'label': 'Accepted'},
+    {'key': 'on_the_way', 'label': 'On The Way'},
+    {'key': 'close', 'label': 'Close'},
+    {'key': 'completed', 'label': 'Completed'},
+    {'key': 'client_confirmed', 'label': 'Client Confirmed'},
+    {'key': 'rejected', 'label': 'Rejected'},
+  ];
 
   @override
   void initState() {
     super.initState();
     _loadAll();
-    _listenForSounds();
-  }
-
-  @override
-  void dispose() {
-    _audio.dispose();
-    super.dispose();
-  }
-
-  void _loadAll() {
-    for (final path in ['bookings', 'ceoBookings', 'allBookings']) {
-      _db.child(path).onValue.listen((event) {
-        if (event.snapshot.value == null) return;
-        if (event.snapshot.value is! Map) return;
-        final data = Map<String, dynamic>.from(event.snapshot.value as Map);
-        for (final entry in data.entries) {
-          final id = entry.key.toString();
-          if (id == 'LCG-20251016-ABC123') continue;
-          if (entry.value is! Map) continue;
-          final v = Map<String, dynamic>.from(entry.value as Map);
-          final idx = allBookings.indexWhere((b) => b['id'] == id);
-          final merged = {...v, 'id': id, 'bookingId': v['bookingId'] ?? id};
-          if (idx == -1) {
-            allBookings.add(merged);
-          } else {
-            allBookings[idx] = {...allBookings[idx], ...merged};
-          }
-        }
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
-  void _listenForSounds() {
-    Future.delayed(const Duration(seconds: 2), () {
-      _db.child('bookings').onChildChanged.listen((e) {
-        final v = e.snapshot.value;
-        if (v == null || v is! Map) return;
-        final st = (Map<String, dynamic>.from(v as Map)['status'] ?? '').toString().toLowerCase();
-        final k = '${e.snapshot.key}_$st';
-        if (_seenKeys.contains(k)) return;
-        _seenKeys.add(k);
-        _playSound();
-      });
-      _db.child('bookings').onChildAdded.listen((e) {
-        final v = e.snapshot.value;
-        if (v == null || v is! Map) return;
-        final m = Map<String, dynamic>.from(v as Map);
-        final tt = m['time'] ?? m['createdAt'] ?? 0;
-        final ttInt = tt is int ? tt : int.tryParse('$tt') ?? 0;
-        if (DateTime.now().millisecondsSinceEpoch - ttInt > 120000) return;
-        _playSound();
-      });
-    });
-  }
-
-  Future<void> _playSound() async {
-    try {
-      await _audio.play(AssetSource('sounds/bell.mp3'));
-    } catch (_) {}
   }
 
   void _toast(String m) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
   }
 
-  // ===== COUNTS + STATS - Same logic as your HTML =====
-  Map<String, int> get counts {
-    final c = {'all': allBookings.length, 'pending': 0, 'accepted': 0, 'on_the_way': 0, 'close': 0, 'completed': 0, 'client_confirmed': 0, 'rejected': 0};
-    for (final b in allBookings) {
-      final s = (b['status'] ?? 'pending').toString().toLowerCase();
-      if (s.contains('pending')) c['pending'] = c['pending']! + 1;
-      else if (s == 'accepted') c['accepted'] = c['accepted']! + 1;
-      else if (s.contains('on_the_way')) c['on_the_way'] = c['on_the_way']! + 1;
-      else if (s.contains('close')) c['close'] = c['close']! + 1;
-      else if (s.contains('completed') || s == 'finished') c['completed'] = c['completed']! + 1;
-      else if (s.contains('client_confirmed')) c['client_confirmed'] = c['client_confirmed']! + 1;
-      else if (s.contains('rejected')) c['rejected'] = c['rejected']! + 1;
+  void _loadAll() {
+    // Same as HTML: ['bookings','ceoBookings','allBookings']
+    for (final path in ['bookings', 'ceoBookings', 'allBookings']) {
+      _db.child(path).onValue.listen((e) {
+        if (e.snapshot.value == null || e.snapshot.value is! Map) return;
+        final data = Map<String, dynamic>.from(e.snapshot.value as Map);
+        for (final entry in data.entries) {
+          if (entry.value is! Map) continue;
+          final v = Map<String, dynamic>.from(entry.value as Map);
+          final id = entry.key.toString();
+          if (id == 'LCG-20251016-ABC123') continue; // skip test - same as HTML
+          _addOrUpdate({...v, 'id': id, 'bookingId': (v['bookingId'] ?? id).toString()});
+        }
+        if (mounted) setState(() => isLoading = false);
+      });
     }
-    return c;
   }
 
-  double get revenue => allBookings.fold(0, (p, b) => p + (double.tryParse('${b['amount'] ?? 0}') ?? 0));
-  double get pendingAmt => allBookings.where((b) => (b['status'] ?? '').toString().toLowerCase().contains('pending')).fold(0, (p, b) => p + (double.tryParse('${b['amount'] ?? 0}') ?? 0));
-  double get acceptedAmt => allBookings.where((b) { final s = (b['status'] ?? '').toString().toLowerCase(); return s == 'accepted' || s.contains('on_the_way') || s.contains('close'); }).fold(0, (p, b) => p + (double.tryParse('${b['amount'] ?? 0}') ?? 0));
-  double get completedAmt => allBookings.where((b) { final s = (b['status'] ?? '').toString().toLowerCase(); return s.contains('completed') || s.contains('client_confirmed'); }).fold(0, (p, b) => p + (double.tryParse('${b['amount'] ?? 0}') ?? 0));
-
-  int _toInt(dynamic v) {
-    if (v is int) return v;
-    return int.tryParse('$v') ?? 0;
+  void _addOrUpdate(Map<String, dynamic> b) {
+    final id = (b['id'] ?? b['bookingId'] ?? '').toString();
+    final idx = allBookings.indexWhere((x) => (x['id'] ?? x['bookingId'] ?? '').toString() == id);
+    if (idx == -1) {
+      allBookings.add(b);
+    } else {
+      allBookings[idx] = {...allBookings[idx], ...b};
+    }
   }
 
-  int get todayCount => allBookings.where((b) {
-    final t = _toInt(b['time'] ?? b['createdAt'] ?? DateTime.now().millisecondsSinceEpoch);
-    return DateTime.fromMillisecondsSinceEpoch(t).toString().substring(0, 10) == DateTime.now().toString().substring(0, 10);
-  }).length;
+  String _statusOf(Map<String, dynamic> b) => (b['status'] ?? '').toString().toLowerCase();
 
-  int get activeNurses => allBookings.where((b) { final s = (b['status'] ?? '').toString().toLowerCase(); return s == 'accepted' || s.contains('on_the_way') || s.contains('close'); }).map((b) => b['nurseId']).toSet().length;
-
+  // Same filter logic as HTML render()
   List<Map<String, dynamic>> get filtered {
-    var list = List<Map<String, dynamic>>.from(allBookings);
-    if (currentFilter != 'all') {
-      if (currentFilter == 'completed') {
-        list = list.where((b) { final s = (b['status'] ?? '').toString().toLowerCase(); return s.contains('completed') || s.contains('finished') || s.contains('client_confirmed'); }).toList();
-      } else if (currentFilter == 'client_confirmed') {
-        list = list.where((b) => (b['status'] ?? '').toString().toLowerCase().contains('client_confirmed')).toList();
-      } else {
-        list = list.where((b) => (b['status'] ?? '').toString().toLowerCase().contains(currentFilter)).toList();
-      }
+    List<Map<String, dynamic>> list = List.from(allBookings);
+    if (currentFilter == 'all') {
+      // all
+    } else if (currentFilter == 'pending') {
+      list = list.where((b) => _statusOf(b) == 'pending' || _statusOf(b).contains('pending')).toList();
+    } else if (currentFilter == 'accepted') {
+      list = list.where((b) => _statusOf(b) == 'accepted').toList();
+    } else if (currentFilter == 'on_the_way') {
+      list = list.where((b) => _statusOf(b).contains('on_the_way') || _statusOf(b).contains('on the way') || _statusOf(b).contains('ontheway')).toList();
+    } else if (currentFilter == 'close') {
+      list = list.where((b) => _statusOf(b).contains('close')).toList();
+    } else if (currentFilter == 'completed') {
+      list = list.where((b) => _statusOf(b).contains('completed') || _statusOf(b) == 'finished').toList();
+    } else if (currentFilter == 'client_confirmed') {
+      list = list.where((b) => _statusOf(b).contains('client_confirmed')).toList();
+    } else if (currentFilter == 'rejected') {
+      list = list.where((b) => _statusOf(b).contains('rejected') || _statusOf(b).contains('cancelled')).toList();
     }
-    list.sort((a, b) => _toInt(b['time'] ?? 0).compareTo(_toInt(a['time'] ?? 0)));
+    list.sort((a, b) {
+      final ta = int.tryParse('${a['time'] ?? a['createdAt'] ?? 0}') ?? 0;
+      final tb = int.tryParse('${b['time'] ?? b['createdAt'] ?? 0}') ?? 0;
+      return tb.compareTo(ta);
+    });
     return list.take(100).toList();
   }
 
-  void _viewDetails(Map b) {
-    String fmt(dynamic t) {
-      if (t == null) return 'Not yet';
-      final v = _toInt(t);
-      if (v == 0) return 'Not yet';
-      return DateFormat('dd/MM/yyyy HH:mm').format(DateTime.fromMillisecondsSinceEpoch(v));
+  int _count(String key) {
+    if (key == 'all') return allBookings.length;
+    if (key == 'pending') return allBookings.where((b) => _statusOf(b).contains('pending')).length;
+    if (key == 'accepted') return allBookings.where((b) => _statusOf(b) == 'accepted').length;
+    if (key == 'on_the_way') return allBookings.where((b) => _statusOf(b).contains('on_the_way')).length;
+    if (key == 'close') return allBookings.where((b) => _statusOf(b).contains('close')).length;
+    if (key == 'completed') return allBookings.where((b) => _statusOf(b).contains('completed') || _statusOf(b) == 'finished').length;
+    if (key == 'client_confirmed') return allBookings.where((b) => _statusOf(b).contains('client_confirmed')).length;
+    if (key == 'rejected') return allBookings.where((b) => _statusOf(b).contains('rejected') || _statusOf(b).contains('cancelled')).length;
+    return 0;
+  }
+
+  double _amountFor(List<Map<String, dynamic>> list) {
+    double total = 0;
+    for (final b in list) {
+      total += double.tryParse('${b['amount'] ?? 0}') ?? 0;
     }
+    return total;
+  }
+
+  String _timeStr(dynamic t) {
+    final v = int.tryParse('$t') ?? 0;
+    if (v == 0) return '';
+    final d = DateTime.fromMillisecondsSinceEpoch(v);
+    return '${d.day}/${d.month}/${d.year} ${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+  }
+
+  (String, Color, Color, Color) _badgeFor(String s) {
+    // returns (label, bg, fg, border)
+    if (s == 'accepted') return ('ACCEPTED', const Color(0xFF22C55E).withOpacity(0.15), const Color(0xFF86EFAC), const Color(0xFF22C55E));
+    if (s.contains('on_the_way')) return ('ON THE WAY', const Color(0xFF22C55E).withOpacity(0.15), const Color(0xFF86EFAC), const Color(0xFF22C55E));
+    if (s.contains('close')) return ('CLOSE', const Color(0xFF22C55E).withOpacity(0.15), const Color(0xFF86EFAC), const Color(0xFF22C55E));
+    if (s.contains('completed') || s == 'finished') return ('COMPLETED', const Color(0xFF22C55E).withOpacity(0.15), const Color(0xFF86EFAC), const Color(0xFF22C55E));
+    if (s.contains('client_confirmed')) return ('CLIENT CONFIRMED - WORK COMPLETED', const Color(0xFF22C55E), Colors.white, const Color(0xFF22C55E));
+    if (s.contains('rejected')) return ('REJECTED', const Color(0xFFEF4444).withOpacity(0.15), const Color(0xFFFCA5A5), const Color(0xFFEF4444));
+    if (s.contains('cancelled')) return ('CANCELLED', const Color(0xFFEF4444).withOpacity(0.15), const Color(0xFFFCA5A5), const Color(0xFFEF4444));
+    return ('PENDING', const Color(0xFFF59E0B).withOpacity(0.15), const Color(0xFFFDE68A), const Color(0xFFF59E0B));
+  }
+
+  Color _borderFor(String s) {
+    if (s.contains('client_confirmed')) return const Color(0xFF22C55E);
+    if (s == 'accepted') return const Color(0xFF22C55E);
+    if (s.contains('rejected') || s.contains('cancelled')) return const Color(0xFFEF4444);
+    return const Color(0xFFF59E0B);
+  }
+
+  void _viewDetails(Map<String, dynamic> b) {
+    // Same as HTML alert() -> Flutter Dialog
+    final time = _timeStr(b['time'] ?? b['createdAt']);
+    final completed = b['clientConfirmedAt'] != null ? _timeStr(b['clientConfirmedAt']) : 'Not yet';
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Booking: ${b['bookingId'] ?? b['id']}'),
-        content: Text('Status: ${b['status']}\nNurse: ${b['nurseName']}\nClient: ${b['clientName']}\nAmount: ${b['currency'] ?? 'GHS'} ${b['amount']}\nTime: ${b['time'] != null ? fmt(b['time']) : ''}\nCompleted: ${b['clientConfirmedAt'] != null ? fmt(b['clientConfirmedAt']) : 'Not yet'}'),
+        backgroundColor: const Color(0xFF1A1633),
+        title: const Text('Booking Details', style: TextStyle(color: Colors.white)),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('ID: ${b['bookingId'] ?? b['id']}', style: const TextStyle(color: Colors.white)),
+              Text('Status: ${b['status']}', style: const TextStyle(color: Colors.white)),
+              Text('Nurse: ${b['nurseName'] ?? 'Unknown'}', style: const TextStyle(color: Colors.white)),
+              Text('Client: ${b['clientName'] ?? 'Client'}', style: const TextStyle(color: Colors.white)),
+              Text('Amount: ${b['currency'] ?? 'GHS'} ${b['amount'] ?? 0}', style: const TextStyle(color: Colors.white)),
+              Text('Time: $time', style: const TextStyle(color: Colors.white)),
+              Text('Completed: $completed', style: const TextStyle(color: Colors.white)),
+              if ((b['patientLocation'] ?? '').toString().isNotEmpty) Text('Location: ${b['patientLocation']}', style: const TextStyle(color: Colors.white)),
+            ],
+          ),
+        ),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
       ),
     );
   }
 
-  void _trackNurse(String? nurseId, String bookingId) {
-    if (nurseId == null || nurseId.isEmpty) { _toast('No nurse ID'); return; }
-    Navigator.pushNamed(context, '/ceo-live-tracking-map', arguments: {'nurseId': nurseId, 'bookingId': bookingId});
-    _toast('Tracking Nurse $nurseId...');
+  void _trackNurse(Map<String, dynamic> b) {
+    final nurseId = (b['nurseId'] ?? '').toString();
+    final bookingId = (b['bookingId'] ?? b['id'] ?? '').toString();
+    if (nurseId.isEmpty) { _toast('No nurse ID'); return; }
+    // Same as HTML window.open('ceo-live-tracking-map.html?nurseId=&bookingId=') -> Flutter route
+    Navigator.pushNamed(context, '/ceo-live-tracking', arguments: {'nurseId': nurseId, 'bookingId': bookingId});
   }
 
   @override
   Widget build(BuildContext context) {
-    final c = counts;
     final list = filtered;
+    final pendingList = allBookings.where((b) => _statusOf(b).contains('pending')).toList();
+    final acceptedList = allBookings.where((b) => _statusOf(b) == 'accepted').toList();
+    final completedList = allBookings.where((b) => _statusOf(b).contains('completed') || _statusOf(b).contains('client_confirmed') || _statusOf(b) == 'finished').toList();
+    final today = DateTime.now();
+    final todayList = allBookings.where((b) {
+      final t = int.tryParse('${b['time'] ?? b['createdAt'] ?? 0}') ?? 0;
+      if (t == 0) return false;
+      final d = DateTime.fromMillisecondsSinceEpoch(t);
+      return d.year == today.year && d.month == today.month && d.day == today.day;
+    }).toList();
+    final activeNurseIds = <String>{};
+    for (final b in allBookings) {
+      final s = _statusOf(b);
+      if (s == 'accepted' || s.contains('on_the_way') || s.contains('close')) {
+        final nid = (b['nurseId'] ?? '').toString();
+        if (nid.isNotEmpty) activeNurseIds.add(nid);
+      }
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0C0A1E),
       appBar: AppBar(
-        title: const Text('Bookings Progress'),
-        backgroundColor: const Color(0xFF1A1633),
+        backgroundColor: const Color(0xFF0C0A1E),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('CEO Bookings Progress - All Live Bookings', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text('Real-time: Pending, Accepted, On the way, Close, Completed, Rejected', style: TextStyle(fontSize: 10, color: Color(0xFF9A95B8))),
+          ],
+        ),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+        actions: [
+          Chip(label: Text('${allBookings.length} Total', style: const TextStyle(fontSize: 11)), backgroundColor: Colors.white.withOpacity(0.06)),
+          TextButton(onPressed: () => Navigator.pushNamed(context, '/ceo-dashboard'), child: const Text('CEO Dashboard', style: TextStyle(color: Colors.white, fontSize: 11))),
+          TextButton(onPressed: () => Navigator.pushNamed(context, '/ceo-notification-room'), child: const Text('Notification Room', style: TextStyle(color: Color(0xFFC4B5FD), fontSize: 11))),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: () => setState(() => isLoading = true)),
+        ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
-            child: InkWell(
-              onTap: () => Navigator.pushNamed(context, '/sound-settings'),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), gradient: const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFA855F7)])),
-                child: const Text('Sound Settings', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
-              ),
+          // Tabs - same as HTML .tabs
+          Container(
+            height: 56,
+            color: const Color(0xFF1A1633).withOpacity(0.5),
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              itemCount: filters.length,
+              itemBuilder: (context, i) {
+                final f = filters[i];
+                final isActive = currentFilter == f['key'];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text('${f['label']} (${_count(f['key']!)} )', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isActive ? Colors.black : const Color(0xFF9A95B8))),
+                    selected: isActive,
+                    selectedColor: const Color(0xFFFACC15),
+                    backgroundColor: Colors.white.withOpacity(0.05),
+                    onSelected: (_) => setState(() => currentFilter = f['key']!),
+                  ),
+                );
+              },
             ),
           ),
-          Padding(
+          // Stats - same as HTML .stats
+          Container(
             padding: const EdgeInsets.all(14),
-            child: Row(
+            child: GridView.count(
+              crossAxisCount: 3,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              childAspectRatio: 1.6,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
               children: [
-                Expanded(child: _stat('Total', '${c['all']}', 'GHS ${revenue.toStringAsFixed(0)}')),
-                const SizedBox(width: 10),
-                Expanded(child: _stat('Today', '$todayCount', 'Active Nurses: $activeNurses')),
-                const SizedBox(width: 10),
-                Expanded(child: _stat('Pending', '${c['pending']}', 'GHS ${pendingAmt.toStringAsFixed(0)}')),
+                _stat('Pending', '${pendingList.length}', 'GHS ${_amountFor(pendingList).toStringAsFixed(0)}'),
+                _stat('Accepted', '${acceptedList.length}', 'GHS ${_amountFor(acceptedList).toStringAsFixed(0)}'),
+                _stat('Completed', '${completedList.length}', 'GHS ${_amountFor(completedList).toStringAsFixed(0)}'),
+                _stat('Total Revenue', 'GHS ${_amountFor(allBookings).toStringAsFixed(0)}', 'All bookings'),
+                _stat('Active Nurses', '${activeNurseIds.length}', 'On jobs'),
+                _stat('Today', '${todayList.length}', 'Bookings today'),
               ],
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                for (final f in ['all', 'pending', 'accepted', 'on_the_way', 'close', 'completed', 'client_confirmed', 'rejected'])
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text('$f (${c[f] ?? 0})'),
-                      selected: currentFilter == f,
-                      onSelected: (_) => setState(() => currentFilter = f),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
+          // List
           Expanded(
-            child: list.isEmpty
-                ? const Center(child: Text('No bookings yet', style: TextStyle(color: Colors.white)))
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    itemCount: list.length,
-                    itemBuilder: (context, i) {
-                      final b = list[i];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: const Color(0xFF1A1633), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(child: Text('${b['bookingId'] ?? b['id']}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                                Text('${b['status'] ?? ''}', style: const TextStyle(color: Color(0xFFFACC15), fontSize: 12)),
-                              ],
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFFACC15)))
+                : list.isEmpty
+                    ? Center(child: Text('No $currentFilter bookings', style: const TextStyle(color: Color(0xFF9A95B8))))
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                        itemCount: list.length,
+                        itemBuilder: (context, i) {
+                          final b = list[i];
+                          final s = _statusOf(b);
+                          final badge = _badgeFor(s);
+                          final timeStr = b['time'] != null ? _timeStr(b['time']) : (b['createdAt'] != null ? _timeStr(b['createdAt']) : '');
+                          final completedAt = b['clientConfirmedAt'] != null ? _timeStr(b['clientConfirmedAt']) : (b['completedAt'] != null ? _timeStr(b['completedAt']) : '');
+                          final bookingId = (b['bookingId'] ?? b['id'] ?? 'Unknown').toString();
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(color: const Color(0xFF1A1633), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withOpacity(0.08))),
+                            child: IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Container(width: 4, decoration: BoxDecoration(color: _borderFor(s), borderRadius: const BorderRadius.only(topLeft: Radius.circular(14), bottomLeft: Radius.circular(14)))),
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(child: Text('Booking: $bookingId', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white))),
+                                              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white10)), child: Text('ID: ${bookingId.length > 8 ? bookingId.substring(bookingId.length - 8) : bookingId}', style: const TextStyle(fontSize: 10, color: Colors.white70))),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: badge.$2, borderRadius: BorderRadius.circular(999)), child: Text(badge.$1, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: badge.$3))),
+                                          const SizedBox(height: 8),
+                                          Text('Nurse: ${b['nurseName'] ?? 'Unknown'}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                          Text('Client: ${b['clientName'] ?? 'Client'}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                                          Text('Location: ${b['patientLocation'] ?? 'N/A'}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                          Text('Amount: ${b['currency'] ?? 'GHS'} ${b['amount'] ?? 0}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                          Text('Booked: $timeStr', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                          if (completedAt.isNotEmpty) Container(margin: const EdgeInsets.only(top: 6), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: Text('Work Completed: $completedAt', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
+                                          const SizedBox(height: 12),
+                                          Wrap(
+                                            spacing: 8,
+                                            children: [
+                                              ElevatedButton(onPressed: () => _viewDetails(b), style: ElevatedButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.08), foregroundColor: Colors.white), child: const Text('View Details', style: TextStyle(fontSize: 12))),
+                                              ElevatedButton(onPressed: () => _trackNurse(b), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFACC15), foregroundColor: Colors.black), child: const Text('Track Nurse', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(height: 6),
-                            Text('Client: ${b['clientName'] ?? ''} | Nurse: ${b['nurseName'] ?? ''}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                            Text('Amount: ${b['currency'] ?? 'GHS'} ${b['amount'] ?? 0}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                TextButton(onPressed: () => _viewDetails(b), child: const Text('Details')),
-                                TextButton(onPressed: () => _trackNurse(b['nurseId']?.toString(), '${b['bookingId'] ?? b['id']}'), child: const Text('Track Nurse')),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),
     );
   }
 
-  Widget _stat(String title, String value, String sub) {
+  Widget _stat(String label, String value, String sub) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFF1A1633), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+      decoration: BoxDecoration(color: const Color(0xFF1A1633), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withOpacity(0.08))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(title, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-          Text(sub, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+          Text(label, style: const TextStyle(color: Color(0xFF9A95B8), fontSize: 10)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(sub, style: const TextStyle(color: Color(0xFF9A95B8), fontSize: 10)),
         ],
       ),
     );
