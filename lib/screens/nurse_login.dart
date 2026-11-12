@@ -13,6 +13,7 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
   final _passCtrl = TextEditingController();
   String _msg = '';
   bool _loading = false;
+  bool _showPass = false; // NEW: For show/hide password eye
 
   Future<void> _login() async {
     final email = _emailCtrl.text.trim().toLowerCase();
@@ -73,7 +74,19 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
             const SizedBox(height: 16),
             TextField(controller: _emailCtrl, decoration: const InputDecoration(hintText: 'Email', border: OutlineInputBorder())),
             const SizedBox(height: 12),
-            TextField(controller: _passCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'Password', border: OutlineInputBorder())),
+            // FIXED: Password with Show/Hide Eye
+            TextField(
+              controller: _passCtrl,
+              obscureText: !_showPass,
+              decoration: InputDecoration(
+                hintText: 'Password',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_showPass ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _showPass = !_showPass),
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
             if (_msg.isNotEmpty) Text(_msg, textAlign: TextAlign.center),
             const SizedBox(height: 12),
