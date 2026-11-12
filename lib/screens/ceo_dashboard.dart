@@ -19,14 +19,21 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
   @override
   void initState() {
     super.initState();
-    FirebaseDatabase.instance.ref('ceoRefundManagement').onValue.listen((e) {
-      if (!e.snapshot.exists || e.snapshot.value is! Map) {
+    // SAFE: Firebase must never crash the dashboard - if it fails, show 0 and keep cards
+    try {
+      FirebaseDatabase.instance.ref('ceoRefundManagement').onValue.listen((e) {
+        if (!e.snapshot.exists || e.snapshot.value is! Map) {
+          if (mounted) setState(() => pendingRefunds = 0);
+          return;
+        }
+        final pending = (e.snapshot.value as Map).values.where((r) => r is Map && r['status'] == 'pending').length;
+        if (mounted) setState(() => pendingRefunds = pending);
+      }, onError: (_) {
         if (mounted) setState(() => pendingRefunds = 0);
-        return;
-      }
-      final pending = (e.snapshot.value as Map).values.where((r) => r is Map && r['status'] == 'pending').length;
-      if (mounted) setState(() => pendingRefunds = pending);
-    });
+      });
+    } catch (_) {
+      pendingRefunds = 0;
+    }
   }
 
   final List<Map<String, String>> pages = const [
@@ -43,7 +50,6 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
     {'num': '11', 'title': 'Delete Nurse', 'file': 'delete-nurse-all-paths.html', 'desc': 'Delete by UID, email, phone - All paths', 'route': '/force-delete'},
     {'num': '12', 'title': 'Bookings Progress', 'file': 'ceo-bookings-progress.html', 'desc': 'All bookings status and date time', 'route': '/ceo-bookings-progress'},
     {'num': '13', 'title': 'HR Page - GHS and USD', 'file': 'hr-page-GHS-USD.html', 'desc': 'Card Global GHS Ghana plus USD outside Ghana', 'route': '/hr-page'},
-    // 14 Home Banner - REMOVED - file does not exist
   ];
 
   @override
