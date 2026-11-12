@@ -14,11 +14,11 @@ import 'screens/refund_policy.dart';
 import 'screens/delete_account_policy.dart';
 import 'screens/terms_and_conditions.dart';
 
-// CEO FILES - ALL RED MARKED + NURSE GROUP CHAT - NO HOME BANNER
+// CEO FILES
 import 'screens/ceo_dashboard.dart';
 import 'screens/ceo_booking_progress.dart';
 import 'screens/ceo_complainant.dart';
-// import 'screens/ceo_control_chat.dart'; // TEMP OFF - bracket error, fix later
+import 'screens/ceo_control_chat.dart';
 import 'screens/ceo_control_pricing.dart';
 import 'screens/ceo_finance.dart';
 import 'screens/ceo_live_tracking_map.dart';
@@ -26,17 +26,29 @@ import 'screens/ceo_notification_room.dart';
 import 'screens/ceo_penalize.dart';
 import 'screens/ceo_refund_management.dart';
 import 'screens/ceo_registration_center.dart';
-import 'screens/ceo_service.dart';
 import 'screens/chat_room.dart';
-import 'screens/cleanup_auto_approval.dart';
-import 'screens/force_delete.dart';
 import 'screens/hr_page.dart';
-import 'screens/sound_settings.dart';
 import 'screens/nurse_group_chat.dart';
+
+// NEW - ALL MISSING SCREENS WIRED
+import 'screens/alert_settings.dart';
+import 'screens/book_nurse.dart';
+import 'screens/book_nurse_50.dart';
+import 'screens/client_complaint.dart';
+import 'screens/client_dashboard.dart';
+import 'screens/client_settings.dart';
+import 'screens/increase_payment.dart';
+import 'screens/my_bookings.dart';
+import 'screens/my_job_offer.dart';
+import 'screens/nurse_complaint.dart';
+import 'screens/nurse_dashboard.dart';
+import 'screens/nurse_withdrawal.dart';
+import 'screens/rating.dart';
+import 'screens/refund_query.dart';
+import 'screens/sos.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Firebase Init - MUST be first before runApp
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -60,7 +72,6 @@ class LoveCareApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       ),
-      // Home = Your Landing Page
       home: const LoveCareHomePage(),
       routes: {
         '/auth-choice': (context) => const AuthChoicePage(),
@@ -80,23 +91,69 @@ class LoveCareApp extends StatelessWidget {
         '/ceo-control': (context) => const CeoControlPage(),
         '/ceo-bookings-progress': (context) => const CEOBookingProgressScreen(),
         '/ceo-complainant': (context) => const CEOComplainantScreen(),
-        // '/ceo-control-chat': (context) => const CEOControlChatScreen(), // TEMP OFF
+        '/ceo-control-chat': (context) => const CEOControlChatScreen(),
         '/ceo-control-pricing': (context) => const CEOControlPricingScreen(),
         '/ceo-finance': (context) => const CEOFinanceScreen(),
-        '/ceo-live-tracking-map': (context) => const CEOLiveTrackingMapScreen(),
         '/ceo-notification-room': (context) => const CEONotificationRoomScreen(),
         '/ceo-penalize': (context) => const CEOPenalizeScreen(),
         '/ceo-refund-management': (context) => const CEORefundManagementScreen(),
         '/ceo-registration-center': (context) => const CEORegistrationCenterScreen(),
-        '/force-delete': (context) => const ForceDeleteScreen(),
         '/hr-page': (context) => const HRPageScreen(),
-        '/sound-settings': (context) => const SoundSettingsScreen(),
         '/chat-room': (context) => const ChatRoomScreen(),
         '/nurse-group-chat': (context) => const NurseGroupChatScreen(),
-        // NO HOME BANNER - REMOVED
-        // ceo_service + cleanup_auto_approval na service files, no route needed
+
+        // NEW SCREENS - NO PARAMS
+        '/alert-settings': (context) => const AlertSettingsScreen(),
+        '/book-nurse': (context) => const BookNurseScreen(),
+        '/book-nurse-50': (context) => const BookNurse50Screen(),
+        '/client-dashboard': (context) => const ClientDashboardScreen(),
+        '/client-settings': (context) => const ClientSettingsScreen(),
+        '/my-bookings': (context) => const MyBookingsScreen(),
+        '/my-job-offer': (context) => const MyJobOfferScreen(),
+        '/nurse-dashboard': (context) => const NurseDashboardScreen(),
+        '/nurse-withdrawal': (context) => const NurseWithdrawalScreen(),
+        '/rating': (context) => const RatingScreen(),
+        '/refund-query': (context) => const RefundQueryScreen(),
+        '/sos': (context) => const SOSScreen(),
       },
-      // If old home-banner or control-chat link try open, go Dashboard instead of crash
+      // PARAMS SCREENS - need arguments
+      onGenerateRoute: (settings) {
+        final args = settings.arguments;
+        switch (settings.name) {
+          case '/ceo-live-tracking-map':
+            return MaterialPageRoute(
+              builder: (_) => CEOLiveTrackingMapScreen(
+                params: args is Map<String, dynamic> ? args : null,
+              ),
+            );
+          case '/client-complaint':
+            return MaterialPageRoute(
+              builder: (_) => ClientComplaintScreen(
+                params: args is Map<String, dynamic> ? args : null,
+              ),
+            );
+          case '/nurse-complaint':
+            return MaterialPageRoute(
+              builder: (_) => NurseComplaintScreen(
+                params: args is Map<String, dynamic> ? args : null,
+              ),
+            );
+          case '/increase-payment':
+            return MaterialPageRoute(
+              builder: (_) => IncreasePaymentScreen(
+                bookingKey: args is String ? args : null,
+              ),
+            );
+          case '/alert-settings-role':
+            return MaterialPageRoute(
+              builder: (_) => AlertSettingsScreen(
+                role: args is String ? args : null,
+              ),
+            );
+          default:
+            return null;
+        }
+      },
       onUnknownRoute: (settings) => MaterialPageRoute(
         builder: (context) => const CEODashboardScreen(),
       ),
@@ -114,7 +171,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
   @override
   void initState() {
     super.initState();
-    // POPUP 1: Welcome Popup - Shows once when app opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showWelcomePopup();
     });
@@ -148,7 +204,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
     );
   }
 
-  // POPUP 2: About / How It Works Popup
   void _showAboutPopup() {
     showDialog(
       context: context,
@@ -188,7 +243,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // HERO SECTION
             Container(
               padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
               decoration: const BoxDecoration(
@@ -204,7 +258,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                   const SizedBox(height: 20),
                   const Text('CEO-verified Nurses. Safe Clients. No Fake Accounts.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 13)),
                   const SizedBox(height: 24),
-                  // GET STARTED BUTTON
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -226,7 +279,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
               ),
             ),
             const SizedBox(height: 20),
-            // QUICK ACTIONS - CEO BUTTON REMOVED HERE
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
