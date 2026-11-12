@@ -1,36 +1,6 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-/// CEO Refund Management - Flutter version of ceo-refund-management.html
-/// - Loads: refundRequests + allRefundRequests merged by key (allRefundRequests overwrites same key — Object.assign(merged, snap1) then Object.assign(merged, snap2)), sorted createdAt desc — same as HTML loadRefunds()
-///   Uses anonymous auth in HTML (ensureAuth: signInAnonymously) — Flutter: FirebaseAuth.instance.signInAnonymously() if not signed in (add firebase_auth to pubspec)
-/// - Realtime: onValue refundRequests + onValue allRefundRequests (merge new refundIds only) + refresh every 20s — same as HTML startRealtime() + setInterval(loadRefunds, 20000)
-/// - Filter: filterStatus (all / pending / approved / paid / rejected) + search (clientName + clientPhone + clientEmail + bookingId + nurseName + patientName) — same as HTML renderRefunds()
-/// - Stats: Pending, Approved, Paid, Rejected (counts by status), TOTAL GHS (sum parseFloat(amount)) — "GHS {total}" — same as HTML renderRefunds() stats
-///   countInfo: "{filtered} refund requests shown — {total} total — Filter: {filter} — Search: {search||none} — Each shows Client Photo Name Phone Email + Patient + Nurse + Paystack Ref + Time"
-/// - Card: cardClass pendingCard (yellow border) / approvedCard (green) / paidCard (blue) / rejectedCard (red) — same as HTML
-///   Header: "{refundId} — {bookingId}", "{STATUS} — {reason}", "{timeAgo} • {createdAtStr} • GHS {amount} • {currency||GHS} • Method: {method} • Destination: {destination}", badge STATUS
-///   timeAgo: <1m "Just now", <60m "{m}m ago", <24h "{h}h ago", else "{d}d ago" — same as HTML
-///   CLIENT — Photo Name Phone Email: clientPhotoUrl || clientPhoto || ui-avatars (name, facc15, 000), clientName, 📞 clientPhone, 📧 clientEmail, "LatLng: {clientLat}, {clientLng} • PhotoURL: YES — {first 30}... / NO"
-///   NURSE — Who Rejected / No-Show: nursePhotoUrl || ui-avatars (name, 22c55e, fff), nurseName, 📞 nursePhone, ID: nurseId
-///   PATIENT: {patientName} • 📞 {patientPhone} • 📍 {patientLocation} • LatLng: {patientLat}, {patientLng}
-///   BOOKING: {bookingId} • Status: {bookingStatus} • PayRef: {paystackRef} • Time: bookingTime||createdAt (en-GH)
-///   REFUND: Amount: GHS {amount} • Reason: {reason} • Details: {details}
-///   DESTINATION: {destination} • Method: {method}
-///   BookingKey: {bookingKey} • RefundID: {refundId}
-/// - Actions — same as HTML updateRefundStatus(refundId, bookingKey, newStatus):
-///   Confirm "Set refund {refundId} to {STATUS}?"
-///   Update refundRequests/{refundId} {status, updatedAt, updatedAtStr} + allRefundRequests/{refundId} {status, updatedAt} + if bookingKey: bookings/{bookingKey} {refundStatus, refundUpdatedAt}
-///   Update local + render, toast "✅ Refund {refundId} set to {status}"
-///   Buttons: ✅ Approve Refund (approved) | 💳 Mark as PAID — Paystack Done (paid) | ❌ Reject Refund (rejected) | ⏳ Set Pending (pending)
-/// - Contact buttons — same as HTML:
-///   📞 Call Client — {phone last 9} (tel: clientPhoneClean) | 💬 WhatsApp Client (https://wa.me/{phone without +}?text=Hello {clientName} your refund {refundId} for booking {bookingId} is {status} — CEO LOVE CARE GLOBAL) |
-///   💳 Open Paystack Dashboard (https://dashboard.paystack.com/) | 📞 Call Nurse (tel: nursePhoneClean)
-///   Phone clean: (clientPhone||'').replace(/[^0-9+]/g,'') — same as HTML
-/// - Empty: "💰 No refund requests yet — When client requests refund in refund-query.html, it appears here with client photo + phone + email + patient + nurse + Paystack ref"
-/// - NO alert buttons — only Sound Settings + CEO Home.
 
 class CEORefundManagementScreen extends StatefulWidget {
   const CEORefundManagementScreen({super.key});
@@ -38,181 +8,422 @@ class CEORefundManagementScreen extends StatefulWidget {
   State<CEORefundManagementScreen> createState() => _CEORefundManagementScreenState();
 }
 
+// Aliases - so main.dart + old files still work
+class CEORefundManagementPage extends CEORefundManagementScreen {
+  const CEORefundManagementPage({super.key});
+}
+class CeoRefundManagementScreen extends CEORefundManagementScreen {
+  const CeoRefundManagementScreen({super.key});
+}
+
 class _CEORefundManagementScreenState extends State<CEORefundManagementScreen> {
-  List<Map> allRefunds = [];
+  final DatabaseReference _db = FirebaseDatabase.instance.ref();
+  List<Map<String, dynamic>> allRefunds = [];
   String filterStatus = 'all';
-  String search = '';
-  Timer? _timer;
-  final _searchCtrl = TextEditingController();
-  StreamSubscription? _sub1, _sub2;
+  String searchQ = '';
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadRefunds();
     _startRealtime();
-    _timer = Timer.periodic(const Duration(seconds: 20), (_) => _loadRefunds());
   }
 
-  @override
-  void dispose() { _timer?.cancel(); _sub1?.cancel(); _sub2?.cancel(); super.dispose(); }
+  void _toast(String m) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  }
 
-  void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-
+  // Same as HTML loadRefunds() - merge refundRequests + allRefundRequests
   Future<void> _loadRefunds() async {
     try {
-      Map<String, Map> merged = {};
-      final snap1 = await FirebaseDatabase.instance.ref('refundRequests').get();
-      if (snap1.exists) (snap1.value as Map).forEach((k, v) { if (v is Map) merged[k.toString()] = Map<String, dynamic>.from(v); });
-      final snap2 = await FirebaseDatabase.instance.ref('allRefundRequests').get();
-      if (snap2.exists) (snap2.value as Map).forEach((k, v) { if (v is Map) merged[k.toString()] = Map<String, dynamic>.from(v); });
-      final list = merged.values.toList();
-      list.sort((a, b) => ((b['createdAt'] ?? 0) as num).compareTo((a['createdAt'] ?? 0) as num));
-      setState(() => allRefunds = list);
-    } catch (e) { _toast('Error: $e'); }
-  }
-
-  void _startRealtime() {
-    _sub1 = FirebaseDatabase.instance.ref('refundRequests').onValue.listen((e) {
-      if (!e.snapshot.exists) return;
-      final list = (e.snapshot.value as Map).values.map((v) => Map<String, dynamic>.from(v as Map)).toList();
-      list.sort((a, b) => ((b['createdAt'] ?? 0) as num).compareTo((a['createdAt'] ?? 0) as num));
-      setState(() => allRefunds = list);
-    });
-    _sub2 = FirebaseDatabase.instance.ref('allRefundRequests').onValue.listen((e) {
-      if (!e.snapshot.exists) return;
-      final currentIds = allRefunds.map((r) => r['refundId']).toSet();
-      final list = List<Map>.from(allRefunds);
-      for (final v in (e.snapshot.value as Map).values) {
-        final m = Map<String, dynamic>.from(v as Map);
-        if (!currentIds.contains(m['refundId'])) list.add(m);
+      final snap1 = await _db.child('refundRequests').get();
+      final snap2 = await _db.child('allRefundRequests').get();
+      final merged = <String, Map<String, dynamic>>{};
+      if (snap1.exists && snap1.value is Map) {
+        final data = Map<String, dynamic>.from(snap1.value as Map);
+        for (final e in data.entries) {
+          if (e.value is Map) merged[e.key.toString()] = {...Map<String, dynamic>.from(e.value as Map), 'refundId': (Map<String, dynamic>.from(e.value as Map)['refundId'] ?? e.key).toString()};
+        }
       }
-      list.sort((a, b) => ((b['createdAt'] ?? 0) as num).compareTo((a['createdAt'] ?? 0) as num));
-      setState(() => allRefunds = list);
+      if (snap2.exists && snap2.value is Map) {
+        final data = Map<String, dynamic>.from(snap2.value as Map);
+        for (final e in data.entries) {
+          if (e.value is Map) {
+            final v = Map<String, dynamic>.from(e.value as Map);
+            merged.putIfAbsent(e.key.toString(), () => {...v, 'refundId': (v['refundId'] ?? e.key).toString()});
+          }
+        }
+      }
+      allRefunds = merged.values.toList();
+      allRefunds.sort((a, b) => (int.tryParse('${b['createdAt'] ?? 0}') ?? 0).compareTo(int.tryParse('${a['createdAt'] ?? 0}') ?? 0));
+    } catch (e) {
+      _toast('Error: $e');
+    }
+    if (mounted) setState(() => isLoading = false);
+  }
+
+  // Same as HTML startRealtime() - onValue for both paths
+  void _startRealtime() {
+    _db.child('refundRequests').onValue.listen((e) {
+      if (e.snapshot.value == null || e.snapshot.value is! Map) return;
+      final data = Map<String, dynamic>.from(e.snapshot.value as Map);
+      for (final entry in data.entries) {
+        if (entry.value is! Map) continue;
+        final v = Map<String, dynamic>.from(entry.value as Map);
+        _addOrUpdate({...v, 'refundId': (v['refundId'] ?? entry.key).toString()});
+      }
+      _sortAll();
+    });
+    _db.child('allRefundRequests').onValue.listen((e) {
+      if (e.snapshot.value == null || e.snapshot.value is! Map) return;
+      final data = Map<String, dynamic>.from(e.snapshot.value as Map);
+      for (final entry in data.entries) {
+        if (entry.value is! Map) continue;
+        final v = Map<String, dynamic>.from(entry.value as Map);
+        final rid = (v['refundId'] ?? entry.key).toString();
+        final exists = allRefunds.any((r) => (r['refundId'] ?? '').toString() == rid);
+        if (!exists) allRefunds.add({...v, 'refundId': rid});
+      }
+      _sortAll();
     });
   }
 
-  List<Map> get filtered {
-    var list = List<Map>.from(allRefunds);
-    if (filterStatus != 'all') list = list.where((r) => (r['status'] ?? 'pending') == filterStatus).toList();
-    if (search.isNotEmpty) list = list.where((r) => '${r['clientName']} ${r['clientPhone']} ${r['clientEmail']} ${r['bookingId']} ${r['nurseName']} ${r['patientName']}'.toLowerCase().contains(search)).toList();
+  void _addOrUpdate(Map<String, dynamic> r) {
+    final rid = (r['refundId'] ?? '').toString();
+    final idx = allRefunds.indexWhere((x) => (x['refundId'] ?? '').toString() == rid);
+    if (idx == -1) {
+      allRefunds.add(r);
+    } else {
+      allRefunds[idx] = {...allRefunds[idx], ...r};
+    }
+  }
+
+  void _sortAll() {
+    allRefunds.sort((a, b) => (int.tryParse('${b['createdAt'] ?? 0}') ?? 0).compareTo(int.tryParse('${a['createdAt'] ?? 0}') ?? 0));
+    if (mounted) setState(() {});
+  }
+
+  // Same as HTML renderRefunds() filter + search
+  List<Map<String, dynamic>> get filtered {
+    var list = List<Map<String, dynamic>>.from(allRefunds);
+    if (filterStatus != 'all') list = list.where((r) => (r['status'] ?? 'pending').toString() == filterStatus).toList();
+    if (searchQ.trim().isNotEmpty) {
+      final q = searchQ.toLowerCase();
+      list = list.where((r) => '${r['clientName']} ${r['clientPhone']} ${r['clientEmail']} ${r['bookingId']} ${r['nurseName']} ${r['patientName']}'.toLowerCase().contains(q)).toList();
+    }
     return list;
   }
 
-  String _timeAgo(dynamic createdAt) {
-    final d = DateTime.now().millisecondsSinceEpoch - ((createdAt ?? DateTime.now().millisecondsSinceEpoch) as num).toInt();
+  String _timeAgo(dynamic t) {
+    final v = int.tryParse('$t') ?? 0;
+    if (v == 0) return '';
+    final d = DateTime.now().millisecondsSinceEpoch - v;
     final m = (d / 60000).floor();
     if (m < 1) return 'Just now';
-    if (m < 60) return '${m}m ago';
+    if (m < 60) return '$m m ago';
     final h = (m / 60).floor();
-    if (h < 24) return '${h}h ago';
+    if (h < 24) return '$h h ago';
     return '${(h / 24).floor()}d ago';
   }
 
-  String _cleanPhone(String? p) => (p ?? '').replaceAll(RegExp(r'[^0-9+]'), '');
-  String _avatarUrl(String? photo, String name, String bg, String fg) => (photo ?? '').isNotEmpty ? photo! : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(name)}&background=$bg&color=$fg';
+  String _dateStr(dynamic t) {
+    final v = int.tryParse('$t') ?? 0;
+    if (v == 0) return '';
+    final d = DateTime.fromMillisecondsSinceEpoch(v);
+    return '${d.day}/${d.month}/${d.year} ${d.hour}:${d.minute.toString().padLeft(2, '0')}';
+  }
 
-  Future<void> _updateRefundStatus(Map r, String newStatus) async {
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Set refund ${r['refundId']} to ${newStatus.toUpperCase()}?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirm'))]));
+  String _cleanPhone(String p) => p.replaceAll(RegExp(r'[^0-9+]'), '');
+
+  Future<void> _launch(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      _toast('Cannot open: $url');
+    }
+  }
+
+  // Same as HTML updateRefundStatus() - writes to 3 places
+  Future<void> _updateStatus(Map<String, dynamic> r, String newStatus) async {
+    final refundId = (r['refundId'] ?? '').toString();
+    final bookingKey = (r['bookingKey'] ?? '').toString();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1C1238),
+        title: Text('Set refund $refundId to ${newStatus.toUpperCase()}?', style: const TextStyle(color: Colors.white, fontSize: 14)),
+        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes'))],
+      ),
+    );
     if (confirm != true) return;
     try {
       final now = DateTime.now().millisecondsSinceEpoch;
-      await FirebaseDatabase.instance.ref('refundRequests/${r['refundId']}').update({'status': newStatus, 'updatedAt': now, 'updatedAtStr': DateTime.now().toString()});
-      await FirebaseDatabase.instance.ref('allRefundRequests/${r['refundId']}').update({'status': newStatus, 'updatedAt': now});
-      if ((r['bookingKey'] ?? '').toString().isNotEmpty) await FirebaseDatabase.instance.ref('bookings/${r['bookingKey']}').update({'refundStatus': newStatus, 'refundUpdatedAt': now});
-      setState(() { final idx = allRefunds.indexWhere((x) => x['refundId'] == r['refundId']); if (idx > -1) allRefunds[idx]['status'] = newStatus; });
-      _toast('✅ Refund ${r['refundId']} set to $newStatus');
-    } catch (e) { _toast('❌ Error: $e'); }
+      await _db.child('refundRequests/$refundId').update({'status': newStatus, 'updatedAt': now, 'updatedAtStr': DateTime.now().toString()});
+      await _db.child('allRefundRequests/$refundId').update({'status': newStatus, 'updatedAt': now});
+      if (bookingKey.isNotEmpty) {
+        await _db.child('bookings/$bookingKey').update({'refundStatus': newStatus, 'refundUpdatedAt': now});
+      }
+      final idx = allRefunds.indexWhere((x) => (x['refundId'] ?? '').toString() == refundId);
+      if (idx != -1) setState(() => allRefunds[idx]['status'] = newStatus);
+      _toast('✅ Refund $refundId set to $newStatus');
+    } catch (e) {
+      _toast('❌ Error: $e');
+    }
+  }
+
+  Color _cardBorder(String s) {
+    if (s == 'pending') return const Color(0xFFFACC15);
+    if (s == 'approved') return const Color(0xFF22C55E);
+    if (s == 'paid') return const Color(0xFF2563EB);
+    return const Color(0xFFEF4444);
+  }
+
+  Color _statusColor(String s) {
+    if (s == 'pending') return const Color(0xFFFACC15);
+    if (s == 'approved') return const Color(0xFF22C55E);
+    if (s == 'paid') return const Color(0xFF60A5FA);
+    return const Color(0xFFEF4444);
   }
 
   @override
   Widget build(BuildContext context) {
-    final pending = allRefunds.where((r) => r['status'] == 'pending').length;
+    final pending = allRefunds.where((r) => (r['status'] ?? 'pending') == 'pending').length;
     final approved = allRefunds.where((r) => r['status'] == 'approved').length;
     final paid = allRefunds.where((r) => r['status'] == 'paid').length;
     final rejected = allRefunds.where((r) => r['status'] == 'rejected').length;
-    final total = allRefunds.fold<double>(0, (s, r) => s + (double.tryParse(r['amount'].toString()) ?? 0));
+    final total = allRefunds.fold<double>(0, (sum, r) => sum + (double.tryParse('${r['amount'] ?? 0}') ?? 0));
     final list = filtered;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: const Text('CEO DASHBOARD — REFUND MANAGEMENT', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1C1238), actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _loadRefunds), IconButton(icon: const Icon(Icons.volume_up), onPressed: () => Navigator.pushNamed(context, '/sound-settings')), TextButton(onPressed: () => Navigator.pushNamed(context, '/ceo-dashboard'), child: const Text('CEO Home', style: TextStyle(color: Colors.white, fontSize: 11)))], bottom: const PreferredSize(preferredSize: Size.fromHeight(18), child: Padding(padding: EdgeInsets.only(bottom: 6), child: Text('● LIVE — Client Photo Phone Email + Patient + Nurse', style: TextStyle(fontSize: 10, color: Color(0xFFFACC15))))))),
-      body: SingleChildScrollView(padding: const EdgeInsets.all(12), child: Column(children: [
-        Row(children: [_stat('$pending', 'PENDING', const Color(0xFFFACC15)), _stat('$approved', 'APPROVED', const Color(0xFF22C55E)), _stat('$paid', 'PAID', const Color(0xFF60A5FA)), _stat('$rejected', 'REJECTED', const Color(0xFFEF4444)), _stat('GHS ${total.toStringAsFixed(0)}', 'TOTAL GHS', Colors.white)]),
-        const SizedBox(height: 12),
-        Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.08), border: Border.all(color: Colors.orange.withOpacity(0.2)), borderRadius: BorderRadius.circular(20)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('💰 Refund Requests from Clients — Reflects from refund-query.html — Real-time', style: TextStyle(fontSize: 13, color: Color(0xFFFACC15), fontWeight: FontWeight.bold)),
-          const Text('When client submits refund in refund-query.html, it saves to Firebase refundRequests + allRefundRequests + bookings/{id}/refundRequested — This CEO page shows them LIVE with Client Photo + Name + Phone + Email + Patient + Nurse + Time for you to Approve / Pay via Paystack', style: TextStyle(fontSize: 10, color: Color(0xFFA78BFA))),
-          const SizedBox(height: 10),
-          Row(children: [
-            SizedBox(width: 180, child: DropdownButton<String>(value: filterStatus, isExpanded: true, items: const [DropdownMenuItem(value: 'all', child: Text('All Status')), DropdownMenuItem(value: 'pending', child: Text('Pending')), DropdownMenuItem(value: 'approved', child: Text('Approved')), DropdownMenuItem(value: 'paid', child: Text('Paid')), DropdownMenuItem(value: 'rejected', child: Text('Rejected'))], onChanged: (v) => setState(() => filterStatus = v ?? 'all'))),
-            const SizedBox(width: 8),
-            Expanded(child: TextField(controller: _searchCtrl, decoration: const InputDecoration(hintText: 'Search: client name, phone, booking ID, nurse...', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)), onChanged: (v) => setState(() => search = v.toLowerCase()))),
-          ]),
-          const SizedBox(height: 8),
-          Text('${list.length} refund requests shown — ${allRefunds.length} total — Filter: $filterStatus — Search: ${search.isEmpty ? 'none' : search} — Each shows Client Photo Name Phone Email + Patient + Nurse + Paystack Ref + Time', style: const TextStyle(fontSize: 10, color: Colors.white60)),
-        ])),
-        const SizedBox(height: 12),
-        if (list.isEmpty) Container(padding: const EdgeInsets.all(30), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20)), child: const Column(children: [Text('💰', style: TextStyle(fontSize: 44)), Text('No refund requests yet', style: TextStyle(fontWeight: FontWeight.bold)), Text('When client requests refund in refund-query.html, it appears here with client photo + phone + email + patient + nurse + Paystack ref', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11))])),
-        ...list.map((r) {
-          final status = (r['status'] ?? 'pending').toString();
-          final statusColor = status == 'pending' ? const Color(0xFFFACC15) : status == 'approved' ? const Color(0xFF22C55E) : status == 'paid' ? const Color(0xFF60A5FA) : const Color(0xFFEF4444);
-          final clientPhoto = _avatarUrl((r['clientPhotoUrl'] ?? r['clientPhoto'])?.toString(), (r['clientName'] ?? 'Client').toString(), 'facc15', '000');
-          final nursePhoto = _avatarUrl(r['nursePhotoUrl']?.toString(), (r['nurseName'] ?? 'Nurse').toString(), '22c55e', 'fff');
-          final clientPhoneClean = _cleanPhone(r['clientPhone']?.toString());
-          final nursePhoneClean = _cleanPhone(r['nursePhone']?.toString());
-          return Container(margin: const EdgeInsets.only(bottom: 14), padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20), border: Border.all(color: statusColor, width: 2)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              CircleAvatar(radius: 24, backgroundImage: NetworkImage(clientPhoto)),
-              const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${r['refundId']} — ${r['bookingId']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                Text('${status.toUpperCase()} — ${r['reason'] ?? ''}', style: TextStyle(fontSize: 12, color: statusColor, fontWeight: FontWeight.bold)),
-                Text('${_timeAgo(r['createdAt'])} • ${r['createdAtStr'] ?? ''} • GHS ${r['amount'] ?? 0} • ${r['currency'] ?? 'GHS'} • Method: ${r['method'] ?? ''} • Destination: ${r['destination'] ?? ''}', style: const TextStyle(fontSize: 10, color: Color(0xFFA78BFA))),
-              ])),
-              Chip(label: Text(status.toUpperCase(), style: TextStyle(fontSize: 10, color: status == 'pending' ? const Color(0xFF1E0A3A) : Colors.white)), backgroundColor: statusColor),
-            ]),
-            const SizedBox(height: 14),
-            Row(children: [
-              Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('👤 CLIENT — Photo Name Phone Email Saved', style: TextStyle(fontSize: 11, color: Color(0xFFFACC15), fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Row(children: [CircleAvatar(backgroundImage: NetworkImage(clientPhoto)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r['clientName'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)), Text('📞 ${r['clientPhone'] ?? ''}', style: const TextStyle(fontSize: 11, color: Color(0xFF86EFAC))), Text('📧 ${r['clientEmail'] ?? ''}', style: const TextStyle(fontSize: 11, color: Color(0xFFA78BFA)))]))]),
-                Text('LatLng: ${r['clientLat'] ?? ''}, ${r['clientLng'] ?? ''} • PhotoURL: ${(r['clientPhotoUrl'] ?? '').toString().isNotEmpty ? 'YES — ${(r['clientPhotoUrl'] as String).substring(0, (r['clientPhotoUrl'] as String).length > 30 ? 30 : (r['clientPhotoUrl'] as String).length)}...' : 'NO'}', style: const TextStyle(fontSize: 10, color: Colors.white60)),
-              ]))),
-              const SizedBox(width: 10),
-              Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('👩‍⚕️ NURSE — Who Rejected / No-Show', style: TextStyle(fontSize: 11, color: Color(0xFF22C55E), fontWeight: FontWeight.bold)),
-                const SizedBox(height: 6),
-                Row(children: [CircleAvatar(backgroundImage: NetworkImage(nursePhoto)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r['nurseName'] ?? '', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)), Text('📞 ${r['nursePhone'] ?? ''}', style: const TextStyle(fontSize: 11, color: Color(0xFF86EFAC))), Text('ID: ${r['nurseId'] ?? ''}', style: const TextStyle(fontSize: 11, color: Color(0xFFA78BFA)))]))]),
-              ]))),
-            ]),
-            const SizedBox(height: 10),
-            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: Text('🏥 PATIENT: ${r['patientName'] ?? ''} • 📞 ${r['patientPhone'] ?? ''} • 📍 ${r['patientLocation'] ?? ''}${r['patientLat'] != null ? ' • LatLng: ${r['patientLat']}, ${r['patientLng']}' : ''}\n📅 BOOKING: ${r['bookingId']} • Status: ${r['bookingStatus'] ?? ''} • PayRef: ${r['paystackRef'] ?? ''} • Time: ${r['bookingTime'] != null ? DateTime.fromMillisecondsSinceEpoch((r['bookingTime'] as num).toInt()) : (r['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((r['createdAt'] as num).toInt()) : '')}\n💰 REFUND: Amount: GHS ${r['amount']} • Reason: ${r['reason']} • Details: ${r['details']}\n📲 DESTINATION: ${r['destination'] ?? ''} • Method: ${r['method'] ?? ''}\nBookingKey: ${r['bookingKey'] ?? ''} • RefundID: ${r['refundId']}', style: const TextStyle(fontSize: 11, color: Color(0xFFC4B5FD)))),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0E0A1C),
+        title: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('CEO DASHBOARD — REFUND MANAGEMENT', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            Text('● LIVE — Client Photo Phone Email + Patient + Nurse', style: TextStyle(fontSize: 10, color: Color(0xFFFACC15))),
+          ],
+        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+        actions: [
+          TextButton.icon(onPressed: _loadRefunds, icon: const Icon(Icons.refresh, color: Colors.white, size: 16), label: const Text('Refresh', style: TextStyle(color: Colors.white, fontSize: 11))),
+          Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: TextButton(onPressed: () => Navigator.pushNamed(context, '/ceo-dashboard'), style: TextButton.styleFrom(backgroundColor: const Color(0xFF22C55E), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))), child: const Text('CEO Home', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          children: [
+            // STATS - same as HTML
+            Row(
+              children: [
+                _stat('$pending', 'PENDING', const Color(0xFFFACC15)),
+                _stat('$approved', 'APPROVED', const Color(0xFF22C55E)),
+                _stat('$paid', 'PAID', const Color(0xFF60A5FA)),
+                _stat('$rejected', 'REJECTED', const Color(0xFFEF4444)),
+                _stat('GHS ${total.toStringAsFixed(0)}', 'TOTAL GHS', Colors.white),
+              ],
+            ),
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), onPressed: () => _updateRefundStatus(r, 'approved'), child: const Text('✅ Approve Refund', style: TextStyle(fontSize: 11)))),
-              const SizedBox(width: 6),
-              Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB)), onPressed: () => _updateRefundStatus(r, 'paid'), child: const Text('💳 Mark as PAID — Paystack Done', style: TextStyle(fontSize: 11)))),
-              const SizedBox(width: 6),
-              Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)), onPressed: () => _updateRefundStatus(r, 'rejected'), child: const Text('❌ Reject Refund', style: TextStyle(fontSize: 11)))),
-              const SizedBox(width: 6),
-              Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFB923C)), onPressed: () => _updateRefundStatus(r, 'pending'), child: const Text('⏳ Set Pending', style: TextStyle(fontSize: 11)))),
-            ]),
-            const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: OutlinedButton(onPressed: () => launchUrl(Uri.parse('tel:$clientPhoneClean')), child: Text('📞 Call Client — ${(r['clientPhone'] ?? '').toString().length >= 9 ? (r['clientPhone'] as String).substring((r['clientPhone'] as String).length - 9) : r['clientPhone'] ?? ''}', style: const TextStyle(fontSize: 10)))),
-              const SizedBox(width: 6),
-              Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF25D366)), onPressed: () => launchUrl(Uri.parse('https://wa.me/${clientPhoneClean.replaceAll('+', '')}?text=${Uri.encodeComponent('Hello ${r['clientName'] ?? ''} your refund ${r['refundId']} for booking ${r['bookingId']} is $status — CEO LOVE CARE GLOBAL')}'), mode: LaunchMode.externalApplication), child: const Text('💬 WhatsApp Client', style: TextStyle(fontSize: 10)))),
-              const SizedBox(width: 6),
-              Expanded(child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB)), onPressed: () => launchUrl(Uri.parse('https://dashboard.paystack.com/'), mode: LaunchMode.externalApplication), child: const Text('💳 Open Paystack Dashboard', style: TextStyle(fontSize: 10)))),
-              const SizedBox(width: 6),
-              Expanded(child: OutlinedButton(onPressed: () => launchUrl(Uri.parse('tel:$nursePhoneClean')), child: const Text('📞 Call Nurse', style: TextStyle(fontSize: 10)))),
-            ]),
-          ]));
-        }).toList(),
-      ])),
+            // INFO + FILTER + SEARCH
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: const Color(0xFFF59E0B).withOpacity(0.08), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.2))),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('💰 Refund Requests from Clients — Reflects from refund-query.html — Real-time', style: TextStyle(fontSize: 13, color: Color(0xFFFACC15), fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 4),
+                  const Text('When client submits refund in refund-query.html, it saves to Firebase refundRequests + allRefundRequests + bookings/{id}/refundRequested — This CEO page shows them LIVE with Client Photo + Name + Phone + Email + Patient + Nurse + Time for you to Approve / Pay via Paystack', style: TextStyle(fontSize: 10, color: Color(0xFFA78BFA))),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: filterStatus,
+                          dropdownColor: const Color(0xFF1C1238),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          decoration: InputDecoration(filled: true, fillColor: const Color(0xFF0E0A1C).withOpacity(0.6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.purple.withOpacity(0.2))), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                          items: const [DropdownMenuItem(value: 'all', child: Text('All Status')), DropdownMenuItem(value: 'pending', child: Text('Pending')), DropdownMenuItem(value: 'approved', child: Text('Approved')), DropdownMenuItem(value: 'paid', child: Text('Paid')), DropdownMenuItem(value: 'rejected', child: Text('Rejected'))],
+                          onChanged: (v) => setState(() => filterStatus = v ?? 'all'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
+                          onChanged: (v) => setState(() => searchQ = v),
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          decoration: InputDecoration(hintText: 'Search: client name, phone, booking ID, nurse...', hintStyle: const TextStyle(color: Colors.white54, fontSize: 11), filled: true, fillColor: const Color(0xFF0E0A1C).withOpacity(0.6), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.purple.withOpacity(0.2))), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text('${list.length} refund requests shown — ${allRefunds.length} total — Filter: $filterStatus — Search: ${searchQ.isEmpty ? 'none' : searchQ} — Each shows Client Photo Name Phone Email + Patient + Nurse + Paystack Ref + Time', style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (isLoading) const Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: Color(0xFFFACC15))),
+            if (!isLoading && list.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20)),
+                child: const Column(children: [Text('💰', style: TextStyle(fontSize: 44)), SizedBox(height: 8), Text('No refund requests yet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('When client requests refund in refund-query.html, it appears here with client photo + phone + email + patient + nurse + Paystack ref', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11))]),
+              ),
+            // LIST - same as HTML list.innerHTML map
+            ...list.map((r) {
+              final status = (r['status'] ?? 'pending').toString();
+              final clientName = (r['clientName'] ?? '').toString();
+              final nurseName = (r['nurseName'] ?? '').toString();
+              final clientPhoto = (r['clientPhotoUrl'] ?? r['clientPhoto'] ?? 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(clientName.isEmpty ? 'Client' : clientName)}&background=facc15&color=000').toString();
+              final nursePhoto = (r['nursePhotoUrl'] ?? 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(nurseName.isEmpty ? 'Nurse' : nurseName)}&background=22c55e&color=fff').toString();
+              final clientPhone = (r['clientPhone'] ?? '').toString();
+              final nursePhone = (r['nursePhone'] ?? '').toString();
+              final clientPhoneClean = _cleanPhone(clientPhone);
+              final nursePhoneClean = _cleanPhone(nursePhone);
+              final waText = Uri.encodeComponent('Hello $clientName your refund ${r['refundId']} for booking ${r['bookingId']} is $status — CEO LOVE CARE GLOBAL');
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20), border: Border.all(color: _cardBorder(status), width: 2)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header: Client avatar + name + status
+                    Row(
+                      children: [
+                        CircleAvatar(radius: 24, backgroundImage: NetworkImage(clientPhoto), backgroundColor: const Color(0xFF1E1A3A)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(clientName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                              Text('${r['bookingId'] ?? ''} • ${_timeAgo(r['createdAt'])}', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: _statusColor(status).withOpacity(0.15), borderRadius: BorderRadius.circular(999)), child: Text(status.toUpperCase(), style: TextStyle(color: _statusColor(status), fontSize: 10, fontWeight: FontWeight.bold))),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    // CLIENT + NURSE - 2 columns
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: const Color(0xFF0E0A1C).withOpacity(0.6), borderRadius: BorderRadius.circular(12)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('👤 CLIENT — Photo Name Phone Email Saved', style: TextStyle(fontSize: 11, color: Color(0xFFFACC15), fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 6),
+                                Row(children: [CircleAvatar(radius: 24, backgroundImage: NetworkImage(clientPhoto)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(clientName, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), Text('📞 $clientPhone', style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11)), Text('📧 ${r['clientEmail'] ?? ''}', style: const TextStyle(color: Color(0xFFA78BFA), fontSize: 11))]))]),
+                                const SizedBox(height: 6),
+                                Text('LatLng: ${r['clientLat'] ?? ''}, ${r['clientLng'] ?? ''} • PhotoURL: ${(r['clientPhotoUrl'] ?? '').toString().isNotEmpty ? 'YES' : 'NO'}', style: const TextStyle(fontSize: 10, color: Color(0xFF6B7280))),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: const Color(0xFF0E0A1C).withOpacity(0.6), borderRadius: BorderRadius.circular(12)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('👩‍⚕️ NURSE — Who Rejected / No-Show', style: TextStyle(fontSize: 11, color: Color(0xFF22C55E), fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 6),
+                                Row(children: [CircleAvatar(radius: 22, backgroundImage: NetworkImage(nursePhoto)), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(nurseName, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)), Text('📞 $nursePhone', style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11)), Text('ID: ${r['nurseId'] ?? ''}', style: const TextStyle(color: Color(0xFFA78BFA), fontSize: 11))]))]),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    // PATIENT + BOOKING + REFUND
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: const Color(0xFF0E0A1C).withOpacity(0.6), borderRadius: BorderRadius.circular(12)),
+                      child: Text.rich(
+                        TextSpan(
+                          style: const TextStyle(fontSize: 11, color: Color(0xFFC4B5FD), height: 1.6),
+                          children: [
+                            const TextSpan(text: '🏥 PATIENT: ', style: TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold)),
+                            TextSpan(text: '${r['patientName'] ?? ''} • 📞 ${r['patientPhone'] ?? ''} • 📍 ${r['patientLocation'] ?? ''}${(r['patientLat'] ?? '').toString().isNotEmpty ? ' • LatLng: ${r['patientLat']}, ${r['patientLng']}' : ''}\n'),
+                            const TextSpan(text: '📅 BOOKING: ', style: TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold)),
+                            TextSpan(text: '${r['bookingId']} • Status: ${r['bookingStatus'] ?? ''} • PayRef: ${r['paystackRef'] ?? ''} • Time: ${_dateStr(r['bookingTime'] ?? r['createdAt'])}\n'),
+                            const TextSpan(text: '💰 REFUND: ', style: TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold)),
+                            TextSpan(text: 'Amount: GHS ${r['amount']} • Reason: ${r['reason']} • Details: ${r['details']}\n'),
+                            const TextSpan(text: '📲 DESTINATION: ', style: TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold)),
+                            TextSpan(text: '${r['destination'] ?? ''} • Method: ${r['method'] ?? ''}\n'),
+                            TextSpan(text: 'BookingKey: ${r['bookingKey'] ?? ''} • RefundID: ${r['refundId']}', style: const TextStyle(color: Color(0xFFA78BFA))),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // ACTION BUTTONS - 4 in a row, wrap on mobile
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _btn('✅ Approve Refund', const Color(0xFF22C55E), Colors.white, () => _updateStatus(r, 'approved')),
+                        _btn('💳 Mark as PAID — Paystack Done', const Color(0xFF2563EB), Colors.white, () => _updateStatus(r, 'paid')),
+                        _btn('❌ Reject Refund', const Color(0xFFEF4444), Colors.white, () => _updateStatus(r, 'rejected')),
+                        _btn('⏳ Set Pending', const Color(0xFFFB923C), Colors.white, () => _updateStatus(r, 'pending')),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _btn('📞 Call Client — ${clientPhone.length >= 9 ? clientPhone.substring(clientPhone.length - 9) : clientPhone}', Colors.white.withOpacity(0.08), const Color(0xFFD8B4FE), () => _launch('tel:$clientPhoneClean')),
+                        _btn('💬 WhatsApp Client', const Color(0xFF25D366), Colors.white, () => _launch('https://wa.me/${clientPhoneClean.replaceAll('+', '')}?text=$waText')),
+                        _btn('💳 Open Paystack Dashboard', const Color(0xFF2563EB), Colors.white, () => _launch('https://dashboard.paystack.com/')),
+                        _btn('📞 Call Nurse', Colors.white.withOpacity(0.08), const Color(0xFFD8B4FE), () => _launch('tel:$nursePhoneClean')),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _stat(String value, String label, Color color) => Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.purple.withOpacity(0.15))), child: Column(children: [Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)), Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFFA78BFA)))])));
+  Widget _stat(String value, String label, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: const Color(0xFF0E0A1C).withOpacity(0.6), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.purple.withOpacity(0.15))),
+        child: Column(children: [Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)), const SizedBox(height: 2), Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFFA78BFA)))]),
+      ),
+    );
+  }
+
+  Widget _btn(String label, Color bg, Color fg, VoidCallback onTap) {
+    return SizedBox(
+      width: 160,
+      child: ElevatedButton(onPressed: onTap, style: ElevatedButton.styleFrom(backgroundColor: bg, foregroundColor: fg, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+    );
+  }
 }
