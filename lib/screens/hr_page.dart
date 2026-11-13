@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 /// HR Page - Nurse Withdrawals - CEO Control
@@ -21,13 +20,18 @@ class HRPageScreen extends StatefulWidget {
 }
 
 class _HRPageScreenState extends State<HRPageScreen> {
-  // FIX: Do NOT use FirebaseDatabase.instance on Web - it fails with
-  // "Cannot parse Firebase url" if FirebaseOptions has no databaseURL.
-  // Use the explicit RTDB URL for project web-care-618e8.
-  static const String _rtdbUrl = 'https://web-care-618e8-default-rtdb.firebaseio.com';
-  DatabaseReference _db(String path) {
-    return FirebaseDatabase.instanceFor(app: Firebase.app(), databaseURL: _rtdbUrl).ref(path);
+  // FIX for "Database initialized multiple times":
+  // Use ONE cached FirebaseDatabase instance, created ONCE.
+  // Do NOT call instanceFor() on every read - each call with a
+  // slightly different URL format (trailing slash or not) makes
+  // Firebase think you are initializing a second database.
+  // Now that lib/firebase_options.dart HAS databaseURL, .instance works.
+  static FirebaseDatabase? _cachedDb;
+  FirebaseDatabase get _database {
+    _cachedDb ??= FirebaseDatabase.instance;
+    return _cachedDb!;
   }
+  DatabaseReference _db(String path) => _database.ref(path);
 
   List<Map<String, dynamic>> _all = [];
   String _filter = 'all';
