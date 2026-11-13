@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>LoveCare Widget</title>
+<style>
+body{font-family:Inter,sans-serif;background:#0e0a1c;color:#e8e0ff;margin:0;padding:12px}
+.card{background:rgba(28,18,56,.85);border:1px solid rgba(168,85,247,.12);border-radius:12px;padding:12px;margin:8px 0}
+.nurse{display:flex;gap:10px;align-items:center;padding:8px;border-radius:10px;background:rgba(14,10,28,.5);margin:6px 0}
+.nurse img{width:40px;height:40px;border-radius:50%}
+.btn{padding:8px 12px;border-radius:8px;background:linear-gradient(135deg,#a855f7,#d8b4fe);color:#1e0a3a;font-weight:800;text-decoration:none;font-size:12px;display:inline-block;margin:4px}
+</style>
+</head>
+<body>
+<h3 style="color:#f3e8ff;margin:0 0 8px">LOVE CARE GLOBAL</h3>
+<small style="color:#a78bfa"><span id="availableCount">342</span> nurses available now</small>
+
+<div class="card">
+<b style="font-size:12px">Nearby Nurses</b>
+<div id="nursesList"></div>
+</div>
+
+<div class="card">
+<b style="font-size:12px">Quick Actions</b><br>
+<a href="./book-nurse.html" class="btn">📅 Book Nurse</a>
+<a href="./my-bookings.html" class="btn">📍 My Bookings</a>
+<a href="./alerts.html" class="btn">🔔 Alerts</a>
+<a href="./sos.html" class="btn">🆘 SOS</a>
+</div>
+
+<div class="card" id="alertCard" style="display:none">
+<b style="color:#4ade80" id="alertTitle"></b><br>
+<small id="alertBody"></small>
+</div>
+
+<script>
+fetch('./widget-data.json').then(r=>r.json()).then(data=>{
+  document.getElementById('availableCount').textContent=data.stats.availableNow;
+  const list=document.getElementById('nursesList');
+  list.innerHTML=data.nearbyNurses.slice(0,3).map(n=>`
+    <div class="nurse">
+      <img src="${n.photoURL}" onerror="this.src='./icon-192.png'">
+      <div><b style="font-size:12px">${n.fullName}</b><br><small>⭐ ${n.rating} • ${n.distance}km • ${n.services[0]}</small><br><small style="color:${n.isAvailable?'#4ade80':'#f87171'}">${n.isAvailable?'✅ Available':'⏰ Busy'}</small></div>
+    </div>
+  `).join('');
+  if(data.alerts && data.alerts[0] && !data.alerts[0].isRead){
+    document.getElementById('alertCard').style.display='block';
+    document.getElementById('alertTitle').textContent=data.alerts[0].title;
+    document.getElementById('alertBody').textContent=data.alerts[0].body;
+  }
+}).catch(()=>{});
+</script>
+</body>
+</html>

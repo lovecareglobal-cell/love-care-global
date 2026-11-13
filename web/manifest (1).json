@@ -1,0 +1,171 @@
+{
+  "id": "/index.html",
+  "name": "LOVE CARE GLOBAL HOME NURSING",
+  "short_name": "LoveCare Global",
+  "description": "Your health, our heart. Licensed nurses to your doorstep - 24/7 in 8 countries. Book verified nurses with live GPS tracking, video profiles, ratings, secure Paystack GHS/USD, SOS emergency, real-time accept/reject notifications and live tracking.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "scope_extensions": [
+    {
+      "origin": "https://lovecareglobal.com"
+    },
+    {
+      "origin": "https://www.lovecareglobal.com"
+    },
+    {
+      "origin": "https://asaberepeter204.github.io"
+    }
+  ],
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#a855f7",
+  "background_color": "#0e0a1c",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": [
+    "medical",
+    "health",
+    "lifestyle",
+    "business"
+  ],
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./icon-transparent-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./screenshot-wide-1280x720.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "LOVE CARE GLOBAL - Book nurses instantly with live tracking"
+    },
+    {
+      "src": "./screenshot-narrow-750x1334.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "24/7 Nursing Care - SOS Emergency - Live Tracking"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Book a Nurse",
+      "short_name": "Book",
+      "description": "Book a verified nurse now - Full or 50% payment - GHS/USD",
+      "url": "./book-nurse.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "My Bookings",
+      "short_name": "Bookings",
+      "description": "Track your bookings - Live nurse tracking - Accept/Reject notifications",
+      "url": "./my-bookings.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "short_name": "Alerts",
+      "description": "Real-time alerts when nurse accepts or rejects - Live tracking",
+      "url": "./alerts.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "SOS Emergency",
+      "short_name": "SOS",
+      "description": "Emergency SOS - Immediate help",
+      "url": "./sos.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Group Chat",
+      "short_name": "Chat",
+      "description": "Nurses group chat - Real-time messaging",
+      "url": "./nurse-group-chat.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "com.lovecareglobal.homenursing",
+      "url": "https://play.google.com/store/apps/details?id=com.lovecareglobal.homenursing"
+    }
+  ],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": [
+      "navigate-existing",
+      "auto"
+    ]
+  },
+  "handle_links": "preferred",
+  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-ad06c94a413d"
+}
