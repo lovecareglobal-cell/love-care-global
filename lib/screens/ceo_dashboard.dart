@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'force_delete.dart';
 
-/// CEO Dashboard - 13 Pages - Flutter version of ceo-dashboard.html
-/// - Header: "CEO Dashboard - 13 Pages" + badge "{pending} Refunds" + badge "13 Pages" + Home -> '/home'
-/// - Info card: "CEO Control - 13 Pages"
-/// - Grid - 13 cards, Home Banner REMOVED (file does not exist)
-/// - Auth: Firebase Realtime Database only, no alert buttons - only Sound Settings.
+/// CEO Dashboard - 14 Pages - + Sound Settings button - Flutter version of ceo-dashboard.html
+/// - Header: "CEO Dashboard - 14 Pages" + badge "{pending} Refunds" + badge "14 Pages" + Home -> '/home'
+/// - Info card: "CEO Control - 14 Pages"
+/// - Grid - 14 cards (13 + Sound Settings), Home Banner REMOVED (file does not exist)
+/// - Sound Settings: card 14 + AppBar volume icon, both -> /sound-settings (see main.dart route).
 
 class CEODashboardScreen extends StatefulWidget {
   const CEODashboardScreen({super.key});
@@ -51,6 +51,7 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
     {'num': '11', 'title': 'Force Delete', 'file': 'force_delete.dart', 'desc': 'Force wipe by email - DB + Firestore + Auth - 100% NEW', 'route': '/force-delete'},
     {'num': '12', 'title': 'Bookings Progress', 'file': 'ceo-bookings-progress.html', 'desc': 'All bookings status and date time', 'route': '/ceo-bookings-progress'},
     {'num': '13', 'title': 'HR Page - GHS and USD', 'file': 'hr-page-GHS-USD.html', 'desc': 'Card Global GHS Ghana plus USD outside Ghana', 'route': '/hr-page'},
+    {'num': '14', 'title': 'Sound Settings', 'file': 'sound_settings.dart', 'desc': 'Notification sounds ON / OFF', 'route': '/sound-settings'},
   ];
 
   @override
@@ -58,11 +59,11 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0C0A1E),
       appBar: AppBar(
-        title: const Text('CEO Dashboard - 13 Pages', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+        title: const Text('CEO Dashboard - 14 Pages', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF1A1633),
         actions: [
           Center(child: Padding(padding: const EdgeInsets.only(right: 8), child: Chip(label: Text('$pendingRefunds Refunds', style: const TextStyle(fontSize: 10)), backgroundColor: Colors.white10))),
-          const Center(child: Padding(padding: EdgeInsets.only(right: 8), child: Chip(label: Text('13 Pages', style: TextStyle(fontSize: 10, color: Color(0xFFFACC15))), backgroundColor: Color(0x14FACC15)))),
+          const Center(child: Padding(padding: EdgeInsets.only(right: 8), child: Chip(label: Text('14 Pages', style: TextStyle(fontSize: 10, color: Color(0xFFFACC15))), backgroundColor: Color(0x14FACC15)))),
           IconButton(icon: const Icon(Icons.volume_up), onPressed: () => Navigator.pushNamed(context, '/sound-settings')),
           TextButton(onPressed: () => Navigator.pushNamed(context, '/home'), child: const Text('Home', style: TextStyle(color: Colors.white, fontSize: 11))),
         ],
@@ -78,9 +79,9 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('CEO Control - 13 Pages', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  Text('CEO Control - 14 Pages', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   SizedBox(height: 6),
-                  Text('Clean - No duplicate - Chat Room replaced with CEO Notifications - Live Monitoring removed - GHS and USD supported - No emoji - Pure English', style: TextStyle(fontSize: 11, color: Color(0xFF9A95B8))),
+                  Text('Clean - No duplicate - Chat Room replaced with CEO Notifications - Live Monitoring removed - GHS and USD supported - No emoji - Pure English - Sound Settings added as card 14', style: TextStyle(fontSize: 11, color: Color(0xFF9A95B8))),
                 ],
               ),
             ),
@@ -106,6 +107,9 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => CEOForceWipeEmailPage()));
                       return;
                     }
+                    // Sound Settings card 14 -> /sound-settings -> sound_settings.dart
+                    // Confirmed: class is SoundSettingsScreen (alias SoundSettingsPage also works).
+                    // main.dart has: '/sound-settings': (context) => SoundSettingsScreen(),
                     Navigator.pushNamed(context, p['route']!);
                   },
                   child: Container(
