@@ -36,7 +36,11 @@ import 'screens/staff_login.dart';
 import 'screens/ceo_create_access.dart';
 import 'screens/staff_visits_monitor.dart';
 import 'screens/force_delete.dart';
-import 'screens/sound_settings.dart'; // already in repo - class = SoundSettingsScreen
+import 'screens/sound_settings.dart';
+import 'screens/dashboard_alerts.dart'; // Nurse + Client alerts - same as CEO, for their own info // SoundSettingsScreen + SoundService - for route + auto-ring
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Who is logged in? For personal nurse/client topics // FCM Push - phone alerts when app is closed
+import 'package:firebase_database/firebase_database.dart'; // Auto-ring listener
 
 // ALL SCREENS
 import 'screens/alert_settings.dart';
@@ -58,6 +62,149 @@ import 'screens/sos.dart';
 // CEO DEFAULT PASSWORD - Change inside app anytime after first login
 const String DEFAULT_CEO_PASSWORD = 'Peterasa80@you!';
 
+// FCM background handler - MUST be top-level, not inside a class.
+// Runs when a push arrives while the app is in background (not fully closed on Web -
+// on Web, firebase-messaging-sw.js handles the fully-closed case).
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+}
+
+// ---------- CEO AUTO-RING (app OPEN) ----------
+// Watches ceoRegistrationCenter/nurses + clients. When a NEW one appears
+// (not the ones already there when the app opens), plays your chosen Love Care
+// sound 3x - so you hear it even if you are looking at another tab.
+// This works only while the tab is OPEN. For CLOSED app, FCM Push (above + sw.js)
+// sends the phone notification instead.
+int _ceoNurseCount = -1;
+int _ceoClientCount = -1;
+bool _ceoRingSetup = false;
+void _setupCeoAutoRing() {
+  if (_ceoRingSetup) return;
+  _ceoRingSetup = true;
+  try {
+    final db = FirebaseDatabase.instance;
+    db.ref('ceoRegistrationCenter/nurses').onValue.listen((e) {
+      final count = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+      if (_ceoNurseCount == -1) { _ceoNurseCount = count; return; } // first load - don't ring for old ones
+      if (count > _ceoNurseCount) {
+        _ceoNurseCount = count;
+        SoundService.playCustomSound('new_nurse');
+      } else {
+        _ceoNurseCount = count;
+      }
+    });
+    db.ref('ceoRegistrationCenter/clients').onValue.listen((e) {
+      final count = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+      if (_ceoClientCount == -1) { _ceoClientCount = count; return; }
+      if (count > _ceoClientCount) {
+        _ceoClientCount = count;
+        SoundService.playCustomSound('new_client');
+      } else {
+        _ceoClientCount = count;
+      }
+    });
+  } catch (_) {}
+}
+
+// ---------- NURSE + CLIENT AUTO (in main.dart, so NO dashboard edit needed) ----------
+// DashboardAlerts helper (dashboard_alerts.dart) also works if you call it from a
+// dashboard - this version works AUTOMATICALLY, so you don't have to edit
+// nurse_dashboard.dart or client_dashboard.dart at all.
+// It waits for FirebaseAuth, then:
+//   - Subscribes to personal topic 'user_{uid}' -> Cloud Function sends ONLY my info
+//   - Listens ONLY to my nodes -> Ama does NOT hear Kofi's job offers
+//   - First load ignored -> only NEW items ring
+bool _userAlertSetup = false;
+final Map<String, int> _userAlertCounts = {};
+void _userAlertRing(String key, int count) {
+  final old = _userAlertCounts[key] ?? -1;
+  if (old == -1) { _userAlertCounts[key] = count; return; }
+  if (count > old) { _userAlertCounts[key] = count; SoundService.playCustomSound('new_info'); }
+  else { _userAlertCounts[key] = count; }
+}
+void _setupUserAlerts() {
+  if (_userAlertSetup) return;
+  _userAlertSetup = true;
+  FirebaseAuth.instance.authStateChanges().listen((user) async {
+    if (user == null) return;
+    final uid = user.uid;
+    try {
+      final m = FirebaseMessaging.instance;
+      await m.subscribeToTopic('user_$uid');
+      await m.subscribeToTopic('nurses');
+      await m.subscribeToTopic('clients');
+      debugPrint('FCM subscribed: user_$uid + nurses + clients');
+    } catch (_) {}
+    try {
+      final db = FirebaseDatabase.instance;
+      db.ref('notifications/nurses/$uid').onValue.listen((e) {
+        final c = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+        _userAlertRing('notif_nurse_$uid', c);
+      });
+      db.ref('notifications/clients/$uid').onValue.listen((e) {
+        final c = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+        _userAlertRing('notif_client_$uid', c);
+      });
+      db.ref('notifications/$uid').onValue.listen((e) {
+        final c = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+        _userAlertRing('notif_user_$uid', c);
+      });
+      db.ref('bookings').onValue.listen((e) {
+        if (e.snapshot.value is! Map) return;
+        int mine = 0;
+        (e.snapshot.value as Map).forEach((k, v) {
+          if (v is Map && (v['nurseId'] == uid || v['clientId'] == uid || v['nurseUid'] == uid || v['clientUid'] == uid || v['toId'] == uid)) mine++;
+        });
+        _userAlertRing('bookings_$uid', mine);
+      });
+      for (final path in ['jobOffers', 'my_job_offer', 'job_offers', 'offers']) {
+        db.ref(path).onValue.listen((e) {
+          if (e.snapshot.value is! Map) return;
+          int mine = 0;
+          (e.snapshot.value as Map).forEach((k, v) {
+            if (v is Map && (v['nurseId'] == uid || v['nurseUid'] == uid || v['toId'] == uid || v['receiverId'] == uid)) mine++;
+          });
+          _userAlertRing('${path}_$uid', mine);
+        });
+      }
+      for (final path in ['chatMessages', 'messages', 'chats']) {
+        db.ref(path).onValue.listen((e) {
+          if (e.snapshot.value is! Map) return;
+          int mine = 0;
+          (e.snapshot.value as Map).forEach((k, v) {
+            if (v is Map && (v['toId'] == uid || v['receiverId'] == uid || v['toUid'] == uid)) mine++;
+          });
+          _userAlertRing('${path}_$uid', mine);
+        });
+      }
+    } catch (_) {}
+  });
+}
+
+Future<void> _setupFCM() async {
+  try {
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    final messaging = FirebaseMessaging.instance;
+    // Ask once: "Allow Notifications?" - if you tap Block, closed-app alerts will NOT work.
+    final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
+    debugPrint('FCM permission: ${settings.authorizationStatus}');
+    // CEO phone subscribes to 'ceo' topic - Cloud Function sends to this topic only.
+    // Nurses/clients do NOT subscribe - only CEO gets these pushes.
+    // Note: on Web, topic subscribe needs the sw.js registered - Firebase handles it.
+    try { await messaging.subscribeToTopic('ceo'); } catch (_) {}
+    _setupUserAlerts(); // Nurse + Client personal topics + auto-ring, after login
+    // Foreground: app OPEN - play Love Care sound too, not just show a banner.
+    FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
+      SoundService.playCustomSound('push');
+    });
+    // Get token for debugging - you can paste it in Firebase Console > Cloud Messaging > Send test message
+    final token = await messaging.getToken(vapidKey: null);
+    debugPrint('FCM TOKEN: $token');
+  } catch (e) {
+    debugPrint('FCM setup failed (web/demo mode): $e');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -67,6 +214,8 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase init failed (web/demo mode): $e');
   }
+  _setupCeoAutoRing(); // auto-ring while app is OPEN
+  await _setupFCM(); // push when app is CLOSED
   runApp(const LoveCareApp());
 }
 
@@ -119,10 +268,7 @@ class LoveCareApp extends StatelessWidget {
         '/staff-visits-monitor': (context) => StaffVisitsMonitorPage(),
         '/ceo-notifications': (context) => StaffVisitsMonitorPage(),
         '/force-delete': (context) => CEOForceWipeEmailPage(),
-        // SOUND SETTINGS - this was missing, so pushNamed('/sound-settings')
-        // fell to onUnknownRoute -> Home. Now it opens Sound Settings.
-        // Confirmed class from your uploaded file: SoundSettingsScreen
-        // (alias SoundSettingsPage also works)
+        // SOUND SETTINGS - was missing, so button went to Home. Confirmed class: SoundSettingsScreen
         '/sound-settings': (context) => SoundSettingsScreen(),
         // CEO Dashboard link goes to PASSWORD GATE first, NOT straight to dashboard.
         // This keeps your secret gate: /ceo-dashboard -> enter CEO password -> dashboard.
