@@ -75,7 +75,7 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: const Color(0xFF1A1633), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white10)),
-              child: const Column(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('CEO Control - 13 Pages', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
@@ -99,7 +99,7 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
                     // have that route, Flutter falls back to home (main.dart /
                     // Welcome dialog) - which is the bug you just saw.
                     if (p['route'] == '/force-delete') {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ForceDeletePage()));
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => ForceDeletePage()));
                       return;
                     }
                     Navigator.pushNamed(context, p['route']!);
