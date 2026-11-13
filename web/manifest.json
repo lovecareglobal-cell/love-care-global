@@ -1,10 +1,10 @@
 {
-  "id": "/love-care-global/",
+  "id": "/love-care-global/web/",
   "name": "LOVE CARE GLOBAL HOME NURSING",
   "short_name": "LoveCare Global",
   "description": "Your health, our heart. Licensed nurses to your doorstep - 24/7 in 8 countries. Book verified nurses with live GPS tracking, video profiles, ratings, secure Paystack GHS/USD, SOS emergency, real-time accept/reject notifications and live tracking.",
-  "start_url": "/love-care-global/index.html",
-  "scope": "/love-care-global/",
+  "start_url": "/love-care-global/web/index.html",
+  "scope": "/love-care-global/web/",
   "scope_extensions": [
     {
       "origin": "https://lovecareglobal.com"
@@ -48,37 +48,19 @@
       "purpose": "any"
     },
     {
-      "src": "./icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icon-192%20(1).png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./icon-192%20(1).png",
+      "src": "./icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "./icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./icon-512%20(2).png",
+      "src": "./icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
@@ -100,24 +82,15 @@
       "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "./screenshot-wide-1280x720.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "LOVE CARE GLOBAL - Book nurses instantly with live tracking"
     },
     {
-      "src": "./screenshot-narrow-750x1334.png",
-      "sizes": "750x1334",
+      "src": "./icon-1024.png",
+      "sizes": "1024x1024",
       "type": "image/png",
-      "form_factor": "narrow",
-      "label": "24/7 Nursing Care - SOS Emergency - Live Tracking"
+      "purpose": "maskable"
     }
   ],
+  "screenshots": [],
   "shortcuts": [
     {
       "name": "Book a Nurse",
@@ -126,7 +99,7 @@
       "url": "./book-nurse.html",
       "icons": [
         {
-          "src": "./icon-192%20(1).png",
+          "src": "./icon-192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -139,7 +112,7 @@
       "url": "./my-bookings.html",
       "icons": [
         {
-          "src": "./icon-192%20(1).png",
+          "src": "./icon-192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -152,7 +125,7 @@
       "url": "./alerts.html",
       "icons": [
         {
-          "src": "./icon-192%20(1).png",
+          "src": "./icon-192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -165,7 +138,7 @@
       "url": "./sos.html",
       "icons": [
         {
-          "src": "./icon-192%20(1).png",
+          "src": "./icon-192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -178,7 +151,7 @@
       "url": "./nurse-group-chat.html",
       "icons": [
         {
-          "src": "./icon-192%20(1).png",
+          "src": "./icon-192.png",
           "sizes": "192x192",
           "type": "image/png"
         }
@@ -186,7 +159,7 @@
     }
   ],
   "share_target": {
-    "action": "/love-care-global/",
+    "action": "/love-care-global/web/",
     "method": "GET",
     "params": {
       "title": "title",
