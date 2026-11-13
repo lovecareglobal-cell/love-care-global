@@ -95,11 +95,15 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
                 return InkWell(
                   onTap: () {
                     // Force Delete MUST open force_delete.dart directly.
+                    // Use CEOForceWipeEmailPage() - it exists in BOTH versions of
+                    // force_delete.dart (old = real class, new = typedef alias).
+                    // ForceDeletePage() only exists in the NEW file, so using it
+                    // breaks the build if you renamed the OLD file instead.
                     // Do NOT use pushNamed('/force-delete') - if main.dart does not
                     // have that route, Flutter falls back to home (main.dart /
                     // Welcome dialog) - which is the bug you just saw.
                     if (p['route'] == '/force-delete') {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => ForceDeletePage()));
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => CEOForceWipeEmailPage()));
                       return;
                     }
                     Navigator.pushNamed(context, p['route']!);
