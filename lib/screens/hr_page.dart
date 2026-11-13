@@ -1,30 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_database/firebase_database.dart';
 
-/// HR Page - GHS / USD - Flutter version of hr-page-GHS-USD.html
-/// NOTE: Despite the filename "GHS-USD", the HTML shows ONLY GHS amounts (no USD conversion, no exchange rate).
-/// This Flutter version keeps the same GHS display as HTML, with USD shown as GHS amount (same as HTML — no conversion).
-/// - Loads LIVE from ceoWithdrawals (onValue), sorted createdAt desc
-/// - Counts: all, pending, approved (approved+completed), rejected, momo, bank, card
-///   Stats: Pending (count + amount), Approved (count + amount), Rejected (count + amount), Total Requested (GHS total), MoMo count, Bank count, totalBadge "{all} Requests"
-/// - Filters: all / pending / approved / rejected / momo / bank / card — same as HTML filterStatus()
-/// - Card: GHS {amount} - {METHOD} + status badge PENDING/APPROVED/COMPLETED/REJECTED, Nurse (name + email), Booking ID (yellow) + Booking Total, Nurse ID, Requested time, method details (MoMo: network/number/name, Bank: bank/account/name/branch, Card: type/****last4/name), CEO Note / HR Note
-/// - Approve: prompt note (default "Approved - Sent via {method}") -> confirm "Approve GHS {amount}?" -> update status approved, approved true, approvedAt, approvedAtStr, ceoNote note, approvedBy "CEO Asabere Peter" in nurseWithdrawals + ceoWithdrawals + hrWithdrawals + withdrawalRequests + ceoHRPage/withdrawals + nurseNotifications/{nurseId}/{id} {type withdrawal_approved, title "Withdrawal Approved - GHS {amount}", message "Your withdrawal of GHS {amount} via {method} approved. {note}", read false}
-/// - Reject: prompt reason (default "Insufficient details") -> confirm "Reject?" -> update status rejected, approved false, rejectedAt, rejectedAtStr, ceoNote reason, rejectedBy "CEO" in nurseWithdrawals + ceoWithdrawals + hrWithdrawals
-/// - Details: dialog with ID / Nurse / Amount / Method / Status / Time / method details — same as HTML viewDetails alert
-/// - Copy Details: clipboard "Withdrawal ID: ... Nurse: ... (...) Amount: GHS ... Method: ... MoMo/Bank/Card details" -> toast Copied — same as HTML copyDetails
-/// - NO alert buttons — only Sound Settings.
+/// HR Page - Nurse Withdrawals - CEO Control
+/// Converted from hr-page-GHS-USD_3.html
+/// - Reads: ceoWithdrawals (live) + fallback: nurseWithdrawals, hrWithdrawals,
+///   withdrawalRequests, ceoHRPage/withdrawals (merges by id, so old withdrawals
+///   saved to a different path still show up - same recall fix as Registration Center)
+/// - Amounts: GHS is primary. If a record also has dollars / amountUSD / USD,
+///   both GHS + USD are shown. Totals are in GHS.
+/// - Approve / Reject: writes to ALL 5 paths (like the HTML did), + nurse notification
+/// - NEVER BLANK: always shows Loading, then List / Empty / Error banner.
+///   Firebase errors are shown on screen instead of a white page.
 
-class HRPageScreen extends StatefulWidget {
-  const HRPageScreen({super.key});
+class HRWithdrawalsPage extends StatefulWidget {
+  const HRWithdrawalsPage({super.key});
   @override
-  State<HRPageScreen> createState() => _HRPageScreenState();
+  State<HRWithdrawalsPage> createState() => _HRWithdrawalsPageState();
 }
 
-class _HRPageScreenState extends State<HRPageScreen> {
-  List<Map> all = [];
-  String currentFilter = 'all';
+class _HRWithdrawalsPageState extends State<HRWithdrawalsPage> {
+  List<Map<String, dynamic>> _all = [];
+  String _filter = 'all';
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -32,165 +31,432 @@ class _HRPageScreenState extends State<HRPageScreen> {
     _loadAll();
   }
 
-  void _loadAll() {
-    FirebaseDatabase.instance.ref('ceoWithdrawals').onValue.listen((e) {
-      if (!e.snapshot.exists) { setState(() => all = []); return; }
-      final list = <Map>[];
-      (e.snapshot.value as Map).forEach((k, v) { list.add({...Map<String, dynamic>.from(v as Map), 'id': k}); });
-      setState(() => all = list);
+  // ---------- Load ----------
+  Future<void> _loadAll() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      // 1. Live listener on the main path (like the HTML)
+      FirebaseDatabase.instance.ref('ceoWithdrawals').onValue.listen(
+        (event) {
+          if (!mounted) return;
+          final val = event.snapshot.value;
+          final list = <Map<String, dynamic>>[];
+          if (val is Map) {
+            val.forEach((k, v) {
+              if (v is Map) list.add({'id': k.toString(), ...Map<String, dynamic>.from(v)});
+            });
+          }
+          _mergeAndSet(list, fromLive: true);
+        },
+        onError: (e) {
+          if (mounted) setState(() => _error = 'Live updates failed: $e');
+        },
+      );
+      // 2. One-time fallback: other paths where old withdrawals may live
+      await _loadFallback();
+      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      if (mounted) setState(() {
+        _loading = false;
+        _error = 'Could not load withdrawals: $e\nCheck Firebase Rules for ceoWithdrawals.';
+      });
+    }
+  }
+
+  Future<void> _loadFallback() async {
+    final byId = <String, Map<String, dynamic>>{for (final w in _all) w['id'].toString(): w};
+    for (final path in ['nurseWithdrawals', 'hrWithdrawals', 'withdrawalRequests', 'ceoHRPage/withdrawals']) {
+      try {
+        final snap = await FirebaseDatabase.instance.ref(path).get();
+        if (!snap.exists) continue;
+        final val = snap.value;
+        if (val is! Map) continue;
+        val.forEach((k, v) {
+          if (v is! Map) return;
+          final id = k.toString();
+          if (!byId.containsKey(id)) {
+            byId[id] = {'id': id, ...Map<String, dynamic>.from(v)};
+          }
+        });
+      } catch (_) {}
+    }
+    if (mounted) setState(() => _all = byId.values.toList());
+  }
+
+  void _mergeAndSet(List<Map<String, dynamic>> live, {required bool fromLive}) {
+    // Live list wins for records it has; fallback records already in _all are kept
+    // if the live list is empty (e.g. ceoWithdrawals was never written, old ones live elsewhere)
+    if (live.isEmpty && _all.isNotEmpty) return;
+    setState(() {
+      _all = live;
+      _loading = false;
     });
   }
 
-  Map<String, dynamic> get counts {
+  // ---------- Helpers ----------
+  double _amt(Map w) {
+    final v = w['amount'] ?? w['amountGHS'] ?? w['ghs'] ?? w['GHS'] ?? 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
+  double? _usd(Map w) {
+    final v = w['amountUSD'] ?? w['dollars'] ?? w['USD'] ?? w['usd'];
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString());
+  }
+
+  String _status(Map w) => ((w['status'] ?? 'pending') as String).toLowerCase();
+  String _method(Map w) => ((w['method'] ?? '') as String).toLowerCase();
+
+  List<Map<String, dynamic>> get _filtered {
+    var list = List<Map<String, dynamic>>.from(_all);
+    if (_filter == 'momo' || _filter == 'bank' || _filter == 'card') {
+      list = list.where((w) => _method(w) == _filter).toList();
+    } else if (_filter != 'all') {
+      list = list.where((w) => _status(w) == _filter).toList();
+    }
+    list.sort((a, b) {
+      final at = (a['createdAt'] is num ? (a['createdAt'] as num).toInt() : 0);
+      final bt = (b['createdAt'] is num ? (b['createdAt'] as num).toInt() : 0);
+      return bt.compareTo(at);
+    });
+    return list;
+  }
+
+  Map<String, dynamic> get _counts {
     int pending = 0, approved = 0, rejected = 0, momo = 0, bank = 0, card = 0;
     double total = 0, pendingAmt = 0, approvedAmt = 0, rejectedAmt = 0;
-    for (final w in all) {
-      final s = (w['status'] ?? 'pending').toString().toLowerCase();
-      final amt = double.tryParse((w['amount'] ?? 0).toString()) ?? 0;
+    for (final w in _all) {
+      final s = _status(w);
+      final amt = _amt(w);
       total += amt;
       if (s == 'pending') { pending++; pendingAmt += amt; }
       else if (s == 'approved' || s == 'completed') { approved++; approvedAmt += amt; }
       else if (s == 'rejected') { rejected++; rejectedAmt += amt; }
-      if (w['method'] == 'momo') momo++;
-      if (w['method'] == 'bank') bank++;
-      if (w['method'] == 'card') card++;
+      if (_method(w) == 'momo') momo++;
+      if (_method(w) == 'bank') bank++;
+      if (_method(w) == 'card') card++;
     }
-    return {'all': all.length, 'pending': pending, 'approved': approved, 'rejected': rejected, 'momo': momo, 'bank': bank, 'card': card, 'total': total, 'pendingAmt': pendingAmt, 'approvedAmt': approvedAmt, 'rejectedAmt': rejectedAmt};
+    return {
+      'all': _all.length, 'pending': pending, 'approved': approved, 'rejected': rejected,
+      'momo': momo, 'bank': bank, 'card': card,
+      'total': total, 'pendingAmt': pendingAmt, 'approvedAmt': approvedAmt, 'rejectedAmt': rejectedAmt,
+    };
   }
 
-  List<Map> get filtered {
-    var f = List<Map>.from(all);
-    if (currentFilter != 'all') {
-      if (['momo', 'bank', 'card'].contains(currentFilter)) f = f.where((w) => w['method'] == currentFilter).toList();
-      else f = f.where((w) => (w['status'] ?? 'pending').toString().toLowerCase() == currentFilter).toList();
-    }
-    f.sort((a, b) => ((b['createdAt'] ?? 0) as num).compareTo((a['createdAt'] ?? 0) as num));
-    return f;
+  void _toast(String m) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
   }
 
-  String _statusText(Map w) {
-    final s = (w['status'] ?? '').toString().toLowerCase();
-    if (s == 'approved') return 'APPROVED';
-    if (s == 'completed') return 'COMPLETED';
-    if (s == 'rejected') return 'REJECTED';
-    return 'PENDING';
-  }
-
-  String _methodDetails(Map w) {
-    if (w['method'] == 'momo') return 'Network: ${w['momoNetwork'] ?? 'MoMo'}\nNumber: ${w['momoNumber'] ?? ''}\nName: ${w['momoName'] ?? ''}';
-    if (w['method'] == 'bank') return 'Bank: ${w['bankName'] ?? ''}\nAccount: ${w['bankAccount'] ?? ''}\nName: ${w['bankAccountName'] ?? ''}\nBranch: ${w['bankBranch'] ?? 'N/A'}';
-    if (w['method'] == 'card') return 'Type: ${w['cardType'] ?? ''}\nLast 4: ****${w['cardNumber'] ?? ''}\nName: ${w['cardName'] ?? ''}';
-    return '';
-  }
-
-  void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-
-  Future<String?> _prompt(String title, String initial) async {
+  // ---------- Approve / Reject ----------
+  Future<String?> _askText(String title, String initial) async {
     final ctrl = TextEditingController(text: initial);
-    return showDialog<String>(context: context, builder: (_) => AlertDialog(title: Text(title), content: TextField(controller: ctrl), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('OK'))]));
-  }
-
-  Future<void> _approve(Map w) async {
-    final note = await _prompt('Approve this withdrawal? Enter note for nurse:', 'Approved - Sent via ${w['method'] ?? ''}');
-    if (note == null) return;
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Approve?'), content: Text('Approve GHS ${w['amount'] ?? 0}?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Approve'))]));
-    if (confirm != true) return;
-    try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final upd = {'status': 'approved', 'approved': true, 'approvedAt': now, 'approvedAtStr': DateTime.now().toString(), 'ceoNote': note, 'approvedBy': 'CEO Asabere Peter'};
-      final db = FirebaseDatabase.instance;
-      final id = w['id'];
-      await db.ref('nurseWithdrawals/$id').update(upd);
-      await db.ref('ceoWithdrawals/$id').update(upd);
-      await db.ref('hrWithdrawals/$id').update(upd);
-      await db.ref('withdrawalRequests/$id').update(upd);
-      await db.ref('ceoHRPage/withdrawals/$id').update(upd);
-      if (w['nurseId'] != null) await db.ref('nurseNotifications/${w['nurseId']}/$id').set({'type': 'withdrawal_approved', 'title': 'Withdrawal Approved - GHS ${w['amount']}', 'message': 'Your withdrawal of GHS ${w['amount']} via ${w['method']} approved. $note', 'amount': w['amount'], 'method': w['method'], 'createdAt': now, 'read': false});
-      _toast('Approved');
-    } catch (e) { _toast(e.toString()); }
-  }
-
-  Future<void> _reject(Map w) async {
-    final reason = await _prompt('Reject? Enter reason:', 'Insufficient details');
-    if (reason == null) return;
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Reject?'), content: const Text('Reject?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Reject'))]));
-    if (confirm != true) return;
-    try {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final upd = {'status': 'rejected', 'approved': false, 'rejectedAt': now, 'rejectedAtStr': DateTime.now().toString(), 'ceoNote': reason, 'rejectedBy': 'CEO'};
-      final db = FirebaseDatabase.instance;
-      final id = w['id'];
-      await db.ref('nurseWithdrawals/$id').update(upd);
-      await db.ref('ceoWithdrawals/$id').update(upd);
-      await db.ref('hrWithdrawals/$id').update(upd);
-      _toast('Rejected');
-    } catch (e) { _toast(e.toString()); }
-  }
-
-  void _viewDetails(Map w) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      title: Text('Withdrawal Details: ${w['withdrawalId'] ?? w['id']}'),
-      content: SingleChildScrollView(child: Text('ID: ${w['withdrawalId'] ?? w['id']}\nNurse: ${w['nurseName']}\nAmount: GHS ${w['amount']}\nMethod: ${w['method']}\nStatus: ${w['status']}\nTime: ${w['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((w['createdAt'] as num).toInt()) : ''}\n\nDetails: ${_methodDetails(w)}')),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-    ));
-  }
-
-  void _copyDetails(Map w) {
-    final text = 'Withdrawal ID: ${w['withdrawalId'] ?? w['id']} Nurse: ${w['nurseName']} (${w['nurseId']}) Amount: GHS ${w['amount']} Method: ${w['method']} ${w['method'] == 'momo' ? 'MoMo: ${w['momoNetwork']} ${w['momoNumber']} Name: ${w['momoName']}' : w['method'] == 'bank' ? 'Bank: ${w['bankName']} Acc: ${w['bankAccount']} Name: ${w['bankAccountName']}' : 'Card: ${w['cardType']} ****${w['cardNumber']} Name: ${w['cardName']}'}';
-    Clipboard.setData(ClipboardData(text: text));
-    _toast('Copied');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = counts;
-    final list = filtered;
-    final filters = ['all', 'pending', 'approved', 'rejected', 'momo', 'bank', 'card'];
-    return Scaffold(
-      backgroundColor: const Color(0xFF0C0A1E),
-      appBar: AppBar(title: const Text('HR Page - Nurse Withdrawals', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [Center(child: Padding(padding: const EdgeInsets.only(right: 8), child: Chip(label: Text("${c['all']} Requests", style: const TextStyle(fontSize: 11))))), IconButton(icon: const Icon(Icons.volume_up), onPressed: () => Navigator.pushNamed(context, '/sound-settings'))]),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(children: [
-          Wrap(spacing: 8, runSpacing: 8, children: [
-            _stat('Pending', '${c['pending']}', 'GHS ${(c['pendingAmt'] as double).toStringAsFixed(2)}'),
-            _stat('Approved', '${c['approved']}', 'GHS ${(c['approvedAmt'] as double).toStringAsFixed(2)}'),
-            _stat('Rejected', '${c['rejected']}', 'GHS ${(c['rejectedAmt'] as double).toStringAsFixed(2)}'),
-            _stat('Total Requested', '${c['all']}', 'GHS ${(c['total'] as double).toStringAsFixed(2)}'),
-            _stat('MoMo', '${c['momo']}', ''),
-            _stat('Bank', '${c['bank']}', ''),
-            _stat('Card', '${c['card']}', ''),
-          ]),
-          const SizedBox(height: 12),
-          Wrap(spacing: 6, runSpacing: 6, children: filters.map((f) {
-            final label = f == 'all' ? 'All (${c['all']})' : f == 'pending' ? 'Pending (${c['pending']})' : f == 'approved' ? 'Approved (${c['approved']})' : f == 'rejected' ? 'Rejected (${c['rejected']})' : f == 'momo' ? 'MoMo (${c['momo']})' : f == 'bank' ? 'Bank (${c['bank']})' : 'Card (${c['card']})';
-            return ChoiceChip(label: Text(label, style: const TextStyle(fontSize: 11)), selected: currentFilter == f, onSelected: (_) => setState(() => currentFilter = f));
-          }).toList()),
-          const SizedBox(height: 12),
-          if (list.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text('No withdrawals', style: TextStyle(color: Colors.white60))),
-          ...list.map((w) => Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xFF1A1633), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text('GHS ${(double.tryParse((w['amount'] ?? 0).toString()) ?? 0).toStringAsFixed(2)} - ${(w['method'] ?? '').toString().toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.15), borderRadius: BorderRadius.circular(999)), child: Text(_statusText(w), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))]),
-            const SizedBox(height: 8),
-            Text('Nurse: ${w['nurseName'] ?? 'Unknown'} (${w['nurseEmail'] ?? ''})', style: const TextStyle(fontSize: 12)),
-            if (w['bookingId'] != null) Container(margin: const EdgeInsets.only(top: 6), padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: const Color(0xFFFACC15).withOpacity(0.15), borderRadius: BorderRadius.circular(8)), child: Text('Booking ID: ${w['bookingId']} - Total: GHS ${(double.tryParse((w['bookingTotal'] ?? w['amount'] ?? 0).toString()) ?? 0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: Color(0xFFFACC15)))),
-            Text('ID: ${w['nurseId'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
-            Text('Requested: ${w['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((w['createdAt'] as num).toInt()) : ''}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
-            const SizedBox(height: 6),
-            Text(_methodDetails(w), style: const TextStyle(fontSize: 12)),
-            if (w['ceoNote'] != null && (w['ceoNote'] as String).isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text('CEO Note: ${w['ceoNote']}', style: const TextStyle(fontSize: 11, color: Color(0xFF86EFAC)))),
-            const SizedBox(height: 10),
-            Wrap(spacing: 6, children: [
-              if ((w['status'] ?? 'pending').toString().toLowerCase() == 'pending') ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => _approve(w), child: const Text('Approve', style: TextStyle(fontSize: 11))),
-              if ((w['status'] ?? 'pending').toString().toLowerCase() == 'pending') ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => _reject(w), child: const Text('Reject', style: TextStyle(fontSize: 11))),
-              OutlinedButton(onPressed: () => _viewDetails(w), child: const Text('Details', style: TextStyle(fontSize: 11))),
-              OutlinedButton(onPressed: () => _copyDetails(w), child: const Text('Copy', style: TextStyle(fontSize: 11))),
-            ]),
-          ]))),
-          const SizedBox(height: 20),
-        ]),
+    return showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Type here')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Confirm')),
+        ],
       ),
     );
   }
 
-  Widget _stat(String label, String value, String sub) => Container(width: 150, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1A1633), borderRadius: BorderRadius.circular(14)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11)), Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), if (sub.isNotEmpty) Text(sub, style: const TextStyle(color: Colors.white60, fontSize: 11))]));
+  Future<void> _approve(Map w) async {
+    final id = w['id'].toString();
+    final note = await _askText('Approve this withdrawal? Enter note for nurse:', 'Approved - Sent via ${_method(w)}');
+    if (note == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Approve?'),
+        content: Text('Approve GHS ${_amt(w).toStringAsFixed(2)}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Approve')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final upd = <String, Object?>{
+        'status': 'approved', 'approved': true, 'approvedAt': now,
+        'approvedAtStr': DateTime.now().toString(), 'ceoNote': note, 'approvedBy': 'CEO Asabere Peter',
+      };
+      // Write to ALL 5 paths, like the HTML did - so nurse + HR + CEO all see it
+      for (final path in ['nurseWithdrawals/$id', 'ceoWithdrawals/$id', 'hrWithdrawals/$id', 'withdrawalRequests/$id', 'ceoHRPage/withdrawals/$id']) {
+        await FirebaseDatabase.instance.ref(path).update(upd);
+      }
+      final nurseId = (w['nurseId'] ?? w['nurseUid'] ?? '').toString();
+      if (nurseId.isNotEmpty) {
+        await FirebaseDatabase.instance.ref('nurseNotifications/$nurseId/$id').set({
+          'type': 'withdrawal_approved',
+          'title': 'Withdrawal Approved - GHS ${_amt(w).toStringAsFixed(2)}',
+          'message': 'Your withdrawal of GHS ${_amt(w).toStringAsFixed(2)} via ${_method(w)} approved. $note',
+          'amount': _amt(w), 'method': _method(w), 'createdAt': now, 'read': false,
+        });
+      }
+      _toast('Approved');
+      await _loadAll();
+    } catch (e) {
+      _toast('Approve failed: $e');
+    }
+  }
+
+  Future<void> _reject(Map w) async {
+    final id = w['id'].toString();
+    final reason = await _askText('Reject? Enter reason:', 'Insufficient details');
+    if (reason == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Reject?'),
+        content: const Text('Reject this withdrawal?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Reject')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final upd = <String, Object?>{
+        'status': 'rejected', 'approved': false, 'rejectedAt': now,
+        'rejectedAtStr': DateTime.now().toString(), 'ceoNote': reason, 'rejectedBy': 'CEO',
+      };
+      for (final path in ['nurseWithdrawals/$id', 'ceoWithdrawals/$id', 'hrWithdrawals/$id']) {
+        await FirebaseDatabase.instance.ref(path).update(upd);
+      }
+      _toast('Rejected');
+      await _loadAll();
+    } catch (e) {
+      _toast('Reject failed: $e');
+    }
+  }
+
+  void _viewDetails(Map w) {
+    final m = _method(w);
+    String details = '';
+    if (m == 'momo') details = 'Network: ${w['momoNetwork'] ?? ''}\nNumber: ${w['momoNumber'] ?? ''}\nName: ${w['momoName'] ?? ''}';
+    else if (m == 'bank') details = 'Bank: ${w['bankName'] ?? ''}\nAccount: ${w['bankAccount'] ?? ''}\nName: ${w['bankAccountName'] ?? ''}';
+    else details = 'Type: ${w['cardType'] ?? ''}\nLast 4: ****${w['cardNumber'] ?? ''}\nName: ${w['cardName'] ?? ''}';
+    final time = (w['createdAt'] is num) ? DateTime.fromMillisecondsSinceEpoch((w['createdAt'] as num).toInt()).toString() : '';
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Withdrawal Details'),
+        content: SingleChildScrollView(child: Text('ID: ${w['withdrawalId'] ?? w['id']}\nNurse: ${w['nurseName'] ?? 'Unknown'}\nAmount: GHS ${_amt(w).toStringAsFixed(2)}\nMethod: $m\nStatus: ${_status(w)}\nTime: $time\n\nDetails:\n$details')),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+      ),
+    );
+  }
+
+  void _copyDetails(Map w) {
+    final m = _method(w);
+    String methodLine = '';
+    if (m == 'momo') methodLine = 'MoMo: ${w['momoNetwork'] ?? ''} ${w['momoNumber'] ?? ''} Name: ${w['momoName'] ?? ''}';
+    else if (m == 'bank') methodLine = 'Bank: ${w['bankName'] ?? ''} Acc: ${w['bankAccount'] ?? ''} Name: ${w['bankAccountName'] ?? ''}';
+    else methodLine = 'Card: ${w['cardType'] ?? ''} ****${w['cardNumber'] ?? ''} Name: ${w['cardName'] ?? ''}';
+    final text = 'Withdrawal ID: ${w['withdrawalId'] ?? w['id']}\nNurse: ${w['nurseName'] ?? ''} (${w['nurseId'] ?? ''})\nAmount: GHS ${_amt(w).toStringAsFixed(2)}\nMethod: $m\n$methodLine';
+    Clipboard.setData(ClipboardData(text: text));
+    _toast('Copied');
+  }
+
+  // ---------- UI ----------
+  @override
+  Widget build(BuildContext context) {
+    const bg = Color(0xFF0C0A1E);
+    const card = Color(0xFF1A1633);
+    const gold = Color(0xFFFACC15);
+    final c = _counts;
+    final filtered = _filtered;
+
+    Widget tab(String key, String label, int count) {
+      final active = _filter == key;
+      return GestureDetector(
+        onTap: () => setState(() => _filter = key),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: active ? gold : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+          ),
+          child: Text('$label ($count)', style: TextStyle(color: active ? Colors.black : const Color(0xFF9A95B8), fontSize: 12, fontWeight: FontWeight.w700)),
+        ),
+      );
+    }
+
+    Widget stat(String label, String value, String sub) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white.withOpacity(0.08))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: const TextStyle(color: Color(0xFF9A95B8), fontSize: 11)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+          Text(sub, style: const TextStyle(color: Color(0xFF9A95B8), fontSize: 11)),
+        ]),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: bg,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0C0A1E),
+        title: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('HR Page - Nurse Withdrawals - CEO Control', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          Text('Nurses request withdrawal MoMo, Bank, Card - CEO receives details and amount - Approve/Reject', style: TextStyle(fontSize: 10, color: Color(0xFF9A95B8))),
+        ]),
+        actions: [
+          Chip(label: Text('${c['all']} Requests'), backgroundColor: Colors.white.withOpacity(0.06)),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAll, tooltip: 'Refresh'),
+        ],
+      ),
+      body: Column(
+        children: [
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              tab('all', 'All', c['all']), const SizedBox(width: 8),
+              tab('pending', 'Pending', c['pending']), const SizedBox(width: 8),
+              tab('approved', 'Approved', c['approved']), const SizedBox(width: 8),
+              tab('rejected', 'Rejected', c['rejected']), const SizedBox(width: 8),
+              tab('momo', 'MoMo', c['momo']), const SizedBox(width: 8),
+              tab('bank', 'Bank', c['bank']), const SizedBox(width: 8),
+              tab('card', 'Card', c['card']),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Wrap(
+              spacing: 10, runSpacing: 10,
+              children: [
+                SizedBox(width: 160, child: stat('Pending', '${c['pending']}', 'GHS ${(c['pendingAmt'] as double).toStringAsFixed(2)}')),
+                SizedBox(width: 160, child: stat('Approved', '${c['approved']}', 'GHS ${(c['approvedAmt'] as double).toStringAsFixed(2)}')),
+                SizedBox(width: 160, child: stat('Rejected', '${c['rejected']}', 'GHS ${(c['rejectedAmt'] as double).toStringAsFixed(2)}')),
+                SizedBox(width: 160, child: stat('Total Requested', 'GHS ${(c['total'] as double).toStringAsFixed(2)}', 'All time')),
+                SizedBox(width: 160, child: stat('MoMo', '${c['momo']}', 'Requests')),
+                SizedBox(width: 160, child: stat('Bank', '${c['bank']}', 'Requests')),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_error != null)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+              child: Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+            ),
+          Expanded(
+            child: _loading
+                ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(), SizedBox(height: 12), Text('Loading withdrawals...', style: TextStyle(color: Color(0xFF9A95B8)))]))
+                : filtered.isEmpty
+                    ? Center(child: Text('No $_filter withdrawals', style: const TextStyle(color: Color(0xFF9A95B8))))
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 100),
+                        itemCount: filtered.length,
+                        itemBuilder: (_, i) => _withdrawalCard(filtered[i]),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _withdrawalCard(Map w) {
+    final s = _status(w);
+    final m = _method(w);
+    final amt = _amt(w);
+    final usd = _usd(w);
+    final statusText = s == 'approved' ? 'APPROVED' : s == 'completed' ? 'COMPLETED' : s == 'rejected' ? 'REJECTED' : 'PENDING';
+    final statusColor = s == 'pending' ? const Color(0xFFFDE68A) : s == 'approved' || s == 'completed' ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5);
+    final timeStr = (w['createdAt'] is num) ? DateTime.fromMillisecondsSinceEpoch((w['createdAt'] as num).toInt()).toString() : '';
+
+    Widget detailLine(String label, String value) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 2),
+        child: Text('$label: $value', style: const TextStyle(fontSize: 12, color: Colors.white)),
+      );
+    }
+
+    Widget methodDetails() {
+      if (m == 'momo') {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          detailLine('Network', '${w['momoNetwork'] ?? 'MoMo'}'),
+          detailLine('Number', '${w['momoNumber'] ?? ''}'),
+          detailLine('Name', '${w['momoName'] ?? ''}'),
+        ]);
+      } else if (m == 'bank') {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          detailLine('Bank', '${w['bankName'] ?? ''}'),
+          detailLine('Account', '${w['bankAccount'] ?? ''}'),
+          detailLine('Name', '${w['bankAccountName'] ?? ''}'),
+          detailLine('Branch', '${w['bankBranch'] ?? 'N/A'}'),
+        ]);
+      } else if (m == 'card') {
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          detailLine('Type', '${w['cardType'] ?? ''}'),
+          detailLine('Last 4', '****${w['cardNumber'] ?? ''}'),
+          detailLine('Name', '${w['cardName'] ?? ''}'),
+        ]);
+      }
+      return const Text('Method details not provided', style: TextStyle(fontSize: 12, color: Colors.white70));
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF1A1633), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withOpacity(0.08))),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Expanded(child: Text('GHS ${amt.toStringAsFixed(2)}${usd != null ? '  •  USD ${usd.toStringAsFixed(2)}' : ''} - ${m.toUpperCase()}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white))),
+          Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(999)), child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.w800))),
+        ]),
+        const SizedBox(height: 8),
+        Text('Nurse: ${w['nurseName'] ?? 'Unknown'} (${w['nurseEmail'] ?? ''})', style: const TextStyle(fontSize: 12, color: Colors.white)),
+        if (w['bookingId'] != null)
+          Container(
+            margin: const EdgeInsets.only(top: 6),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: const Color(0xFFFACC15).withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+            child: Text('Booking ID: ${w['bookingId']} - Total: GHS ${(double.tryParse('${w['bookingTotal'] ?? amt}') ?? amt).toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Color(0xFFFACC15))),
+          ),
+        Text('ID: ${w['nurseId'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.white70)),
+        Text('Requested: $timeStr', style: const TextStyle(fontSize: 11, color: Colors.white70)),
+        Container(
+          margin: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: const Color(0xFF0C0A1E).withOpacity(0.6), borderRadius: BorderRadius.circular(10)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('WITHDRAWAL DETAILS - CEO RECEIVES:', style: TextStyle(fontSize: 11, color: Color(0xFF9A95B8), fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            methodDetails(),
+            if (w['notes'] != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text('Notes: ${w['notes']}', style: const TextStyle(fontSize: 12, color: Colors.white))),
+          ]),
+        ),
+        const SizedBox(height: 14),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          if (s == 'pending') ...[
+            ElevatedButton(onPressed: () => _approve(w), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: Text('Approve - Send GHS ${amt.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+            ElevatedButton(onPressed: () => _reject(w), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Reject', style: TextStyle(fontSize: 11))),
+          ],
+          OutlinedButton(onPressed: () => _viewDetails(w), child: const Text('Full Details', style: TextStyle(fontSize: 11))),
+          OutlinedButton(onPressed: () => _copyDetails(w), child: const Text('Copy Details', style: TextStyle(fontSize: 11, color: Color(0xFFFACC15)))),
+        ]),
+      ]),
+    );
+  }
 }
