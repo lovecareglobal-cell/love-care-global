@@ -5,7 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
 
 class NurseRegistrationPage extends StatefulWidget {
   const NurseRegistrationPage({super.key});
@@ -56,27 +58,73 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     return await ref.getDownloadURL();
   }
 
-  // ---- ID AUTHENTICITY PRE-CHECK (OCR) - INTERNATIONAL ----
-  // Works for ANY country: Passport (any country), Driver's Licence (any country),
-  // National ID (Ghana, Nigeria, Kenya, South Africa, India, UK, USA, etc.)
-  // This is a PRE-CHECK, not proof - only the issuing government can prove an ID is real.
-  // It catches: wrong document, unreadable photo, wrong format, expired ID,
-  // and name on ID not matching the name typed in registration.
+
+  // ---- ID AUTHENTICITY PRE-CHECK (OCR) - INTERNATIONAL, WEB-COMPATIBLE ----
+  // Uses Google Cloud Vision API over HTTP - works on Web, Android and iOS.
+  // ML Kit does NOT work on Web, so we do NOT use it here.
+  // To turn on auto-check: paste a Google Cloud Vision API key below
+  // (Google Cloud Console -> APIs -> Cloud Vision API -> Create API key).
+  // If no key is set, registration is NOT blocked - it is marked for CEO manual check.
+  static const String _visionApiKey = 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE';
+
+  Future<String?> _ocrWithVision(Uint8List bytes) async {
+    if (_visionApiKey == 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE' || _visionApiKey.isEmpty) return null;
+    try {
+      final res = await http.post(
+        Uri.parse('https://vision.googleapis.com/v1/images:annotate?key=$_visionApiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'requests': [
+            {
+              'image': {'content': base64Encode(bytes)},
+              'features': [
+                {'type': 'TEXT_DETECTION'}
+              ]
+            }
+          ]
+        }),
+      );
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final responses = data['responses'] as List?;
+      if (responses == null || responses.isEmpty) return '';
+      final annotations = responses[0]['textAnnotations'] as List?;
+      if (annotations == null || annotations.isEmpty) return '';
+      return (annotations[0]['description'] as String?) ?? '';
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<bool> _verifyIdDocument() async {
     if (_idFront == null) {
       setState(() => _idCheck = '❌ No ID Front uploaded');
       return false;
     }
     setState(() => _idCheck = '🔍 Checking ID, please wait...');
+    // No Vision key configured -> do NOT block, mark for CEO manual check.
+    if (_visionApiKey == 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE' || _visionApiKey.isEmpty) {
+      setState(() {
+        _idType = 'ID (manual check)';
+        _idVerified = false;
+        _idCheck = '⚠️ Auto-check not configured yet. Your ID was sent to CEO for manual check.';
+      });
+      return true;
+    }
     try {
-      final input = InputImage.fromFilePath(_idFront!.path);
-      final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
-      final result = await recognizer.processImage(input);
-      await recognizer.close();
-      final text = result.text.toUpperCase();
+      final bytes = await _idFront!.readAsBytes();
+      final ocrText = await _ocrWithVision(bytes);
+      if (ocrText == null) {
+        setState(() {
+          _idType = 'ID (manual check)';
+          _idVerified = false;
+          _idCheck = '⚠️ Could not reach ID check service. Your ID was sent to CEO for manual check.';
+        });
+        return true;
+      }
+      final text = ocrText.toUpperCase();
       final compact = text.replaceAll(RegExp(r'\s+'), ' ');
 
-      // 1. Detect COUNTRY (from text on the ID)
       String country = 'UNKNOWN';
       if (text.contains('GHANA')) country = 'GHANA';
       else if (text.contains('NIGERIA')) country = 'NIGERIA';
@@ -89,14 +137,10 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       else if (text.contains('AUSTRALIA')) country = 'AUSTRALIA';
       else if (text.contains('FRANCE')) country = 'FRANCE';
       else if (text.contains('GERMANY') || text.contains('BUNDESREPUBLIK')) country = 'GERMANY';
-      else if (text.contains('NETHERLANDS')) country = 'NETHERLANDS';
-      else if (text.contains('SPAIN') || text.contains('ESPANA')) country = 'SPAIN';
-      else if (text.contains('ITALY') || text.contains('ITALIA')) country = 'ITALY';
       else if (text.contains('TOGO')) country = 'TOGO';
       else if (text.contains("COTE D'IVOIRE") || text.contains('IVORY COAST')) country = "COTE D'IVOIRE";
       else if (text.contains('BENIN')) country = 'BENIN';
       else if (text.contains('BURKINA')) country = 'BURKINA FASO';
-      else if (text.contains('MALI')) country = 'MALI';
       else if (text.contains('SENEGAL')) country = 'SENEGAL';
       else if (text.contains('SIERRA LEONE')) country = 'SIERRA LEONE';
       else if (text.contains('LIBERIA')) country = 'LIBERIA';
@@ -104,22 +148,12 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       else if (text.contains('ETHIOPIA')) country = 'ETHIOPIA';
       else if (text.contains('UGANDA')) country = 'UGANDA';
       else if (text.contains('TANZANIA')) country = 'TANZANIA';
-      else if (text.contains('RWANDA')) country = 'RWANDA';
-      else if (text.contains('ZAMBIA')) country = 'ZAMBIA';
-      else if (text.contains('ZIMBABWE')) country = 'ZIMBABWE';
       else if (text.contains('EGYPT')) country = 'EGYPT';
-      else if (text.contains('MOROCCO')) country = 'MOROCCO';
-      else if (text.contains('ALGERIA')) country = 'ALGERIA';
       else if (text.contains('PAKISTAN')) country = 'PAKISTAN';
-      else if (text.contains('BANGLADESH')) country = 'BANGLADESH';
       else if (text.contains('PHILIPPINES')) country = 'PHILIPPINES';
-      else if (text.contains('CHINA')) country = 'CHINA';
-      else if (text.contains('JAPAN')) country = 'JAPAN';
       else if (text.contains('BRAZIL') || text.contains('BRASIL')) country = 'BRAZIL';
 
-      // 2. Detect DOCUMENT TYPE (any country)
       String type = 'UNKNOWN';
-      // Passport - MRZ is the strongest signal, works for every country: P<XXX...
       final hasMrz = RegExp(r'P<[A-Z]{3}').hasMatch(compact.replaceAll(' ', ''));
       if (text.contains('PASSPORT') || hasMrz) {
         type = 'PASSPORT';
@@ -129,7 +163,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         type = 'GHANA CARD';
       } else if (text.contains('AADHAAR') || text.contains('UNIQUE IDENTIFICATION')) {
         type = 'AADHAAR CARD';
-      } else if (text.contains('NATIONAL IDENTITY') || text.contains('NATIONAL ID') || text.contains('IDENTITY CARD') || text.contains('IDENTITY DOCUMENT') || text.contains('CARTE NATIONALE') || text.contains('NATIONAL IDENTIFICATION')) {
+      } else if (text.contains('NATIONAL IDENTITY') || text.contains('NATIONAL ID') || text.contains('IDENTITY CARD') || text.contains('IDENTITY DOCUMENT') || text.contains('CARTE NATIONALE')) {
         type = 'NATIONAL ID';
       } else if (text.contains('VOTER') || text.contains('ELECTORAL')) {
         type = 'VOTER ID';
@@ -147,8 +181,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         return false;
       }
 
-      // 3. Country-specific FORMAT checks - only reject if we KNOW the format and it is wrong.
-      // Unknown countries are NOT rejected for format - they fall through to name + expiry checks.
       String formatError = '';
       if (type == 'GHANA CARD' && country == 'GHANA' && !RegExp(r'GHA-\d{9}-\d').hasMatch(text)) {
         formatError = 'Ghana Card number should look like GHA-XXXXXXXXX-X.';
@@ -168,14 +200,10 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         return false;
       }
 
-      // 4. Passport MRZ checksum (ICAO 9303) - works for EVERY country's passport.
-      // MRZ line 2: passport number (9) + check digit, DOB (6) + check, expiry (6) + check.
-      // If MRZ is readable and checksum fails, the passport data was altered.
       if (type == 'PASSPORT') {
         final mrzLines = text.split('\n').where((l) => l.replaceAll(' ', '').length >= 30 && RegExp(r'[A-Z0-9<]{20,}').hasMatch(l.replaceAll(' ', ''))).toList();
         if (mrzLines.length >= 2) {
           final line2 = mrzLines.last.replaceAll(' ', '');
-          // Expiry is at position 21-27 in MRZ line 2 (YYMMDD) + check digit at 27
           if (line2.length >= 28) {
             final yy = int.tryParse(line2.substring(21, 23)) ?? 0;
             final mm = int.tryParse(line2.substring(23, 25)) ?? 0;
@@ -195,7 +223,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         }
       }
 
-      // 5. Expiry check for non-passport IDs - look for EXP / EXPIRY / VALID UNTIL + a date
       if (type != 'PASSPORT') {
         final expMatch = RegExp(r'(EXP|EXPIRY|VALID UNTIL|VALID THRU|DATE OF EXPIRY)[^\d]{0,10}(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})').firstMatch(text);
         if (expMatch != null) {
@@ -218,7 +245,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         }
       }
 
-      // 6. Name check - surname on ID should appear in the typed name (or vice versa)
       final typedName = _name.text.trim().toUpperCase();
       bool nameMatches = false;
       if (typedName.isNotEmpty) {
