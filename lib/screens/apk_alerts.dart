@@ -11,6 +11,7 @@
 //   On WEBSITE / PWA this file does nothing - Chrome blocks custom sound when closed.
 //   On APK it works - this is why APK is needed for your exact bell/siren.
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 final FlutterLocalNotificationsPlugin _notif = FlutterLocalNotificationsPlugin();
@@ -30,12 +31,17 @@ class ApkAlerts {
   static Future<void> init() async {
     if (_init) return;
     _init = true;
+    // WEB: no Android notifications, no background handler - skip everything.
+    // This is what lets `flutter build web` pass.
+    if (kIsWeb) return;
     try {
       const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const init = InitializationSettings(android: androidInit);
       await _notif.initialize(init);
       // Create a channel that uses YOUR sound. Channel ID must match Cloud Function.
-      const channel = AndroidNotificationChannel(
+      // NOTE: NOT const anymore - RawResourceAndroidNotificationSound
+      // breaks const evaluation on Flutter 3.35 / v19.
+      final channel = AndroidNotificationChannel(
         'love_care_alerts', // <-- Cloud Function sends to this channel
         'Love Care Alerts',
         description: 'CEO / Nurse / Client alerts - custom Love Care sound',
@@ -64,8 +70,10 @@ class ApkAlerts {
   }
 
   static Future<void> showWithCustomSound({required String title, required String body}) async {
+    if (kIsWeb) return;
     try {
-      const android = AndroidNotificationDetails(
+      // NOTE: NOT const anymore - same fix as above.
+      final android = AndroidNotificationDetails(
         'love_care_alerts',
         'Love Care Alerts',
         channelDescription: 'CEO / Nurse / Client alerts - custom Love Care sound',
@@ -76,7 +84,7 @@ class ApkAlerts {
         enableVibration: true,
         ticker: 'Love Care Global',
       );
-      const details = NotificationDetails(android: android);
+      final details = NotificationDetails(android: android);
       await _notif.show(DateTime.now().millisecondsSinceEpoch % 100000, title, body, details);
     } catch (_) {}
   }
