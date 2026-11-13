@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_database/firebase_database.dart';
+import 'dart:html' as html;
 
 /// HR Page - Nurse Withdrawals - CEO Control
 /// Converted from hr-page-GHS-USD_3.html
@@ -285,6 +287,136 @@ class _HRPageScreenState extends State<HRPageScreen> {
     _toast('Copied');
   }
 
+  // ---------- EXPORT + DELETE ----------
+  String _csvCell(String v) {
+    // Escape commas / quotes / newlines so Excel / Google Sheets opens it correctly
+    final s = v.replaceAll('"', '""');
+    if (s.contains(',') || s.contains('"') || s.contains('\n')) return '"$s"';
+    return s;
+  }
+
+  String _buildCsv(List<Map<String, dynamic>> list) {
+    final rows = <List<String>>[
+      ['ID', 'Nurse Name', 'Nurse ID', 'Nurse Email', 'Amount GHS', 'Amount USD', 'Method', 'Status', 'Requested', 'MoMo Network', 'MoMo Number', 'MoMo Name', 'Bank Name', 'Bank Account', 'Bank Account Name', 'Bank Branch', 'Card Type', 'Card Name', 'Booking ID', 'CEO Note'],
+    ];
+    for (final w in list) {
+      final usd = _usd(w);
+      final time = (w['createdAt'] is num) ? DateTime.fromMillisecondsSinceEpoch((w['createdAt'] as num).toInt()).toString() : '';
+      rows.add([
+        '${w['withdrawalId'] ?? w['id'] ?? ''}',
+        '${w['nurseName'] ?? ''}',
+        '${w['nurseId'] ?? ''}',
+        '${w['nurseEmail'] ?? ''}',
+        _amt(w).toStringAsFixed(2),
+        usd != null ? usd.toStringAsFixed(2) : '',
+        _method(w),
+        _status(w),
+        time,
+        '${w['momoNetwork'] ?? ''}',
+        '${w['momoNumber'] ?? ''}',
+        '${w['momoName'] ?? ''}',
+        '${w['bankName'] ?? ''}',
+        '${w['bankAccount'] ?? ''}',
+        '${w['bankAccountName'] ?? ''}',
+        '${w['bankBranch'] ?? ''}',
+        '${w['cardType'] ?? ''}',
+        '${w['cardName'] ?? ''}',
+        '${w['bookingId'] ?? ''}',
+        '${w['ceoNote'] ?? ''}',
+      ]);
+    }
+    return rows.map((r) => r.map(_csvCell).join(',')).join('\n');
+  }
+
+  Future<void> _export() async {
+    final list = _filtered;
+    if (list.isEmpty) { _toast('Nothing to export - list is empty'); return; }
+    final csv = _buildCsv(list);
+    final fileName = 'hr_withdrawals_${_filter}_${DateTime.now().millisecondsSinceEpoch}.csv';
+    // WEB: download file straight to Downloads folder
+    if (kIsWeb) {
+      try {
+        final blob = html.Blob([csv], 'text/csv');
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        html.AnchorElement(href: url)
+          ..setAttribute('download', fileName)
+          ..click();
+        html.Url.revokeObjectUrl(url);
+        _toast('Exported $fileName - check Downloads');
+        return;
+      } catch (_) {}
+    }
+    // FALLBACK (phone / if download fails): copy CSV, show it so you can paste into Sheets / Notes
+    await Clipboard.setData(ClipboardData(text: csv));
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Export - CSV copied'),
+        content: SingleChildScrollView(child: Text('Saved ${list.length} rows to clipboard.\n\nPaste it into Excel / Google Sheets / WhatsApp / Notes.\n\n$csv')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          ElevatedButton(onPressed: () { Clipboard.setData(ClipboardData(text: csv)); Navigator.pop(context); _toast('Copied again'); }, child: const Text('Copy Again')),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteOne(Map w) async {
+    final id = w['id'].toString();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete this withdrawal?'),
+        content: Text('Delete GHS ${_amt(w).toStringAsFixed(2)} - ${w['nurseName'] ?? 'Unknown'}?\n\nThis removes it from ALL paths (ceoWithdrawals, nurseWithdrawals, hrWithdrawals, withdrawalRequests, ceoHRPage). It cannot be undone. The nurse will no longer see it.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      for (final path in ['ceoWithdrawals/$id', 'nurseWithdrawals/$id', 'hrWithdrawals/$id', 'withdrawalRequests/$id', 'ceoHRPage/withdrawals/$id']) {
+        await _db(path).remove();
+      }
+      if (mounted) setState(() => _all.removeWhere((x) => x['id'].toString() == id));
+      _toast('Deleted');
+    } catch (e) {
+      _toast('Delete failed: $e');
+    }
+  }
+
+  Future<void> _deleteAllFiltered() async {
+    final list = _filtered;
+    if (list.isEmpty) { _toast('Nothing to delete'); return; }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Delete ALL ${list.length} shown withdrawals?'),
+        content: Text('This deletes ALL $list.length withdrawals in the current filter ($_filter).\n\nIt removes them from ALL paths. It cannot be undone.\n\nTip: Export first, so you still have a copy saved.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Delete All')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    // Export first automatically? No - user was told to Export first. Just delete.
+    int done = 0;
+    for (final w in list) {
+      final id = w['id'].toString();
+      try {
+        for (final path in ['ceoWithdrawals/$id', 'nurseWithdrawals/$id', 'hrWithdrawals/$id', 'withdrawalRequests/$id', 'ceoHRPage/withdrawals/$id']) {
+          await _db(path).remove();
+        }
+        done++;
+      } catch (_) {}
+    }
+    if (mounted) setState(() => _all.removeWhere((x) => list.any((d) => d['id'].toString() == x['id'].toString())));
+    _toast('Deleted $done withdrawals');
+  }
+
   // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
@@ -333,6 +465,8 @@ class _HRPageScreenState extends State<HRPageScreen> {
         ]),
         actions: [
           Chip(label: Text('${c['all']} Requests'), backgroundColor: Colors.white.withOpacity(0.06)),
+          TextButton.icon(icon: const Icon(Icons.download, size: 16, color: Color(0xFFFACC15)), label: const Text('Export', style: TextStyle(color: Color(0xFFFACC15), fontSize: 12, fontWeight: FontWeight.bold)), onPressed: _export, tooltip: 'Save as CSV to Downloads'),
+          TextButton.icon(icon: const Icon(Icons.delete_forever, size: 16, color: Colors.redAccent), label: const Text('Delete All', style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)), onPressed: _deleteAllFiltered, tooltip: 'Delete ALL shown withdrawals'),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAll, tooltip: 'Refresh'),
         ],
       ),
@@ -468,6 +602,7 @@ class _HRPageScreenState extends State<HRPageScreen> {
           ],
           OutlinedButton(onPressed: () => _viewDetails(w), child: const Text('Full Details', style: TextStyle(fontSize: 11))),
           OutlinedButton(onPressed: () => _copyDetails(w), child: const Text('Copy Details', style: TextStyle(fontSize: 11, color: Color(0xFFFACC15)))),
+          OutlinedButton(onPressed: () => _deleteOne(w), style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)), child: const Text('Delete', style: TextStyle(fontSize: 11, color: Colors.redAccent))),
         ]),
       ]),
     );
