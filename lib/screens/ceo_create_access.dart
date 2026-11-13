@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'ceo_login.dart';
+import 'staff_login.dart';
 
 /// Create Access - converted from ceo-create-access.html
 /// CEO creates staff who can login to CEO Dashboard.
+/// Staff get a USERNAME + STAFF PASSWORD. CEO sees Recent Staff Visits.
 /// NEW: Staff Password field. This is the password the staff uses in CEO Login.
 ///
 /// How to use (CEO only):
@@ -34,6 +35,7 @@ class CEOCreateAccessPage extends StatefulWidget {
 
 class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
   final _nameCtrl = TextEditingController();
+  final _userCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
@@ -42,6 +44,7 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
   String? _status;
   bool _statusOk = false;
   List<Map<String, dynamic>> _users = [];
+  List<Map<String, dynamic>> _visits = [];
   bool _loading = true;
 
   static FirebaseDatabase? _cachedDb;
@@ -54,6 +57,7 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
   void initState() {
     super.initState();
     _loadAccess();
+    _loadVisits();
   }
 
   String _normPhone(String p) {
@@ -79,9 +83,14 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
 
   Future<void> _createAccess() async {
     final name = _nameCtrl.text.trim();
+    final username = _userCtrl.text.trim().toLowerCase().replaceAll(' ', '.');
     final phone = _phoneCtrl.text.trim();
     final email = _emailCtrl.text.trim().toLowerCase();
     final pass = _passCtrl.text;
+    if (username.isEmpty) {
+      _setStatus('Enter a username for this staff (e.g. kwaku.osei)', false);
+      return;
+    }
     if (name.isEmpty || phone.isEmpty) {
       _setStatus('Enter name & phone', false);
       return;
@@ -102,7 +111,19 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
     setState(() => _busy = true);
     try {
       await _ensureAuth();
+      // Username must be unique - two staffs cannot share one username
+      final dup = await _db.ref('ceoAllowedUsers').get();
+      if (dup.exists && dup.value is Map) {
+        for (final v in (dup.value as Map).values) {
+          if (v is Map && (v['username'] ?? '').toString().toLowerCase() == username) {
+            _setStatus('Username "$username" is already taken - choose another', false);
+            if (mounted) setState(() => _busy = false);
+            return;
+          }
+        }
+      }
       final data = <String, Object?>{
+        'username': username,
         'name': name,
         'fullName': name,
         'phone': phone,
@@ -121,8 +142,9 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
       await _db.ref('ceoAccessList/$phoneNorm').set(data);
       await _db.ref('ceoDashboardAccess/$phoneNorm').set(data);
       await _db.ref('allowedCEOs').push().set(data);
-      _setStatus('Created — $name can now login with staff password', true);
+      _setStatus('Created — $name (username: $username) can now login with staff password', true);
       _nameCtrl.clear();
+      _userCtrl.clear();
       _phoneCtrl.clear();
       _emailCtrl.clear();
       _passCtrl.clear();
@@ -132,6 +154,22 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _loadVisits() async {
+    try {
+      await _ensureAuth();
+      _db.ref('staffVisits').orderByChild('timestamp').limitToLast(20).onValue.listen((e) {
+        final list = <Map<String, dynamic>>[];
+        if (e.snapshot.exists && e.snapshot.value is Map) {
+          (e.snapshot.value as Map).forEach((k, v) {
+            if (v is Map) list.add({'id': k.toString(), ...Map<String, dynamic>.from(v)});
+          });
+        }
+        list.sort((a, b) => ((b['timestamp'] ?? 0) as num).compareTo((a['timestamp'] ?? 0) as num));
+        if (mounted) setState(() => _visits = list);
+      });
+    } catch (_) {}
   }
 
   Future<void> _loadAccess() async {
@@ -208,7 +246,11 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _field('Full Name', _nameCtrl, 'Asabere Peter', TextInputType.name),
+                      _field('Full Name', _nameCtrl, 'Kwaku Osei', TextInputType.name),
+                      const SizedBox(height: 12),
+                      _field('Username', _userCtrl, 'e.g. kwaku.osei - staff uses this to login', TextInputType.text),
+                      const SizedBox(height: 4),
+                      const Text('No spaces. Use firstname.lastname - e.g. kwaku.osei, ama.mensah.', style: TextStyle(fontSize: 10, color: Color(0xFF9A95B8))),
                       const SizedBox(height: 12),
                       _field('Phone Number', _phoneCtrl, '0544121814', TextInputType.phone),
                       const SizedBox(height: 12),
@@ -253,7 +295,7 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton(
-                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CEOLoginPage())),
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffLoginPage())),
                         child: const Text('Go to Login'),
                       ),
                       const SizedBox(height: 16),
@@ -280,6 +322,7 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text('${u['name'] ?? ''}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                                Text('Username: ${u['username'] ?? 'Not set (old user)'}', style: const TextStyle(fontSize: 10, color: Color(0xFFFACC15), fontWeight: FontWeight.bold)),
                                                 Text('${u['phone'] ?? ''} • ${u['email'] ?? ''}', style: const TextStyle(fontSize: 10, color: Color(0xFF9A95B8))),
                                                 Text('Password: ${((u['password'] ?? u['staffPassword'] ?? '') as Object).toString().isEmpty ? 'Not set (old user)' : 'Set • staff uses it to login'}', style: const TextStyle(fontSize: 10, color: Color(0xFF9A95B8))),
                                               ],
@@ -293,6 +336,33 @@ class _CEOCreateAccessPageState extends State<CEOCreateAccessPage> {
                                       ),
                                     )).toList(),
                                   ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Recent Staff Visits - CEO sees who visited & when', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: const Color(0xFF0C0A1E), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.08))),
+                        child: _visits.isEmpty
+                            ? const Padding(padding: EdgeInsets.all(20), child: Center(child: Text('No staff visits yet', style: TextStyle(color: Color(0xFF6B6788), fontSize: 11))))
+                            : Column(
+                                children: _visits.map((v) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.visibility, size: 16, color: Color(0xFFFACC15)),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('${v['name'] ?? ''} (${v['username'] ?? ''}) visited CEO Dashboard', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                          Text('${v['loginTime'] ?? ''}', style: const TextStyle(fontSize: 10, color: Color(0xFF9A95B8))),
+                                        ],
+                                      )),
+                                    ],
+                                  ),
+                                )).toList(),
+                              ),
                       ),
                     ],
                   ),
