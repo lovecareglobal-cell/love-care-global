@@ -1,10 +1,10 @@
 {
-  "id": "/index.html",
+  "id": "/love-care-global/",
   "name": "LOVE CARE GLOBAL HOME NURSING",
   "short_name": "LoveCare Global",
   "description": "Your health, our heart. Licensed nurses to your doorstep - 24/7 in 8 countries. Book verified nurses with live GPS tracking, video profiles, ratings, secure Paystack GHS/USD, SOS emergency, real-time accept/reject notifications and live tracking.",
-  "start_url": "/index.html",
-  "scope": "/",
+  "start_url": "/love-care-global/index.html",
+  "scope": "/love-care-global/",
   "scope_extensions": [
     {
       "origin": "https://lovecareglobal.com"
@@ -13,7 +13,7 @@
       "origin": "https://www.lovecareglobal.com"
     },
     {
-      "origin": "https://asaberepeter204.github.io"
+      "origin": "https://lovecareglobal-cell.github.io"
     }
   ],
   "display": "standalone",
@@ -144,7 +144,7 @@
     }
   ],
   "share_target": {
-    "action": "./",
+    "action": "/love-care-global/",
     "method": "GET",
     "params": {
       "title": "title",
