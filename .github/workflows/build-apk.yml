@@ -3,11 +3,6 @@ name: Build APK
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'lib/**'
-      - 'pubspec.yaml'
-      - 'android/**'
-      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 jobs:
@@ -27,68 +22,36 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
-      - name: Generate Android files + fix Kotlin 2.3.0
+      - name: Rebuild clean Android folder
         run: |
-          cp android/app/src/main/AndroidManifest.xml /tmp/MyManifest.xml || true
+          mkdir -p /tmp/backup
+          cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml || true
+          cp android/app/google-services.json /tmp/backup/google-services.json || true
+          cp android/app/src/main/res/raw/love_care_bell.mp3 /tmp/backup/love_care_bell.mp3 || true
+          rm -rf android
           flutter create . --platforms=android --project-name love_care_global
-          cp /tmp/MyManifest.xml android/app/src/main/AndroidManifest.xml || true
+          cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml || true
+          cp /tmp/backup/google-services.json android/app/google-services.json || true
+          mkdir -p android/app/src/main/res/raw
+          cp /tmp/backup/love_care_bell.mp3 android/app/src/main/res/raw/love_care_bell.mp3 || true
           mkdir -p assets
-          # 1. settings.gradle (Groovy) - the file Flutter actually reads
-          cat > android/settings.gradle << 'EOF'
-          pluginManagement {
-              def flutterSdkPath = {
-                  def properties = new Properties()
-                  file("local.properties").withInputStream { properties.load(it) }
-                  def flutterSdkPath = properties.getProperty("flutter.sdk")
-                  assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-                  return flutterSdkPath
-              }()
-              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          plugins {
-              id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-              id "com.android.application" version "8.9.2" apply false
-              id "org.jetbrains.kotlin.android" version "2.3.0" apply false
-              id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
-          }
-          include ":app"
-          EOF
-          # 2. settings.gradle.kts - in case Flutter picks this one
-          cat > android/settings.gradle.kts << 'EOF'
-          pluginManagement {
-              val flutterSdkPath = run {
-                  val properties = java.util.Properties()
-                  file("local.properties").inputStream().use { properties.load(it) }
-                  val flutterSdkPath = properties.getProperty("flutter.sdk")
-                  require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
-                  flutterSdkPath
-              }
-              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          plugins {
-              id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-              id("com.android.application") version "8.9.2" apply false
-              id("org.jetbrains.kotlin.android") version "2.3.0" apply false
-              id("dev.flutter.flutter-gradle-plugin") version "1.0.0" apply false
-          }
-          include(":app")
-          EOF
-          # 3. FIX: Kotlin 2.3.0 breaks old jvmTarget = "11" in app/build.gradle.kts line 19
+          rm -f android/settings.gradle android/build.gradle android/app/build.gradle
+          ls android/
+          cat android/settings.gradle.kts
+
+      - name: Fix Kotlin 2.3.0 + jvmTarget
+        run: |
+          sed -i 's/version "2.2.1"/version "2.3.0"/g; s/version "8.7.3"/version "8.9.2"/g' android/settings.gradle.kts || true
           python3 << 'PY'
           import re, pathlib
-          for p in ["android/app/build.gradle.kts", "android/app/build.gradle"]:
-              f = pathlib.Path(p)
-              if not f.exists():
-                  continue
-              t = f.read_text()
-              t = re.sub(r'kotlinOptions\s*\{[^}]*jvmTarget[^}]*\}', '', t, flags=re.DOTALL)
-              t = re.sub(r'.*jvmTarget\s*=.*\n', '', t)
-              if "compilerOptions" not in t and p.endswith(".kts"):
-                  t += "\n\nkotlin {\n    compilerOptions {\n        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)\n    }\n}\n"
-              f.write_text(t)
-              print(f"patched {p}")
+          p = pathlib.Path("android/app/build.gradle.kts")
+          t = p.read_text()
+          t = re.sub(r'kotlinOptions\s*\{[^}]*\}', '', t, flags=re.DOTALL)
+          t = re.sub(r'.*jvmTarget\s*=.*\n', '', t)
+          if "compilerOptions" not in t:
+              t += "\n\nkotlin {\n    compilerOptions {\n        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)\n    }\n}\n"
+          p.write_text(t)
+          print("patched app/build.gradle.kts")
           PY
           flutter pub get
 
