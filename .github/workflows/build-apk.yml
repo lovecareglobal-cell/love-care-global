@@ -27,22 +27,60 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
-      # FIX 1: your repo is missing MainActivity + build.gradle.kts
-      # Generate a clean v2 Android folder, but keep YOUR custom manifest
-      # FIX 2: bump Kotlin to 2.3.0 - google_maps_flutter_android 2.19.8 needs it
-      # FIX 3: create empty assets/ folder - pubspec.yaml lists it but it doesn't exist
-      - name: Generate missing Android files
+      - name: Generate missing Android files + force Kotlin 2.3.0
         run: |
           cp android/app/src/main/AndroidManifest.xml /tmp/MyManifest.xml || true
           flutter create . --platforms=android --project-name love_care_global
           cp /tmp/MyManifest.xml android/app/src/main/AndroidManifest.xml || true
           mkdir -p assets
-          # Bump Kotlin plugin wherever the template puts it
-          sed -i 's/kotlin_version = .*/kotlin_version = "2.3.0"/g' android/build.gradle* 2>/dev/null || true
-          sed -i 's/org.jetbrains.kotlin.android" version "[^"]*"/org.jetbrains.kotlin.android" version "2.3.0"/g' android/settings.gradle* 2>/dev/null || true
-          sed -i 's/org.jetbrains.kotlin.jvm" version "[^"]*"/org.jetbrains.kotlin.jvm" version "2.3.0"/g' android/settings.gradle* 2>/dev/null || true
-          sed -i 's/kotlin-gradle-plugin:[^"]*/kotlin-gradle-plugin:2.3.0/g' android/build.gradle* 2>/dev/null || true
-          grep -r "2.3.0" android/settings.gradle* android/build.gradle* || echo "Kotlin patch check done"
+          cat > android/settings.gradle << 'EOF'
+          pluginManagement {
+              def flutterSdkPath = {
+                  def properties = new Properties()
+                  file("local.properties").withInputStream { properties.load(it) }
+                  def flutterSdkPath = properties.getProperty("flutter.sdk")
+                  assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+                  return flutterSdkPath
+              }()
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          plugins {
+              id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+              id "com.android.application" version "8.9.2" apply false
+              id "org.jetbrains.kotlin.android" version "2.3.0" apply false
+              id "dev.flutter.flutter-gradle-plugin" version "1.0.0" apply false
+          }
+          include ":app"
+          EOF
+          cat > android/settings.gradle.kts << 'EOF'
+          pluginManagement {
+              val flutterSdkPath = run {
+                  val properties = java.util.Properties()
+                  file("local.properties").inputStream().use { properties.load(it) }
+                  val flutterSdkPath = properties.getProperty("flutter.sdk")
+                  require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
+                  flutterSdkPath
+              }
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          plugins {
+              id("dev.flutter.flutter-plugin-loader") version "1.0.0"
+              id("com.android.application") version "8.9.2" apply false
+              id("org.jetbrains.kotlin.android") version "2.3.0" apply false
+              id("dev.flutter.flutter-gradle-plugin") version "1.0.0" apply false
+          }
+          include(":app")
+          EOF
           flutter pub get
 
       - name: Build APK (release)
