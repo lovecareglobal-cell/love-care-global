@@ -1,0 +1,11 @@
+{
+  "name": "functions",
+  "description": "Love Care Global - Push for CEO + Nurses + Clients",
+  "engines": { "node": "20" },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^5.1.0"
+  },
+  "private": true
+}
