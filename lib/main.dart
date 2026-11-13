@@ -36,6 +36,7 @@ import 'screens/staff_login.dart';
 import 'screens/ceo_create_access.dart';
 import 'screens/staff_visits_monitor.dart';
 import 'screens/force_delete.dart';
+import 'screens/sound_settings.dart'; // already in repo - class = SoundSettingsScreen
 
 // ALL SCREENS
 import 'screens/alert_settings.dart';
@@ -118,6 +119,11 @@ class LoveCareApp extends StatelessWidget {
         '/staff-visits-monitor': (context) => StaffVisitsMonitorPage(),
         '/ceo-notifications': (context) => StaffVisitsMonitorPage(),
         '/force-delete': (context) => CEOForceWipeEmailPage(),
+        // SOUND SETTINGS - this was missing, so pushNamed('/sound-settings')
+        // fell to onUnknownRoute -> Home. Now it opens Sound Settings.
+        // Confirmed class from your uploaded file: SoundSettingsScreen
+        // (alias SoundSettingsPage also works)
+        '/sound-settings': (context) => SoundSettingsScreen(),
         // CEO Dashboard link goes to PASSWORD GATE first, NOT straight to dashboard.
         // This keeps your secret gate: /ceo-dashboard -> enter CEO password -> dashboard.
         // Staff do NOT use this link - they use /staff-login, which goes to dashboard after staff password.
@@ -159,6 +165,8 @@ class LoveCareApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => StaffVisitsMonitorPage(), settings: settings);
           case '/force-delete':
             return MaterialPageRoute(builder: (_) => CEOForceWipeEmailPage(), settings: settings);
+          case '/sound-settings':
+            return MaterialPageRoute(builder: (_) => SoundSettingsScreen(), settings: settings);
           case '/ceo-dashboard':
             return MaterialPageRoute(builder: (_) => const CEOPasswordGate(), settings: settings);
           case '/ceo-live-tracking-map':
