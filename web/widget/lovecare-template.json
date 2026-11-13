@@ -1,0 +1,47 @@
+{
+  "type": "AdaptiveCard",
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "TextBlock",
+      "text": "LOVE CARE GLOBAL",
+      "weight": "Bolder",
+      "size": "Medium",
+      "color": "Light"
+    },
+    {
+      "type": "TextBlock",
+      "text": "${availableNow} nurses available now",
+      "size": "Small",
+      "color": "Accent"
+    },
+    {
+      "type": "TextBlock",
+      "text": "Nearby Nurses",
+      "weight": "Bolder",
+      "size": "Small"
+    },
+    {
+      "type": "TextBlock",
+      "text": "See top 3 nearby nurses in the app",
+      "size": "Small",
+      "wrap": true
+    },
+    {
+      "type": "ActionSet",
+      "actions": [
+        {
+          "type": "Action.OpenUrl",
+          "title": "\ud83d\udcc5 Book Nurse",
+          "url": "https://lovecareglobal-cell.github.io/love-care-global/web/index.html"
+        },
+        {
+          "type": "Action.OpenUrl",
+          "title": "\ud83c\udd98 SOS",
+          "url": "https://lovecareglobal-cell.github.io/love-care-global/web/index.html"
+        }
+      ]
+    }
+  ]
+}
