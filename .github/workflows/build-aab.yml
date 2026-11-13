@@ -1,18 +1,8 @@
-# .github/workflows/build-aab.yml - PLAY STORE: Build AAB (Android App Bundle)
-# Play Store does NOT accept APK - it accepts AAB only.
-# Put in: .github/workflows/build-aab.yml
-# After push: GitHub -> Actions -> Build AAB -> download app-release.aab
-# Then upload that .aab to Play Console, NOT the .apk.
 name: Build AAB
 
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'lib/**'
-      - 'pubspec.yaml'
-      - 'android/**'
-      - '.github/workflows/build-aab.yml'
   workflow_dispatch:
 
 jobs:
@@ -31,7 +21,41 @@ jobs:
           cache: true
       - name: Get packages
         run: flutter pub get
-      - name: Build AAB (release - for Play Store)
+
+      - name: Rebuild clean Android folder
+        run: |
+          mkdir -p /tmp/backup
+          cp android/app/src/main/AndroidManifest.xml /tmp/backup/AndroidManifest.xml || true
+          cp android/app/google-services.json /tmp/backup/google-services.json || true
+          cp android/app/src/main/res/raw/love_care_bell.mp3 /tmp/backup/love_care_bell.mp3 || true
+          rm -rf android
+          flutter create . --platforms=android --project-name love_care_global
+          cp /tmp/backup/AndroidManifest.xml android/app/src/main/AndroidManifest.xml || true
+          cp /tmp/backup/google-services.json android/app/google-services.json || true
+          mkdir -p android/app/src/main/res/raw
+          cp /tmp/backup/love_care_bell.mp3 android/app/src/main/res/raw/love_care_bell.mp3 || true
+          mkdir -p assets
+          rm -f android/settings.gradle android/build.gradle android/app/build.gradle
+          ls android/
+          cat android/settings.gradle.kts
+
+      - name: Fix Kotlin 2.3.0 + jvmTarget
+        run: |
+          sed -i 's/version "2.2.1"/version "2.3.0"/g; s/version "8.7.3"/version "8.9.2"/g' android/settings.gradle.kts || true
+          python3 << 'PY'
+          import re, pathlib
+          p = pathlib.Path("android/app/build.gradle.kts")
+          t = p.read_text()
+          t = re.sub(r'kotlinOptions\s*\{[^}]*\}', '', t, flags=re.DOTALL)
+          t = re.sub(r'.*jvmTarget\s*=.*\n', '', t)
+          if "compilerOptions" not in t:
+              t += "\n\nkotlin {\n    compilerOptions {\n        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)\n    }\n}\n"
+          p.write_text(t)
+          print("patched app/build.gradle.kts")
+          PY
+          flutter pub get
+
+      - name: Build AAB (release)
         run: flutter build appbundle --release
       - name: Upload AAB
         uses: actions/upload-artifact@v4
