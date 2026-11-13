@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_database/firebase_database.dart';
-import 'dart:html' as html;
 
 /// HR Page - Nurse Withdrawals - CEO Control
 /// Converted from hr-page-GHS-USD_3.html
@@ -332,21 +330,10 @@ class _HRPageScreenState extends State<HRPageScreen> {
     final list = _filtered;
     if (list.isEmpty) { _toast('Nothing to export - list is empty'); return; }
     final csv = _buildCsv(list);
-    final fileName = 'hr_withdrawals_${_filter}_${DateTime.now().millisecondsSinceEpoch}.csv';
-    // WEB: download file straight to Downloads folder
-    if (kIsWeb) {
-      try {
-        final blob = html.Blob([csv], 'text/csv');
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        html.AnchorElement(href: url)
-          ..setAttribute('download', fileName)
-          ..click();
-        html.Url.revokeObjectUrl(url);
-        _toast('Exported $fileName - check Downloads');
-        return;
-      } catch (_) {}
-    }
-    // FALLBACK (phone / if download fails): copy CSV, show it so you can paste into Sheets / Notes
+    // EXPORT = copy CSV to clipboard + show it.
+    // NO web-only import here - it breaks WASM build (your error in screenshot).
+    // Copy -> paste into Excel / Google Sheets / WhatsApp / Notes = saved.
+    // On phone, long-press the text in the popup to Select All + Copy again.
     await Clipboard.setData(ClipboardData(text: csv));
     if (!mounted) return;
     showDialog(
@@ -465,8 +452,8 @@ class _HRPageScreenState extends State<HRPageScreen> {
         ]),
         actions: [
           Chip(label: Text('${c['all']} Requests'), backgroundColor: Colors.white.withOpacity(0.06)),
-          TextButton.icon(icon: const Icon(Icons.download, size: 16, color: Color(0xFFFACC15)), label: const Text('Export', style: TextStyle(color: Color(0xFFFACC15), fontSize: 12, fontWeight: FontWeight.bold)), onPressed: _export, tooltip: 'Save as CSV to Downloads'),
-          TextButton.icon(icon: const Icon(Icons.delete_forever, size: 16, color: Colors.redAccent), label: const Text('Delete All', style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)), onPressed: _deleteAllFiltered, tooltip: 'Delete ALL shown withdrawals'),
+          TextButton.icon(icon: const Icon(Icons.download, size: 16, color: Color(0xFFFACC15)), label: const Text('Export', style: TextStyle(color: Color(0xFFFACC15), fontSize: 12, fontWeight: FontWeight.bold)), onPressed: _export),
+          TextButton.icon(icon: const Icon(Icons.delete_forever, size: 16, color: Colors.redAccent), label: const Text('Delete All', style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)), onPressed: _deleteAllFiltered),
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAll, tooltip: 'Refresh'),
         ],
       ),
