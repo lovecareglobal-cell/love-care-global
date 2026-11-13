@@ -13,13 +13,13 @@ import 'package:firebase_database/firebase_database.dart';
 /// - NEVER BLANK: always shows Loading, then List / Empty / Error banner.
 ///   Firebase errors are shown on screen instead of a white page.
 
-class HRWithdrawalsPage extends StatefulWidget {
-  const HRWithdrawalsPage({super.key});
+class HRPageScreen extends StatefulWidget {
+  const HRPageScreen({super.key});
   @override
-  State<HRWithdrawalsPage> createState() => _HRWithdrawalsPageState();
+  State<HRPageScreen> createState() => _HRPageScreenState();
 }
 
-class _HRWithdrawalsPageState extends State<HRWithdrawalsPage> {
+class _HRPageScreenState extends State<HRPageScreen> {
   List<Map<String, dynamic>> _all = [];
   String _filter = 'all';
   bool _loading = true;
@@ -460,3 +460,6 @@ class _HRWithdrawalsPageState extends State<HRWithdrawalsPage> {
     );
   }
 }
+
+// Alias: both names point to the same screen, so main.dart works either way.
+typedef HRWithdrawalsPage = HRPageScreen;
