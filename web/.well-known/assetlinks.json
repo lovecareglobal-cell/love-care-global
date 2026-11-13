@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.lovecareglobal_cell.twa",
+      "sha256_cert_fingerprints": [
+        "A7:D4:90:5E:C7:03:4D:FB:CD:38:7E:F5:FB:D0:0D:9B:FA:F2:7F:80:31:2F:6B:F5:AC:74:95:26:C4:33:50:4D"
+      ]
+    }
+  }
+]
