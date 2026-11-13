@@ -1,3 +1,10 @@
+// APK NOTE: For APK, FCM must send android: { channelId: 'love_care_alerts', sound: 'love_care_bell' }
+// The functions below already send notification.title/body - Android will use
+// AndroidManifest default sound (love_care_bell.mp3 in res/raw) for those.
+// If you want per-message channel, add in each send():
+//   android: { channelId: 'love_care_alerts', sound: 'love_care_bell', priority: 'high' }
+// Website / PWA ignores android.channelId - it uses webpush instead. Both can live together.
+
 // functions/index.js - Firebase Cloud Function - sends push when a new Nurse/Client registers
 // Deploy:  cd functions  &&  npm install  &&  firebase deploy --only functions
 // This is what makes the phone alert when the app is CLOSED.
