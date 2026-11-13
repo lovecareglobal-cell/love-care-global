@@ -31,6 +31,12 @@ import 'screens/chat_room.dart';
 import 'screens/hr_page.dart';
 import 'screens/nurse_group_chat.dart';
 
+// STAFF LOGIN + CREATE ACCESS + VISITS MONITOR + FORCE DELETE
+import 'screens/staff_login.dart';
+import 'screens/ceo_create_access.dart';
+import 'screens/staff_visits_monitor.dart';
+import 'screens/force_delete.dart';
+
 // ALL SCREENS
 import 'screens/alert_settings.dart';
 import 'screens/book_nurse.dart';
@@ -103,6 +109,19 @@ class LoveCareApp extends StatelessWidget {
         '/ceo-refund-management': (context) => const CEORefundManagementScreen(),
         '/ceo-registration-center': (context) => const CEORegistrationCenterScreen(),
         '/hr-page': (context) => const HRPageScreen(),
+        // STAFF SYSTEM - direct links, no const (see build #248 fix)
+        '/staff-login': (context) => StaffLoginPage(),
+        '/ceo-login': (context) => StaffLoginPage(), // old name still works
+        '/create-access': (context) => CEOCreateAccessPage(),
+        '/ceo-create-access': (context) => CEOCreateAccessPage(),
+        '/staff-visits': (context) => StaffVisitsMonitorPage(),
+        '/staff-visits-monitor': (context) => StaffVisitsMonitorPage(),
+        '/ceo-notifications': (context) => StaffVisitsMonitorPage(),
+        '/force-delete': (context) => CEOForceWipeEmailPage(),
+        // CEO Dashboard link goes to PASSWORD GATE first, NOT straight to dashboard.
+        // This keeps your secret gate: /ceo-dashboard -> enter CEO password -> dashboard.
+        // Staff do NOT use this link - they use /staff-login, which goes to dashboard after staff password.
+        '/ceo-dashboard': (context) => const CEOPasswordGate(),
         '/chat-room': (context) => const ChatRoomScreen(),
         '/nurse-group-chat': (context) => const NurseGroupChatScreen(),
 
@@ -121,7 +140,27 @@ class LoveCareApp extends StatelessWidget {
       },
       onGenerateRoute: (settings) {
         final args = settings.arguments;
-        switch (settings.name) {
+        // FIX: strip ?username=... / ?phone=... before matching.
+        // Without this, "/staff-login?username=kwaku.osei" matches NOTHING
+        // -> onUnknownRoute -> Home (looks like blank / wrong page).
+        // Uri.parse splits it: path = "/staff-login", query is read by the page itself.
+        final routePath = Uri.tryParse(settings.name ?? '')?.path ?? settings.name;
+        switch (routePath) {
+          // NEW ROUTES - handled here too, so ?query links work even if routes: misses them
+          case '/staff-login':
+          case '/ceo-login':
+            return MaterialPageRoute(builder: (_) => StaffLoginPage(), settings: settings);
+          case '/create-access':
+          case '/ceo-create-access':
+            return MaterialPageRoute(builder: (_) => CEOCreateAccessPage(), settings: settings);
+          case '/staff-visits':
+          case '/staff-visits-monitor':
+          case '/ceo-notifications':
+            return MaterialPageRoute(builder: (_) => StaffVisitsMonitorPage(), settings: settings);
+          case '/force-delete':
+            return MaterialPageRoute(builder: (_) => CEOForceWipeEmailPage(), settings: settings);
+          case '/ceo-dashboard':
+            return MaterialPageRoute(builder: (_) => const CEOPasswordGate(), settings: settings);
           case '/ceo-live-tracking-map':
             return MaterialPageRoute(
               builder: (_) => CEOLiveTrackingMapScreen(
