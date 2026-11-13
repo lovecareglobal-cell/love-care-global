@@ -1,7 +1,3 @@
-# .github/workflows/build-apk.yml - ROAD B: Build real APK
-# Website workflow (build-web.yml) builds the WEBSITE only - it can NEVER make an APK.
-# This workflow builds the APK. Put in: .github/workflows/build-apk.yml
-# After push, go to: GitHub -> Actions -> Build APK -> download app-release.apk
 name: Build APK
 
 on:
@@ -11,7 +7,7 @@ on:
       - 'lib/**'
       - 'pubspec.yaml'
       - 'android/**'
-      - '.github/workflows/build-apk.yml'
+      - '.【entity-github¦canonical_name=GitHub】/workflows/build-apk.yml'
   workflow_dispatch:
 
 jobs:
@@ -30,6 +26,16 @@ jobs:
           cache: true
       - name: Get packages
         run: flutter pub get
+
+      # FIX: your repo is missing MainActivity + build.gradle.kts
+      # Generate a clean v2 Android folder, but keep YOUR custom manifest
+      - name: Generate missing Android files
+        run: |
+          cp android/app/src/main/AndroidManifest.xml /tmp/MyManifest.xml || true
+          flutter create . --platforms=android --project-name love_care_global
+          cp /tmp/MyManifest.xml android/app/src/main/AndroidManifest.xml || true
+          flutter pub get
+
       - name: Build APK (release)
         run: flutter build apk --release
       - name: Upload APK
