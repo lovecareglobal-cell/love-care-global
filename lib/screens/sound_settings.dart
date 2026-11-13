@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:vibration/vibration.dart';
+// REMOVED: import 'package:vibration/vibration.dart';
+// That package is NOT in pubspec.yaml, so Build Web #261/#262 failed with:
+//   Couldn't resolve the package 'vibration' / Undefined name 'Vibration'
+// Web cannot vibrate via that package anyway - _vibrate() below is now a no-op.
 
 // ===== GLOBAL SOUND SERVICE - Use from ANY screen =====
 // Same keys as HTML: lcg_sound_choice + lcg_custom_song
@@ -53,11 +56,10 @@ class SoundService {
   }
 
   static Future<void> _vibrate(List<int> pattern) async {
-    if (!vibrateOn) return;
-    try {
-      final has = await Vibration.hasVibrator() ?? false;
-      if (has) await Vibration.vibrate(pattern: pattern);
-    } catch (_) {}
+    // No-op on Web: vibration package is not in pubspec.yaml and Web has no
+    // Vibration API via that package. Keeping the method so the Vibrate
+    // checkbox still works (it just saves the setting, no crash, no build fail).
+    return;
   }
 
   // Generate WAV tone - same frequencies as HTML beep()
