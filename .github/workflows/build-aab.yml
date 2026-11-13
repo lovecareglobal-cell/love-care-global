@@ -35,35 +35,55 @@ jobs:
           mkdir -p android/app/src/main/res/raw
           cp /tmp/backup/love_care_bell.mp3 android/app/src/main/res/raw/love_care_bell.mp3 || true
           mkdir -p assets
-          # Flutter 3.35 uses GROOVY files - keep those, delete KTS duplicates
-          rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
-          ls -R android | head -n 100
-          echo "--- settings.gradle ---"
-          cat android/settings.gradle
+          # flutter create 3.35 makes ONLY .kts files - keep those, delete Groovy duplicates
+          rm -f android/settings.gradle android/build.gradle android/app/build.gradle
+          echo "=== android/ ==="
+          ls -la android/
+          echo "=== settings.gradle.kts ==="
+          cat android/settings.gradle.kts || echo "no settings.gradle.kts"
+          echo "=== app/build.gradle.kts ==="
+          cat android/app/build.gradle.kts || echo "no app/build.gradle.kts"
 
-      - name: Force Kotlin 2.3.0 everywhere
+      - name: Force Kotlin 2.3.0
         run: |
           python3 << 'PY'
           import re, pathlib
-          # Patch settings.gradle - Kotlin plugin version
+          # Patch KTS files - this is what flutter create actually made
+          for name in ["android/settings.gradle.kts", "android/build.gradle.kts", "android/app/build.gradle.kts"]:
+              p = pathlib.Path(name)
+              if not p.exists():
+                  print(f"SKIP missing {name}")
+                  continue
+              t = p.read_text()
+              orig = t
+              # Kotlin plugin 2.x -> 2.3.0 in KTS syntax: id("...") version "x"
+              t = re.sub(r'(org\.jetbrains\.kotlin\.android" version ")[^"]+(")', r'\g<1>2.3.0\g<2>', t)
+              t = re.sub(r"(org\.jetbrains\.kotlin\.android' version ')[^']+(')", r"\g<1>2.3.0\g<2>", t)
+              t = re.sub(r'kotlin_version\s*=\s*["\'][^"\']+["\']', 'kotlin_version = "2.3.0"', t)
+              t = re.sub(r'kotlin-gradle-plugin:[^"\']+', 'kotlin-gradle-plugin:2.3.0', t)
+              # AGP -> 8.9.2
+              t = re.sub(r'(com\.android\.application" version ")[^"]+(")', r'\g<1>8.9.2\g<2>', t)
+              # jvmTarget: remove old kotlinOptions block in app file, add compilerOptions
+              if name.endswith("app/build.gradle.kts"):
+                  t = re.sub(r'kotlinOptions\s*\{[^}]*\}', '', t, flags=re.DOTALL)
+                  t = re.sub(r'.*jvmTarget\s*=.*\n', '', t)
+                  if "compilerOptions" not in t:
+                      t += "\n\nkotlin {\n    compilerOptions {\n        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)\n    }\n}\n"
+              p.write_text(t)
+              print(f"--- {name} changed={t!=orig} ---")
+              print(t)
+          # Also patch Groovy files IF they exist (old repo leftovers)
           for name in ["android/settings.gradle", "android/build.gradle", "android/app/build.gradle"]:
               p = pathlib.Path(name)
               if not p.exists():
                   continue
               t = p.read_text()
-              # Any kotlin version -> 2.3.0
-              t = re.sub(r'org\.jetbrains\.kotlin\.android" version "[^"]+"', 'org.jetbrains.kotlin.android" version "2.3.0"', t)
-              t = re.sub(r"org\.jetbrains\.kotlin\.android' version '[^']+'", "org.jetbrains.kotlin.android' version '2.3.0'", t)
               t = re.sub(r'kotlin_version\s*=\s*["\'][^"\']+["\']', 'kotlin_version = "2.3.0"', t)
-              t = re.sub(r'ext\.kotlin_version\s*=\s*["\'][^"\']+["\']', 'ext.kotlin_version = "2.3.0"', t)
-              t = re.sub(r'kotlin-gradle-plugin:[^"\']+', 'kotlin-gradle-plugin:2.3.0', t)
-              # AGP -> 8.9.2
-              t = re.sub(r'com\.android\.application" version "[^"]+"', 'com.android.application" version "8.9.2"', t)
               p.write_text(t)
-              print(f"--- {name} ---")
-              print(t)
+              print(f"patched groovy {name}")
           PY
-          grep -rn "2.3.0\|kotlin" android/settings.gradle android/build.gradle || true
+          echo "=== VERIFY Kotlin 2.3.0 ==="
+          grep -rn "2.3.0" android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts || echo "Kotlin 2.3.0 NOT FOUND - check above"
           flutter pub get
 
       - name: Build AAB (release)
