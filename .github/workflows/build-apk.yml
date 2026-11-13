@@ -27,12 +27,13 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
-      - name: Generate missing Android files + force Kotlin 2.3.0
+      - name: Generate Android files + fix Kotlin 2.3.0
         run: |
           cp android/app/src/main/AndroidManifest.xml /tmp/MyManifest.xml || true
           flutter create . --platforms=android --project-name love_care_global
           cp /tmp/MyManifest.xml android/app/src/main/AndroidManifest.xml || true
           mkdir -p assets
+          # 1. settings.gradle (Groovy) - the file Flutter actually reads
           cat > android/settings.gradle << 'EOF'
           pluginManagement {
               def flutterSdkPath = {
@@ -43,11 +44,7 @@ jobs:
                   return flutterSdkPath
               }()
               includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
           }
           plugins {
               id "dev.flutter.flutter-plugin-loader" version "1.0.0"
@@ -57,6 +54,7 @@ jobs:
           }
           include ":app"
           EOF
+          # 2. settings.gradle.kts - in case Flutter picks this one
           cat > android/settings.gradle.kts << 'EOF'
           pluginManagement {
               val flutterSdkPath = run {
@@ -67,11 +65,7 @@ jobs:
                   flutterSdkPath
               }
               includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
           }
           plugins {
               id("dev.flutter.flutter-plugin-loader") version "1.0.0"
@@ -81,6 +75,21 @@ jobs:
           }
           include(":app")
           EOF
+          # 3. FIX: Kotlin 2.3.0 breaks old jvmTarget = "11" in app/build.gradle.kts line 19
+          python3 << 'PY'
+          import re, pathlib
+          for p in ["android/app/build.gradle.kts", "android/app/build.gradle"]:
+              f = pathlib.Path(p)
+              if not f.exists():
+                  continue
+              t = f.read_text()
+              t = re.sub(r'kotlinOptions\s*\{[^}]*jvmTarget[^}]*\}', '', t, flags=re.DOTALL)
+              t = re.sub(r'.*jvmTarget\s*=.*\n', '', t)
+              if "compilerOptions" not in t and p.endswith(".kts"):
+                  t += "\n\nkotlin {\n    compilerOptions {\n        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)\n    }\n}\n"
+              f.write_text(t)
+              print(f"patched {p}")
+          PY
           flutter pub get
 
       - name: Build APK (release)
