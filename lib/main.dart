@@ -37,9 +37,9 @@ import 'screens/ceo_create_access.dart';
 import 'screens/staff_visits_monitor.dart';
 import 'screens/force_delete.dart';
 import 'screens/sound_settings.dart';
-import 'screens/dashboard_alerts.dart'; // Nurse + Client alerts - same as CEO, for their own info // SoundSettingsScreen + SoundService - for route + auto-ring
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Who is logged in? For personal nurse/client topics // FCM Push - phone alerts when app is closed
+import 'screens/dashboard_alerts.dart';
+import 'screens/apk_alerts.dart'; // ROAD B APK ONLY - custom sound when closed. Website ignores it. // Nurse + Client alerts - same as CEO, for their own info // SoundSettingsScreen + SoundService - for route + auto-ring
+import 'package:firebase_messaging/firebase_messaging.dart'; // FCM Push - phone alerts when app is closed
 import 'package:firebase_database/firebase_database.dart'; // Auto-ring listener
 
 // ALL SCREENS
@@ -106,81 +106,6 @@ void _setupCeoAutoRing() {
   } catch (_) {}
 }
 
-// ---------- NURSE + CLIENT AUTO (in main.dart, so NO dashboard edit needed) ----------
-// DashboardAlerts helper (dashboard_alerts.dart) also works if you call it from a
-// dashboard - this version works AUTOMATICALLY, so you don't have to edit
-// nurse_dashboard.dart or client_dashboard.dart at all.
-// It waits for FirebaseAuth, then:
-//   - Subscribes to personal topic 'user_{uid}' -> Cloud Function sends ONLY my info
-//   - Listens ONLY to my nodes -> Ama does NOT hear Kofi's job offers
-//   - First load ignored -> only NEW items ring
-bool _userAlertSetup = false;
-final Map<String, int> _userAlertCounts = {};
-void _userAlertRing(String key, int count) {
-  final old = _userAlertCounts[key] ?? -1;
-  if (old == -1) { _userAlertCounts[key] = count; return; }
-  if (count > old) { _userAlertCounts[key] = count; SoundService.playCustomSound('new_info'); }
-  else { _userAlertCounts[key] = count; }
-}
-void _setupUserAlerts() {
-  if (_userAlertSetup) return;
-  _userAlertSetup = true;
-  FirebaseAuth.instance.authStateChanges().listen((user) async {
-    if (user == null) return;
-    final uid = user.uid;
-    try {
-      final m = FirebaseMessaging.instance;
-      await m.subscribeToTopic('user_$uid');
-      await m.subscribeToTopic('nurses');
-      await m.subscribeToTopic('clients');
-      debugPrint('FCM subscribed: user_$uid + nurses + clients');
-    } catch (_) {}
-    try {
-      final db = FirebaseDatabase.instance;
-      db.ref('notifications/nurses/$uid').onValue.listen((e) {
-        final c = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
-        _userAlertRing('notif_nurse_$uid', c);
-      });
-      db.ref('notifications/clients/$uid').onValue.listen((e) {
-        final c = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
-        _userAlertRing('notif_client_$uid', c);
-      });
-      db.ref('notifications/$uid').onValue.listen((e) {
-        final c = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
-        _userAlertRing('notif_user_$uid', c);
-      });
-      db.ref('bookings').onValue.listen((e) {
-        if (e.snapshot.value is! Map) return;
-        int mine = 0;
-        (e.snapshot.value as Map).forEach((k, v) {
-          if (v is Map && (v['nurseId'] == uid || v['clientId'] == uid || v['nurseUid'] == uid || v['clientUid'] == uid || v['toId'] == uid)) mine++;
-        });
-        _userAlertRing('bookings_$uid', mine);
-      });
-      for (final path in ['jobOffers', 'my_job_offer', 'job_offers', 'offers']) {
-        db.ref(path).onValue.listen((e) {
-          if (e.snapshot.value is! Map) return;
-          int mine = 0;
-          (e.snapshot.value as Map).forEach((k, v) {
-            if (v is Map && (v['nurseId'] == uid || v['nurseUid'] == uid || v['toId'] == uid || v['receiverId'] == uid)) mine++;
-          });
-          _userAlertRing('${path}_$uid', mine);
-        });
-      }
-      for (final path in ['chatMessages', 'messages', 'chats']) {
-        db.ref(path).onValue.listen((e) {
-          if (e.snapshot.value is! Map) return;
-          int mine = 0;
-          (e.snapshot.value as Map).forEach((k, v) {
-            if (v is Map && (v['toId'] == uid || v['receiverId'] == uid || v['toUid'] == uid)) mine++;
-          });
-          _userAlertRing('${path}_$uid', mine);
-        });
-      }
-    } catch (_) {}
-  });
-}
-
 Future<void> _setupFCM() async {
   try {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -192,7 +117,6 @@ Future<void> _setupFCM() async {
     // Nurses/clients do NOT subscribe - only CEO gets these pushes.
     // Note: on Web, topic subscribe needs the sw.js registered - Firebase handles it.
     try { await messaging.subscribeToTopic('ceo'); } catch (_) {}
-    _setupUserAlerts(); // Nurse + Client personal topics + auto-ring, after login
     // Foreground: app OPEN - play Love Care sound too, not just show a banner.
     FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
       SoundService.playCustomSound('push');
@@ -216,6 +140,7 @@ void main() async {
   }
   _setupCeoAutoRing(); // auto-ring while app is OPEN
   await _setupFCM(); // push when app is CLOSED
+  await ApkAlerts.init(); // APK ONLY - custom Love Care sound when closed
   runApp(const LoveCareApp());
 }
 
