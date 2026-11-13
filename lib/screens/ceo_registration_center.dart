@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// CEO Registration Center - Flutter version of ceo-registration-center.html
@@ -55,6 +56,19 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   void _log(String m) => setState(() { showLog = true; logLines.add(m); });
   void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
+  // Firestore Timestamp has .millisecondsSinceEpoch, RTDB stores int ms, old docs may store String.
+  num _createdAtMs(Object? raw) {
+    if (raw is num) return raw;
+    if (raw is String) return num.tryParse(raw) ?? DateTime.now().millisecondsSinceEpoch;
+    if (raw != null) {
+      try {
+        final ms = (raw as dynamic).millisecondsSinceEpoch;
+        if (ms is num) return ms;
+      } catch (_) {}
+    }
+    return DateTime.now().millisecondsSinceEpoch;
+  }
+
   Map _normalize(String id, Map raw, String type) {
     final v = raw['profile'] is Map ? Map<String, dynamic>.from(raw['profile']) : raw['data'] is Map ? Map<String, dynamic>.from(raw['data']) : raw;
     final email = ((v['email'] ?? v['clientEmail'] ?? '') as String).toLowerCase();
@@ -62,15 +76,17 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     var fullName = (v['fullName'] ?? v['name'] ?? v['displayName'] ?? v['clientName'] ?? username ?? (email.isNotEmpty ? email.split('@')[0] : 'Unnamed')).toString();
     if (fullName.length > 50) fullName = fullName.substring(0, 50);
     final photo = v['photoURL'] ?? v['photo'] ?? v['photoUrl'] ?? v['avatar'] ?? v['avatarUrl'] ?? '';
-    final idURL = v['idURL'] ?? v['idUrl'] ?? v['nationalIdUrl'] ?? '';
-    final licenceURL = v['licenceURL'] ?? v['licenseUrl'] ?? v['licence'] ?? v['licenceUrl'] ?? '';
+    final idURL = v['idURL'] ?? v['idUrl'] ?? v['nationalIdUrl'] ?? v['idFrontURL'] ?? v['idFrontUrl'] ?? v['nationalIdFrontUrl'] ?? '';
+    final idBackURL = v['idBackURL'] ?? v['idBackUrl'] ?? v['nationalIdBackUrl'] ?? '';
+    final licenceURL = v['licenceURL'] ?? v['licenseUrl'] ?? v['licence'] ?? v['licenceUrl'] ?? v['pinDocURL'] ?? v['pinDocUrl'] ?? '';
     final videoURL = v['videoURL'] ?? v['videoUrl'] ?? '';
-    final certURL = v['cvURL'] ?? v['cvUrl'] ?? v['certificateURL'] ?? v['certificate'] ?? '';
+    final certURL = v['certificateURL'] ?? v['certificateUrl'] ?? v['certificate'] ?? v['certURL'] ?? v['certUrl'] ?? '';
+    final cvURL = v['cvURL'] ?? v['cvUrl'] ?? '';
     final phone = (v['phone'] ?? v['phoneNumber'] ?? v['clientPhone'] ?? v['phoneNumberFull'] ?? '').toString();
     final isApproved = v['isApproved'] == true || v['approved'] == true || v['status'] == 'approved' || v['canLogin'] == true || v['isVerified'] == true || v['status'] == 'Approved' || v['hasAll4'] == true;
     final hasAll5 = type == 'client' ? (fullName.isNotEmpty && username.toString().isNotEmpty && photo.toString().isNotEmpty && phone.isNotEmpty) : (fullName.isNotEmpty && photo.toString().isNotEmpty && phone.isNotEmpty && videoURL.toString().isNotEmpty);
     final hasAll4 = fullName.isNotEmpty && username.toString().isNotEmpty && photo.toString().isNotEmpty && phone.isNotEmpty;
-    return {'id': id, 'uid': v['uid'] ?? id, 'type': type, 'fullName': fullName, 'name': fullName.length > 40 ? fullName.substring(0, 40) : fullName, 'username': username, 'email': email, 'phone': phone, 'countryCode': v['countryCode'] ?? '', 'photo': photo, 'idURL': idURL, 'licenceURL': licenceURL, 'videoURL': videoURL, 'certURL': certURL, 'lat': v['lat'] ?? v['latitude'], 'lng': v['lng'] ?? v['longitude'], 'gpsName': v['gpsActualName'] ?? v['gpsName'] ?? '', 'isApproved': isApproved, 'hasAll5': hasAll5, 'hasAll4': hasAll4, 'hasPhoto': photo.toString().isNotEmpty, 'hasVideo': videoURL.toString().isNotEmpty, 'hasId': idURL.toString().isNotEmpty, 'hasLicence': licenceURL.toString().isNotEmpty, 'hasCert': certURL.toString().isNotEmpty, 'raw': v, 'createdAt': v['createdAt'] ?? v['timestamp'] ?? DateTime.now().millisecondsSinceEpoch, 'qualification': v['qualification'] ?? '', 'services': v['services'] ?? v['specialty'] ?? '', 'referenceName': v['referenceName'] ?? '', 'referencePhone': v['referencePhone'] ?? ''};
+    return {'id': id, 'uid': v['uid'] ?? id, 'type': type, 'fullName': fullName, 'name': fullName.length > 40 ? fullName.substring(0, 40) : fullName, 'username': username, 'email': email, 'phone': phone, 'countryCode': v['countryCode'] ?? '', 'photo': photo, 'idURL': idURL, 'licenceURL': licenceURL, 'videoURL': videoURL, 'certURL': certURL, 'lat': v['lat'] ?? v['latitude'], 'lng': v['lng'] ?? v['longitude'], 'gpsName': v['gpsActualName'] ?? v['gpsName'] ?? '', 'isApproved': isApproved, 'hasAll5': hasAll5, 'hasAll4': hasAll4, 'hasPhoto': photo.toString().isNotEmpty, 'hasVideo': videoURL.toString().isNotEmpty, 'hasId': idURL.toString().isNotEmpty, 'hasLicence': licenceURL.toString().isNotEmpty, 'hasCert': certURL.toString().isNotEmpty, 'raw': v, 'createdAt': _createdAtMs(v['createdAt'] ?? v['timestamp']), 'qualification': v['qualification'] ?? '', 'services': v['services'] ?? v['specialty'] ?? '', 'referenceName': v['referenceName'] ?? '', 'referencePhone': v['referencePhone'] ?? '', 'cvURL': cvURL, 'idBackURL': idBackURL, 'idFrontURL': idURL, 'pinNumber': v['pinNumber'] ?? '', 'idType': v['idType'] ?? '', 'idCheck': v['idCheck'] ?? '', 'idVerified': v['idVerified'] ?? false};
   }
 
   Future<void> _loadAll() async {
@@ -107,9 +123,65 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         });
       } catch (_) {}
     }
+    // ---- RECALL OLD USERS: Firestore-only registrations (before the dual-write fix) ----
+    // Old nurses/clients saved ONLY to Firestore pending_nurses / pending_clients.
+    // CEO used to read RTDB only, so they were invisible. Now CEO reads Firestore too,
+    // and auto-migrates each Firestore-only record into RTDB ceoRegistrationCenter/...,
+    // so Approve / Reject / Delete (which work on RTDB) will work for them as well.
+    final rtdbNurseUids = nursesMap.keys.toSet();
+    final rtdbClientUids = clientsMap.keys.toSet();
+    int migratedNurses = 0, migratedClients = 0;
+    for (final coll in ['pending_nurses', 'nurses', 'nurse_registrations', 'nurseApplications']) {
+      try {
+        final qs = await FirebaseFirestore.instance.collection(coll).get();
+        for (final doc in qs.docs) {
+          final data = Map<String, dynamic>.from(doc.data());
+          final rec = _normalize(doc.id, data, 'nurse');
+          final key = rec['uid'].toString();
+          if (!nursesMap.containsKey(key)) {
+            nursesMap[key] = rec;
+          } else {
+            final ex = nursesMap[key]!;
+            nursesMap[key] = {...ex, ...rec, 'photo': (ex['photo'].toString().isNotEmpty ? ex['photo'] : rec['photo']), 'videoURL': (ex['videoURL'].toString().isNotEmpty ? ex['videoURL'] : rec['videoURL']), 'idURL': (ex['idURL'].toString().isNotEmpty ? ex['idURL'] : rec['idURL']), 'licenceURL': (ex['licenceURL'].toString().isNotEmpty ? ex['licenceURL'] : rec['licenceURL'])};
+          }
+          // Migrate Firestore-only -> RTDB (only if RTDB did not have this uid)
+          if (!rtdbNurseUids.contains(key)) {
+            try {
+              final toRtdb = Map<String, Object?>.from(data);
+              toRtdb['createdAt'] = (rec['createdAt'] as num).toInt();
+              toRtdb['uid'] = key;
+              await FirebaseDatabase.instance.ref('ceoRegistrationCenter/nurses/$key').set(toRtdb);
+              migratedNurses++;
+              rtdbNurseUids.add(key);
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    }
+    for (final coll in ['pending_clients', 'clients', 'client_registrations', 'clientApplications']) {
+      try {
+        final qs = await FirebaseFirestore.instance.collection(coll).get();
+        for (final doc in qs.docs) {
+          final data = Map<String, dynamic>.from(doc.data());
+          final rec = _normalize(doc.id, data, 'client');
+          final key = rec['uid'].toString();
+          if (!clientsMap.containsKey(key)) clientsMap[key] = rec;
+          if (!rtdbClientUids.contains(key)) {
+            try {
+              final toRtdb = Map<String, Object?>.from(data);
+              toRtdb['createdAt'] = (rec['createdAt'] as num).toInt();
+              toRtdb['uid'] = key;
+              await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$key').set(toRtdb);
+              migratedClients++;
+              rtdbClientUids.add(key);
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    }
     final nurses = nursesMap.values.toList(), clients = clientsMap.values.toList();
     setState(() => allRecords = [...nurses, ...clients]..sort((a, b) => ((b['createdAt'] ?? 0) as num).compareTo((a['createdAt'] ?? 0) as num)));
-    _toast('Loaded: ${nurses.length} nurses, ${clients.length} clients');
+    _toast('Loaded: ${nurses.length} nurses, ${clients.length} clients${(migratedNurses + migratedClients) > 0 ? ' - Recalled $migratedNurses old nurses + $migratedClients old clients from Firestore' : ''}');
   }
 
   List<Map> get filtered {
