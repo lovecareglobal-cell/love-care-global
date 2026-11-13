@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'force_delete.dart';
 
 /// CEO Dashboard - 13 Pages - Flutter version of ceo-dashboard.html
 /// - Header: "CEO Dashboard - 13 Pages" + badge "{pending} Refunds" + badge "13 Pages" + Home -> '/home'
@@ -92,7 +93,17 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
               itemBuilder: (_, i) {
                 final p = pages[i];
                 return InkWell(
-                  onTap: () => Navigator.pushNamed(context, p['route']!),
+                  onTap: () {
+                    // Force Delete MUST open force_delete.dart directly.
+                    // Do NOT use pushNamed('/force-delete') - if main.dart does not
+                    // have that route, Flutter falls back to home (main.dart /
+                    // Welcome dialog) - which is the bug you just saw.
+                    if (p['route'] == '/force-delete') {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ForceDeletePage()));
+                      return;
+                    }
+                    Navigator.pushNamed(context, p['route']!);
+                  },
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
