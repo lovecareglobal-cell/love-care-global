@@ -35,24 +35,35 @@ jobs:
           mkdir -p android/app/src/main/res/raw
           cp /tmp/backup/love_care_bell.mp3 android/app/src/main/res/raw/love_care_bell.mp3 || true
           mkdir -p assets
-          rm -f android/settings.gradle android/build.gradle android/app/build.gradle
-          ls android/
-          cat android/settings.gradle.kts
+          # Flutter 3.35 uses GROOVY files - keep those, delete KTS duplicates
+          rm -f android/settings.gradle.kts android/build.gradle.kts android/app/build.gradle.kts
+          ls -R android | head -n 100
+          echo "--- settings.gradle ---"
+          cat android/settings.gradle
 
-      - name: Fix Kotlin 2.3.0 + jvmTarget
+      - name: Force Kotlin 2.3.0 everywhere
         run: |
-          sed -i 's/version "2.2.1"/version "2.3.0"/g; s/version "8.7.3"/version "8.9.2"/g' android/settings.gradle.kts || true
           python3 << 'PY'
           import re, pathlib
-          p = pathlib.Path("android/app/build.gradle.kts")
-          t = p.read_text()
-          t = re.sub(r'kotlinOptions\s*\{[^}]*\}', '', t, flags=re.DOTALL)
-          t = re.sub(r'.*jvmTarget\s*=.*\n', '', t)
-          if "compilerOptions" not in t:
-              t += "\n\nkotlin {\n    compilerOptions {\n        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)\n    }\n}\n"
-          p.write_text(t)
-          print("patched app/build.gradle.kts")
+          # Patch settings.gradle - Kotlin plugin version
+          for name in ["android/settings.gradle", "android/build.gradle", "android/app/build.gradle"]:
+              p = pathlib.Path(name)
+              if not p.exists():
+                  continue
+              t = p.read_text()
+              # Any kotlin version -> 2.3.0
+              t = re.sub(r'org\.jetbrains\.kotlin\.android" version "[^"]+"', 'org.jetbrains.kotlin.android" version "2.3.0"', t)
+              t = re.sub(r"org\.jetbrains\.kotlin\.android' version '[^']+'", "org.jetbrains.kotlin.android' version '2.3.0'", t)
+              t = re.sub(r'kotlin_version\s*=\s*["\'][^"\']+["\']', 'kotlin_version = "2.3.0"', t)
+              t = re.sub(r'ext\.kotlin_version\s*=\s*["\'][^"\']+["\']', 'ext.kotlin_version = "2.3.0"', t)
+              t = re.sub(r'kotlin-gradle-plugin:[^"\']+', 'kotlin-gradle-plugin:2.3.0', t)
+              # AGP -> 8.9.2
+              t = re.sub(r'com\.android\.application" version "[^"]+"', 'com.android.application" version "8.9.2"', t)
+              p.write_text(t)
+              print(f"--- {name} ---")
+              print(t)
           PY
+          grep -rn "2.3.0\|kotlin" android/settings.gradle android/build.gradle || true
           flutter pub get
 
       - name: Build AAB (release)
