@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 /// HR Page - Nurse Withdrawals - CEO Control
@@ -20,6 +21,14 @@ class HRPageScreen extends StatefulWidget {
 }
 
 class _HRPageScreenState extends State<HRPageScreen> {
+  // FIX: Do NOT use FirebaseDatabase.instance on Web - it fails with
+  // "Cannot parse Firebase url" if FirebaseOptions has no databaseURL.
+  // Use the explicit RTDB URL for project web-care-618e8.
+  static const String _rtdbUrl = 'https://web-care-618e8-default-rtdb.firebaseio.com';
+  DatabaseReference _db(String path) {
+    return FirebaseDatabase.instanceFor(app: Firebase.app(), databaseURL: _rtdbUrl).ref(path);
+  }
+
   List<Map<String, dynamic>> _all = [];
   String _filter = 'all';
   bool _loading = true;
@@ -39,7 +48,7 @@ class _HRPageScreenState extends State<HRPageScreen> {
     });
     try {
       // 1. Live listener on the main path (like the HTML)
-      FirebaseDatabase.instance.ref('ceoWithdrawals').onValue.listen(
+      _db('ceoWithdrawals').onValue.listen(
         (event) {
           if (!mounted) return;
           final val = event.snapshot.value;
@@ -61,7 +70,7 @@ class _HRPageScreenState extends State<HRPageScreen> {
     } catch (e) {
       if (mounted) setState(() {
         _loading = false;
-        _error = 'Could not load withdrawals: $e\nCheck Firebase Rules for ceoWithdrawals.';
+        _error = 'Could not load withdrawals: $e\nCheck FirebaseOptions databaseURL in main.dart / firebase_options.dart.';
       });
     }
   }
@@ -70,7 +79,7 @@ class _HRPageScreenState extends State<HRPageScreen> {
     final byId = <String, Map<String, dynamic>>{for (final w in _all) w['id'].toString(): w};
     for (final path in ['nurseWithdrawals', 'hrWithdrawals', 'withdrawalRequests', 'ceoHRPage/withdrawals']) {
       try {
-        final snap = await FirebaseDatabase.instance.ref(path).get();
+        final snap = await _db(path).get();
         if (!snap.exists) continue;
         final val = snap.value;
         if (val is! Map) continue;
@@ -194,11 +203,11 @@ class _HRPageScreenState extends State<HRPageScreen> {
       };
       // Write to ALL 5 paths, like the HTML did - so nurse + HR + CEO all see it
       for (final path in ['nurseWithdrawals/$id', 'ceoWithdrawals/$id', 'hrWithdrawals/$id', 'withdrawalRequests/$id', 'ceoHRPage/withdrawals/$id']) {
-        await FirebaseDatabase.instance.ref(path).update(upd);
+        await _db(path).update(upd);
       }
       final nurseId = (w['nurseId'] ?? w['nurseUid'] ?? '').toString();
       if (nurseId.isNotEmpty) {
-        await FirebaseDatabase.instance.ref('nurseNotifications/$nurseId/$id').set({
+        await _db('nurseNotifications/$nurseId/$id').set({
           'type': 'withdrawal_approved',
           'title': 'Withdrawal Approved - GHS ${_amt(w).toStringAsFixed(2)}',
           'message': 'Your withdrawal of GHS ${_amt(w).toStringAsFixed(2)} via ${_method(w)} approved. $note',
@@ -235,7 +244,7 @@ class _HRPageScreenState extends State<HRPageScreen> {
         'rejectedAtStr': DateTime.now().toString(), 'ceoNote': reason, 'rejectedBy': 'CEO',
       };
       for (final path in ['nurseWithdrawals/$id', 'ceoWithdrawals/$id', 'hrWithdrawals/$id']) {
-        await FirebaseDatabase.instance.ref(path).update(upd);
+        await _db(path).update(upd);
       }
       _toast('Rejected');
       await _loadAll();
