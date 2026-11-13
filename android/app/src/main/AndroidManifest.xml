@@ -1,0 +1,46 @@
+<!-- AndroidManifest.xml - ROAD B: Real APK only -->
+<!-- Put in: android/app/src/main/AndroidManifest.xml (replace the one Flutter made) -->
+<!-- These permissions are what let the APK wake + ring when CLOSED. -->
+<!-- Website / PWA does NOT use this file - Chrome ignores it. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Push + custom sound when closed -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <application
+        android:label="Love Care Global"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/NormalTheme" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Tap notification -> open app to CEO / Nurse / Client dashboard (Cloud Function sends the link) -->
+            <intent-filter>
+                <action android:name="FLUTTER_NOTIFICATION_CLICK" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <meta-data android:name="flutterEmbedding" android:value="2" />
+        <!-- FCM default channel - MUST match apk_alerts.dart channel id -->
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="love_care_alerts" />
+        <!-- FCM default icon -->
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@mipmap/ic_launcher" />
+        <!-- FCM default custom sound - MUST match res/raw/love_care_bell.mp3 -->
+        <meta-data android:name="com.google.firebase.messaging.default_notification_sound" android:value="@raw/love_care_bell" />
+    </application>
+</manifest>
