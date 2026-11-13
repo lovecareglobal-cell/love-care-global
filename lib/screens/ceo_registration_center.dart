@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -349,6 +350,110 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     } catch (e) { _log('Delete failed: $e'); _toast('Delete failed: $e'); }
   }
 
+  // ---------- EXPORT + DELETE ALL (current tab) ----------
+  // No web-only import here - it breaks WASM build (same error as HR page).
+  // Plain TextButton used.
+  String _csvCell(String v) {
+    final s = v.replaceAll('"', '""');
+    if (s.contains(',') || s.contains('"') || s.contains('\n')) return '"$s"';
+    return s;
+  }
+
+  String _buildCsv(List<Map> list) {
+    final rows = <List<String>>[
+      ['Type', 'Full Name', 'Username', 'Email', 'Phone', 'Country Code', 'Approved', 'Has Photo', 'Has Video', 'Has ID', 'Has Licence', 'Has Cert', 'Qualification', 'Services', 'Reference Name', 'Reference Phone', 'GPS Name', 'Lat', 'Lng', 'UID', 'Created At', 'Photo URL', 'ID URL', 'Licence URL', 'Video URL', 'Cert URL'],
+    ];
+    for (final r in list) {
+      final created = r['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((r['createdAt'] as num).toInt()).toString() : '';
+      rows.add([
+        '${r['type'] ?? ''}',
+        '${r['fullName'] ?? ''}',
+        '${r['username'] ?? ''}',
+        '${r['email'] ?? ''}',
+        '${r['phone'] ?? ''}',
+        '${r['countryCode'] ?? ''}',
+        '${r['isApproved'] == true ? 'APPROVED' : 'PENDING'}',
+        '${r['hasPhoto'] == true ? 'YES' : 'NO'}',
+        '${r['hasVideo'] == true ? 'YES' : 'NO'}',
+        '${r['hasId'] == true ? 'YES' : 'NO'}',
+        '${r['hasLicence'] == true ? 'YES' : 'NO'}',
+        '${r['hasCert'] == true ? 'YES' : 'NO'}',
+        '${r['qualification'] ?? ''}',
+        '${r['services'] ?? ''}',
+        '${r['referenceName'] ?? ''}',
+        '${r['referencePhone'] ?? ''}',
+        '${r['gpsName'] ?? ''}',
+        '${r['lat'] ?? ''}',
+        '${r['lng'] ?? ''}',
+        '${r['uid'] ?? ''}',
+        created,
+        '${r['photo'] ?? ''}',
+        '${r['idURL'] ?? ''}',
+        '${r['licenceURL'] ?? ''}',
+        '${r['videoURL'] ?? ''}',
+        '${r['certURL'] ?? ''}',
+      ]);
+    }
+    return rows.map((r) => r.map(_csvCell).join(',')).join('\n');
+  }
+
+  Future<void> _export() async {
+    final list = filtered;
+    if (list.isEmpty) { _toast('Nothing to export - list is empty'); return; }
+    final csv = _buildCsv(list);
+    await Clipboard.setData(ClipboardData(text: csv));
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Export - CSV copied (${list.length} in $currentTab)'),
+        content: SingleChildScrollView(child: Text('Saved ${list.length} records to clipboard.\n\nPaste it into Excel / Google Sheets / WhatsApp / Notes.\n\n$csv')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+          ElevatedButton(onPressed: () { Clipboard.setData(ClipboardData(text: csv)); Navigator.pop(context); _toast('Copied again'); }, child: const Text('Copy Again')),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAllFiltered() async {
+    final list = List<Map>.from(filtered);
+    if (list.isEmpty) { _toast('Nothing to delete'); return; }
+    // One confirm for ALL - type DELETE once, not once per person (unlike per-card Delete)
+    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Delete ALL ${list.length} in $currentTab?'), content: Text('This deletes ALL ${list.length} records in the current tab ($currentTab) from RTDB. It cannot be undone.\n\nTip: Export first, so you still have a copy saved.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Continue'))]));
+    if (c1 != true) return;
+    final ctrl = TextEditingController();
+    final confirmText = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: Text('Type DELETE to delete ALL ${list.length}'), content: TextField(controller: ctrl), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Confirm'))]));
+    if (confirmText != 'DELETE') { _toast('Cancelled - you must type DELETE'); return; }
+    setState(() { showLog = true; logLines = []; });
+    _log('STARTING DELETE ALL - ${list.length} records in $currentTab');
+    int done = 0;
+    try {
+      final db = FirebaseDatabase.instance;
+      for (final rec in list) {
+        final uid = (rec['uid'] ?? rec['id'] ?? '').toString();
+        final email = (rec['email'] ?? '').toString().toLowerCase();
+        final emailKey = _sanitizeEmail(email);
+        final type = rec['type']?.toString() ?? 'nurse';
+        final bases = type == 'nurse'
+            ? ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence']
+            : ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients', 'allowedClients', 'allowedClientsByUid', 'pendingClientRegistrations', 'verified_clients', 'onlineClients', 'clientPresence', 'clientsByEmail'];
+        for (final base in bases) {
+          if (uid.length >= 2) { try { await db.ref('$base/$uid').remove(); } catch (_) {} }
+          if (emailKey.length >= 2) { try { await db.ref('$base/$emailKey').remove(); } catch (_) {} }
+        }
+        done++;
+        _log('Deleted: $type ${rec['fullName']} ($email)');
+      }
+      _log('DONE - Deleted $done records');
+      _toast('Deleted $done records');
+      _loadAll();
+    } catch (e) {
+      _log('Delete All failed: $e');
+      _toast('Delete All failed: $e');
+    }
+  }
+
   Widget _docBox(String url, String label, bool has, String type) => InkWell(onTap: () => _viewDoc(url, label, type), child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10), border: Border.all(color: has ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3))), child: Column(children: [if (url.isNotEmpty && type == 'image') ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(url, height: 80, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(height: 80, child: Center(child: Text('Photo'))))) else SizedBox(height: 80, child: Center(child: Text(has ? 'View $label' : 'No $label', style: const TextStyle(color: Colors.white60, fontSize: 11)))), const SizedBox(height: 4), Text('$label ${has ? '✅' : '❌'}', style: const TextStyle(fontSize: 10))])));
 
   @override
@@ -361,7 +466,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     final tabs = [{'key': 'nursesPending', 'label': '👩‍⚕️ Nurses Pending ($nursesPending)'}, {'key': 'nursesApproved', 'label': '✅ Nurses Approved ($nursesApproved)'}, {'key': 'clientsPending', 'label': '👥 Clients Pending ($clientsPending)'}, {'key': 'clientsApproved', 'label': '✅ Clients Approved ($clientsApproved)'}, {'key': 'all', 'label': '📦 ALL (${allRecords.length})'}];
     return Scaffold(
       backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: const Text('CEO View All Uploads', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [IconButton(icon: const Icon(Icons.volume_up), onPressed: () => Navigator.pushNamed(context, '/sound-settings')), TextButton(onPressed: _fixAllApproved, child: const Text('Fix All Approved', style: TextStyle(color: Colors.yellow, fontSize: 11))), IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAll)]),
+      appBar: AppBar(title: const Text('CEO View All Uploads', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [IconButton(icon: const Icon(Icons.volume_up), onPressed: () => Navigator.pushNamed(context, '/sound-settings')), TextButton(onPressed: _export, child: const Text('Export', style: TextStyle(color: Color(0xFFFACC15), fontSize: 11, fontWeight: FontWeight.bold))), TextButton(onPressed: _deleteAllFiltered, child: const Text('Delete All', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold))), TextButton(onPressed: _fixAllApproved, child: const Text('Fix All Approved', style: TextStyle(color: Colors.yellow, fontSize: 11))), IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAll)]),
       body: Column(children: [
         Padding(padding: const EdgeInsets.all(10), child: Wrap(spacing: 6, runSpacing: 6, children: tabs.map((t) => ChoiceChip(label: Text(t['label']!, style: const TextStyle(fontSize: 11)), selected: currentTab == t['key'], onSelected: (_) => setState(() => currentTab = t['key']!))).toList())),
         Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Row(children: [Expanded(child: TextField(controller: _searchCtrl, decoration: const InputDecoration(hintText: 'Search name / username / email / phone', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)), onChanged: (v) => setState(() => search = v.toLowerCase()))), const SizedBox(width: 8), DropdownButton<String>(value: docFilter, items: const [DropdownMenuItem(value: 'all', child: Text('All Documents')), DropdownMenuItem(value: 'missing', child: Text('Missing ALL 5')), DropdownMenuItem(value: 'hasVideo', child: Text('Has Video')), DropdownMenuItem(value: 'hasPhoto', child: Text('Has Photo'))], onChanged: (v) => setState(() => docFilter = v ?? 'all'))])),
