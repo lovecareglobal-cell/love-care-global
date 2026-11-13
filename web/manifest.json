@@ -202,7 +202,7 @@
     {
       "name": "LoveCare Global",
       "short_name": "LoveCare",
-      "description": "Book a nurse - 24/7 care",
+      "description": "Book a nurse - 24/7 care, nearby nurses, SOS",
       "tag": "lovecare-widget",
       "template": "lovecare-template",
       "ms_ac_template": "widgets/lovecare-template.json",
@@ -270,5 +270,19 @@
     "window-controls-overlay",
     "tabbed",
     "standalone"
-  ]
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "tab_strip": {
+    "home_tab": {
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  }
 }
