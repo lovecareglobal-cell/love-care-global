@@ -47,7 +47,7 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
     {'num': '08', 'title': 'Penalize', 'file': 'ceo-penalize.html', 'desc': 'Warn, block, delete account', 'route': '/ceo-penalize'},
     {'num': '09', 'title': 'Registration Center', 'file': 'ceo-registration-center.html', 'desc': 'Approve or reject registrations', 'route': '/ceo-registration-center'},
     {'num': '10', 'title': 'Refund Management', 'file': 'ceo-refund-management.html', 'desc': 'Approve refund requests', 'route': '/ceo-refund-management'},
-    {'num': '11', 'title': 'Delete Nurse', 'file': 'delete-nurse-all-paths.html', 'desc': 'Delete by UID, email, phone - All paths', 'route': '/force-delete'},
+    {'num': '11', 'title': 'Force Delete', 'file': 'force_delete.dart', 'desc': 'Force wipe by email - DB + Firestore + Auth - 100% NEW', 'route': '/force-delete'},
     {'num': '12', 'title': 'Bookings Progress', 'file': 'ceo-bookings-progress.html', 'desc': 'All bookings status and date time', 'route': '/ceo-bookings-progress'},
     {'num': '13', 'title': 'HR Page - GHS and USD', 'file': 'hr-page-GHS-USD.html', 'desc': 'Card Global GHS Ghana plus USD outside Ghana', 'route': '/hr-page'},
   ];
@@ -98,7 +98,7 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A1633),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: p['num'] == '03' ? Colors.purple.withOpacity(0.25) : p['num'] == '12' ? Colors.green.withOpacity(0.2) : p['num'] == '13' ? Colors.yellow.withOpacity(0.25) : Colors.white10),
+                      border: Border.all(color: p['num'] == '03' ? Colors.purple.withOpacity(0.25) : p['num'] == '12' ? Colors.green.withOpacity(0.2) : p['num'] == '13' ? Colors.yellow.withOpacity(0.25) : p['num'] == '11' ? Colors.red.withOpacity(0.35) : Colors.white10),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
