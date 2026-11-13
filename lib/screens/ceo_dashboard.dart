@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'force_delete.dart';
+import 'sound_settings.dart'; // DIRECT - so button never falls back to Home
 
 /// CEO Dashboard - 14 Pages - + Sound Settings button - Flutter version of ceo-dashboard.html
 /// - Header: "CEO Dashboard - 14 Pages" + badge "{pending} Refunds" + badge "14 Pages" + Home -> '/home'
@@ -64,7 +65,7 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
         actions: [
           Center(child: Padding(padding: const EdgeInsets.only(right: 8), child: Chip(label: Text('$pendingRefunds Refunds', style: const TextStyle(fontSize: 10)), backgroundColor: Colors.white10))),
           const Center(child: Padding(padding: EdgeInsets.only(right: 8), child: Chip(label: Text('14 Pages', style: TextStyle(fontSize: 10, color: Color(0xFFFACC15))), backgroundColor: Color(0x14FACC15)))),
-          IconButton(icon: const Icon(Icons.volume_up), onPressed: () => Navigator.pushNamed(context, '/sound-settings')),
+          IconButton(icon: const Icon(Icons.volume_up), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SoundSettingsScreen()))),
           TextButton(onPressed: () => Navigator.pushNamed(context, '/home'), child: const Text('Home', style: TextStyle(color: Colors.white, fontSize: 11))),
         ],
       ),
@@ -107,9 +108,15 @@ class _CEODashboardScreenState extends State<CEODashboardScreen> {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => CEOForceWipeEmailPage()));
                       return;
                     }
-                    // Sound Settings card 14 -> /sound-settings -> sound_settings.dart
-                    // Confirmed: class is SoundSettingsScreen (alias SoundSettingsPage also works).
-                    // main.dart has: '/sound-settings': (context) => SoundSettingsScreen(),
+                    // Sound Settings card 14 -> DIRECT to sound_settings.dart
+                    // FIX: pushNamed('/sound-settings') went to Home because main.dart
+                    // had no /sound-settings route -> onUnknownRoute -> Home.
+                    // Direct MaterialPageRoute NEVER needs a route, so it can never go to Home.
+                    // Confirmed class: SoundSettingsScreen (alias SoundSettingsPage also works).
+                    if (p['route'] == '/sound-settings') {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SoundSettingsScreen()));
+                      return;
+                    }
                     Navigator.pushNamed(context, p['route']!);
                   },
                   child: Container(
