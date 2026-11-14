@@ -368,9 +368,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       final compact = text.replaceAll(RegExp(r'\s+'), ' ');
       if (text.replaceAll(RegExp(r'[^A-Z0-9]'), '').length < 20) { setState(() { _idCheck = '❌ ID photo is not readable - too dark, blurry or cropped. Retake it so ALL text is clear.'; _idVerified = false; _idScore = 20; }); return false; }
       String country = 'UNKNOWN';
-      const countryWords = {'GHANA':'GHANA','NIGERIA':'NIGERIA','KENYA':'KENYA','SOUTH AFRICA':'SOUTH AFRICA','INDIA':'INDIA','AADHAAR':'INDIA','UNITED KINGDOM':'UNITED KINGDOM','GREAT BRITAIN':'UNITED KINGDOM','UNITED STATES':'USA','USA':'USA','AMERICA':'USA','CANADA':'CANADA','AUSTRALIA':'AUSTRALIA','FRANCE':'FRANCE','GERMANY':'GERMANY','BUNDESREPUBLIK':'GERMANY','TOGO':'TOGO',"IVORY COAST":"IVORY COAST",'IVORY COAST':"IVORY COAST",'BENIN':'BENIN','BURKINA':'BURKINA FASO','SENEGAL':'SENEGAL','SIERRA LEONE':'SIERRA LEONE','LIBERIA':'LIBERIA','CAMEROON':'CAMEROON','ETHIOPIA':'ETHIOPIA','UGANDA':'UGANDA','TANZANIA':'TANZANIA','EGYPT':'EGYPT','PAKISTAN':'PAKISTAN','PHILIPPINES':'PHILIPPINES','BRAZIL':'BRAZIL','BRASIL':'BRAZIL'};
+      final countryWords = {'GHANA':'GHANA','NIGERIA':'NIGERIA','KENYA':'KENYA','SOUTH AFRICA':'SOUTH AFRICA','INDIA':'INDIA','AADHAAR':'INDIA','UNITED KINGDOM':'UNITED KINGDOM','GREAT BRITAIN':'UNITED KINGDOM','UNITED STATES':'USA','USA':'USA','AMERICA':'USA','CANADA':'CANADA','AUSTRALIA':'AUSTRALIA','FRANCE':'FRANCE','GERMANY':'GERMANY','BUNDESREPUBLIK':'GERMANY','TOGO':'TOGO','IVORY COAST':'IVORY COAST','BENIN':'BENIN','BURKINA':'BURKINA FASO','SENEGAL':'SENEGAL','SIERRA LEONE':'SIERRA LEONE','LIBERIA':'LIBERIA','CAMEROON':'CAMEROON','ETHIOPIA':'ETHIOPIA','UGANDA':'UGANDA','TANZANIA':'TANZANIA','EGYPT':'EGYPT','PAKISTAN':'PAKISTAN','PHILIPPINES':'PHILIPPINES','BRAZIL':'BRAZIL','BRASIL':'BRAZIL'};
       for (final e in countryWords.entries) { if (text.contains(e.key)) { country = e.value; break; } }
-      if (_selectedIdType == 'Ghana Card' && _selectedIdCountry != 'Ghana') { setState(() { _idCheck = '❌ Ghana Card is only for Ghana. Pick Ghana, or pick your own countrys ID.'; _idVerified = false; _idScore = 40; }); return false; }
+      if (_selectedIdType == 'Ghana Card' && _selectedIdCountry != 'Ghana') { setState(() { _idCheck = '❌ Ghana Card is only for Ghana. Pick Ghana, or pick your own country\'s ID.'; _idVerified = false; _idScore = 40; }); return false; }
       if (_selectedIdCountry != 'Other') {
         if (country == 'UNKNOWN') { setState(() { _idCheck = '❌ Could not read the COUNTRY on this ID. Retake a clear photo showing "$_selectedIdCountry" on the ID.'; _idVerified = false; _idScore = 35; }); return false; }
         String sel = _selectedIdCountry.toUpperCase(); if (sel == 'UNITED STATES') sel = 'USA';
@@ -379,10 +379,10 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       String detected = 'UNKNOWN';
       final hasMrz = RegExp(r'P<[A-Z]{3}').hasMatch(compact.replaceAll(' ', ''));
       if (text.contains('PASSPORT') || hasMrz) detected = 'Passport';
-      else if (text.contains('DRIV') && (text.contains('LICEN') || text.contains('PERMIS') || text.contains('DVLA'))) detected = "Driving Licence";
+      else if (text.contains('DRIV') && (text.contains('LICEN') || text.contains('PERMIS') || text.contains('DVLA'))) detected = "Driving Licence / Driver License";
       else if (text.contains('GHANA CARD') || text.contains('NATIONAL IDENTIFICATION') || RegExp(r'GHA-\d{9}-\d').hasMatch(text)) detected = 'Ghana Card';
       else if (text.contains('AADHAAR') || text.contains('UNIQUE IDENTIFICATION')) detected = 'Aadhaar Card (India)';
-      else if (text.contains('VOTER') || text.contains('ELECTORAL')) detected = "Voter ID Card";
+      else if (text.contains('VOTER') || text.contains('ELECTORAL')) detected = "Voter ID / Voter Card";
       else if (text.contains('NHIS') || text.contains('HEALTH INSURANCE')) detected = 'Health Insurance Card (NHIS / Health Card)';
       else if (text.contains('NATIONAL IDENTITY') || text.contains('NATIONAL ID') || text.contains('IDENTITY CARD') || text.contains('IDENTITY DOCUMENT') || text.contains('CARTE NATIONALE')) detected = 'National ID / National Identity Card';
       else if (text.contains('SOCIAL SECURITY')) detected = 'Social Security Card (USA)';
@@ -419,7 +419,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       if (faceScore == -2) { setState(() { _idCheck = '❌ More than one face found in your profile photo or ID photo. Upload photos with ONLY YOU in them.'; _idVerified = false; _idScore = 70; _faceMatchScore = 0; }); return false; }
       _faceMatchScore = faceScore;
       if (faceScore < 55) {
-        setState(() { _faceCheck = 'Face match ${faceScore.toStringAsFixed(0)}/100 - TOO LOW'; _idCheck = '❌ FACE DOES NOT MATCH: the face on this ID (score ${faceScore.toStringAsFixed(0)}/100) does NOT look like the face in your profile photo. This looks like SOMEONE ELSES ID. Upload YOUR OWN ID + YOUR OWN photo.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 75; });
+        setState(() { _faceCheck = 'Face match ${faceScore.toStringAsFixed(0)}/100 - TOO LOW'; _idCheck = '❌ FACE DOES NOT MATCH: the face on this ID (score ${faceScore.toStringAsFixed(0)}/100) does NOT look like the face in your profile photo. This looks like SOMEONE ELSE\'S ID. Upload YOUR OWN ID + YOUR OWN photo.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 75; });
         return false;
       }
       setState(() {
