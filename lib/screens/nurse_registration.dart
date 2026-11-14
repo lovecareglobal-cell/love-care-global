@@ -282,7 +282,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   // To turn on auto-check: paste a Google Cloud Vision API key below
   // (Google Cloud Console -> APIs -> Cloud Vision API -> Create API key).
   // If no key is set, registration is NOT blocked - it is marked for CEO manual check.
-  static const String _visionApiKey = 'AIzaSyB01aAClOFH14tmdsyFcQeJ0t0eh_tWVFA;
+  static const String _visionApiKey = 'AIzaSyB01aAClOFH14tmdsyFcQeJ0t0eh_tWVFA';
 
   Future<String?> _ocrWithVision(Uint8List bytes) async {
     if (_visionApiKey == 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE' || _visionApiKey.isEmpty) return null;
