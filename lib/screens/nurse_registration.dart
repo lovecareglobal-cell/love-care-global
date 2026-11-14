@@ -17,12 +17,16 @@ class NurseRegistrationPage extends StatefulWidget {
 }
 
 class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
+  // ---- APP COLOUR: DARK PINK (not bright) - use on ALL pages ----
+  static const Color _darkPink = Color(0xFF880E4F); // deep dark pink - headers, main buttons
+  static const Color _pink = Color(0xFFAD1457); // dark pink - secondary buttons / accents
+  static const Color _pinkSoft = Color(0xFFFCE4EC); // very light pink - button backgrounds, chips
+  static const Color _pinkBorder = Color(0xFFF8BBD0); // soft pink border
   final _name = TextEditingController();
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
   final _pass = TextEditingController();
-  // PHONE COUNTRY CODE (WORLD)
   static const List<Map<String, String>> _countries = [{"name": "Afghanistan", "code": "+93"},
     {"name": "Albania", "code": "+355"},
     {"name": "Algeria", "code": "+213"},
@@ -224,7 +228,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   String get _selectedCountryName => _isOtherCountry ? 'Other' : _selectedCountry.split('|')[0];
   String get _selectedDialCode { if (_isOtherCountry) { var c = _otherCode.text.trim(); if (!c.startsWith('+')) c = '+$c'; return c; } return _selectedCountry.split('|')[1]; }
   String get _fullPhone { var local = _phone.text.trim().replaceAll(RegExp(r'[\s\-\(\)]'), ''); if (local.startsWith('+')) return local; if (local.startsWith('00')) return '+${local.substring(2)}'; if (local.startsWith('0')) local = local.substring(1); return _selectedDialCode.replaceAll(' ', '') + local; }
-  // ID: COUNTRY (citizenship) + TYPE - nurses only, citizenship IDs only. No police/military/student/other/permits/refugee.
   String _selectedIdCountry = '';
   String _selectedIdType = '';
   final _idNumberTyped = TextEditingController();
@@ -233,7 +236,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   int _idScore = 0;
   double _faceMatchScore = 0;
   String _faceCheck = '';
-  static const List<String> _idCountries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo (DRC)', 'Costa Rica', "Côte d'Ivoire", 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Other'];
+  // Label for the upload rows - FOLLOWS the picked ID type. Passport -> "Upload Passport - FRONT", Ghana Card -> "Upload Ghana Card - FRONT", etc. Never stuck on "National ID".
+  String get _idLabel => _selectedIdType.isEmpty ? 'ID' : _selectedIdType;
+  static const List<String> _idCountries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo (DRC)', 'Costa Rica', 'Côte d'Ivoire', 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Other'];
   static const List<String> _idTypes = ['Passport','National ID / National Identity Card','Ghana Card',"Voter ID / Voter's Card","Driving Licence / Driver's License",'Health Insurance Card (NHIS / Health Card)','Aadhaar Card (India)','PAN Card (India)','Social Security Card (USA)','State ID Card (USA)'];
   XFile? _photo;
   XFile? _video;
@@ -312,13 +317,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   }
 
 
-  // FACE MATCH: ID face vs PROFILE PHOTO face - Google Vision FACE_DETECTION on BOTH.
-  // Landmarks normalised by face size. Same person -> near-identical geometry. Different person -> not.
   Future<Map<String, List<double>>?> _faceLandmarks(Uint8List bytes) async {
     try {
-      final res = await http.post(Uri.parse('https://vision.googleapis.com/v1/images:annotate?key=$_visionApiKey'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'requests': [{'image': {'content': base64Encode(bytes)}, 'features': [{'type': 'FACE_DETECTION', 'maxResults': 5}]}]}));
+      final res = await http.post(Uri.parse('https://vision.googleapis.com/v1/images:annotate?key=$_visionApiKey'), headers: {'Content-Type': 'application/json'}, body: jsonEncode({'requests': [{'image': {'content': base64Encode(bytes)}, 'features': [{'type': 'FACE_DETECTION', 'maxResults': 5}]}]}));
       if (res.statusCode != 200) return null;
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final faces = (data['responses'] as List?)?.first['faceAnnotations'] as List?;
@@ -331,18 +332,12 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       final x1 = (box[2]['x'] ?? 1).toDouble(), y1 = (box[2]['y'] ?? 1).toDouble();
       final w = (x1 - x0).abs().clamp(1.0, 100000.0), h = (y1 - y0).abs().clamp(1.0, 100000.0);
       final out = <String, List<double>>{};
-      for (final lm in (face['landmarks'] as List? ?? [])) {
-        final type = lm['type'] as String? ?? '';
-        final pos = lm['position'] as Map<String, dynamic>?;
-        if (pos == null) continue;
-        out[type] = [((pos['x'] ?? 0).toDouble() - x0) / w, ((pos['y'] ?? 0).toDouble() - y0) / h];
-      }
+      for (final lm in (face['landmarks'] as List? ?? [])) { final type = lm['type'] as String? ?? ''; final pos = lm['position'] as Map<String, dynamic>?; if (pos == null) continue; out[type] = [((pos['x'] ?? 0).toDouble() - x0) / w, ((pos['y'] ?? 0).toDouble() - y0) / h]; }
       return out;
     } catch (_) { return null; }
   }
   Future<double?> _faceSimilarity(Uint8List profileBytes, Uint8List idBytes) async {
-    final a = await _faceLandmarks(profileBytes);
-    final b = await _faceLandmarks(idBytes);
+    final a = await _faceLandmarks(profileBytes); final b = await _faceLandmarks(idBytes);
     if (a == null || b == null) return null;
     if (a.containsKey('__no_face__') || b.containsKey('__no_face__')) return -1;
     if (a.containsKey('__many_faces__') || b.containsKey('__many_faces__')) return -2;
@@ -672,7 +667,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nurse Registration'), backgroundColor: Colors.teal, foregroundColor: Colors.white),
+      appBar: AppBar(title: const Text('Nurse Registration'), backgroundColor: _darkPink, foregroundColor: Colors.white),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -736,19 +731,19 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.photo),
               title: Text(_photo == null ? 'Upload Photo - YOUR OWN FACE (required for face match)' : 'Photo Selected: ${_photo!.name}'),
-              trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo')),
+              trailing: ElevatedButton(onPressed: _pickPhoto, style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Photo')),
             ),
             // VIDEO
             ListTile(
               leading: const Icon(Icons.videocam),
               title: Text(_video == null ? 'Upload Intro Video' : 'Video Selected: ${_video!.name}'),
-              trailing: ElevatedButton(onPressed: _pickVideo, child: const Text('Pick Video')),
+              trailing: ElevatedButton(onPressed: _pickVideo, style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Video')),
             ),
             // CV
             ListTile(
               leading: const Icon(Icons.description),
               title: Text(_cv == null ? 'Upload CV' : 'CV Selected: ${_cv!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _cv = f), child: const Text('Pick CV')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _cv = f), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick CV')),
             ),
             // NURSING PIN NUMBER
             TextField(controller: _pinNumber, decoration: const InputDecoration(labelText: 'Nursing PIN Number')),
@@ -756,9 +751,10 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.badge),
               title: Text(_pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), child: const Text('Pick PIN')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick PIN')),
             ),
-            // ID COUNTRY (citizenship) + ID TYPE
+            // ---- ID SECTION (NOT Nursing PIN) ----
+            // ID Country + ID Type + ID Number sit here, directly above the ID upload rows.
             DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _idVerified = false; _idCheck = ''; })),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Type - Select your ID', hintText: 'e.g. Passport, Ghana Card, Voter ID...'), items: _idTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
@@ -773,28 +769,31 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             // NATIONAL ID - FRONT
             ListTile(
               leading: const Icon(Icons.credit_card),
-              title: Text(_idFront == null ? 'Upload National ID - FRONT' : 'ID Front Selected: ${_idFront!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickIdSide(true), child: const Text('Pick Front')),
+              title: Text(_idFront == null ? 'Upload $_idLabel - FRONT' : '$_idLabel Front Selected: ${_idFront!.name}'),
+              subtitle: Text(_selectedIdType.isEmpty ? 'Pick ID Country + ID Type first' : 'Front of $_selectedIdType ($_selectedIdCountry)'),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(true), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Front')),
             ),
-            // NATIONAL ID - BACK
+            // ID - BACK (hidden for Passport - front only)
+            if (_selectedIdType != 'Passport')
             ListTile(
               leading: const Icon(Icons.credit_card),
-              title: Text(_idBack == null ? 'Upload National ID - BACK' : 'ID Back Selected: ${_idBack!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickIdSide(false), child: const Text('Pick Back')),
+              title: Text(_idBack == null ? 'Upload $_idLabel - BACK' : '$_idLabel Back Selected: ${_idBack!.name}'),
+              subtitle: Text(_selectedIdType == 'Passport' ? 'Passport - no back needed' : 'Back of $_selectedIdType (required)'),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(false), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Back')),
             ),
             // CERTIFICATE
             ListTile(
               leading: const Icon(Icons.school),
               title: Text(_certificate == null ? 'Upload Certificate' : 'Certificate Selected: ${_certificate!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _certificate = f), child: const Text('Pick Cert')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _certificate = f), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Cert')),
             ),
             const SizedBox(height: 20),
             _loading
                 ? const CircularProgressIndicator()
                 : Column(children: [
-                    ElevatedButton(onPressed: _verifyIdDocument, child: const Text('🔍 CHECK MY ID AGAIN')),
+                    ElevatedButton(onPressed: _verifyIdDocument, style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)), child: const Text('🔍 CHECK MY ID AGAIN')),
                     const SizedBox(height: 10),
-                    ElevatedButton(onPressed: _register, child: const Text('REGISTER AS NURSE')),
+                    ElevatedButton(onPressed: _register, style: ElevatedButton.styleFrom(backgroundColor: _darkPink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)), child: const Text('REGISTER AS NURSE')),
                   ]),
           ],
         ),
