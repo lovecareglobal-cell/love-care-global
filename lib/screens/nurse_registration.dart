@@ -17,16 +17,14 @@ class NurseRegistrationPage extends StatefulWidget {
 }
 
 class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
-  // ---- APP COLOUR: DARK PINK (not bright) - use on ALL pages ----
-  static const Color _darkPink = Color(0xFF880E4F); // deep dark pink - headers, main buttons
-  static const Color _pink = Color(0xFFAD1457); // dark pink - secondary buttons / accents
-  static const Color _pinkSoft = Color(0xFFFCE4EC); // very light pink - button backgrounds, chips
-  static const Color _pinkBorder = Color(0xFFF8BBD0); // soft pink border
   final _name = TextEditingController();
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
   final _pass = TextEditingController();
+  static const Color _darkPink = Color(0xFF880E4F);
+  static const Color _pink = Color(0xFFAD1457);
+  static const Color _pinkSoft = Color(0xFFFCE4EC);
   static const List<Map<String, String>> _countries = [{"name": "Afghanistan", "code": "+93"},
     {"name": "Albania", "code": "+355"},
     {"name": "Algeria", "code": "+213"},
@@ -68,7 +66,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     {"name": "Congo", "code": "+242"},
     {"name": "Congo (DRC)", "code": "+243"},
     {"name": "Costa Rica", "code": "+506"},
-    {"name": "Côte d'Ivoire", "code": "+225"},
+    {"name": "Ivory Coast", "code": "+225"},
     {"name": "Croatia", "code": "+385"},
     {"name": "Cuba", "code": "+53"},
     {"name": "Cyprus", "code": "+357"},
@@ -236,10 +234,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   int _idScore = 0;
   double _faceMatchScore = 0;
   String _faceCheck = '';
-  // Label for the upload rows - FOLLOWS the picked ID type. Passport -> "Upload Passport - FRONT", Ghana Card -> "Upload Ghana Card - FRONT", etc. Never stuck on "National ID".
   String get _idLabel => _selectedIdType.isEmpty ? 'ID' : _selectedIdType;
-  static const List<String> _idCountries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo (DRC)', 'Costa Rica', 'Côte d'Ivoire', 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Other'];
-  static const List<String> _idTypes = ['Passport','National ID / National Identity Card','Ghana Card',"Voter ID / Voter's Card","Driving Licence / Driver's License",'Health Insurance Card (NHIS / Health Card)','Aadhaar Card (India)','PAN Card (India)','Social Security Card (USA)','State ID Card (USA)'];
+  static const List<String> _idCountries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo (DRC)', 'Costa Rica', 'Ivory Coast', 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Other'];
+  static const List<String> _idTypes = ['Passport','National ID / National Identity Card','Ghana Card','Voter ID Card','Driving Licence','Health Insurance Card (NHIS / Health Card)','Aadhaar Card (India)','PAN Card (India)','Social Security Card (USA)','State ID Card (USA)'];
   XFile? _photo;
   XFile? _video;
   XFile? _cv;
@@ -371,9 +368,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       final compact = text.replaceAll(RegExp(r'\s+'), ' ');
       if (text.replaceAll(RegExp(r'[^A-Z0-9]'), '').length < 20) { setState(() { _idCheck = '❌ ID photo is not readable - too dark, blurry or cropped. Retake it so ALL text is clear.'; _idVerified = false; _idScore = 20; }); return false; }
       String country = 'UNKNOWN';
-      const countryWords = {'GHANA':'GHANA','NIGERIA':'NIGERIA','KENYA':'KENYA','SOUTH AFRICA':'SOUTH AFRICA','INDIA':'INDIA','AADHAAR':'INDIA','UNITED KINGDOM':'UNITED KINGDOM','GREAT BRITAIN':'UNITED KINGDOM','UNITED STATES':'USA','USA':'USA','AMERICA':'USA','CANADA':'CANADA','AUSTRALIA':'AUSTRALIA','FRANCE':'FRANCE','GERMANY':'GERMANY','BUNDESREPUBLIK':'GERMANY','TOGO':'TOGO',"COTE D'IVOIRE":"COTE D'IVOIRE",'IVORY COAST':"COTE D'IVOIRE",'BENIN':'BENIN','BURKINA':'BURKINA FASO','SENEGAL':'SENEGAL','SIERRA LEONE':'SIERRA LEONE','LIBERIA':'LIBERIA','CAMEROON':'CAMEROON','ETHIOPIA':'ETHIOPIA','UGANDA':'UGANDA','TANZANIA':'TANZANIA','EGYPT':'EGYPT','PAKISTAN':'PAKISTAN','PHILIPPINES':'PHILIPPINES','BRAZIL':'BRAZIL','BRASIL':'BRAZIL'};
+      const countryWords = {'GHANA':'GHANA','NIGERIA':'NIGERIA','KENYA':'KENYA','SOUTH AFRICA':'SOUTH AFRICA','INDIA':'INDIA','AADHAAR':'INDIA','UNITED KINGDOM':'UNITED KINGDOM','GREAT BRITAIN':'UNITED KINGDOM','UNITED STATES':'USA','USA':'USA','AMERICA':'USA','CANADA':'CANADA','AUSTRALIA':'AUSTRALIA','FRANCE':'FRANCE','GERMANY':'GERMANY','BUNDESREPUBLIK':'GERMANY','TOGO':'TOGO',"IVORY COAST":"IVORY COAST",'IVORY COAST':"IVORY COAST",'BENIN':'BENIN','BURKINA':'BURKINA FASO','SENEGAL':'SENEGAL','SIERRA LEONE':'SIERRA LEONE','LIBERIA':'LIBERIA','CAMEROON':'CAMEROON','ETHIOPIA':'ETHIOPIA','UGANDA':'UGANDA','TANZANIA':'TANZANIA','EGYPT':'EGYPT','PAKISTAN':'PAKISTAN','PHILIPPINES':'PHILIPPINES','BRAZIL':'BRAZIL','BRASIL':'BRAZIL'};
       for (final e in countryWords.entries) { if (text.contains(e.key)) { country = e.value; break; } }
-      if (_selectedIdType == 'Ghana Card' && _selectedIdCountry != 'Ghana') { setState(() { _idCheck = '❌ Ghana Card is only for Ghana. Pick Ghana, or pick your own country\'s ID.'; _idVerified = false; _idScore = 40; }); return false; }
+      if (_selectedIdType == 'Ghana Card' && _selectedIdCountry != 'Ghana') { setState(() { _idCheck = '❌ Ghana Card is only for Ghana. Pick Ghana, or pick your own countrys ID.'; _idVerified = false; _idScore = 40; }); return false; }
       if (_selectedIdCountry != 'Other') {
         if (country == 'UNKNOWN') { setState(() { _idCheck = '❌ Could not read the COUNTRY on this ID. Retake a clear photo showing "$_selectedIdCountry" on the ID.'; _idVerified = false; _idScore = 35; }); return false; }
         String sel = _selectedIdCountry.toUpperCase(); if (sel == 'UNITED STATES') sel = 'USA';
@@ -382,10 +379,10 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       String detected = 'UNKNOWN';
       final hasMrz = RegExp(r'P<[A-Z]{3}').hasMatch(compact.replaceAll(' ', ''));
       if (text.contains('PASSPORT') || hasMrz) detected = 'Passport';
-      else if (text.contains('DRIV') && (text.contains('LICEN') || text.contains('PERMIS') || text.contains('DVLA'))) detected = "Driving Licence / Driver's License";
+      else if (text.contains('DRIV') && (text.contains('LICEN') || text.contains('PERMIS') || text.contains('DVLA'))) detected = "Driving Licence";
       else if (text.contains('GHANA CARD') || text.contains('NATIONAL IDENTIFICATION') || RegExp(r'GHA-\d{9}-\d').hasMatch(text)) detected = 'Ghana Card';
       else if (text.contains('AADHAAR') || text.contains('UNIQUE IDENTIFICATION')) detected = 'Aadhaar Card (India)';
-      else if (text.contains('VOTER') || text.contains('ELECTORAL')) detected = "Voter ID / Voter's Card";
+      else if (text.contains('VOTER') || text.contains('ELECTORAL')) detected = "Voter ID Card";
       else if (text.contains('NHIS') || text.contains('HEALTH INSURANCE')) detected = 'Health Insurance Card (NHIS / Health Card)';
       else if (text.contains('NATIONAL IDENTITY') || text.contains('NATIONAL ID') || text.contains('IDENTITY CARD') || text.contains('IDENTITY DOCUMENT') || text.contains('CARTE NATIONALE')) detected = 'National ID / National Identity Card';
       else if (text.contains('SOCIAL SECURITY')) detected = 'Social Security Card (USA)';
@@ -422,7 +419,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       if (faceScore == -2) { setState(() { _idCheck = '❌ More than one face found in your profile photo or ID photo. Upload photos with ONLY YOU in them.'; _idVerified = false; _idScore = 70; _faceMatchScore = 0; }); return false; }
       _faceMatchScore = faceScore;
       if (faceScore < 55) {
-        setState(() { _faceCheck = 'Face match ${faceScore.toStringAsFixed(0)}/100 - TOO LOW'; _idCheck = '❌ FACE DOES NOT MATCH: the face on this ID (score ${faceScore.toStringAsFixed(0)}/100) does NOT look like the face in your profile photo. This looks like SOMEONE ELSE\'S ID. Upload YOUR OWN ID + YOUR OWN photo.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 75; });
+        setState(() { _faceCheck = 'Face match ${faceScore.toStringAsFixed(0)}/100 - TOO LOW'; _idCheck = '❌ FACE DOES NOT MATCH: the face on this ID (score ${faceScore.toStringAsFixed(0)}/100) does NOT look like the face in your profile photo. This looks like SOMEONE ELSES ID. Upload YOUR OWN ID + YOUR OWN photo.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 75; });
         return false;
       }
       setState(() {
@@ -550,7 +547,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         certUrl = await _upload(_certificate!, 'nurses/$uid/certificate.jpg');
       }
 
-      // 3. Save to Firestore (for the nurse's own app)
+      // 3. Save to Firestore (for the nurses own app)
       await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).set({
         'uid': uid,
         'name': _name.text.trim(),
@@ -731,19 +728,19 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.photo),
               title: Text(_photo == null ? 'Upload Photo - YOUR OWN FACE (required for face match)' : 'Photo Selected: ${_photo!.name}'),
-              trailing: ElevatedButton(onPressed: _pickPhoto, style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Photo')),
+              trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo')),
             ),
             // VIDEO
             ListTile(
               leading: const Icon(Icons.videocam),
               title: Text(_video == null ? 'Upload Intro Video' : 'Video Selected: ${_video!.name}'),
-              trailing: ElevatedButton(onPressed: _pickVideo, style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Video')),
+              trailing: ElevatedButton(onPressed: _pickVideo, child: const Text('Pick Video')),
             ),
             // CV
             ListTile(
               leading: const Icon(Icons.description),
               title: Text(_cv == null ? 'Upload CV' : 'CV Selected: ${_cv!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _cv = f), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick CV')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _cv = f), child: const Text('Pick CV')),
             ),
             // NURSING PIN NUMBER
             TextField(controller: _pinNumber, decoration: const InputDecoration(labelText: 'Nursing PIN Number')),
@@ -751,10 +748,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.badge),
               title: Text(_pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick PIN')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), child: const Text('Pick PIN')),
             ),
-            // ---- ID SECTION (NOT Nursing PIN) ----
-            // ID Country + ID Type + ID Number sit here, directly above the ID upload rows.
+            // ID SECTION (NOT Nursing PIN) - Country + Type + Number sit directly above ID uploads
             DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _idVerified = false; _idCheck = ''; })),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Type - Select your ID', hintText: 'e.g. Passport, Ghana Card, Voter ID...'), items: _idTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
@@ -773,7 +769,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
               subtitle: Text(_selectedIdType.isEmpty ? 'Pick ID Country + ID Type first' : 'Front of $_selectedIdType ($_selectedIdCountry)'),
               trailing: ElevatedButton(onPressed: () => _pickIdSide(true), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Front')),
             ),
-            // ID - BACK (hidden for Passport - front only)
+            // ID - BACK (hidden for Passport)
             if (_selectedIdType != 'Passport')
             ListTile(
               leading: const Icon(Icons.credit_card),
@@ -785,7 +781,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.school),
               title: Text(_certificate == null ? 'Upload Certificate' : 'Certificate Selected: ${_certificate!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _certificate = f), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Cert')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _certificate = f), child: const Text('Pick Cert')),
             ),
             const SizedBox(height: 20),
             _loading
