@@ -25,7 +25,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   static const Color _darkPink = Color(0xFF880E4F);
   static const Color _pink = Color(0xFFAD1457);
   static const Color _pinkSoft = Color(0xFFFCE4EC);
-  // Small Pick buttons - MUST stay small. Never Size dot fromHeight (that is infinite width and crushes the ListTile title to 1 letter per line).
   ButtonStyle get _pickStyle => ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink, minimumSize: const Size(0, 36), tapTargetSize: MaterialTapTargetSize.shrinkWrap, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8));
   static const List<Map<String, String>> _countries = [{"name": "Afghanistan", "code": "+93"},
     {"name": "Albania", "code": "+355"},
@@ -665,14 +664,8 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
 
   @override
   Widget build(BuildContext context) {
-    // This page must NOT inherit a bad button theme (e.g. minimumSize: Size dot fromHeight = infinite width).
-    // That is what crushed the Pick buttons and made titles go 1 letter per line.
     return Theme(
-      data: Theme.of(context).copyWith(
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(minimumSize: const Size(0, 36), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-        ),
-      ),
+      data: Theme.of(context).copyWith(elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(minimumSize: const Size(0, 36), tapTargetSize: MaterialTapTargetSize.shrinkWrap))),
       child: Scaffold(
       appBar: AppBar(title: const Text('Nurse Registration'), backgroundColor: _darkPink, foregroundColor: Colors.white),
       body: SingleChildScrollView(
@@ -760,12 +753,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
               title: Text(_pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}'),
               trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), style: _pickStyle, child: const Text('Pick PIN')),
             ),
-            // ID SECTION (NOT Nursing PIN) - Country + Type + Number sit directly above ID uploads
-            DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _idVerified = false; _idCheck = ''; })),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Type - Select your ID', hintText: 'e.g. Passport, Ghana Card, Voter ID...'), items: _idTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
-            const SizedBox(height: 8),
-            TextField(controller: _idNumberTyped, decoration: const InputDecoration(labelText: 'ID Number (as printed on your ID)', hintText: 'e.g. GHA-123456789-0')),
             // ID VERIFICATION RESULT
             if (_idCheck.isNotEmpty)
               Padding(
@@ -776,17 +763,24 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.credit_card),
               title: Text(_idFront == null ? 'Upload $_idLabel - FRONT' : '$_idLabel Front Selected: ${_idFront!.name}'),
-              subtitle: Text(_selectedIdType.isEmpty ? 'Pick ID Country + ID Type first' : 'Front of $_selectedIdType ($_selectedIdCountry)'),
+              subtitle: Text(_selectedIdType.isEmpty ? 'Pick a photo, then choose ID Country + ID Type below' : 'Front of $_selectedIdType ($_selectedIdCountry)'),
               trailing: ElevatedButton(onPressed: () => _pickIdSide(true), style: _pickStyle, child: const Text('Pick Front')),
             ),
-            // ID - BACK (hidden for Passport)
+            // ID - BACK (hidden for Passport - front only)
             if (_selectedIdType != 'Passport')
             ListTile(
               leading: const Icon(Icons.credit_card),
               title: Text(_idBack == null ? 'Upload $_idLabel - BACK' : '$_idLabel Back Selected: ${_idBack!.name}'),
-              subtitle: Text(_selectedIdType == 'Passport' ? 'Passport - no back needed' : 'Back of $_selectedIdType (required)'),
+              subtitle: Text(_selectedIdType.isEmpty ? 'Pick a photo, then choose ID Type below' : _selectedIdType == 'Passport' ? 'Passport - no back needed' : 'Back of $_selectedIdType (required)'),
               trailing: ElevatedButton(onPressed: () => _pickIdSide(false), style: _pickStyle, child: const Text('Pick Back')),
             ),
+            // ID DETAILS - UNDER the Front / Back pickers (NOT at Nursing PIN)
+            // Order now: Pick Front / Pick Back FIRST, then pick Country / Type / Number here.
+            DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _idVerified = false; _idCheck = ''; })),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Type - Select your ID', hintText: 'e.g. Passport, Ghana Card, Voter ID...'), items: _idTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
+            const SizedBox(height: 8),
+            TextField(controller: _idNumberTyped, decoration: const InputDecoration(labelText: 'ID Number (as printed on your ID)', hintText: 'e.g. GHA-123456789-0')),
             // CERTIFICATE
             ListTile(
               leading: const Icon(Icons.school),
