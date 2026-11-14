@@ -233,7 +233,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   int _idScore = 0;
   double _faceMatchScore = 0;
   String _faceCheck = '';
-  static const List<String> _idCountries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo (DRC)', 'Costa Rica', 'Côte d'Ivoire', 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Other'];
+  static const List<String> _idCountries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo (DRC)', 'Costa Rica', "Côte d'Ivoire", 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Other'];
   static const List<String> _idTypes = ['Passport','National ID / National Identity Card','Ghana Card',"Voter ID / Voter's Card","Driving Licence / Driver's License",'Health Insurance Card (NHIS / Health Card)','Aadhaar Card (India)','PAN Card (India)','Social Security Card (USA)','State ID Card (USA)'];
   XFile? _photo;
   XFile? _video;
@@ -312,11 +312,8 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   }
 
 
-  // ---- FACE MATCH: ID face vs PROFILE PHOTO face ----
-  // Google Vision FACE_DETECTION on BOTH images. Landmarks (eyes, nose, mouth, ears)
-  // are normalised by face size, so photo size/crop does not matter.
-  // Same person -> near-identical landmark geometry. Different person -> not.
-  // This is a geometry check, not a biometric ID - CEO still sees both photos + score.
+  // FACE MATCH: ID face vs PROFILE PHOTO face - Google Vision FACE_DETECTION on BOTH.
+  // Landmarks normalised by face size. Same person -> near-identical geometry. Different person -> not.
   Future<Map<String, List<double>>?> _faceLandmarks(Uint8List bytes) async {
     try {
       final res = await http.post(Uri.parse('https://vision.googleapis.com/v1/images:annotate?key=$_visionApiKey'),
@@ -343,7 +340,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       return out;
     } catch (_) { return null; }
   }
-  // 0-100 similarity. Pass >= 55 with >=6 matching landmarks. Same person: typically 65-95. Different person: typically 20-50.
   Future<double?> _faceSimilarity(Uint8List profileBytes, Uint8List idBytes) async {
     final a = await _faceLandmarks(profileBytes);
     final b = await _faceLandmarks(idBytes);
@@ -380,7 +376,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       final compact = text.replaceAll(RegExp(r'\s+'), ' ');
       if (text.replaceAll(RegExp(r'[^A-Z0-9]'), '').length < 20) { setState(() { _idCheck = '❌ ID photo is not readable - too dark, blurry or cropped. Retake it so ALL text is clear.'; _idVerified = false; _idScore = 20; }); return false; }
       String country = 'UNKNOWN';
-      const countryWords = {'GHANA':'GHANA','NIGERIA':'NIGERIA','KENYA':'KENYA','SOUTH AFRICA':'SOUTH AFRICA','INDIA':'INDIA','AADHAAR':'INDIA','UNITED KINGDOM':'UNITED KINGDOM','GREAT BRITAIN':'UNITED KINGDOM','UNITED STATES':'USA','USA':'USA','AMERICA':'USA','CANADA':'CANADA','AUSTRALIA':'AUSTRALIA','FRANCE':'FRANCE','GERMANY':'GERMANY','BUNDESREPUBLIK':'GERMANY','TOGO':'TOGO',"COTE D'IVOIRE":'COTE D\'IVOIRE','IVORY COAST':"COTE D'IVOIRE",'BENIN':'BENIN','BURKINA':'BURKINA FASO','SENEGAL':'SENEGAL','SIERRA LEONE':'SIERRA LEONE','LIBERIA':'LIBERIA','CAMEROON':'CAMEROON','ETHIOPIA':'ETHIOPIA','UGANDA':'UGANDA','TANZANIA':'TANZANIA','EGYPT':'EGYPT','PAKISTAN':'PAKISTAN','PHILIPPINES':'PHILIPPINES','BRAZIL':'BRAZIL','BRASIL':'BRAZIL'};
+      const countryWords = {'GHANA':'GHANA','NIGERIA':'NIGERIA','KENYA':'KENYA','SOUTH AFRICA':'SOUTH AFRICA','INDIA':'INDIA','AADHAAR':'INDIA','UNITED KINGDOM':'UNITED KINGDOM','GREAT BRITAIN':'UNITED KINGDOM','UNITED STATES':'USA','USA':'USA','AMERICA':'USA','CANADA':'CANADA','AUSTRALIA':'AUSTRALIA','FRANCE':'FRANCE','GERMANY':'GERMANY','BUNDESREPUBLIK':'GERMANY','TOGO':'TOGO',"COTE D'IVOIRE":"COTE D'IVOIRE",'IVORY COAST':"COTE D'IVOIRE",'BENIN':'BENIN','BURKINA':'BURKINA FASO','SENEGAL':'SENEGAL','SIERRA LEONE':'SIERRA LEONE','LIBERIA':'LIBERIA','CAMEROON':'CAMEROON','ETHIOPIA':'ETHIOPIA','UGANDA':'UGANDA','TANZANIA':'TANZANIA','EGYPT':'EGYPT','PAKISTAN':'PAKISTAN','PHILIPPINES':'PHILIPPINES','BRAZIL':'BRAZIL','BRASIL':'BRAZIL'};
       for (final e in countryWords.entries) { if (text.contains(e.key)) { country = e.value; break; } }
       if (_selectedIdType == 'Ghana Card' && _selectedIdCountry != 'Ghana') { setState(() { _idCheck = '❌ Ghana Card is only for Ghana. Pick Ghana, or pick your own country\'s ID.'; _idVerified = false; _idScore = 40; }); return false; }
       if (_selectedIdCountry != 'Other') {
@@ -424,7 +420,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       final typedName = _name.text.trim().toUpperCase(); bool nameMatches = false;
       if (typedName.isNotEmpty) { for (final word in typedName.split(' ')) { if (word.length >= 3 && text.contains(word)) { nameMatches = true; break; } } }
       if (!nameMatches) { setState(() { _idCheck = '❌ Name on ID does not match "$typedName". Upload YOUR OWN ID.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 70; }); return false; }
-      // ---- FACE MATCH: ID face MUST be the same person as profile photo ----
       setState(() => _idCheck = '🔍 Checking face: does the face on your ID match your profile photo?');
       final faceScore = await _faceSimilarity(profileBytes, frontBytes);
       if (faceScore == null) { setState(() { _idCheck = '❌ Could not compare faces (not enough face detail). Upload a clear front-facing profile photo AND a clear ID photo showing the face.'; _idVerified = false; _idScore = 70; _faceMatchScore = 0; }); return false; }
@@ -446,7 +441,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     } catch (e) { setState(() { _idCheck = '❌ Could not check ID automatically ($e). Try again with clearer photos.'; _idVerified = false; _idScore = 0; }); return false; }
   }
 
-  // Auto-check as soon as profile photo + both ID sides are picked.
   Future<void> _pickIdSide(bool isFront) async {
     final f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
     if (f == null) return;
@@ -764,7 +758,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
               title: Text(_pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}'),
               trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), child: const Text('Pick PIN')),
             ),
-            // ---- ID COUNTRY (citizenship) + ID TYPE ----
+            // ID COUNTRY (citizenship) + ID TYPE
             DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _idVerified = false; _idCheck = ''; })),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Type - Select your ID', hintText: 'e.g. Passport, Ghana Card, Voter ID...'), items: _idTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
