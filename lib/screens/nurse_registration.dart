@@ -25,6 +25,8 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   static const Color _darkPink = Color(0xFF880E4F);
   static const Color _pink = Color(0xFFAD1457);
   static const Color _pinkSoft = Color(0xFFFCE4EC);
+  // Small Pick buttons - MUST stay small. Never Size dot fromHeight (that is infinite width and crushes the ListTile title to 1 letter per line).
+  ButtonStyle get _pickStyle => ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink, minimumSize: const Size(0, 36), tapTargetSize: MaterialTapTargetSize.shrinkWrap, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8));
   static const List<Map<String, String>> _countries = [{"name": "Afghanistan", "code": "+93"},
     {"name": "Albania", "code": "+355"},
     {"name": "Algeria", "code": "+213"},
@@ -663,7 +665,15 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // This page must NOT inherit a bad button theme (e.g. minimumSize: Size dot fromHeight = infinite width).
+    // That is what crushed the Pick buttons and made titles go 1 letter per line.
+    return Theme(
+      data: Theme.of(context).copyWith(
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(minimumSize: const Size(0, 36), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+        ),
+      ),
+      child: Scaffold(
       appBar: AppBar(title: const Text('Nurse Registration'), backgroundColor: _darkPink, foregroundColor: Colors.white),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -728,19 +738,19 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.photo),
               title: Text(_photo == null ? 'Upload Photo - YOUR OWN FACE (required for face match)' : 'Photo Selected: ${_photo!.name}'),
-              trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo')),
+              trailing: ElevatedButton(onPressed: _pickPhoto, style: _pickStyle, child: const Text('Pick Photo')),
             ),
             // VIDEO
             ListTile(
               leading: const Icon(Icons.videocam),
               title: Text(_video == null ? 'Upload Intro Video' : 'Video Selected: ${_video!.name}'),
-              trailing: ElevatedButton(onPressed: _pickVideo, child: const Text('Pick Video')),
+              trailing: ElevatedButton(onPressed: _pickVideo, style: _pickStyle, child: const Text('Pick Video')),
             ),
             // CV
             ListTile(
               leading: const Icon(Icons.description),
               title: Text(_cv == null ? 'Upload CV' : 'CV Selected: ${_cv!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _cv = f), child: const Text('Pick CV')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _cv = f), style: _pickStyle, child: const Text('Pick CV')),
             ),
             // NURSING PIN NUMBER
             TextField(controller: _pinNumber, decoration: const InputDecoration(labelText: 'Nursing PIN Number')),
@@ -748,7 +758,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.badge),
               title: Text(_pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), child: const Text('Pick PIN')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), style: _pickStyle, child: const Text('Pick PIN')),
             ),
             // ID SECTION (NOT Nursing PIN) - Country + Type + Number sit directly above ID uploads
             DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _idVerified = false; _idCheck = ''; })),
@@ -767,7 +777,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
               leading: const Icon(Icons.credit_card),
               title: Text(_idFront == null ? 'Upload $_idLabel - FRONT' : '$_idLabel Front Selected: ${_idFront!.name}'),
               subtitle: Text(_selectedIdType.isEmpty ? 'Pick ID Country + ID Type first' : 'Front of $_selectedIdType ($_selectedIdCountry)'),
-              trailing: ElevatedButton(onPressed: () => _pickIdSide(true), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Front')),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(true), style: _pickStyle, child: const Text('Pick Front')),
             ),
             // ID - BACK (hidden for Passport)
             if (_selectedIdType != 'Passport')
@@ -775,24 +785,25 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
               leading: const Icon(Icons.credit_card),
               title: Text(_idBack == null ? 'Upload $_idLabel - BACK' : '$_idLabel Back Selected: ${_idBack!.name}'),
               subtitle: Text(_selectedIdType == 'Passport' ? 'Passport - no back needed' : 'Back of $_selectedIdType (required)'),
-              trailing: ElevatedButton(onPressed: () => _pickIdSide(false), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Back')),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(false), style: _pickStyle, child: const Text('Pick Back')),
             ),
             // CERTIFICATE
             ListTile(
               leading: const Icon(Icons.school),
               title: Text(_certificate == null ? 'Upload Certificate' : 'Certificate Selected: ${_certificate!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _certificate = f), child: const Text('Pick Cert')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _certificate = f), style: _pickStyle, child: const Text('Pick Cert')),
             ),
             const SizedBox(height: 20),
             _loading
                 ? const CircularProgressIndicator()
                 : Column(children: [
-                    ElevatedButton(onPressed: _verifyIdDocument, style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)), child: const Text('🔍 CHECK MY ID AGAIN')),
+                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _verifyIdDocument, style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white, minimumSize: const Size(0, 48)), child: const Text('🔍 CHECK MY ID AGAIN'))),
                     const SizedBox(height: 10),
-                    ElevatedButton(onPressed: _register, style: ElevatedButton.styleFrom(backgroundColor: _darkPink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)), child: const Text('REGISTER AS NURSE')),
+                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _register, style: ElevatedButton.styleFrom(backgroundColor: _darkPink, foregroundColor: Colors.white, minimumSize: const Size(0, 48)), child: const Text('REGISTER AS NURSE'))),
                   ]),
           ],
         ),
+      ),
       ),
     );
   }
