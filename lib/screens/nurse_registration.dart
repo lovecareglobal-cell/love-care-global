@@ -33,6 +33,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   bool _idVerified = false;
   String _idType = ''; // GHANA CARD / DRIVER LICENCE / PASSPORT / VOTER ID
   bool _loading = false;
+  bool _obscurePassword = true;
   final _picker = ImagePicker();
 
   Future<void> _pickPhoto() async {
@@ -273,9 +274,67 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     }
   }
 
+
+  // ---- STRONG PASSWORD ----
+  // Strong = at least 8 chars + upper + lower + digit + special. No spaces.
+  int get _passwordScore {
+    final p = _pass.text;
+    var score = 0;
+    if (p.length >= 8) score++;
+    if (p.length >= 12) score++;
+    if (RegExp(r'[A-Z]').hasMatch(p)) score++;
+    if (RegExp(r'[a-z]').hasMatch(p)) score++;
+    if (RegExp(r'[0-9]').hasMatch(p)) score++;
+    if (RegExp(r'[^A-Za-z0-9]').hasMatch(p)) score++;
+    return score; // 0-6
+  }
+  bool get _isStrongPassword {
+    final p = _pass.text;
+    return p.length >= 8 &&
+        RegExp(r'[A-Z]').hasMatch(p) &&
+        RegExp(r'[a-z]').hasMatch(p) &&
+        RegExp(r'[0-9]').hasMatch(p) &&
+        RegExp(r'[^A-Za-z0-9]').hasMatch(p) &&
+        !p.contains(' ');
+  }
+  String get _passwordStrengthLabel {
+    if (_pass.text.isEmpty) return '';
+    final sc = _passwordScore;
+    if (sc <= 2) return 'Weak';
+    if (sc <= 4) return 'Medium';
+    if (sc == 5) return 'Strong';
+    return 'Very strong';
+  }
+  Color get _passwordStrengthColor {
+    if (_pass.text.isEmpty) return Colors.grey;
+    final sc = _passwordScore;
+    if (sc <= 2) return Colors.red;
+    if (sc <= 4) return Colors.orange;
+    if (sc == 5) return Colors.lightGreen;
+    return Colors.green;
+  }
+  List<String> get _passwordMissing {
+    final p = _pass.text;
+    final missing = <String>[];
+    if (p.length < 8) missing.add('At least 8 characters');
+    if (!RegExp(r'[A-Z]').hasMatch(p)) missing.add('One UPPERCASE letter (A-Z)');
+    if (!RegExp(r'[a-z]').hasMatch(p)) missing.add('One lowercase letter (a-z)');
+    if (!RegExp(r'[0-9]').hasMatch(p)) missing.add('One number (0-9)');
+    if (!RegExp(r'[^A-Za-z0-9]').hasMatch(p)) missing.add('One special character (! @ # \$ % etc.)');
+    if (p.contains(' ')) missing.add('No spaces');
+    return missing;
+  }
+
   Future<void> _register() async {
     if (_name.text.isEmpty || _email.text.isEmpty || _pass.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill all fields')));
+      return;
+    }
+    if (!_isStrongPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Password too weak. Missing: ${_passwordMissing.join(', ')}'),
+        backgroundColor: Colors.red,
+      ));
       return;
     }
     // ID must be verified BEFORE registration is sent to CEO
@@ -432,7 +491,48 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             TextField(controller: _username, decoration: const InputDecoration(labelText: 'Username')),
             TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email')),
             TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Phone')),
-            TextField(controller: _pass, obscureText: true, decoration: const InputDecoration(labelText: 'Password')),
+            TextField(
+              controller: _pass,
+              obscureText: _obscurePassword,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: 'Password',
+                hintText: 'Min 8 chars, upper + lower + number + symbol',
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                  tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (_pass.text.isNotEmpty) ...[
+              Row(children: [
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: _passwordScore / 6,
+                    backgroundColor: Colors.grey.shade300,
+                    color: _passwordStrengthColor,
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(_passwordStrengthLabel,
+                    style: TextStyle(color: _passwordStrengthColor, fontWeight: FontWeight.bold)),
+              ]),
+              const SizedBox(height: 6),
+              ..._passwordMissing.map((m) => Row(children: [
+                    const Icon(Icons.close, size: 14, color: Colors.red),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text(m, style: const TextStyle(fontSize: 12, color: Colors.red))),
+                  ])),
+              if (_isStrongPassword)
+                const Row(children: [
+                  Icon(Icons.check_circle, size: 14, color: Colors.green),
+                  SizedBox(width: 4),
+                  Text('Strong password ✓', style: TextStyle(fontSize: 12, color: Colors.green)),
+                ]),
+            ],
             const SizedBox(height: 16),
             // PHOTO
             ListTile(
