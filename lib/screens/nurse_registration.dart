@@ -25,7 +25,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   static const Color _darkPink = Color(0xFF880E4F);
   static const Color _pink = Color(0xFFAD1457);
   static const Color _pinkSoft = Color(0xFFFCE4EC);
-  ButtonStyle get _pickStyle => ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink, minimumSize: const Size(0, 36), tapTargetSize: MaterialTapTargetSize.shrinkWrap, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8));
   static const List<Map<String, String>> _countries = [{"name": "Afghanistan", "code": "+93"},
     {"name": "Albania", "code": "+355"},
     {"name": "Algeria", "code": "+213"},
@@ -238,6 +237,45 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   String get _idLabel => _selectedIdType.isEmpty ? 'ID' : _selectedIdType;
   static const List<String> _idCountries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo (DRC)', 'Costa Rica', 'Ivory Coast', 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Other'];
   static const List<String> _idTypes = ['Passport','National ID / National Identity Card','Ghana Card','Voter ID Card','Driving Licence','Health Insurance Card (NHIS / Health Card)','Aadhaar Card (India)','PAN Card (India)','Social Security Card (USA)','State ID Card (USA)'];
+
+  // COUNTRY -> ITS OWN IDs. Pick a country, only that country's IDs pop up.
+  // Ghana -> Ghana Card first. Nigeria -> National ID (NIN) first. India -> Aadhaar first.
+  // USA -> Passport / Driving Licence / SSN / State ID. Any country not listed here
+  // falls back to the generic list (Passport, National ID, Voter ID, Driving Licence).
+  static const Map<String, List<String>> _idTypesByCountry = {
+    'Ghana': ['Ghana Card', 'Passport', 'Voter ID Card', 'Driving Licence', 'Health Insurance Card (NHIS / Health Card)', 'National ID / National Identity Card'],
+    'Nigeria': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Kenya': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'South Africa': ['National ID / National Identity Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
+    'India': ['Aadhaar Card (India)', 'PAN Card (India)', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'United States': ['Passport', 'Driving Licence', 'Social Security Card (USA)', 'State ID Card (USA)'],
+    'United Kingdom': ['Passport', 'Driving Licence', 'National ID / National Identity Card'],
+    'Canada': ['Passport', 'Driving Licence', 'National ID / National Identity Card'],
+    'Australia': ['Passport', 'Driving Licence', 'National ID / National Identity Card'],
+    'Togo': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Ivory Coast': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Senegal': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Benin': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Burkina Faso': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Sierra Leone': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Liberia': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Cameroon': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Ethiopia': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Uganda': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Tanzania': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Egypt': ['National ID / National Identity Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
+    'Pakistan': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Philippines': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Brazil': ['National ID / National Identity Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
+    'France': ['National ID / National Identity Card', 'Passport', 'Driving Licence'],
+    'Germany': ['National ID / National Identity Card', 'Passport', 'Driving Licence'],
+  };
+  // IDs that pop up for the picked country. Empty country -> generic list.
+  List<String> get _availableIdTypes {
+    if (_selectedIdCountry.isEmpty) return _idTypes;
+    return _idTypesByCountry[_selectedIdCountry] ?? _idTypes;
+  }
+
   XFile? _photo;
   XFile? _video;
   XFile? _cv;
@@ -380,10 +418,10 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       String detected = 'UNKNOWN';
       final hasMrz = RegExp(r'P<[A-Z]{3}').hasMatch(compact.replaceAll(' ', ''));
       if (text.contains('PASSPORT') || hasMrz) detected = 'Passport';
-      else if (text.contains('DRIV') && (text.contains('LICEN') || text.contains('PERMIS') || text.contains('DVLA'))) detected = "Driving Licence / Driver License";
+      else if (text.contains('DRIV') && (text.contains('LICEN') || text.contains('PERMIS') || text.contains('DVLA'))) detected = "Driving Licence";
       else if (text.contains('GHANA CARD') || text.contains('NATIONAL IDENTIFICATION') || RegExp(r'GHA-\d{9}-\d').hasMatch(text)) detected = 'Ghana Card';
       else if (text.contains('AADHAAR') || text.contains('UNIQUE IDENTIFICATION')) detected = 'Aadhaar Card (India)';
-      else if (text.contains('VOTER') || text.contains('ELECTORAL')) detected = "Voter ID / Voter Card";
+      else if (text.contains('VOTER') || text.contains('ELECTORAL')) detected = "Voter ID Card";
       else if (text.contains('NHIS') || text.contains('HEALTH INSURANCE')) detected = 'Health Insurance Card (NHIS / Health Card)';
       else if (text.contains('NATIONAL IDENTITY') || text.contains('NATIONAL ID') || text.contains('IDENTITY CARD') || text.contains('IDENTITY DOCUMENT') || text.contains('CARTE NATIONALE')) detected = 'National ID / National Identity Card';
       else if (text.contains('SOCIAL SECURITY')) detected = 'Social Security Card (USA)';
@@ -664,9 +702,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(minimumSize: const Size(0, 36), tapTargetSize: MaterialTapTargetSize.shrinkWrap))),
-      child: Scaffold(
+    return Scaffold(
       appBar: AppBar(title: const Text('Nurse Registration'), backgroundColor: _darkPink, foregroundColor: Colors.white),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -731,19 +767,19 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.photo),
               title: Text(_photo == null ? 'Upload Photo - YOUR OWN FACE (required for face match)' : 'Photo Selected: ${_photo!.name}'),
-              trailing: ElevatedButton(onPressed: _pickPhoto, style: _pickStyle, child: const Text('Pick Photo')),
+              trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo')),
             ),
             // VIDEO
             ListTile(
               leading: const Icon(Icons.videocam),
               title: Text(_video == null ? 'Upload Intro Video' : 'Video Selected: ${_video!.name}'),
-              trailing: ElevatedButton(onPressed: _pickVideo, style: _pickStyle, child: const Text('Pick Video')),
+              trailing: ElevatedButton(onPressed: _pickVideo, child: const Text('Pick Video')),
             ),
             // CV
             ListTile(
               leading: const Icon(Icons.description),
               title: Text(_cv == null ? 'Upload CV' : 'CV Selected: ${_cv!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _cv = f), style: _pickStyle, child: const Text('Pick CV')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _cv = f), child: const Text('Pick CV')),
             ),
             // NURSING PIN NUMBER
             TextField(controller: _pinNumber, decoration: const InputDecoration(labelText: 'Nursing PIN Number')),
@@ -751,8 +787,15 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.badge),
               title: Text(_pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), style: _pickStyle, child: const Text('Pick PIN')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), child: const Text('Pick PIN')),
             ),
+            // ID SECTION - 1) Pick ID Country -> 2) Only THAT country's IDs pop up -> 3) Upload that ID
+            DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _selectedIdType = ''; _idVerified = false; _idCheck = ''; })),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: InputDecoration(labelText: _selectedIdCountry.isEmpty ? 'ID Type - Pick ID Country first' : 'ID Type - IDs for $_selectedIdCountry', hintText: 'e.g. Ghana Card, Passport...'), items: _availableIdTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
+            if (_selectedIdCountry.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Align(alignment: Alignment.centerLeft, child: Text('Showing IDs for $_selectedIdCountry only', style: const TextStyle(fontSize: 12, color: Colors.grey)))),
+            const SizedBox(height: 8),
+            TextField(controller: _idNumberTyped, decoration: const InputDecoration(labelText: 'ID Number (as printed on your ID)', hintText: 'e.g. GHA-123456789-0')),
             // ID VERIFICATION RESULT
             if (_idCheck.isNotEmpty)
               Padding(
@@ -763,41 +806,33 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.credit_card),
               title: Text(_idFront == null ? 'Upload $_idLabel - FRONT' : '$_idLabel Front Selected: ${_idFront!.name}'),
-              subtitle: Text(_selectedIdType.isEmpty ? 'Pick a photo, then choose ID Country + ID Type below' : 'Front of $_selectedIdType ($_selectedIdCountry)'),
-              trailing: ElevatedButton(onPressed: () => _pickIdSide(true), style: _pickStyle, child: const Text('Pick Front')),
+              subtitle: Text(_selectedIdType.isEmpty ? 'Pick ID Country + ID Type first' : 'Front of $_selectedIdType ($_selectedIdCountry)'),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(true), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Front')),
             ),
-            // ID - BACK (hidden for Passport - front only)
+            // ID - BACK (hidden for Passport)
             if (_selectedIdType != 'Passport')
             ListTile(
               leading: const Icon(Icons.credit_card),
               title: Text(_idBack == null ? 'Upload $_idLabel - BACK' : '$_idLabel Back Selected: ${_idBack!.name}'),
-              subtitle: Text(_selectedIdType.isEmpty ? 'Pick a photo, then choose ID Type below' : _selectedIdType == 'Passport' ? 'Passport - no back needed' : 'Back of $_selectedIdType (required)'),
-              trailing: ElevatedButton(onPressed: () => _pickIdSide(false), style: _pickStyle, child: const Text('Pick Back')),
+              subtitle: Text(_selectedIdType == 'Passport' ? 'Passport - no back needed' : 'Back of $_selectedIdType (required)'),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(false), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Back')),
             ),
-            // ID DETAILS - UNDER the Front / Back pickers (NOT at Nursing PIN)
-            // Order now: Pick Front / Pick Back FIRST, then pick Country / Type / Number here.
-            DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _idVerified = false; _idCheck = ''; })),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Type - Select your ID', hintText: 'e.g. Passport, Ghana Card, Voter ID...'), items: _idTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
-            const SizedBox(height: 8),
-            TextField(controller: _idNumberTyped, decoration: const InputDecoration(labelText: 'ID Number (as printed on your ID)', hintText: 'e.g. GHA-123456789-0')),
             // CERTIFICATE
             ListTile(
               leading: const Icon(Icons.school),
               title: Text(_certificate == null ? 'Upload Certificate' : 'Certificate Selected: ${_certificate!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _certificate = f), style: _pickStyle, child: const Text('Pick Cert')),
+              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _certificate = f), child: const Text('Pick Cert')),
             ),
             const SizedBox(height: 20),
             _loading
                 ? const CircularProgressIndicator()
                 : Column(children: [
-                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _verifyIdDocument, style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white, minimumSize: const Size(0, 48)), child: const Text('🔍 CHECK MY ID AGAIN'))),
+                    ElevatedButton(onPressed: _verifyIdDocument, style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)), child: const Text('🔍 CHECK MY ID AGAIN')),
                     const SizedBox(height: 10),
-                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _register, style: ElevatedButton.styleFrom(backgroundColor: _darkPink, foregroundColor: Colors.white, minimumSize: const Size(0, 48)), child: const Text('REGISTER AS NURSE'))),
+                    ElevatedButton(onPressed: _register, style: ElevatedButton.styleFrom(backgroundColor: _darkPink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)), child: const Text('REGISTER AS NURSE')),
                   ]),
           ],
         ),
-      ),
       ),
     );
   }
