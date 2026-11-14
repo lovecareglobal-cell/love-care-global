@@ -152,10 +152,26 @@ class LoveCareApp extends StatelessWidget {
     return MaterialApp(
       title: 'Love Care Global',
       debugShowCheckedModeBanner: false,
+      // APP COLOUR: DARK PINK (not bright) - applies to ALL pages by default.
+      // Dark pink 0xFF880E4F = headers / main buttons. Pink 0xFFAD1457 = accents.
+      // Any page that sets its own AppBar/button colour overrides this theme,
+      // so also change those pages to 0xFF880E4F for a fully pink app.
       theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        primaryColor: const Color(0xFF880E4F),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF880E4F), primary: const Color(0xFF880E4F), secondary: const Color(0xFFAD1457)),
+        scaffoldBackgroundColor: const Color(0xFFFDF2F6),
+        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white, elevation: 0),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+        ),
+        textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFF880E4F))),
+        inputDecorationTheme: InputDecorationTheme(
+          focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF880E4F)), borderRadius: BorderRadius.circular(8)),
+          labelStyle: const TextStyle(color: Color(0xFF880E4F)),
+        ),
+        floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(selectedItemColor: Color(0xFF880E4F), unselectedItemColor: Colors.grey),
       ),
       home: const LoveCareHomePage(),
       routes: {
@@ -345,9 +361,9 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3E5F5),
+      backgroundColor: const Color(0xFFFCE4EC), // soft pink page background
       appBar: AppBar(
-        backgroundColor: Colors.purple,
+        backgroundColor: const Color(0xFF880E4F),
         foregroundColor: Colors.white,
         title: const Text('CEO Access'),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
@@ -391,7 +407,7 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       onPressed: _login,
                       child: const Text('Enter Dashboard'),
                     ),
@@ -437,7 +453,7 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
                       onPressed: _changePassword,
                       child: const Text('Save New Password'),
                     ),
@@ -499,7 +515,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Trusted Care, With Love', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold)),
+            Text('Trusted Care, With Love', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold)),
             SizedBox(height: 12),
             Text('Nurses are verified by CEO before they can care for you.\nClients login with Username + Password ONLY.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
           ],
@@ -508,7 +524,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
           Center(
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C3AED), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12)),
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12)),
               child: const Text('Start ❤️', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ),
@@ -552,14 +568,14 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0A1E),
+      backgroundColor: const Color(0xFFFDF2F6), // soft pink, not dark navy
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0xFF7C3AED), Color(0xFFEC4899)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                gradient: LinearGradient(colors: [Color(0xFF880E4F), Color(0xFFAD1457)], begin: Alignment.topLeft, end: Alignment.bottomRight), // dark pink gradient, not bright pink/purple
                 borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
               ),
               child: Column(
@@ -582,8 +598,8 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () => Navigator.pushNamed(context, '/auth-choice'),
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFACC15), padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text('GET STARTED →', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      child: const Text('GET STARTED →', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -611,11 +627,11 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                     alignment: WrapAlignment.center,
                     spacing: 12,
                     children: [
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: const Text('Terms', style: TextStyle(color: Colors.white70, fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const Text('Privacy', style: TextStyle(color: Colors.white70, fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const Text('Community', style: TextStyle(color: Colors.white70, fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const Text('Refund', style: TextStyle(color: Colors.white70, fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const Text('Delete Account', style: TextStyle(color: Colors.white70, fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: const Text('Terms', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const Text('Privacy', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const Text('Community', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const Text('Refund', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const Text('Delete Account', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -635,7 +651,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: const Color(0xFF1E1A3A), borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFF8BBD0))),
         child: Row(
           children: [
             Text(emoji, style: const TextStyle(fontSize: 30)),
@@ -644,12 +660,12 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                  Text(subtitle, style: const TextStyle(color: Color(0xFFA78BFA), fontSize: 12)),
+                  Text(title, style: const TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 15)),
+                  Text(subtitle, style: const TextStyle(color: Color(0xFF6D6D6D), fontSize: 12)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+            const Icon(Icons.arrow_forward_ios, color: Color(0xFF880E4F), size: 16),
           ],
         ),
       ),
