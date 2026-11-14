@@ -1,563 +1,303 @@
+
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
-class ClientRegistrationPage extends StatefulWidget {
-  const ClientRegistrationPage({super.key});
+// DARK PINK THEME - same as rest of app
+const Color kDarkPink = Color(0xFF880E4F);
+const Color kPink = Color(0xFFAD1457);
+const Color kSoftPink = Color(0xFFFCE4EC);
+const Color kLightBg = Color(0xFFFFF5F8);
+
+// PASTE YOUR REAL KEY HERE when you get it from Google Cloud.
+// If this stays as placeholder, registration still works - CEO checks ID manually.
+const String kVisionApiKey = 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE';
+
+class NurseRegistrationPage extends StatefulWidget {
+  const NurseRegistrationPage({super.key});
   @override
-  State<ClientRegistrationPage> createState() => _ClientRegistrationPageState();
+  State<NurseRegistrationPage> createState() => _NurseRegistrationPageState();
 }
 
-class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
+class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   final _name = TextEditingController();
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
   final _pass = TextEditingController();
-  final _otp = TextEditingController();
-  XFile? _photo;
-  bool _loading = false;
-  bool _obscurePassword = true;
+  final _pin = TextEditingController();
+  final _idNumber = TextEditingController();
   final _picker = ImagePicker();
 
-  // ---- OTP (Firebase Phone Auth) ----
-  String? _verificationId;
-  int? _resendToken;
-  bool _otpSending = false;
-  bool _phoneVerified = false;
-  PhoneAuthCredential? _pendingPhoneCredential;
+  XFile? _photo;
+  XFile? _video;
+  XFile? _cv;
+  XFile? _pinDoc;
+  XFile? _idFront;
+  XFile? _idBack;
+  XFile? _certificate;
 
-  // ---- COUNTRY CODE (WORLD) ----
-  // Full world list. Value is "Name|+code" so countries sharing a code
-  // (e.g. USA +1 / Canada +1) stay unique in the dropdown.
-  // "Other" lets anyone whose country is not listed type their own code.
-  static const List<Map<String, String>> _countries = [
-    {"name": "Afghanistan", "code": "+93"},
-    {"name": "Albania", "code": "+355"},
-    {"name": "Algeria", "code": "+213"},
-    {"name": "Andorra", "code": "+376"},
-    {"name": "Angola", "code": "+244"},
-    {"name": "Antigua and Barbuda", "code": "+1268"},
-    {"name": "Argentina", "code": "+54"},
-    {"name": "Armenia", "code": "+374"},
-    {"name": "Australia", "code": "+61"},
-    {"name": "Austria", "code": "+43"},
-    {"name": "Azerbaijan", "code": "+994"},
-    {"name": "Bahamas", "code": "+1242"},
-    {"name": "Bahrain", "code": "+973"},
-    {"name": "Bangladesh", "code": "+880"},
-    {"name": "Barbados", "code": "+1246"},
-    {"name": "Belarus", "code": "+375"},
-    {"name": "Belgium", "code": "+32"},
-    {"name": "Belize", "code": "+501"},
-    {"name": "Benin", "code": "+229"},
-    {"name": "Bhutan", "code": "+975"},
-    {"name": "Bolivia", "code": "+591"},
-    {"name": "Bosnia and Herzegovina", "code": "+387"},
-    {"name": "Botswana", "code": "+267"},
-    {"name": "Brazil", "code": "+55"},
-    {"name": "Brunei", "code": "+673"},
-    {"name": "Bulgaria", "code": "+359"},
-    {"name": "Burkina Faso", "code": "+226"},
-    {"name": "Burundi", "code": "+257"},
-    {"name": "Cambodia", "code": "+855"},
-    {"name": "Cameroon", "code": "+237"},
-    {"name": "Canada", "code": "+1"},
-    {"name": "Cape Verde", "code": "+238"},
-    {"name": "Central African Republic", "code": "+236"},
-    {"name": "Chad", "code": "+235"},
-    {"name": "Chile", "code": "+56"},
-    {"name": "China", "code": "+86"},
-    {"name": "Colombia", "code": "+57"},
-    {"name": "Comoros", "code": "+269"},
-    {"name": "Congo", "code": "+242"},
-    {"name": "Congo (DRC)", "code": "+243"},
-    {"name": "Costa Rica", "code": "+506"},
-    {"name": "Côte d'Ivoire", "code": "+225"},
-    {"name": "Croatia", "code": "+385"},
-    {"name": "Cuba", "code": "+53"},
-    {"name": "Cyprus", "code": "+357"},
-    {"name": "Czechia", "code": "+420"},
-    {"name": "Denmark", "code": "+45"},
-    {"name": "Djibouti", "code": "+253"},
-    {"name": "Dominica", "code": "+1767"},
-    {"name": "Dominican Republic", "code": "+1809"},
-    {"name": "Ecuador", "code": "+593"},
-    {"name": "Egypt", "code": "+20"},
-    {"name": "El Salvador", "code": "+503"},
-    {"name": "Equatorial Guinea", "code": "+240"},
-    {"name": "Eritrea", "code": "+291"},
-    {"name": "Estonia", "code": "+372"},
-    {"name": "Eswatini", "code": "+268"},
-    {"name": "Ethiopia", "code": "+251"},
-    {"name": "Fiji", "code": "+679"},
-    {"name": "Finland", "code": "+358"},
-    {"name": "France", "code": "+33"},
-    {"name": "Gabon", "code": "+241"},
-    {"name": "Gambia", "code": "+220"},
-    {"name": "Georgia", "code": "+995"},
-    {"name": "Germany", "code": "+49"},
-    {"name": "Ghana", "code": "+233"},
-    {"name": "Greece", "code": "+30"},
-    {"name": "Grenada", "code": "+1473"},
-    {"name": "Guatemala", "code": "+502"},
-    {"name": "Guinea", "code": "+224"},
-    {"name": "Guinea-Bissau", "code": "+245"},
-    {"name": "Guyana", "code": "+592"},
-    {"name": "Haiti", "code": "+509"},
-    {"name": "Honduras", "code": "+504"},
-    {"name": "Hungary", "code": "+36"},
-    {"name": "Iceland", "code": "+354"},
-    {"name": "India", "code": "+91"},
-    {"name": "Indonesia", "code": "+62"},
-    {"name": "Iran", "code": "+98"},
-    {"name": "Iraq", "code": "+964"},
-    {"name": "Ireland", "code": "+353"},
-    {"name": "Israel", "code": "+972"},
-    {"name": "Italy", "code": "+39"},
-    {"name": "Jamaica", "code": "+1876"},
-    {"name": "Japan", "code": "+81"},
-    {"name": "Jordan", "code": "+962"},
-    {"name": "Kazakhstan", "code": "+7"},
-    {"name": "Kenya", "code": "+254"},
-    {"name": "Kiribati", "code": "+686"},
-    {"name": "Kuwait", "code": "+965"},
-    {"name": "Kyrgyzstan", "code": "+996"},
-    {"name": "Laos", "code": "+856"},
-    {"name": "Latvia", "code": "+371"},
-    {"name": "Lebanon", "code": "+961"},
-    {"name": "Lesotho", "code": "+266"},
-    {"name": "Liberia", "code": "+231"},
-    {"name": "Libya", "code": "+218"},
-    {"name": "Liechtenstein", "code": "+423"},
-    {"name": "Lithuania", "code": "+370"},
-    {"name": "Luxembourg", "code": "+352"},
-    {"name": "Madagascar", "code": "+261"},
-    {"name": "Malawi", "code": "+265"},
-    {"name": "Malaysia", "code": "+60"},
-    {"name": "Maldives", "code": "+960"},
-    {"name": "Mali", "code": "+223"},
-    {"name": "Malta", "code": "+356"},
-    {"name": "Marshall Islands", "code": "+692"},
-    {"name": "Mauritania", "code": "+222"},
-    {"name": "Mauritius", "code": "+230"},
-    {"name": "Mexico", "code": "+52"},
-    {"name": "Micronesia", "code": "+691"},
-    {"name": "Moldova", "code": "+373"},
-    {"name": "Monaco", "code": "+377"},
-    {"name": "Mongolia", "code": "+976"},
-    {"name": "Montenegro", "code": "+382"},
-    {"name": "Morocco", "code": "+212"},
-    {"name": "Mozambique", "code": "+258"},
-    {"name": "Myanmar", "code": "+95"},
-    {"name": "Namibia", "code": "+264"},
-    {"name": "Nauru", "code": "+674"},
-    {"name": "Nepal", "code": "+977"},
-    {"name": "Netherlands", "code": "+31"},
-    {"name": "New Zealand", "code": "+64"},
-    {"name": "Nicaragua", "code": "+505"},
-    {"name": "Niger", "code": "+227"},
-    {"name": "Nigeria", "code": "+234"},
-    {"name": "North Korea", "code": "+850"},
-    {"name": "North Macedonia", "code": "+389"},
-    {"name": "Norway", "code": "+47"},
-    {"name": "Oman", "code": "+968"},
-    {"name": "Pakistan", "code": "+92"},
-    {"name": "Palau", "code": "+680"},
-    {"name": "Palestine", "code": "+970"},
-    {"name": "Panama", "code": "+507"},
-    {"name": "Papua New Guinea", "code": "+675"},
-    {"name": "Paraguay", "code": "+595"},
-    {"name": "Peru", "code": "+51"},
-    {"name": "Philippines", "code": "+63"},
-    {"name": "Poland", "code": "+48"},
-    {"name": "Portugal", "code": "+351"},
-    {"name": "Qatar", "code": "+974"},
-    {"name": "Romania", "code": "+40"},
-    {"name": "Russia", "code": "+7"},
-    {"name": "Rwanda", "code": "+250"},
-    {"name": "Saint Kitts and Nevis", "code": "+1869"},
-    {"name": "Saint Lucia", "code": "+1758"},
-    {"name": "Saint Vincent", "code": "+1784"},
-    {"name": "Samoa", "code": "+685"},
-    {"name": "San Marino", "code": "+378"},
-    {"name": "Sao Tome and Principe", "code": "+239"},
-    {"name": "Saudi Arabia", "code": "+966"},
-    {"name": "Senegal", "code": "+221"},
-    {"name": "Serbia", "code": "+381"},
-    {"name": "Seychelles", "code": "+248"},
-    {"name": "Sierra Leone", "code": "+232"},
-    {"name": "Singapore", "code": "+65"},
-    {"name": "Slovakia", "code": "+421"},
-    {"name": "Slovenia", "code": "+386"},
-    {"name": "Solomon Islands", "code": "+677"},
-    {"name": "Somalia", "code": "+252"},
-    {"name": "South Africa", "code": "+27"},
-    {"name": "South Korea", "code": "+82"},
-    {"name": "South Sudan", "code": "+211"},
-    {"name": "Spain", "code": "+34"},
-    {"name": "Sri Lanka", "code": "+94"},
-    {"name": "Sudan", "code": "+249"},
-    {"name": "Suriname", "code": "+597"},
-    {"name": "Sweden", "code": "+46"},
-    {"name": "Switzerland", "code": "+41"},
-    {"name": "Syria", "code": "+963"},
-    {"name": "Taiwan", "code": "+886"},
-    {"name": "Tajikistan", "code": "+992"},
-    {"name": "Tanzania", "code": "+255"},
-    {"name": "Thailand", "code": "+66"},
-    {"name": "Togo", "code": "+228"},
-    {"name": "Tonga", "code": "+676"},
-    {"name": "Trinidad and Tobago", "code": "+1868"},
-    {"name": "Tunisia", "code": "+216"},
-    {"name": "Turkey", "code": "+90"},
-    {"name": "Turkmenistan", "code": "+993"},
-    {"name": "Tuvalu", "code": "+688"},
-    {"name": "Uganda", "code": "+256"},
-    {"name": "Ukraine", "code": "+380"},
-    {"name": "United Arab Emirates", "code": "+971"},
-    {"name": "United Kingdom", "code": "+44"},
-    {"name": "United States", "code": "+1"},
-    {"name": "Uruguay", "code": "+598"},
-    {"name": "Uzbekistan", "code": "+998"},
-    {"name": "Vanuatu", "code": "+678"},
-    {"name": "Vatican City", "code": "+379"},
-    {"name": "Venezuela", "code": "+58"},
-    {"name": "Vietnam", "code": "+84"},
-    {"name": "Yemen", "code": "+967"},
-    {"name": "Zambia", "code": "+260"},
-    {"name": "Zimbabwe", "code": "+263"}
+  bool _loading = false;
+  bool _obscure = true;
+  String _idCheck = '';
+  bool _idVerified = false;
+  int _idScore = 0;
+  String _idTypeDetected = '';
+  bool _faceMatch = false;
+  String _faceCheck = '';
+
+  // Phone country code - default Ghana +233, Other lets nurse type code
+  String _phoneCode = '+233';
+  String _phoneCountry = 'Ghana';
+  final List<Map<String,String>> _phoneCodes = [
+    {'c':'Ghana','code':'+233'},{'c':'Nigeria','code':'+234'},{'c':'Kenya','code':'+254'},
+    {'c':'South Africa','code':'+27'},{'c':'Togo','code':'+228'},{'c':'Benin','code':'+229'},
+    {'c':'Burkina Faso','code':'+226'},{'c':'Ivory Coast','code':'+225'},{'c':'Senegal','code':'+221'},
+    {'c':'Sierra Leone','code':'+232'},{'c':'Liberia','code':'+231'},{'c':'Cameroon','code':'+237'},
+    {'c':'United Kingdom','code':'+44'},{'c':'United States','code':'+1'},{'c':'Canada','code':'+1'},
+    {'c':'India','code':'+91'},{'c':'Australia','code':'+61'},{'c':'France','code':'+33'},
+    {'c':'Germany','code':'+49'},{'c':'Other','code':'+'},
   ];
-  String _selectedCountry = 'Ghana|+233'; // default: Ghana
-  final _otherCode = TextEditingController();
-  bool get _isOtherCountry => _selectedCountry == 'Other|';
-  String get _selectedCountryName => _isOtherCountry ? 'Other' : _selectedCountry.split('|')[0];
-  String get _selectedDialCode {
-    if (_isOtherCountry) {
-      var c = _otherCode.text.trim();
-      if (!c.startsWith('+')) c = '+$c';
-      return c;
-    }
-    return _selectedCountry.split('|')[1];
-  }
-  // Full international number: selected code + local number (leading 0 removed).
-  // If the user already typed a full +... number, use it as-is (no double code).
-  String get _fullPhone {
-    var local = _phone.text.trim().replaceAll(RegExp(r'[\s\-\(\)]'), '');
-    if (local.startsWith('+')) return local;
-    if (local.startsWith('00')) return '+${local.substring(2)}';
-    if (local.startsWith('0')) local = local.substring(1);
-    return _selectedDialCode.replaceAll(' ', '') + local;
+
+  // ID Country (citizenship) -> real local ID names. Unknown countries get generic list.
+  String _idCountry = 'Ghana';
+  String _idType = 'Ghana Card';
+  final Map<String, List<String>> _idsByCountry = {
+    'Ghana': ['Ghana Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Nigeria': ['National ID Card (NIN)', 'Passport', 'Voter Card', 'Driving Licence'],
+    'Kenya': ['National ID Card', 'Passport', 'Voter Card', 'Driving Licence'],
+    'South Africa': ['Smart ID Card', 'Passport', 'Driving Licence'],
+    'Togo': ['National ID Card', 'Passport', 'Voter Card', 'Driving Licence'],
+    'Benin': ['National ID Card', 'Passport', 'Voter Card', 'Driving Licence'],
+    'Burkina Faso': ['National ID Card (CNIB)', 'Passport', 'Voter Card', 'Driving Licence'],
+    'Ivory Coast': ['National ID Card (CNI)', 'Passport', 'Voter Card', 'Driving Licence'],
+    'Senegal': ['National ID Card (CNI)', 'Passport', 'Voter Card', 'Driving Licence'],
+    'Sierra Leone': ['National ID Card', 'Passport', 'Voter Card', 'Driving Licence'],
+    'Liberia': ['National ID Card', 'Passport', 'Voter Card', 'Driving Licence'],
+    'Cameroon': ['National ID Card (CNI)', 'Passport', 'Voter Card', 'Driving Licence'],
+    'United Kingdom': ['Passport', 'Driving Licence', 'National ID'],
+    'United States': ['Passport', 'Driving Licence', 'State ID'],
+    'Canada': ['Passport', 'Driving Licence', 'National ID'],
+    'India': ['Aadhaar Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
+    'Australia': ['Passport', 'Driving Licence', 'National ID'],
+    'France': ['National ID Card (CNI)', 'Passport', 'Driving Licence'],
+    'Germany': ['National ID Card', 'Passport', 'Driving Licence'],
+  };
+  List<String> get _genericIds => ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'];
+  List<String> get _idTypesForCountry => _idsByCountry[_idCountry] ?? _genericIds;
+  List<String> get _idCountries => [..._idsByCountry.keys, 'Gambia', 'Mali', 'Guinea', 'Niger', 'Chad', 'Other'];
+
+  String _passwordStrength(String p) {
+    if (p.isEmpty) return '';
+    if (p.length < 6) return 'Weak - use at least 6 characters';
+    bool hasUpper = p.contains(RegExp(r'[A-Z]'));
+    bool hasDigit = p.contains(RegExp(r'[0-9]'));
+    bool hasSymbol = p.contains(RegExp(r'[^A-Za-z0-9]'));
+    if (p.length >= 8 && hasUpper && hasDigit && hasSymbol) return 'Strong password';
+    if (p.length >= 8 && (hasUpper || hasDigit)) return 'Good - add a symbol for Strong';
+    return 'Fair - add uppercase, number and symbol';
   }
 
-  Future<void> _pickPhoto() async {
+  // ---------- SCAN ID - CAMERA ONLY, NOT GALLERY ----------
+  Future<void> _scanIdSide(bool isFront) async {
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(isFront ? 'Scan ID - FRONT' : 'Scan ID - BACK'),
+        content: const Text('1. Hold your REAL card flat, not a photo of a photo\n2. Good light, no shadow, no glare\n3. All 4 corners must be visible\n4. Do not cover your name / number / photo'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Open Camera')),
+        ],
+      ),
+    );
+    if (go != true) return;
+    final f = await _picker.pickImage(source: ImageSource.camera, imageQuality: 80, preferredCameraDevice: CameraDevice.rear);
+    if (f == null) return;
+    setState(() {
+      if (isFront) _idFront = f; else _idBack = f;
+      _idVerified = false; _idScore = 0; _idCheck = ''; _faceMatch = false; _faceCheck = '';
+    });
+    // Scan straight away - send this fresh photo to Vision
+    await _checkIdWithVision();
+  }
+
+  Future<void> _pickFile(void Function(XFile f) set) async {
     final f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (f != null) setState(() => _photo = f);
+    if (f != null) setState(() => set(f));
   }
 
-  Future<String?> _upload(XFile file, String path) async {
+  // ---------- GOOGLE VISION: OCR + FACE ----------
+  Future<Map<String, dynamic>?> _visionAnnotate(Uint8List bytes) async {
+    if (kVisionApiKey == 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE' || kVisionApiKey.isEmpty) return null;
+    try {
+      final res = await http.post(
+        Uri.parse('https://vision.googleapis.com/v1/images:annotate?key=$kVisionApiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'requests': [{'image': {'content': base64Encode(bytes)}, 'features': [{'type': 'TEXT_DETECTION'}, {'type': 'FACE_DETECTION', 'maxResults': 5}]}]}),
+      );
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final list = data['responses'] as List?;
+      if (list == null || list.isEmpty) return {};
+      return list[0] as Map<String, dynamic>;
+    } catch (_) { return null; }
+  }
+
+  Future<void> _checkIdWithVision() async {
+    if (_idFront == null) { setState(() => _idCheck = 'Please Scan Front of your ID first'); return; }
+    if (_idNumber.text.trim().isEmpty) { setState(() => _idCheck = 'Please type your ID Number as printed on your ID'); return; }
+    setState(() => _idCheck = 'Checking ID, please wait...');
+    // NO KEY -> DO NOT BLOCK. Send to CEO for manual check.
+    if (kVisionApiKey == 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE' || kVisionApiKey.isEmpty) {
+      setState(() {
+        _idTypeDetected = 'ID (manual CEO check)';
+        _idVerified = true; // allow registration - CEO checks manually
+        _idScore = 0;
+        _idCheck = 'Auto-check not set up yet. Your ID was sent to CEO for manual check. You can register now.';
+        _faceCheck = 'Face match will be checked by CEO';
+      });
+      return;
+    }
+    try {
+      final bytes = await _idFront!.readAsBytes();
+      final resp = await _visionAnnotate(bytes);
+      if (resp == null) {
+        setState(() { _idTypeDetected = 'ID (manual CEO check)'; _idVerified = true; _idCheck = 'Could not reach ID check service. Your ID was sent to CEO for manual check.'; });
+        return;
+      }
+      final text = (((resp['textAnnotations'] as List?)?.isNotEmpty ?? false) ? (resp['textAnnotations'][0]['description'] as String? ?? '') : '').toUpperCase();
+      final compact = text.replaceAll(RegExp(r'\s+'), ' ');
+      final typedNum = _idNumber.text.trim().toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
+      final textCompact = compact.replaceAll(RegExp(r'[\s-]'), '');
+      int score = 0; List<String> ok = []; List<String> bad = [];
+      if (textCompact.contains(typedNum) && typedNum.length >= 5) { score += 40; ok.add('ID number matches'); } else { bad.add('ID number on photo does not match what you typed'); }
+      if (text.contains(_idCountry.toUpperCase())) { score += 20; ok.add('Country matches'); } else { bad.add('Country on ID does not look like $_idCountry'); }
+      final typeWords = _idType.toUpperCase().split(' ');
+      if (typeWords.any((w) => w.length > 3 && text.contains(w))) { score += 20; ok.add('ID type looks right'); } else { bad.add('ID type on photo does not look like $_idType'); }
+      if (_name.text.trim().isNotEmpty) {
+        final firstName = _name.text.trim().split(' ').first.toUpperCase();
+        if (firstName.length >= 3 && text.contains(firstName)) { score += 20; ok.add('Name matches'); } else { bad.add('Name on ID does not match your name'); }
+      }
+      // Face: did Vision find a face on the ID?
+      final faces = resp['faceAnnotations'] as List?;
+      bool idHasFace = faces != null && faces.isNotEmpty;
+      // Face match: compare ID face vs profile photo face (presence + count). Full embedding compare needs a face-match service; CEO does final check.
+      _faceMatch = false; _faceCheck = '';
+      if (_photo != null && idHasFace) {
+        final pResp = await _visionAnnotate(await _photo!.readAsBytes());
+        final pFaces = pResp?['faceAnnotations'] as List?;
+        if (pFaces != null && pFaces.isNotEmpty) { _faceMatch = true; _faceCheck = 'Face found on ID and on profile photo - CEO will confirm they are the same person'; }
+        else { _faceCheck = 'No face found on your profile photo - take a clear face photo'; }
+      } else if (!idHasFace) { _faceCheck = 'No face found on ID photo - scan again with better light'; }
+      setState(() {
+        _idScore = score; _idTypeDetected = _idType;
+        if (score >= 80) { _idVerified = true; _idCheck = 'ID check passed ($score/100). ${ok.join(', ')}. $_faceCheck'; }
+        else { _idVerified = false; _idCheck = 'ID check failed ($score/100). ${bad.join('. ')}. Please scan again or check your details.'; }
+      });
+    } catch (e) {
+      setState(() { _idTypeDetected = 'ID (manual CEO check)'; _idVerified = true; _idCheck = 'ID check service had a problem. Your ID was sent to CEO for manual check.'; });
+    }
+  }
+
+  Future<String> _upload(XFile f, String path) async {
     final ref = FirebaseStorage.instance.ref().child(path);
-    final bytes = await file.readAsBytes();
-    await ref.putData(bytes, SettableMetadata(contentType: file.mimeType ?? 'application/octet-stream'));
+    await ref.putData(await f.readAsBytes());
     return await ref.getDownloadURL();
   }
 
-  // ---- OTP: send + verify ----
-  // OTP is verified BEFORE any email account is created.
-  // If OTP fails / is cancelled, NO account exists, so NO login is possible.
-  Future<bool> _sendOtp(String phone) async {
-    setState(() { _otpSending = true; _otp.clear(); });
-    try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: phone,
-        timeout: const Duration(seconds: 60),
-        forceResendingToken: _resendToken,
-        verificationCompleted: (PhoneAuthCredential cred) {
-          _phoneVerified = true;
-          _pendingPhoneCredential = cred;
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not send OTP: ${e.message ?? e.code}'), backgroundColor: Colors.red));
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          _verificationId = verificationId;
-          _resendToken = resendToken;
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('OTP sent to $phone. Enter the 6-digit code.')));
-        },
-        codeAutoRetrievalTimeout: (String verificationId) { _verificationId = verificationId; },
-      );
-      return true;
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not send OTP: $e'), backgroundColor: Colors.red));
-      return false;
-    } finally {
-      if (mounted) setState(() => _otpSending = false);
-    }
-  }
-
-  // Shows OTP dialog. Returns verified credential, or null on fail/cancel. Max 3 wrong attempts.
-  Future<PhoneAuthCredential?> _askAndVerifyOtp(String phone) async {
-    if (_pendingPhoneCredential != null) return _pendingPhoneCredential;
-    if (_verificationId == null) return null;
-    int attempts = 0;
-    while (attempts < 3) {
-      final code = await showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Enter OTP'),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('We sent a 6-digit code to\n$phone', textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            TextField(controller: _otp, keyboardType: TextInputType.number, maxLength: 6,
-              decoration: const InputDecoration(labelText: 'OTP code', hintText: '123456')),
-            if (attempts > 0) Text('Wrong code. ${3 - attempts} attempt(s) left.', style: const TextStyle(color: Colors.red)),
-          ]),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            TextButton(onPressed: () => _sendOtp(phone), child: const Text('Resend')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, _otp.text.trim()), child: const Text('Verify')),
-          ],
-        ),
-      );
-      if (code == null || code.isEmpty) return null;
-      try {
-        final cred = PhoneAuthProvider.credential(verificationId: _verificationId!, smsCode: code);
-        await FirebaseAuth.instance.signInWithCredential(cred);
-        _phoneVerified = true;
-        _pendingPhoneCredential = cred;
-        return cred;
-      } on FirebaseAuthException catch (e) {
-        attempts++;
-        await FirebaseAuth.instance.signOut();
-        if (attempts >= 3) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Too many wrong OTP attempts. Registration blocked. No login.'), backgroundColor: Colors.red));
-          return null;
-        }
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Wrong OTP (${e.message ?? 'invalid code'}). Try again.'), backgroundColor: Colors.red));
-      }
-    }
-    return null;
-  }
-
-  // ---- STRONG PASSWORD ----
-  int get _passwordScore {
-    final p = _pass.text;
-    var score = 0;
-    if (p.length >= 8) score++;
-    if (p.length >= 12) score++;
-    if (RegExp(r'[A-Z]').hasMatch(p)) score++;
-    if (RegExp(r'[a-z]').hasMatch(p)) score++;
-    if (RegExp(r'[0-9]').hasMatch(p)) score++;
-    if (RegExp(r'[^A-Za-z0-9]').hasMatch(p)) score++;
-    return score;
-  }
-  bool get _isStrongPassword {
-    final p = _pass.text;
-    return p.length >= 8 && RegExp(r'[A-Z]').hasMatch(p) && RegExp(r'[a-z]').hasMatch(p) &&
-        RegExp(r'[0-9]').hasMatch(p) && RegExp(r'[^A-Za-z0-9]').hasMatch(p) && !p.contains(' ');
-  }
-  String get _passwordStrengthLabel {
-    if (_pass.text.isEmpty) return '';
-    final s = _passwordScore;
-    if (s <= 2) return 'Weak';
-    if (s <= 4) return 'Medium';
-    if (s == 5) return 'Strong';
-    return 'Very strong';
-  }
-  Color get _passwordStrengthColor {
-    if (_pass.text.isEmpty) return Colors.grey;
-    final s = _passwordScore;
-    if (s <= 2) return Colors.red;
-    if (s <= 4) return Colors.orange;
-    if (s == 5) return Colors.lightGreen;
-    return Colors.green;
-  }
-  List<String> get _passwordMissing {
-    final p = _pass.text;
-    final missing = <String>[];
-    if (p.length < 8) missing.add('At least 8 characters');
-    if (!RegExp(r'[A-Z]').hasMatch(p)) missing.add('One UPPERCASE letter (A-Z)');
-    if (!RegExp(r'[a-z]').hasMatch(p)) missing.add('One lowercase letter (a-z)');
-    if (!RegExp(r'[0-9]').hasMatch(p)) missing.add('One number (0-9)');
-    if (!RegExp(r'[^A-Za-z0-9]').hasMatch(p)) missing.add('One special character (! @ # \$ % etc.)');
-    if (p.contains(' ')) missing.add('No spaces');
-    return missing;
-  }
-
   Future<void> _register() async {
-    // ALL fields must be filled.
-    if (_name.text.trim().isEmpty || _username.text.trim().isEmpty || _email.text.trim().isEmpty ||
-        _phone.text.trim().isEmpty || _pass.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill all fields - name, username, email, phone and password')));
-      return;
+    if (_name.text.trim().isEmpty || _email.text.trim().isEmpty || _phone.text.trim().isEmpty || _pass.text.length < 6 || _pin.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill Name, Email, Phone, Password (6+) and Nursing PIN'))); return;
     }
-    if (!_isStrongPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Password too weak. Missing: ${_passwordMissing.join(', ')}'), backgroundColor: Colors.red));
-      return;
-    }
-    if (_isOtherCountry && !RegExp(r'^\+\d{1,4}$').hasMatch(_selectedDialCode)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid country code for Other, e.g. +999')));
-      return;
-    }
-    final phone = _fullPhone;
-    // 1) OTP TO PHONE - must PASS before any account is created. No ID needed.
-    _pendingPhoneCredential = null; _phoneVerified = false;
-    await _sendOtp(phone);
-    if (_verificationId == null && _pendingPhoneCredential == null) return;
-    final phoneCred = await _askAndVerifyOtp(phone);
-    if (phoneCred == null || !_phoneVerified) {
-      await FirebaseAuth.instance.signOut();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('OTP not verified. Registration cancelled. You cannot login.'), backgroundColor: Colors.red));
-      return;
-    }
+    if (_idFront == null || _idBack == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please Scan Front and Back of your ID'))); return; }
+    if (!_idVerified) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please tap CHECK MY ID first and make sure it passes'))); return; }
     setState(() => _loading = true);
     try {
-      // 2) Create email account LINKED to the verified phone number.
-      final emailCred = EmailAuthProvider.credential(email: _email.text.trim(), password: _pass.text.trim());
-      try {
-        await FirebaseAuth.instance.currentUser!.linkWithCredential(emailCred);
-      } on FirebaseAuthException catch (e) {
-        await FirebaseAuth.instance.signOut();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Could not create account: ${e.message ?? e.code}'), backgroundColor: Colors.red));
-        return;
-      }
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      String? photoUrl;
-      if (_photo != null) photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg');
-
-      // CLIENTS DO NOT NEED CEO APPROVAL: status=approved, can login immediately.
-      // NO ID fields - ID removed from client registration.
-      final data = <String, Object?>{
-        'uid': uid, 'id': uid,
-        'name': _name.text.trim(), 'fullName': _name.text.trim(),
-        'username': _username.text.trim(), 'email': _email.text.trim(),
-        'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
-        'role': 'client', 'type': 'client',
-        'status': 'approved', 'isApproved': true, 'approved': true, 'hasAll4': true,
-        'phoneVerified': true, 'otpVerified': true,
-        'photo': photoUrl ?? '', 'photoUrl': photoUrl ?? '', 'photoURL': photoUrl ?? '',
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-      await FirebaseFirestore.instance.collection('clients').doc(uid).set(data);
-      final rtdbData = Map<String, Object?>.from(data)..['createdAt'] = DateTime.now().millisecondsSinceEpoch;
-      await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
-      await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
-      await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
-
+      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: _email.text.trim(), password: _pass.text.trim());
+      final uid = cred.user!.uid;
+      String photoUrl = ''; String idFrontUrl = ''; String idBackUrl = ''; String certUrl = '';
+      if (_photo != null) photoUrl = await _upload(_photo!, 'nurses/$uid/profile.jpg');
+      idFrontUrl = await _upload(_idFront!, 'nurses/$uid/id_front.jpg');
+      idBackUrl = await _upload(_idBack!, 'nurses/$uid/id_back.jpg');
+      if (_certificate != null) certUrl = await _upload(_certificate!, 'nurses/$uid/certificate.jpg');
+      await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).set({
+        'uid': uid, 'name': _name.text.trim(), 'username': _username.text.trim(), 'email': _email.text.trim(),
+        'phone': '$_phoneCode${_phone.text.trim()}', 'phoneCountry': _phoneCountry, 'phoneCode': _phoneCode,
+        'pin': _pin.text.trim(), 'photoUrl': photoUrl,
+        'idCountry': _idCountry, 'idType': _idType, 'idNumber': _idNumber.text.trim(),
+        'idFrontUrl': idFrontUrl, 'idBackUrl': idBackUrl, 'certificateUrl': certUrl,
+        'idCheck': _idCheck, 'idScore': _idScore, 'idVerified': _idVerified, 'idTypeDetected': _idTypeDetected,
+        'faceMatch': _faceMatch, 'faceCheck': _faceCheck, 'idVerification': _idScore == 0 ? 'manual_ceo_check' : 'vision_auto_check',
+        'status': 'pending', 'createdAt': FieldValue.serverTimestamp(),
+      });
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registered! Phone verified. You can login now.')));
-      await FirebaseAuth.instance.signOut();
-      Navigator.pop(context);
+      showDialog(context: context, barrierDismissible: false, builder: (_) => AlertDialog(
+        title: const Text('Registration Sent'),
+        content: const Text('Your registration was sent. Please wait for CEO approval before you can login.'),
+        actions: [TextButton(onPressed: () { Navigator.pop(context); Navigator.pop(context); }, child: const Text('OK'))],
+      ));
+    } on FirebaseAuthException catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Registration failed')));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    } finally { if (mounted) setState(() => _loading = false); }
+  }
+
+  Widget _field(IconData icon, String label, TextEditingController c, {bool obscure = false, TextInputType? type, Widget? suffix}) {
+    return TextField(controller: c, obscureText: obscure, keyboardType: type, decoration: InputDecoration(prefixIcon: Icon(icon, color: kDarkPink), labelText: label, suffixIcon: suffix, border: const OutlineInputBorder()));
+  }
+  Widget _idRow(String label, String sub, XFile? file, String btn, VoidCallback onTap) {
+    return ListTile(leading: const Icon(Icons.credit_card, color: kDarkPink), title: Text(label), subtitle: Text(file == null ? sub : 'Selected: ${file.name}\n$sub'), trailing: ElevatedButton(onPressed: onTap, style: ElevatedButton.styleFrom(backgroundColor: kSoftPink, foregroundColor: kDarkPink, minimumSize: const Size(0, 36)), child: Text(btn)));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Client Registration'), backgroundColor: Colors.purple, foregroundColor: Colors.white),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full Name')),
-            TextField(controller: _username, decoration: const InputDecoration(labelText: 'Username')),
-            TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email')),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedCountry, isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Country Code'),
-                    items: [
-                      ..._countries.map((c) => DropdownMenuItem<String>(
-                            value: '${c['name']}|${c['code']}',
-                            child: Text('${c['name']} (${c['code']})', overflow: TextOverflow.ellipsis),
-                          )),
-                      const DropdownMenuItem<String>(value: 'Other|', child: Text('Other (type code)')),
-                    ],
-                    onChanged: (v) { if (v != null) setState(() => _selectedCountry = v); },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 3,
-                  child: TextField(controller: _phone, keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(labelText: 'Phone Number', hintText: _isOtherCountry ? 'Number without code' : 'e.g. 241234567 (no 0, no code)')),
-                ),
-              ],
-            ),
-            if (_isOtherCountry)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: TextField(controller: _otherCode, keyboardType: TextInputType.phone, onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(labelText: 'Your Country Code', hintText: 'e.g. +999')),
-              ),
-            const SizedBox(height: 4),
-            Align(alignment: Alignment.centerLeft,
-              child: Text('Full number: ${_phone.text.trim().isEmpty ? '...' : _fullPhone}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey))),
-            TextField(
-              controller: _pass, obscureText: _obscurePassword, onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                labelText: 'Password', hintText: 'Min 8 chars, upper + lower + number + symbol',
-                suffixIcon: IconButton(
-                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                  tooltip: _obscurePassword ? 'Show password' : 'Hide password',
-                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (_pass.text.isNotEmpty) ...[
-              Row(children: [
-                Expanded(child: LinearProgressIndicator(value: _passwordScore / 6, backgroundColor: Colors.grey.shade300, color: _passwordStrengthColor, minHeight: 6)),
-                const SizedBox(width: 8),
-                Text(_passwordStrengthLabel, style: TextStyle(color: _passwordStrengthColor, fontWeight: FontWeight.bold)),
-              ]),
-              const SizedBox(height: 6),
-              ..._passwordMissing.map((m) => Row(children: [
-                    const Icon(Icons.close, size: 14, color: Colors.red),
-                    const SizedBox(width: 4),
-                    Expanded(child: Text(m, style: const TextStyle(fontSize: 12, color: Colors.red))),
-                  ])),
-              if (_isStrongPassword)
-                const Row(children: [
-                  Icon(Icons.check_circle, size: 14, color: Colors.green),
-                  SizedBox(width: 4),
-                  Text('Strong password ✓', style: TextStyle(fontSize: 12, color: Colors.green)),
-                ]),
-            ],
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(Icons.photo),
-              title: Text(_photo == null ? 'Upload Photo (optional)' : 'Photo Selected: ${_photo!.name}'),
-              trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo')),
-            ),
-            const SizedBox(height: 20),
-            _loading || _otpSending
-                ? const CircularProgressIndicator()
-                : ElevatedButton(onPressed: _register, child: const Text('REGISTER AS CLIENT')),
-          ],
-        ),
-      ),
+    return Scaffold(backgroundColor: kLightBg, appBar: AppBar(backgroundColor: kDarkPink, foregroundColor: Colors.white, leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)), title: const Text('Nurse Registration')),
+      body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _field(Icons.person, 'Full Name', _name), const SizedBox(height: 12),
+        _field(Icons.account_circle, 'Username', _username), const SizedBox(height: 12),
+        _field(Icons.email, 'Email', _email, type: TextInputType.emailAddress), const SizedBox(height: 12),
+        // Phone: country code + number
+        Row(children: [
+          Expanded(flex: 2, child: DropdownButtonFormField<String>(value: _phoneCountry, decoration: const InputDecoration(labelText: 'Code', border: OutlineInputBorder()), items: _phoneCodes.map((m) => DropdownMenuItem(value: m['c'], child: Text('${m['c']} (${m['code']})'))).toList(), onChanged: (v) { if (v == null) return; final m = _phoneCodes.firstWhere((e) => e['c'] == v); setState(() { _phoneCountry = v; _phoneCode = m['code']!; }); })),
+          const SizedBox(width: 8),
+          Expanded(flex: 3, child: _field(Icons.phone, 'Phone Number', _phone, type: TextInputType.phone)),
+        ]), const SizedBox(height: 12),
+        _field(Icons.lock, 'Password', _pass, obscure: _obscure, suffix: IconButton(icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off), onPressed: () => setState(() => _obscure = !_obscure))),
+        if (_pass.text.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(_passwordStrength(_pass.text), style: TextStyle(color: _passwordStrength(_pass.text).startsWith('Strong') ? Colors.green : Colors.orange))),
+        const SizedBox(height: 12),
+        _field(Icons.badge, 'Nursing PIN', _pin), const SizedBox(height: 20),
+        const Text('ID - SCAN with camera (not upload)', style: TextStyle(fontWeight: FontWeight.bold, color: kDarkPink)),
+        const SizedBox(height: 8),
+        // ID SCAN FIRST
+        _idRow('Scan $_idType - FRONT', 'Front of $_idType ($_idCountry)', _idFront, 'Scan Front', () => _scanIdSide(true)),
+        _idRow('Scan $_idType - BACK', 'Back of $_idType (required)', _idBack, 'Scan Back', () => _scanIdSide(false)),
+        const SizedBox(height: 12),
+        // THEN ID Country / Type / Number - under the Scan buttons
+        DropdownButtonFormField<String>(value: _idCountry, decoration: const InputDecoration(labelText: 'ID Country (citizenship)', border: OutlineInputBorder()), items: _idCountries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(), onChanged: (v) { if (v == null) return; setState(() { _idCountry = v; _idType = (_idsByCountry[v] ?? _genericIds).first; _idVerified = false; _idCheck = ''; }); }),
+        const SizedBox(height: 4), Text('Showing IDs for $_idCountry only', style: const TextStyle(color: Colors.grey)),
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(value: _idType, decoration: const InputDecoration(labelText: 'ID Type', border: OutlineInputBorder()), items: _idTypesForCountry.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (v) { if (v == null) return; setState(() { _idType = v; _idVerified = false; _idCheck = ''; }); }),
+        const SizedBox(height: 12),
+        _field(Icons.numbers, 'ID Number (as printed on your ID)', _idNumber),
+        const SizedBox(height: 12),
+        ElevatedButton(onPressed: _checkIdWithVision, style: ElevatedButton.styleFrom(backgroundColor: kDarkPink, foregroundColor: Colors.white, minimumSize: const Size(0, 48)), child: const Text('CHECK MY ID')),
+        if (_idCheck.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(_idCheck, style: TextStyle(color: _idVerified ? Colors.green.shade800 : Colors.orange.shade800, fontWeight: FontWeight.bold))),
+        if (_faceCheck.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(_faceCheck)),
+        const SizedBox(height: 20),
+        const Text('Other Documents', style: TextStyle(fontWeight: FontWeight.bold, color: kDarkPink)), const SizedBox(height: 8),
+        _idRow('Profile Photo', 'Clear face photo', _photo, 'Pick Photo', () => _pickFile((f) => _photo = f)),
+        _idRow('Upload Certificate', 'Nursing certificate', _certificate, 'Pick Cert', () => _pickFile((f) => _certificate = f)),
+        const SizedBox(height: 24),
+        ElevatedButton(onPressed: _loading ? null : _register, style: ElevatedButton.styleFrom(backgroundColor: kDarkPink, foregroundColor: Colors.white, minimumSize: const Size(0, 48)), child: Text(_loading ? 'Please wait...' : 'REGISTER AS NURSE')),
+        const SizedBox(height: 8), const Text('You must wait for CEO approval after registration before you can login.', textAlign: TextAlign.center),
+      ]))),
     );
   }
 }
