@@ -236,208 +236,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   String _faceCheck = '';
   String get _idLabel => _selectedIdType.isEmpty ? 'ID' : _selectedIdType;
   static const List<String> _idCountries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo (DRC)', 'Costa Rica', 'Ivory Coast', 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Other'];
-  static const List<String> _idTypes = ['Passport','National ID','Voter ID Card','Driving Licence'];
-
-  // KNOWN IDs only. Countries NOT listed here fall back to generic: Passport, National ID, Voter ID, Driving Licence.
-  static const Map<String, List<String>> _idTypesByCountry = {
-    'Afghanistan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Albania': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Algeria': ['CNIBE - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Andorra': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Angola': ['Bilhete de Identidade - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Antigua and Barbuda': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Argentina': ['DNI - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Armenia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Australia': ['Passport', 'Driving Licence', 'Photo Card', 'National ID'],
-    'Austria': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Azerbaijan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Bahamas': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Bahrain': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Bangladesh': ['NID - National ID Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Barbados': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Belarus': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Belgium': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Belize': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Benin': ['CNI - National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Bhutan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Bolivia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Bosnia and Herzegovina': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Botswana': ['Omang - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Brazil': ['RG - National ID', 'CPF Card', 'Passport', 'CNH - Driving Licence', 'Voter ID Card'],
-    'Brunei': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Bulgaria': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Burkina Faso': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Burundi': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Cambodia': ['National ID Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Cameroon': ['CNI - National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Canada': ['Passport', 'Driving Licence', 'Provincial ID Card', 'National ID'],
-    'Cape Verde': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Central African Republic': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Chad': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Chile': ['RUT - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'China': ['Resident Identity Card', 'Passport', 'Driving Licence'],
-    'Colombia': ['Cedula - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Comoros': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Congo': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Congo (DRC)': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Costa Rica': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Ivory Coast': ['CNI - National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Croatia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Cuba': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Cyprus': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Czechia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Denmark': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Djibouti': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Dominica': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Dominican Republic': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Ecuador': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Egypt': ['National ID Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'El Salvador': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Equatorial Guinea': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Eritrea': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Estonia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Eswatini': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Ethiopia': ['Fayda - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Fiji': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Finland': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'France': ['CNI - National Identity Card', 'Passport', 'Driving Licence'],
-    'Gabon': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Gambia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Georgia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Germany': ['Personalausweis - National ID', 'Passport', 'Driving Licence'],
-    'Ghana': ['Ghana Card', 'Passport', 'Voter ID Card', 'Driving Licence', 'Health Insurance Card (NHIS)', 'National ID'],
-    'Greece': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Grenada': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Guatemala': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Guinea': ['National ID Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Guinea-Bissau': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Guyana': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Haiti': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Honduras': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Hungary': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Iceland': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'India': ['Aadhaar Card', 'PAN Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Indonesia': ['KTP - e-KTP National ID', 'Passport', 'Driving Licence (SIM)', 'Voter ID Card'],
-    'Iran': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Iraq': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Ireland': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Israel': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Italy': ['Carta dIdentita - National ID', 'Passport', 'Driving Licence'],
-    'Jamaica': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Japan': ['My Number Card', 'Passport', 'Driving Licence'],
-    'Jordan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Kazakhstan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Kenya': ['National ID', 'Huduma Namba', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Kiribati': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Kuwait': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Kyrgyzstan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Laos': ['National ID Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Latvia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Lebanon': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Lesotho': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Liberia': ['National ID Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Libya': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Liechtenstein': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Lithuania': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Luxembourg': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Madagascar': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Malawi': ['National ID Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Malaysia': ['MyKad - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Maldives': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Mali': ['NINA Card - National ID', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Malta': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Marshall Islands': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Mauritania': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Mauritius': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Mexico': ['INE - Voter ID / National ID', 'Passport', 'Driving Licence', 'CURP Card'],
-    'Micronesia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Moldova': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Monaco': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Mongolia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Montenegro': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Morocco': ['CNIE - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Mozambique': ['Bilhete de Identidade - National ID', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Myanmar': ['NRC - National Registration Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Namibia': ['National ID Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Nauru': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Nepal': ['National ID Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Netherlands': ['ID Card - National ID', 'Passport', 'Driving Licence'],
-    'New Zealand': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Nicaragua': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Niger': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Nigeria': ['NIN - National Identity Number', 'Passport', 'Voter ID Card', 'Driving Licence', 'National ID'],
-    'North Korea': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'North Macedonia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Norway': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Oman': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Pakistan': ['CNIC - National Identity Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Palau': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Palestine': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Panama': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Papua New Guinea': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Paraguay': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Peru': ['DNI - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Philippines': ['PhilID - National ID', 'Passport', 'UMID Card', 'Driving Licence', 'Voter ID Card'],
-    'Poland': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Portugal': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Qatar': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Romania': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Russia': ['Internal Passport - National ID', 'International Passport', 'Driving Licence'],
-    'Rwanda': ['National ID Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Saint Kitts and Nevis': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Saint Lucia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Saint Vincent': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Samoa': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'San Marino': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Sao Tome and Principe': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Saudi Arabia': ['Iqama - Residence ID', 'National ID', 'Passport', 'Driving Licence'],
-    'Senegal': ['CNI - National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Serbia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Seychelles': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Sierra Leone': ['NIN - National ID Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Singapore': ['NRIC - National ID', 'Passport', 'Driving Licence'],
-    'Slovakia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Slovenia': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Solomon Islands': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Somalia': ['National ID Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'South Africa': ['Smart ID Card', 'Passport', 'Driving Licence', 'Voter ID Card', 'National ID'],
-    'South Korea': ['Resident Registration Card', 'Passport', 'Driving Licence'],
-    'South Sudan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Spain': ['DNI - National ID', 'Passport', 'Driving Licence'],
-    'Sri Lanka': ['NIC - National Identity Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Sudan': ['National ID Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Suriname': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Sweden': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Switzerland': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Syria': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Taiwan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Tajikistan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Tanzania': ['NIDA - National ID', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Thailand': ['Thai National ID Card', 'Passport', 'Driving Licence'],
-    'Togo': ['CNI - National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Tonga': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Trinidad and Tobago': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Tunisia': ['CIN - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Turkey': ['Kimlik Karti - National ID', 'Passport', 'Driving Licence'],
-    'Turkmenistan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Tuvalu': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Uganda': ['National ID Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Ukraine': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'United Arab Emirates': ['Emirates ID', 'Passport', 'Driving Licence'],
-    'United Kingdom': ['Passport', 'Driving Licence', 'National ID'],
-    'United States': ['Passport', 'Driving Licence', 'Social Security Card', 'State ID Card'],
-    'Uruguay': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Uzbekistan': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Vanuatu': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Vatican City': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Venezuela': ['Cedula - National ID', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Vietnam': ['CCCD - Citizen Identity Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
-    'Yemen': ['Passport', 'National ID', 'Voter ID Card', 'Driving Licence'],
-    'Zambia': ['NRC - National Registration Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-    'Zimbabwe': ['National ID Card', 'Passport', 'Voter ID Card', 'Driving Licence'],
-  };
-  List<String> get _availableIdTypes { if (_selectedIdCountry.isEmpty) return _idTypes; return _idTypesByCountry[_selectedIdCountry] ?? _idTypes; }
-
+  static const List<String> _idTypes = ['Passport','National ID / National Identity Card','Ghana Card','Voter ID Card','Driving Licence','Health Insurance Card (NHIS / Health Card)','Aadhaar Card (India)','PAN Card (India)','Social Security Card (USA)','State ID Card (USA)'];
   XFile? _photo;
   XFile? _video;
   XFile? _cv;
@@ -571,7 +370,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       String country = 'UNKNOWN';
       final countryWords = {'GHANA':'GHANA','NIGERIA':'NIGERIA','KENYA':'KENYA','SOUTH AFRICA':'SOUTH AFRICA','INDIA':'INDIA','AADHAAR':'INDIA','UNITED KINGDOM':'UNITED KINGDOM','GREAT BRITAIN':'UNITED KINGDOM','UNITED STATES':'USA','USA':'USA','AMERICA':'USA','CANADA':'CANADA','AUSTRALIA':'AUSTRALIA','FRANCE':'FRANCE','GERMANY':'GERMANY','BUNDESREPUBLIK':'GERMANY','TOGO':'TOGO','IVORY COAST':'IVORY COAST','BENIN':'BENIN','BURKINA':'BURKINA FASO','SENEGAL':'SENEGAL','SIERRA LEONE':'SIERRA LEONE','LIBERIA':'LIBERIA','CAMEROON':'CAMEROON','ETHIOPIA':'ETHIOPIA','UGANDA':'UGANDA','TANZANIA':'TANZANIA','EGYPT':'EGYPT','PAKISTAN':'PAKISTAN','PHILIPPINES':'PHILIPPINES','BRAZIL':'BRAZIL','BRASIL':'BRAZIL'};
       for (final e in countryWords.entries) { if (text.contains(e.key)) { country = e.value; break; } }
-      if (_selectedIdType == 'Ghana Card' && _selectedIdCountry != 'Ghana') { setState(() { _idCheck = '❌ Ghana Card is only for Ghana. Pick Ghana, or pick your own country\'s ID.'; _idVerified = false; _idScore = 40; }); return false; }
+      if (_selectedIdType == 'Ghana Card' && _selectedIdCountry != 'Ghana') { setState(() { _idCheck = '❌ Ghana Card is only for Ghana. Pick Ghana, or pick your own countrys ID.'; _idVerified = false; _idScore = 40; }); return false; }
       if (_selectedIdCountry != 'Other') {
         if (country == 'UNKNOWN') { setState(() { _idCheck = '❌ Could not read the COUNTRY on this ID. Retake a clear photo showing "$_selectedIdCountry" on the ID.'; _idVerified = false; _idScore = 35; }); return false; }
         String sel = _selectedIdCountry.toUpperCase(); if (sel == 'UNITED STATES') sel = 'USA';
@@ -589,13 +388,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       else if (text.contains('SOCIAL SECURITY')) detected = 'Social Security Card (USA)';
       else if (text.contains('PAN') && RegExp(r'[A-Z]{5}\d{4}[A-Z]').hasMatch(compact.replaceAll(' ', ''))) detected = 'PAN Card (India)';
       if (detected == 'UNKNOWN') { setState(() { _idCheck = '❌ Could not read this as an ID. Take a clearer photo of your $_selectedIdType.'; _idVerified = false; _idScore = 30; }); return false; }
-      bool typeMatches = detected == _selectedIdType
-        || (detected == 'National ID / National Identity Card' && (_selectedIdType.contains('National ID') || _selectedIdType.contains('NIN') || _selectedIdType.contains('CNIC') || _selectedIdType.contains('MyKad') || _selectedIdType.contains('KTP') || _selectedIdType.contains('NRIC') || _selectedIdType.contains('NIDA') || _selectedIdType.contains('Fayda') || _selectedIdType.contains('CNI') || _selectedIdType.contains('Smart ID') || _selectedIdType.contains('NINA') || _selectedIdType.contains('DNI') || _selectedIdType.contains('Personalausweis') || _selectedIdType.contains('Carta') || _selectedIdType.contains('INE') || _selectedIdType.contains('RG') || _selectedIdType.contains('CCCD') || _selectedIdType.contains('Huduma')))
-        || (detected == 'Voter ID Card' && _selectedIdType.contains('Voter'))
-        || (detected == 'Driving Licence' && (_selectedIdType.contains('Driving') || _selectedIdType.contains('Driver') || _selectedIdType.contains('CNH')))
-        || (detected == 'Passport' && _selectedIdType.contains('Passport'))
-        || (detected == 'Ghana Card' && _selectedIdType.contains('Ghana Card'))
-        || (_selectedIdType == 'National ID / National Identity Card' && detected == 'Ghana Card');
+      bool typeMatches = detected == _selectedIdType || (_selectedIdType == 'National ID / National Identity Card' && detected == 'Ghana Card');
       if (!typeMatches) { setState(() { _idCheck = '❌ MISMATCH: you picked "$_selectedIdType" but this photo looks like "$detected". Pick the correct ID type and re-upload.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 40; }); return false; }
       String formatError = ''; String foundNumber = ''; final digitsOnly = text.replaceAll(RegExp(r'[^0-9]'), '');
       if (_selectedIdType == 'Ghana Card' || detected == 'Ghana Card') { final m = RegExp(r'GHA-\d{9}-\d').firstMatch(text); foundNumber = m?.group(0) ?? ''; if (foundNumber.isEmpty) formatError = 'Ghana Card number should look like GHA-XXXXXXXXX-X.'; }
@@ -626,7 +419,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       if (faceScore == -2) { setState(() { _idCheck = '❌ More than one face found in your profile photo or ID photo. Upload photos with ONLY YOU in them.'; _idVerified = false; _idScore = 70; _faceMatchScore = 0; }); return false; }
       _faceMatchScore = faceScore;
       if (faceScore < 55) {
-        setState(() { _faceCheck = 'Face match ${faceScore.toStringAsFixed(0)}/100 - TOO LOW'; _idCheck = '❌ FACE DOES NOT MATCH: the face on this ID (score ${faceScore.toStringAsFixed(0)}/100) does NOT look like the face in your profile photo. This looks like SOMEONE ELSE\'S ID. Upload YOUR OWN ID + YOUR OWN photo.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 75; });
+        setState(() { _faceCheck = 'Face match ${faceScore.toStringAsFixed(0)}/100 - TOO LOW'; _idCheck = '❌ FACE DOES NOT MATCH: the face on this ID (score ${faceScore.toStringAsFixed(0)}/100) does NOT look like the face in your profile photo. This looks like SOMEONE ELSES ID. Upload YOUR OWN ID + YOUR OWN photo.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 75; });
         return false;
       }
       setState(() {
@@ -640,12 +433,37 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     } catch (e) { setState(() { _idCheck = '❌ Could not check ID automatically ($e). Try again with clearer photos.'; _idVerified = false; _idScore = 0; }); return false; }
   }
 
+  // LIVE SCAN OF ID - camera, NOT gallery upload.
+  // Gallery photos are often old / cropped / blurry, so Vision API fails.
+  // Live scan = fresh, straight, well-lit photo, so the API reads it properly.
+  // After the live scan, the API check runs automatically.
   Future<void> _pickIdSide(bool isFront) async {
-    final f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (f == null) return;
+    if (_selectedIdCountry.isEmpty || _selectedIdType.isEmpty) {
+      setState(() => _idCheck = 'Pick ID Country + ID Type FIRST, then scan your ID.');
+      return;
+    }
+    setState(() => _idCheck = 'Open camera - hold your $_selectedIdType steady, fill the frame, good light, no glare...');
+    // LIVE CAMERA first. If camera is not available (web / no camera), fall back to gallery.
+    XFile? f;
+    try {
+      f = await _picker.pickImage(source: ImageSource.camera, imageQuality: 90, maxWidth: 2000, maxHeight: 2000);
+    } catch (_) {
+      f = null;
+    }
+    if (f == null) {
+      // Camera cancelled or not available - offer gallery as fallback, do not block.
+      setState(() => _idCheck = 'Camera not available or cancelled. You can pick from gallery as fallback.');
+      f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
+      if (f == null) { setState(() => _idCheck = ''); return; }
+    }
     setState(() { if (isFront) _idFront = f; else _idBack = f; _idVerified = false; });
+    // After live scan, run the API check automatically when we have what we need.
     if (_photo != null && _idFront != null && (_selectedIdType == 'Passport' || _idBack != null) && _selectedIdType.isNotEmpty && _selectedIdCountry.isNotEmpty) await _verifyIdDocument();
+    else if (_photo == null) setState(() => _idCheck = 'ID scanned. Now upload YOUR OWN profile photo, then tap CHECK MY ID AGAIN.');
+    else if (_selectedIdType != 'Passport' && _idBack == null) setState(() => _idCheck = 'Front scanned. Now scan the BACK of your $_selectedIdType.');
   }
+  // Alias - same live scan, clearer name for the buttons
+  Future<void> _scanIdLive(bool isFront) async => await _pickIdSide(isFront);
 
   // ---- STRONG PASSWORD ----
   // Strong = at least 8 chars + upper + lower + digit + special. No spaces.
@@ -957,13 +775,13 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
               title: Text(_pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}'),
               trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), child: const Text('Pick PIN')),
             ),
-            // ID SECTION - 1) Pick ID Country -> 2) Only THAT country's IDs pop up -> 3) Upload that ID
-            DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _selectedIdType = ''; _idVerified = false; _idCheck = ''; })),
+            // ID SECTION (NOT Nursing PIN) - Country + Type + Number sit directly above ID uploads
+            DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _idVerified = false; _idCheck = ''; })),
             const SizedBox(height: 8),
-            DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: InputDecoration(labelText: _selectedIdCountry.isEmpty ? 'ID Type - Pick ID Country first' : 'ID Type - IDs for $_selectedIdCountry', hintText: 'e.g. Ghana Card, Passport...'), items: _availableIdTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
-            if (_selectedIdCountry.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Align(alignment: Alignment.centerLeft, child: Text('Showing IDs for $_selectedIdCountry only', style: const TextStyle(fontSize: 12, color: Colors.grey)))),
+            DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Type - Select your ID', hintText: 'e.g. Passport, Ghana Card, Voter ID...'), items: _idTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
             const SizedBox(height: 8),
             TextField(controller: _idNumberTyped, decoration: const InputDecoration(labelText: 'ID Number (as printed on your ID)', hintText: 'e.g. GHA-123456789-0')),
+            const Padding(padding: EdgeInsets.only(top: 4, bottom: 4), child: Align(alignment: Alignment.centerLeft, child: Text('ID is LIVE SCANNED with camera - no gallery upload. Hold the ID steady, fill the frame, good light.', style: TextStyle(fontSize: 12, color: Colors.grey)))),
             // ID VERIFICATION RESULT
             if (_idCheck.isNotEmpty)
               Padding(
@@ -974,16 +792,16 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.credit_card),
               title: Text(_idFront == null ? 'Upload $_idLabel - FRONT' : '$_idLabel Front Selected: ${_idFront!.name}'),
-              subtitle: Text(_selectedIdType.isEmpty ? 'Pick ID Country + ID Type first' : 'Front of $_selectedIdType ($_selectedIdCountry)'),
-              trailing: ElevatedButton(onPressed: () => _pickIdSide(true), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Front')),
+              subtitle: Text(_selectedIdType.isEmpty ? 'Pick ID Country + ID Type first' : 'LIVE SCAN - Front of $_selectedIdType ($_selectedIdCountry) - camera, not gallery'),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(true), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Scan Front - Live Camera')),
             ),
             // ID - BACK (hidden for Passport)
             if (_selectedIdType != 'Passport')
             ListTile(
               leading: const Icon(Icons.credit_card),
               title: Text(_idBack == null ? 'Upload $_idLabel - BACK' : '$_idLabel Back Selected: ${_idBack!.name}'),
-              subtitle: Text(_selectedIdType == 'Passport' ? 'Passport - no back needed' : 'Back of $_selectedIdType (required)'),
-              trailing: ElevatedButton(onPressed: () => _pickIdSide(false), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Pick Back')),
+              subtitle: Text(_selectedIdType == 'Passport' ? 'Passport - no back needed' : 'LIVE SCAN - Back of $_selectedIdType (required) - camera, not gallery'),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(false), style: ElevatedButton.styleFrom(backgroundColor: _pinkSoft, foregroundColor: _darkPink), child: const Text('Scan Back - Live Camera')),
             ),
             // CERTIFICATE
             ListTile(
@@ -995,9 +813,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             _loading
                 ? const CircularProgressIndicator()
                 : Column(children: [
-                    ElevatedButton(onPressed: _verifyIdDocument, style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white, minimumSize: const Size(0, 48)), child: const Text('🔍 CHECK MY ID AGAIN')),
+                    ElevatedButton(onPressed: _verifyIdDocument, style: ElevatedButton.styleFrom(backgroundColor: _pink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)), child: const Text('🔍 CHECK MY ID AGAIN')),
                     const SizedBox(height: 10),
-                    ElevatedButton(onPressed: _register, style: ElevatedButton.styleFrom(backgroundColor: _darkPink, foregroundColor: Colors.white, minimumSize: const Size(0, 48)), child: const Text('REGISTER AS NURSE')),
+                    ElevatedButton(onPressed: _register, style: ElevatedButton.styleFrom(backgroundColor: _darkPink, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(48)), child: const Text('REGISTER AS NURSE')),
                   ]),
           ],
         ),
