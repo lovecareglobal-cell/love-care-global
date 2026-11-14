@@ -7,6 +7,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 
 class NurseRegistrationPage extends StatefulWidget {
@@ -20,13 +21,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _phone = TextEditingController();
-
-  // ---- COUNTRY CODE (WORLD) ----
-  // Full world list. Value is "Name|+code" so countries sharing a code
-  // (e.g. USA +1 / Canada +1) stay unique in the dropdown.
-  // "Other" lets anyone whose country is not listed type their own code.
-  static const List<Map<String, String>> _countries = [
-    {"name": "Afghanistan", "code": "+93"},
+  final _pass = TextEditingController();
+  // PHONE COUNTRY CODE (WORLD)
+  static const List<Map<String, String>> _countries = [{"name": "Afghanistan", "code": "+93"},
     {"name": "Albania", "code": "+355"},
     {"name": "Algeria", "code": "+213"},
     {"name": "Andorra", "code": "+376"},
@@ -220,30 +217,24 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     {"name": "Vietnam", "code": "+84"},
     {"name": "Yemen", "code": "+967"},
     {"name": "Zambia", "code": "+260"},
-    {"name": "Zimbabwe", "code": "+263"},
-  ];
-  String _selectedCountry = 'Ghana|+233'; // default: Ghana
-  final _otherCode = TextEditingController(); // only used when "Other" is picked
+    {"name": "Zimbabwe", "code": "+263"}];
+  String _selectedCountry = 'Ghana|+233';
+  final _otherCode = TextEditingController();
   bool get _isOtherCountry => _selectedCountry == 'Other|';
   String get _selectedCountryName => _isOtherCountry ? 'Other' : _selectedCountry.split('|')[0];
-  String get _selectedDialCode {
-    if (_isOtherCountry) {
-      var c = _otherCode.text.trim();
-      if (!c.startsWith('+')) c = '+$c';
-      return c;
-    }
-    return _selectedCountry.split('|')[1];
-  }
-  // Full international number: selected code + local number (leading 0 removed).
-  // If the user already typed a full +... number, use it as-is (no double code).
-  String get _fullPhone {
-    var local = _phone.text.trim().replaceAll(RegExp(r'[\s\-\(\)]'), '');
-    if (local.startsWith('+')) return local;
-    if (local.startsWith('00')) return '+${local.substring(2)}';
-    if (local.startsWith('0')) local = local.substring(1);
-    return '$_selectedDialCode'.replaceAll(' ', '') + local;
-  }
-  final _pass = TextEditingController();
+  String get _selectedDialCode { if (_isOtherCountry) { var c = _otherCode.text.trim(); if (!c.startsWith('+')) c = '+$c'; return c; } return _selectedCountry.split('|')[1]; }
+  String get _fullPhone { var local = _phone.text.trim().replaceAll(RegExp(r'[\s\-\(\)]'), ''); if (local.startsWith('+')) return local; if (local.startsWith('00')) return '+${local.substring(2)}'; if (local.startsWith('0')) local = local.substring(1); return _selectedDialCode.replaceAll(' ', '') + local; }
+  // ID: COUNTRY (citizenship) + TYPE - nurses only, citizenship IDs only. No police/military/student/other/permits/refugee.
+  String _selectedIdCountry = '';
+  String _selectedIdType = '';
+  final _idNumberTyped = TextEditingController();
+  String _idNumber = '';
+  String _idExpiry = '';
+  int _idScore = 0;
+  double _faceMatchScore = 0;
+  String _faceCheck = '';
+  static const List<String> _idCountries = ['Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Antigua and Barbuda', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo', 'Congo (DRC)', 'Costa Rica', 'Côte d'Ivoire', 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent', 'Samoa', 'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe', 'Other'];
+  static const List<String> _idTypes = ['Passport','National ID / National Identity Card','Ghana Card',"Voter ID / Voter's Card","Driving Licence / Driver's License",'Health Insurance Card (NHIS / Health Card)','Aadhaar Card (India)','PAN Card (India)','Social Security Card (USA)','State ID Card (USA)'];
   XFile? _photo;
   XFile? _video;
   XFile? _cv;
@@ -320,183 +311,148 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     }
   }
 
-  Future<bool> _verifyIdDocument() async {
-    if (_idFront == null) {
-      setState(() => _idCheck = '❌ No ID Front uploaded');
-      return false;
-    }
-    setState(() => _idCheck = '🔍 Checking ID, please wait...');
-    // No Vision key configured -> do NOT block, mark for CEO manual check.
-    if (_visionApiKey == 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE' || _visionApiKey.isEmpty) {
-      setState(() {
-        _idType = 'ID (manual check)';
-        _idVerified = false;
-        _idCheck = '⚠️ Auto-check not configured yet. Your ID was sent to CEO for manual check.';
-      });
-      return true;
-    }
+
+  // ---- FACE MATCH: ID face vs PROFILE PHOTO face ----
+  // Google Vision FACE_DETECTION on BOTH images. Landmarks (eyes, nose, mouth, ears)
+  // are normalised by face size, so photo size/crop does not matter.
+  // Same person -> near-identical landmark geometry. Different person -> not.
+  // This is a geometry check, not a biometric ID - CEO still sees both photos + score.
+  Future<Map<String, List<double>>?> _faceLandmarks(Uint8List bytes) async {
     try {
-      final bytes = await _idFront!.readAsBytes();
-      final ocrText = await _ocrWithVision(bytes);
-      if (ocrText == null) {
-        setState(() {
-          _idType = 'ID (manual check)';
-          _idVerified = false;
-          _idCheck = '⚠️ Could not reach ID check service. Your ID was sent to CEO for manual check.';
-        });
-        return true;
+      final res = await http.post(Uri.parse('https://vision.googleapis.com/v1/images:annotate?key=$_visionApiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'requests': [{'image': {'content': base64Encode(bytes)}, 'features': [{'type': 'FACE_DETECTION', 'maxResults': 5}]}]}));
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final faces = (data['responses'] as List?)?.first['faceAnnotations'] as List?;
+      if (faces == null || faces.isEmpty) return {'__no_face__': []};
+      if (faces.length > 1) return {'__many_faces__': [faces.length.toDouble()]};
+      final face = faces[0] as Map<String, dynamic>;
+      final box = face['boundingPoly']?['vertices'] as List?;
+      if (box == null || box.length < 2) return null;
+      final x0 = (box[0]['x'] ?? 0).toDouble(), y0 = (box[0]['y'] ?? 0).toDouble();
+      final x1 = (box[2]['x'] ?? 1).toDouble(), y1 = (box[2]['y'] ?? 1).toDouble();
+      final w = (x1 - x0).abs().clamp(1.0, 100000.0), h = (y1 - y0).abs().clamp(1.0, 100000.0);
+      final out = <String, List<double>>{};
+      for (final lm in (face['landmarks'] as List? ?? [])) {
+        final type = lm['type'] as String? ?? '';
+        final pos = lm['position'] as Map<String, dynamic>?;
+        if (pos == null) continue;
+        out[type] = [((pos['x'] ?? 0).toDouble() - x0) / w, ((pos['y'] ?? 0).toDouble() - y0) / h];
       }
-      final text = ocrText.toUpperCase();
-      final compact = text.replaceAll(RegExp(r'\s+'), ' ');
-
-      String country = 'UNKNOWN';
-      if (text.contains('GHANA')) country = 'GHANA';
-      else if (text.contains('NIGERIA')) country = 'NIGERIA';
-      else if (text.contains('KENYA')) country = 'KENYA';
-      else if (text.contains('SOUTH AFRICA')) country = 'SOUTH AFRICA';
-      else if (text.contains('INDIA') || text.contains('AADHAAR')) country = 'INDIA';
-      else if (text.contains('UNITED KINGDOM') || text.contains('GREAT BRITAIN')) country = 'UNITED KINGDOM';
-      else if (text.contains('UNITED STATES') || text.contains('USA') || text.contains('AMERICA')) country = 'USA';
-      else if (text.contains('CANADA')) country = 'CANADA';
-      else if (text.contains('AUSTRALIA')) country = 'AUSTRALIA';
-      else if (text.contains('FRANCE')) country = 'FRANCE';
-      else if (text.contains('GERMANY') || text.contains('BUNDESREPUBLIK')) country = 'GERMANY';
-      else if (text.contains('TOGO')) country = 'TOGO';
-      else if (text.contains("COTE D'IVOIRE") || text.contains('IVORY COAST')) country = "COTE D'IVOIRE";
-      else if (text.contains('BENIN')) country = 'BENIN';
-      else if (text.contains('BURKINA')) country = 'BURKINA FASO';
-      else if (text.contains('SENEGAL')) country = 'SENEGAL';
-      else if (text.contains('SIERRA LEONE')) country = 'SIERRA LEONE';
-      else if (text.contains('LIBERIA')) country = 'LIBERIA';
-      else if (text.contains('CAMEROON')) country = 'CAMEROON';
-      else if (text.contains('ETHIOPIA')) country = 'ETHIOPIA';
-      else if (text.contains('UGANDA')) country = 'UGANDA';
-      else if (text.contains('TANZANIA')) country = 'TANZANIA';
-      else if (text.contains('EGYPT')) country = 'EGYPT';
-      else if (text.contains('PAKISTAN')) country = 'PAKISTAN';
-      else if (text.contains('PHILIPPINES')) country = 'PHILIPPINES';
-      else if (text.contains('BRAZIL') || text.contains('BRASIL')) country = 'BRAZIL';
-
-      String type = 'UNKNOWN';
-      final hasMrz = RegExp(r'P<[A-Z]{3}').hasMatch(compact.replaceAll(' ', ''));
-      if (text.contains('PASSPORT') || hasMrz) {
-        type = 'PASSPORT';
-      } else if (text.contains('DRIV') && (text.contains('LICEN') || text.contains('PERMIS') || text.contains('DVLA'))) {
-        type = 'DRIVER LICENCE';
-      } else if (text.contains('GHANA CARD') || text.contains('NATIONAL IDENTIFICATION') || RegExp(r'GHA-\d{9}-\d').hasMatch(text)) {
-        type = 'GHANA CARD';
-      } else if (text.contains('AADHAAR') || text.contains('UNIQUE IDENTIFICATION')) {
-        type = 'AADHAAR CARD';
-      } else if (text.contains('NATIONAL IDENTITY') || text.contains('NATIONAL ID') || text.contains('IDENTITY CARD') || text.contains('IDENTITY DOCUMENT') || text.contains('CARTE NATIONALE')) {
-        type = 'NATIONAL ID';
-      } else if (text.contains('VOTER') || text.contains('ELECTORAL')) {
-        type = 'VOTER ID';
-      } else if (text.contains('NHIS') || text.contains('HEALTH INSURANCE')) {
-        type = 'HEALTH INSURANCE CARD';
-      } else if (text.contains('RESIDENCE') || text.contains('PERMIT')) {
-        type = 'RESIDENCE PERMIT';
-      }
-
-      if (type == 'UNKNOWN') {
-        setState(() {
-          _idCheck = '❌ Could not read this as an ID. Take a clearer photo of your Passport, Driver Licence, or National ID (any country).';
-          _idVerified = false;
-        });
-        return false;
-      }
-
-      String formatError = '';
-      if (type == 'GHANA CARD' && country == 'GHANA' && !RegExp(r'GHA-\d{9}-\d').hasMatch(text)) {
-        formatError = 'Ghana Card number should look like GHA-XXXXXXXXX-X.';
-      } else if (type == 'AADHAAR CARD' && !RegExp(r'\d{4}\s?\d{4}\s?\d{4}').hasMatch(text)) {
-        formatError = 'Aadhaar number should be 12 digits.';
-      } else if (type == 'NATIONAL ID' && country == 'NIGERIA' && !RegExp(r'\d{11}').hasMatch(text.replaceAll(' ', ''))) {
-        formatError = 'Nigeria NIN should be 11 digits.';
-      } else if (type == 'NATIONAL ID' && country == 'SOUTH AFRICA' && !RegExp(r'\d{13}').hasMatch(text.replaceAll(' ', ''))) {
-        formatError = 'South Africa ID number should be 13 digits.';
-      }
-      if (formatError.isNotEmpty) {
-        setState(() {
-          _idCheck = '⚠️ $type ($country) found, but $formatError CEO must check manually.';
-          _idType = '$type ($country)';
-          _idVerified = false;
-        });
-        return false;
-      }
-
-      if (type == 'PASSPORT') {
-        final mrzLines = text.split('\n').where((l) => l.replaceAll(' ', '').length >= 30 && RegExp(r'[A-Z0-9<]{20,}').hasMatch(l.replaceAll(' ', ''))).toList();
-        if (mrzLines.length >= 2) {
-          final line2 = mrzLines.last.replaceAll(' ', '');
-          if (line2.length >= 28) {
-            final yy = int.tryParse(line2.substring(21, 23)) ?? 0;
-            final mm = int.tryParse(line2.substring(23, 25)) ?? 0;
-            final dd = int.tryParse(line2.substring(25, 27)) ?? 0;
-            if (yy > 0 && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
-              final expiry = DateTime(2000 + yy, mm, dd);
-              if (expiry.isBefore(DateTime.now())) {
-                setState(() {
-                  _idCheck = '❌ This PASSPORT ($country) is EXPIRED ($dd/$mm/${2000 + yy}). Upload a valid, unexpired passport.';
-                  _idType = 'PASSPORT ($country)';
-                  _idVerified = false;
-                });
-                return false;
-              }
-            }
-          }
-        }
-      }
-
-      if (type != 'PASSPORT') {
-        final expMatch = RegExp(r'(EXP|EXPIRY|VALID UNTIL|VALID THRU|DATE OF EXPIRY)[^\d]{0,10}(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})').firstMatch(text);
-        if (expMatch != null) {
-          final parts = expMatch.group(2)!.split(RegExp(r'[-/.]'));
-          int year = int.tryParse(parts[2]) ?? 0;
-          if (year < 100) year += 2000;
-          final month = int.tryParse(parts[1]) ?? 1;
-          final day = int.tryParse(parts[0]) ?? 1;
-          if (year > 1900 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-            final expiry = DateTime(year, month, day);
-            if (expiry.isBefore(DateTime.now())) {
-              setState(() {
-                _idCheck = '❌ This $type ($country) is EXPIRED ($day/$month/$year). Upload a valid, unexpired ID.';
-                _idType = '$type ($country)';
-                _idVerified = false;
-              });
-              return false;
-            }
-          }
-        }
-      }
-
-      final typedName = _name.text.trim().toUpperCase();
-      bool nameMatches = false;
-      if (typedName.isNotEmpty) {
-        for (final word in typedName.split(' ')) {
-          if (word.length >= 3 && text.contains(word)) { nameMatches = true; break; }
-        }
-      }
-      if (!nameMatches) {
-        setState(() {
-          _idCheck = '⚠️ Name on ID does not match "$typedName". CEO must check manually - could be a different person\'s ID.';
-          _idType = '$type ($country)';
-          _idVerified = false;
-        });
-        return false;
-      }
-
-      setState(() {
-        _idType = country == 'UNKNOWN' ? type : '$type ($country)';
-        _idVerified = true;
-        _idCheck = '✅ $_idType detected. Format OK. Name matches. Not expired (where expiry was readable). Sent to CEO for final approval.';
-      });
-      return true;
-    } catch (e) {
-      setState(() => _idCheck = '⚠️ Could not check ID automatically ($e). CEO will check manually.');
-      return false;
-    }
+      return out;
+    } catch (_) { return null; }
+  }
+  // 0-100 similarity. Pass >= 55 with >=6 matching landmarks. Same person: typically 65-95. Different person: typically 20-50.
+  Future<double?> _faceSimilarity(Uint8List profileBytes, Uint8List idBytes) async {
+    final a = await _faceLandmarks(profileBytes);
+    final b = await _faceLandmarks(idBytes);
+    if (a == null || b == null) return null;
+    if (a.containsKey('__no_face__') || b.containsKey('__no_face__')) return -1;
+    if (a.containsKey('__many_faces__') || b.containsKey('__many_faces__')) return -2;
+    const keys = ['LEFT_EYE','RIGHT_EYE','NOSE_TIP','MOUTH_LEFT','MOUTH_CENTER','MOUTH_RIGHT','LEFT_EAR','RIGHT_EAR','CHIN_GNATHION','FOREHEAD_GLABELLA'];
+    double total = 0; int used = 0;
+    for (final k in keys) { if (!a.containsKey(k) || !b.containsKey(k)) continue; final dx = a[k]![0] - b[k]![0], dy = a[k]![1] - b[k]![1]; total += math.sqrt(dx * dx + dy * dy); used++; }
+    if (used < 6) return null;
+    return (100 - ((total / used) * 320)).clamp(0.0, 100.0);
   }
 
+  Future<bool> _verifyIdDocument() async {
+    if (_selectedIdCountry.isEmpty) { setState(() { _idCheck = '❌ Pick your ID COUNTRY first (the country you are a citizen of).'; _idVerified = false; _idScore = 0; }); return false; }
+    if (_selectedIdType.isEmpty) { setState(() { _idCheck = '❌ Pick your ID TYPE (Passport, Ghana Card, Voter ID, Driving Licence...).'; _idVerified = false; _idScore = 0; }); return false; }
+    if (_photo == null) { setState(() { _idCheck = '❌ Upload YOUR OWN profile photo FIRST. We must compare the face on your ID with your profile photo - without it we cannot tell if the ID is yours.'; _idVerified = false; _idScore = 0; }); return false; }
+    if (_idFront == null) { setState(() { _idCheck = '❌ No ID Front uploaded. Upload FRONT of your $_selectedIdType.'; _idVerified = false; _idScore = 0; }); return false; }
+    if (_selectedIdType != 'Passport' && _idBack == null) { setState(() { _idCheck = '❌ Upload BACK of your $_selectedIdType too (front + back required).'; _idVerified = false; _idScore = 0; }); return false; }
+    setState(() => _idCheck = '🔍 Auto-checking your $_selectedIdType ($_selectedIdCountry) + face match, please wait...');
+    if (_visionApiKey == 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE' || _visionApiKey.isEmpty) {
+      setState(() { _idType = ''; _idVerified = false; _idScore = 0; _idCheck = '❌ Auto ID check is not configured yet. Ask admin to add the Google Vision API key. Registration is blocked until then.'; });
+      return false;
+    }
+    try {
+      final frontBytes = await _idFront!.readAsBytes();
+      final backBytes = _idBack != null ? await _idBack!.readAsBytes() : Uint8List(0);
+      final profileBytes = await _photo!.readAsBytes();
+      if (frontBytes.length < 15000) { setState(() { _idCheck = '❌ Front ID photo is too small / blurry. Retake a clear, close photo.'; _idVerified = false; _idScore = 10; }); return false; }
+      final frontText = await _ocrWithVision(frontBytes);
+      final backText = _idBack != null ? await _ocrWithVision(backBytes) : '';
+      if (frontText == null || backText == null) { setState(() { _idCheck = '❌ Could not reach ID check service. Check internet and try again.'; _idVerified = false; _idScore = 0; }); return false; }
+      final text = ('$frontText\n$backText').toUpperCase();
+      final compact = text.replaceAll(RegExp(r'\s+'), ' ');
+      if (text.replaceAll(RegExp(r'[^A-Z0-9]'), '').length < 20) { setState(() { _idCheck = '❌ ID photo is not readable - too dark, blurry or cropped. Retake it so ALL text is clear.'; _idVerified = false; _idScore = 20; }); return false; }
+      String country = 'UNKNOWN';
+      const countryWords = {'GHANA':'GHANA','NIGERIA':'NIGERIA','KENYA':'KENYA','SOUTH AFRICA':'SOUTH AFRICA','INDIA':'INDIA','AADHAAR':'INDIA','UNITED KINGDOM':'UNITED KINGDOM','GREAT BRITAIN':'UNITED KINGDOM','UNITED STATES':'USA','USA':'USA','AMERICA':'USA','CANADA':'CANADA','AUSTRALIA':'AUSTRALIA','FRANCE':'FRANCE','GERMANY':'GERMANY','BUNDESREPUBLIK':'GERMANY','TOGO':'TOGO',"COTE D'IVOIRE":'COTE D\'IVOIRE','IVORY COAST':"COTE D'IVOIRE",'BENIN':'BENIN','BURKINA':'BURKINA FASO','SENEGAL':'SENEGAL','SIERRA LEONE':'SIERRA LEONE','LIBERIA':'LIBERIA','CAMEROON':'CAMEROON','ETHIOPIA':'ETHIOPIA','UGANDA':'UGANDA','TANZANIA':'TANZANIA','EGYPT':'EGYPT','PAKISTAN':'PAKISTAN','PHILIPPINES':'PHILIPPINES','BRAZIL':'BRAZIL','BRASIL':'BRAZIL'};
+      for (final e in countryWords.entries) { if (text.contains(e.key)) { country = e.value; break; } }
+      if (_selectedIdType == 'Ghana Card' && _selectedIdCountry != 'Ghana') { setState(() { _idCheck = '❌ Ghana Card is only for Ghana. Pick Ghana, or pick your own country\'s ID.'; _idVerified = false; _idScore = 40; }); return false; }
+      if (_selectedIdCountry != 'Other') {
+        if (country == 'UNKNOWN') { setState(() { _idCheck = '❌ Could not read the COUNTRY on this ID. Retake a clear photo showing "$_selectedIdCountry" on the ID.'; _idVerified = false; _idScore = 35; }); return false; }
+        String sel = _selectedIdCountry.toUpperCase(); if (sel == 'UNITED STATES') sel = 'USA';
+        if (country != sel) { setState(() { _idCheck = '❌ CITIZENSHIP MISMATCH: you picked "$_selectedIdCountry" but this ID is from "$country". Upload an ID that shows you are a citizen of $_selectedIdCountry.'; _idType = 'ID ($country)'; _idVerified = false; _idScore = 40; }); return false; }
+      }
+      String detected = 'UNKNOWN';
+      final hasMrz = RegExp(r'P<[A-Z]{3}').hasMatch(compact.replaceAll(' ', ''));
+      if (text.contains('PASSPORT') || hasMrz) detected = 'Passport';
+      else if (text.contains('DRIV') && (text.contains('LICEN') || text.contains('PERMIS') || text.contains('DVLA'))) detected = "Driving Licence / Driver's License";
+      else if (text.contains('GHANA CARD') || text.contains('NATIONAL IDENTIFICATION') || RegExp(r'GHA-\d{9}-\d').hasMatch(text)) detected = 'Ghana Card';
+      else if (text.contains('AADHAAR') || text.contains('UNIQUE IDENTIFICATION')) detected = 'Aadhaar Card (India)';
+      else if (text.contains('VOTER') || text.contains('ELECTORAL')) detected = "Voter ID / Voter's Card";
+      else if (text.contains('NHIS') || text.contains('HEALTH INSURANCE')) detected = 'Health Insurance Card (NHIS / Health Card)';
+      else if (text.contains('NATIONAL IDENTITY') || text.contains('NATIONAL ID') || text.contains('IDENTITY CARD') || text.contains('IDENTITY DOCUMENT') || text.contains('CARTE NATIONALE')) detected = 'National ID / National Identity Card';
+      else if (text.contains('SOCIAL SECURITY')) detected = 'Social Security Card (USA)';
+      else if (text.contains('PAN') && RegExp(r'[A-Z]{5}\d{4}[A-Z]').hasMatch(compact.replaceAll(' ', ''))) detected = 'PAN Card (India)';
+      if (detected == 'UNKNOWN') { setState(() { _idCheck = '❌ Could not read this as an ID. Take a clearer photo of your $_selectedIdType.'; _idVerified = false; _idScore = 30; }); return false; }
+      bool typeMatches = detected == _selectedIdType || (_selectedIdType == 'National ID / National Identity Card' && detected == 'Ghana Card');
+      if (!typeMatches) { setState(() { _idCheck = '❌ MISMATCH: you picked "$_selectedIdType" but this photo looks like "$detected". Pick the correct ID type and re-upload.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 40; }); return false; }
+      String formatError = ''; String foundNumber = ''; final digitsOnly = text.replaceAll(RegExp(r'[^0-9]'), '');
+      if (_selectedIdType == 'Ghana Card' || detected == 'Ghana Card') { final m = RegExp(r'GHA-\d{9}-\d').firstMatch(text); foundNumber = m?.group(0) ?? ''; if (foundNumber.isEmpty) formatError = 'Ghana Card number should look like GHA-XXXXXXXXX-X.'; }
+      else if (detected == 'Aadhaar Card (India)') { final m = RegExp(r'\d{4}\s?\d{4}\s?\d{4}').firstMatch(text); foundNumber = m?.group(0) ?? ''; if (foundNumber.isEmpty) formatError = 'Aadhaar number should be 12 digits.'; }
+      else if (detected == 'PAN Card (India)') { final m = RegExp(r'[A-Z]{5}\d{4}[A-Z]').firstMatch(compact.replaceAll(' ', '')); foundNumber = m?.group(0) ?? ''; if (foundNumber.isEmpty) formatError = 'PAN number should look like ABCDE1234F.'; }
+      else if (country == 'NIGERIA' && detected.contains('National ID')) { if (!RegExp(r'\d{11}').hasMatch(digitsOnly)) formatError = 'Nigeria NIN should be 11 digits.'; }
+      else if (country == 'SOUTH AFRICA' && detected.contains('National ID')) { if (!RegExp(r'\d{13}').hasMatch(digitsOnly)) formatError = 'South Africa ID number should be 13 digits.'; }
+      else { if (!RegExp(r'\d{6,}').hasMatch(digitsOnly)) formatError = 'No ID number found on this photo.'; else foundNumber = RegExp(r'\d{6,}').firstMatch(digitsOnly)?.group(0) ?? ''; }
+      if (formatError.isNotEmpty) { setState(() { _idCheck = '❌ $detected ($country) found, but $formatError Take a clearer photo.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 50; }); return false; }
+      final typedNum = _idNumberTyped.text.trim().replaceAll(RegExp(r'[^A-Z0-9]'), '').toUpperCase();
+      if (typedNum.isNotEmpty) { final ocrFlat = text.replaceAll(RegExp(r'[^A-Z0-9]'), ''); if (typedNum.length < 5 || !ocrFlat.contains(typedNum)) { setState(() { _idCheck = '❌ The ID number you typed is NOT on this photo. Check the number or re-upload the correct ID.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 55; }); return false; } }
+      String expiryError = ''; String expiryFound = '';
+      if (detected == 'Passport') {
+        final mrzLines = text.split('\n').where((l) => l.replaceAll(' ', '').length >= 30 && RegExp(r'[A-Z0-9<]{20,}').hasMatch(l.replaceAll(' ', ''))).toList();
+        if (mrzLines.length >= 2) { final line2 = mrzLines.last.replaceAll(' ', ''); if (line2.length >= 28) { final yy = int.tryParse(line2.substring(21, 23)) ?? 0; final mm = int.tryParse(line2.substring(23, 25)) ?? 0; final dd = int.tryParse(line2.substring(25, 27)) ?? 0; if (yy > 0 && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) { expiryFound = '$dd/$mm/${2000 + yy}'; if (DateTime(2000 + yy, mm, dd).isBefore(DateTime.now())) expiryError = 'EXPIRED ($expiryFound)'; } } }
+      } else {
+        final expMatch = RegExp(r'(EXP|EXPIRY|VALID UNTIL|VALID THRU|DATE OF EXPIRY)[^\d]{0,10}(\d{1,2}[-/\.]\d{1,2}[-/\.]\d{2,4})').firstMatch(text);
+        if (expMatch != null) { final parts = expMatch.group(2)!.split(RegExp(r'[-/.]')); int year = int.tryParse(parts[2]) ?? 0; if (year < 100) year += 2000; final month = int.tryParse(parts[1]) ?? 1; final day = int.tryParse(parts[0]) ?? 1; if (year > 1900 && month >= 1 && month <= 12 && day >= 1 && day <= 31) { expiryFound = '$day/$month/$year'; if (DateTime(year, month, day).isBefore(DateTime.now())) expiryError = 'EXPIRED ($expiryFound)'; } }
+      }
+      if (expiryError.isNotEmpty) { setState(() { _idCheck = '❌ This $detected ($country) is $expiryError. Upload a valid, unexpired ID.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 60; }); return false; }
+      final typedName = _name.text.trim().toUpperCase(); bool nameMatches = false;
+      if (typedName.isNotEmpty) { for (final word in typedName.split(' ')) { if (word.length >= 3 && text.contains(word)) { nameMatches = true; break; } } }
+      if (!nameMatches) { setState(() { _idCheck = '❌ Name on ID does not match "$typedName". Upload YOUR OWN ID.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 70; }); return false; }
+      // ---- FACE MATCH: ID face MUST be the same person as profile photo ----
+      setState(() => _idCheck = '🔍 Checking face: does the face on your ID match your profile photo?');
+      final faceScore = await _faceSimilarity(profileBytes, frontBytes);
+      if (faceScore == null) { setState(() { _idCheck = '❌ Could not compare faces (not enough face detail). Upload a clear front-facing profile photo AND a clear ID photo showing the face.'; _idVerified = false; _idScore = 70; _faceMatchScore = 0; }); return false; }
+      if (faceScore == -1) { setState(() { _idCheck = '❌ No face found on your profile photo OR on the ID. Both must show ONE clear face, looking at the camera.'; _idVerified = false; _idScore = 70; _faceMatchScore = 0; }); return false; }
+      if (faceScore == -2) { setState(() { _idCheck = '❌ More than one face found in your profile photo or ID photo. Upload photos with ONLY YOU in them.'; _idVerified = false; _idScore = 70; _faceMatchScore = 0; }); return false; }
+      _faceMatchScore = faceScore;
+      if (faceScore < 55) {
+        setState(() { _faceCheck = 'Face match ${faceScore.toStringAsFixed(0)}/100 - TOO LOW'; _idCheck = '❌ FACE DOES NOT MATCH: the face on this ID (score ${faceScore.toStringAsFixed(0)}/100) does NOT look like the face in your profile photo. This looks like SOMEONE ELSE\'S ID. Upload YOUR OWN ID + YOUR OWN photo.'; _idType = '$detected ($country)'; _idVerified = false; _idScore = 75; });
+        return false;
+      }
+      setState(() {
+        _idType = country == 'UNKNOWN' ? detected : '$detected ($country)';
+        _idNumber = foundNumber.isNotEmpty ? foundNumber : _idNumberTyped.text.trim();
+        _idExpiry = expiryFound; _idVerified = true; _idScore = 100;
+        _faceCheck = 'Face match ${faceScore.toStringAsFixed(0)}/100 - SAME PERSON';
+        _idCheck = '✅ $_idType VERIFIED (100/100). Citizenship OK, type matches, number OK, name matches, not expired, FACE MATCHES your profile photo (${faceScore.toStringAsFixed(0)}/100).';
+      });
+      return true;
+    } catch (e) { setState(() { _idCheck = '❌ Could not check ID automatically ($e). Try again with clearer photos.'; _idVerified = false; _idScore = 0; }); return false; }
+  }
+
+  // Auto-check as soon as profile photo + both ID sides are picked.
+  Future<void> _pickIdSide(bool isFront) async {
+    final f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (f == null) return;
+    setState(() { if (isFront) _idFront = f; else _idBack = f; _idVerified = false; });
+    if (_photo != null && _idFront != null && (_selectedIdType == 'Passport' || _idBack != null) && _selectedIdType.isNotEmpty && _selectedIdCountry.isNotEmpty) await _verifyIdDocument();
+  }
 
   // ---- STRONG PASSWORD ----
   // Strong = at least 8 chars + upper + lower + digit + special. No spaces.
@@ -551,14 +507,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   Future<void> _register() async {
     if (_name.text.isEmpty || _email.text.isEmpty || _pass.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill all fields')));
-      return;
-    }
-    if (_isOtherCountry && !RegExp(r'^\+\d{1,4}$').hasMatch(_selectedDialCode)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid country code for Other, e.g. +999')));
-      return;
-    }
-    if (_phone.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter your phone number')));
       return;
     }
     if (!_isStrongPassword) {
@@ -646,7 +594,13 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         'certificateUrl': certUrl ?? '',
         'certificateURL': certUrl ?? '',
         'idType': _idType,
-        'idCountry': _idType,
+        'idCountry': _selectedIdCountry,
+        'idNumber': _idNumber,
+        'idNumberTyped': _idNumberTyped.text.trim(),
+        'idExpiry': _idExpiry,
+        'idScore': _idScore,
+        'faceMatchScore': _faceMatchScore,
+        'faceCheck': _faceCheck,
         'idVerified': _idVerified,
         'idCheck': _idCheck,
         'certUrl': certUrl ?? '',
@@ -690,6 +644,13 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         'pinNumber': _pinNumber.text.trim(),
         'pinDocURL': pinDocUrl ?? '',
         'idType': _idType,
+        'idCountry': _selectedIdCountry,
+        'idNumber': _idNumber,
+        'idNumberTyped': _idNumberTyped.text.trim(),
+        'idExpiry': _idExpiry,
+        'idScore': _idScore,
+        'faceMatchScore': _faceMatchScore,
+        'faceCheck': _faceCheck,
         'idVerified': _idVerified,
         'idCheck': _idCheck,
         'cvURL': cvUrl ?? '',
@@ -725,52 +686,15 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full Name')),
             TextField(controller: _username, decoration: const InputDecoration(labelText: 'Username')),
             TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email')),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedCountry,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Country Code'),
-                    items: [
-                      ..._countries.map((c) => DropdownMenuItem<String>(
-                            value: '${c['name']}|${c['code']}',
-                            child: Text('${c['name']} (${c['code']})', overflow: TextOverflow.ellipsis),
-                          )),
-                      const DropdownMenuItem<String>(value: 'Other|', child: Text('Other (type code)')),
-                    ],
-                    onChanged: (v) { if (v != null) setState(() => _selectedCountry = v); },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 3,
-                  child: TextField(
-                    controller: _phone,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(labelText: 'Phone Number', hintText: _isOtherCountry ? 'Number without code' : 'e.g. 241234567 (no 0, no code)'),
-                  ),
-                ),
-              ],
-            ),
-            if (_isOtherCountry)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: TextField(
-                  controller: _otherCode,
-                  keyboardType: TextInputType.phone,
-                  onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(labelText: 'Your Country Code', hintText: 'e.g. +999', prefixText: ''),
-                ),
-              ),
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text('Full number: ${_phone.text.trim().isEmpty ? '...' : _fullPhone}',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-            ),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(flex: 2, child: DropdownButtonFormField<String>(value: _selectedCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'Country Code'),
+                items: [..._countries.map((c) => DropdownMenuItem<String>(value: '${c['name']}|${c['code']}', child: Text('${c['name']} (${c['code']})', overflow: TextOverflow.ellipsis))), const DropdownMenuItem<String>(value: 'Other|', child: Text('Other (type code)'))],
+                onChanged: (v) { if (v != null) setState(() => _selectedCountry = v); })),
+              const SizedBox(width: 10),
+              Expanded(flex: 3, child: TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Phone Number', hintText: _isOtherCountry ? 'Number without code' : 'e.g. 241234567 (no 0, no code)'))),
+            ]),
+            if (_isOtherCountry) Padding(padding: const EdgeInsets.only(top: 8), child: TextField(controller: _otherCode, keyboardType: TextInputType.phone, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Your Country Code', hintText: 'e.g. +999'))),
+            Align(alignment: Alignment.centerLeft, child: Text('Full number: ${_phone.text.trim().isEmpty ? '...' : _fullPhone}', style: const TextStyle(fontSize: 12, color: Colors.grey))),
             TextField(
               controller: _pass,
               obscureText: _obscurePassword,
@@ -817,7 +741,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             // PHOTO
             ListTile(
               leading: const Icon(Icons.photo),
-              title: Text(_photo == null ? 'Upload Photo' : 'Photo Selected: ${_photo!.name}'),
+              title: Text(_photo == null ? 'Upload Photo - YOUR OWN FACE (required for face match)' : 'Photo Selected: ${_photo!.name}'),
               trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo')),
             ),
             // VIDEO
@@ -840,6 +764,12 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
               title: Text(_pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}'),
               trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _pinDoc = f), child: const Text('Pick PIN')),
             ),
+            // ---- ID COUNTRY (citizenship) + ID TYPE ----
+            DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _idVerified = false; _idCheck = ''; })),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Type - Select your ID', hintText: 'e.g. Passport, Ghana Card, Voter ID...'), items: _idTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdType = v ?? ''; _idVerified = false; _idCheck = ''; })),
+            const SizedBox(height: 8),
+            TextField(controller: _idNumberTyped, decoration: const InputDecoration(labelText: 'ID Number (as printed on your ID)', hintText: 'e.g. GHA-123456789-0')),
             // ID VERIFICATION RESULT
             if (_idCheck.isNotEmpty)
               Padding(
@@ -850,13 +780,13 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             ListTile(
               leading: const Icon(Icons.credit_card),
               title: Text(_idFront == null ? 'Upload National ID - FRONT' : 'ID Front Selected: ${_idFront!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _idFront = f), child: const Text('Pick Front')),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(true), child: const Text('Pick Front')),
             ),
             // NATIONAL ID - BACK
             ListTile(
               leading: const Icon(Icons.credit_card),
               title: Text(_idBack == null ? 'Upload National ID - BACK' : 'ID Back Selected: ${_idBack!.name}'),
-              trailing: ElevatedButton(onPressed: () => _pickDoc((f) => _idBack = f), child: const Text('Pick Back')),
+              trailing: ElevatedButton(onPressed: () => _pickIdSide(false), child: const Text('Pick Back')),
             ),
             // CERTIFICATE
             ListTile(
@@ -868,7 +798,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             _loading
                 ? const CircularProgressIndicator()
                 : Column(children: [
-                    ElevatedButton(onPressed: _verifyIdDocument, child: const Text('🔍 VERIFY MY ID FIRST')),
+                    ElevatedButton(onPressed: _verifyIdDocument, child: const Text('🔍 CHECK MY ID AGAIN')),
                     const SizedBox(height: 10),
                     ElevatedButton(onPressed: _register, child: const Text('REGISTER AS NURSE')),
                   ]),
