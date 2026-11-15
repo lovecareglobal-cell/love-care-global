@@ -77,14 +77,17 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     var fullName = (v['fullName'] ?? v['name'] ?? v['displayName'] ?? v['clientName'] ?? username ?? (email.isNotEmpty ? email.split('@')[0] : 'Unnamed')).toString();
     if (fullName.length > 50) fullName = fullName.substring(0, 50);
     final photo = v['photoURL'] ?? v['photo'] ?? v['photoUrl'] ?? v['avatar'] ?? v['avatarUrl'] ?? '';
-    final idURL = v['idURL'] ?? v['idUrl'] ?? v['nationalIdUrl'] ?? v['idFrontURL'] ?? v['idFrontUrl'] ?? v['nationalIdFrontUrl'] ?? '';
+    // NEW nurse_registration.dart fields: photoUrl, idFrontUrl, idBackUrl, pinCardUrl/pinUrl, cvUrl, certificateUrl
+    final idURL = v['idURL'] ?? v['idUrl'] ?? v['nationalIdUrl'] ?? v['idFrontURL'] ?? v['idFrontUrl'] ?? v['idFrontUrl'] ?? v['nationalIdFrontUrl'] ?? '';
     final idBackURL = v['idBackURL'] ?? v['idBackUrl'] ?? v['nationalIdBackUrl'] ?? '';
-    final licenceURL = v['licenceURL'] ?? v['licenseUrl'] ?? v['licence'] ?? v['licenceUrl'] ?? v['pinDocURL'] ?? v['pinDocUrl'] ?? '';
+    final licenceURL = v['licenceURL'] ?? v['licenseUrl'] ?? v['licence'] ?? v['licenceUrl'] ?? v['pinDocURL'] ?? v['pinDocUrl'] ?? v['pinCardUrl'] ?? v['pinCardURL'] ?? v['pinUrl'] ?? '';
     final videoURL = v['videoURL'] ?? v['videoUrl'] ?? '';
-    final certURL = v['certificateURL'] ?? v['certificateUrl'] ?? v['certificate'] ?? v['certURL'] ?? v['certUrl'] ?? '';
+    final certURL = v['certificateURL'] ?? v['certificateUrl'] ?? v['certificate'] ?? v['certURL'] ?? v['certUrl'] ?? v['cvUrl'] ?? v['cvURL'] ?? '';
     final cvURL = v['cvURL'] ?? v['cvUrl'] ?? '';
     final phone = (v['phone'] ?? v['phoneNumber'] ?? v['clientPhone'] ?? v['phoneNumberFull'] ?? '').toString();
-    final isApproved = v['isApproved'] == true || v['approved'] == true || v['status'] == 'approved' || v['canLogin'] == true || v['isVerified'] == true || v['status'] == 'Approved' || v['hasAll4'] == true;
+    // FIX: hasAll4 / having docs does NOT mean approved. Only approval flags count,
+    // otherwise every pending nurse shows as APPROVED before CEO taps Approve.
+    final isApproved = v['isApproved'] == true || v['approved'] == true || v['status'] == 'approved' || v['status'] == 'Approved' || v['canLogin'] == true || v['isVerified'] == true || v['approvalStatus'] == 'approved';
     final hasAll5 = type == 'client' ? (fullName.isNotEmpty && username.toString().isNotEmpty && photo.toString().isNotEmpty && phone.isNotEmpty) : (fullName.isNotEmpty && photo.toString().isNotEmpty && phone.isNotEmpty && videoURL.toString().isNotEmpty);
     final hasAll4 = fullName.isNotEmpty && username.toString().isNotEmpty && photo.toString().isNotEmpty && phone.isNotEmpty;
     return {'id': id, 'uid': v['uid'] ?? id, 'type': type, 'fullName': fullName, 'name': fullName.length > 40 ? fullName.substring(0, 40) : fullName, 'username': username, 'email': email, 'phone': phone, 'countryCode': v['countryCode'] ?? '', 'photo': photo, 'idURL': idURL, 'licenceURL': licenceURL, 'videoURL': videoURL, 'certURL': certURL, 'lat': v['lat'] ?? v['latitude'], 'lng': v['lng'] ?? v['longitude'], 'gpsName': v['gpsActualName'] ?? v['gpsName'] ?? '', 'isApproved': isApproved, 'hasAll5': hasAll5, 'hasAll4': hasAll4, 'hasPhoto': photo.toString().isNotEmpty, 'hasVideo': videoURL.toString().isNotEmpty, 'hasId': idURL.toString().isNotEmpty, 'hasLicence': licenceURL.toString().isNotEmpty, 'hasCert': certURL.toString().isNotEmpty, 'raw': v, 'createdAt': _createdAtMs(v['createdAt'] ?? v['timestamp']), 'qualification': v['qualification'] ?? '', 'services': v['services'] ?? v['specialty'] ?? '', 'referenceName': v['referenceName'] ?? '', 'referencePhone': v['referencePhone'] ?? '', 'cvURL': cvURL, 'idBackURL': idBackURL, 'idFrontURL': idURL, 'pinNumber': v['pinNumber'] ?? '', 'idType': v['idType'] ?? '', 'idCheck': v['idCheck'] ?? '', 'idVerified': v['idVerified'] ?? false};
@@ -92,7 +95,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
 
   Future<void> _loadAll() async {
     Map<String, Map> nursesMap = {}, clientsMap = {};
-    final nursePaths = ['ceoRegistrationCenter/nurses', 'nurses', 'pending_nurses', 'pendingNurses', 'ceoNurseUpdates', 'nurse_registrations', 'allNurses', 'nurseUsers', 'nurseApplications', 'allowedNurses', 'allowedNursesByUid', 'verified_nurses'];
+    final nursePaths = ['ceoRegistrationCenter/nurses', 'nurses', 'pending_nurses', 'pendingNurses', 'ceoNurseUpdates', 'nurse_registrations', 'allNurses', 'nurseUsers', 'nurseApplications', 'allowedNurses', 'allowedNursesByUid', 'verified_nurses', 'ceo_registration'];
     for (final path in nursePaths) {
       try {
         final snap = await FirebaseDatabase.instance.ref(path).get();
@@ -132,7 +135,9 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     final rtdbNurseUids = nursesMap.keys.toSet();
     final rtdbClientUids = clientsMap.keys.toSet();
     int migratedNurses = 0, migratedClients = 0;
-    for (final coll in ['pending_nurses', 'nurses', 'nurse_registrations', 'nurseApplications']) {
+    // FIX: include 'ceo_registration' - this is where nurse_registration.dart sends new nurses.
+    // Without it, new nurses were invisible here.
+    for (final coll in ['pending_nurses', 'nurses', 'nurse_registrations', 'nurseApplications', 'ceo_registration']) {
       try {
         final qs = await FirebaseFirestore.instance.collection(coll).get();
         for (final doc in qs.docs) {
@@ -244,6 +249,14 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         await db.ref('allowedClients/$emailKey').set(whitelist); _log('✅ Created allowedClients/$emailKey');
         await db.ref('allowedClientsByUid/$uid').set(whitelist); _log('✅ Created allowedClientsByUid/$uid');
       }
+      // FIX: also update Firestore - nurse login checks Firestore nurses/{uid}.status.
+      // RTDB-only approve left login stuck on pending forever.
+      try {
+        final fsPayload = {'isApproved': true, 'approved': true, 'status': 'approved', 'approvalStatus': 'approved', 'canLogin': true, 'isVerified': true, 'approvedAt': now, 'approvedBy': 'CEO', 'updatedAt': now};
+        for (final coll in ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications']) {
+          try { await FirebaseFirestore.instance.collection(coll).doc(uid).set(fsPayload, SetOptions(merge: true)); _log('✅ Firestore updated $coll/$uid → approved'); } catch (e) { _log('⚠️ Firestore $coll err: $e'); }
+        }
+      } catch (e) { _log('⚠️ Firestore approve err: $e'); }
       _toast('✅ $email APPROVED in ALL paths — now moves to Approved tab and can login!');
       _log('✅ DONE — $email approved in ALL paths');
       Future.delayed(const Duration(milliseconds: 1500), _loadAll);
@@ -259,6 +272,10 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       if (type == 'nurse') {
         await db.ref('nurses/$uid').update({'isApproved': false, 'status': 'rejected', 'rejectedAt': now});
         await db.ref('ceoRegistrationCenter/nurses/$uid').update({'isApproved': false, 'status': 'rejected'});
+        // FIX: Firestore too, so login gate sees rejected
+        for (final coll in ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses']) {
+          try { await FirebaseFirestore.instance.collection(coll).doc(uid).set({'isApproved': false, 'approved': false, 'status': 'rejected', 'approvalStatus': 'rejected', 'canLogin': false, 'rejectedAt': now}, SetOptions(merge: true)); } catch (_) {}
+        }
         await db.ref('allowedNurses/${_sanitizeEmail(email)}').remove().catchError((_) {});
         await db.ref('allowedNursesByUid/$uid').remove().catchError((_) {});
       } else {
