@@ -2,6 +2,7 @@ import 'dart:io' show File;
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
@@ -316,7 +317,14 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      _showError('Please fill all required fields - scroll up to see the red error.');
+      return;
+    }
+    if (!_idCheckPassed) {
+      _showError('Please tap CHECK MY ID AGAIN and make sure it says ID verified first.');
+      return;
+    }
 
     if (_photoBytes == null) return _showError('Please pick a Photo');
     if (_cvBytes == null) return _showError('Please pick your CV');
@@ -361,8 +369,10 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       // 3. Save profile. Use Firestore (already in pubspec) - do NOT also
       // write to Realtime Database unless your CEO screen reads from there.
       setState(() => _uploadStatus = 'Saving registration...');
-      await FirebaseFirestore.instance.collection('nurses').doc(uid).set({
+      final data = {
+        'uid': uid,
         'fullName': _fullNameController.text.trim(),
+        'name': _fullNameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
         'pinNumber': _pinNumberController.text.trim(),
@@ -375,18 +385,41 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         'videoUrl': videoUrl,
         'cvUrl': cvUrl,
         'pinCardUrl': pinUrl,
+        'pinUrl': pinUrl,
         'idFrontUrl': idFrontUrl,
         'idBackUrl': idBackUrl,
         'certificateUrl': certUrl,
         'idCheckPassed': _idCheckPassed,
-        'status': 'pending_review',
+        'role': 'nurse',
+        'status': 'pending',
+        'approvalStatus': 'pending',
+        'approved': false,
+        'isApproved': false,
+        'canLogin': false,
         'createdAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
+      final db = FirebaseFirestore.instance;
+      await db.collection('nurses').doc(uid).set(data, SetOptions(merge: true));
+      await db.collection('nurse_registrations').doc(uid).set(data, SetOptions(merge: true));
+      await db.collection('ceo_registration').doc(uid).set(data, SetOptions(merge: true));
+      // RTDB dual-write - CEO screen reads RTDB first, so it sees it instantly
+      try {
+        final rtdbData = Map<String, dynamic>.from(data);
+        rtdbData['createdAt'] = DateTime.now().millisecondsSinceEpoch;
+        rtdbData['timestamp'] = DateTime.now().millisecondsSinceEpoch;
+        final rtdb = FirebaseDatabase.instance;
+        for (final path in ['nurses/$uid', 'pending_nurses/$uid', 'nurse_registrations/$uid', 'ceo_registration/$uid', 'ceoRegistrationCenter/nurses/$uid', 'ceoNurseUpdates/$uid']) {
+          try { await rtdb.ref(path).set(rtdbData); } catch (_) {}
+        }
+      } catch (_) {}
 
       if (!mounted) return;
       setState(() => _uploadStatus = null);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration submitted for review')),
+      // Sign out so nurse CANNOT log in until CEO approves
+      try { await FirebaseAuth.instance.signOut(); } catch (_) {}
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => PendingApprovalPage(name: _fullNameController.text.trim(), email: _emailController.text.trim())),
       );
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? 'Sign-up failed (${e.code})');
@@ -403,8 +436,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   }
 
   void _showError(String msg) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+      SnackBar(content: Text(msg), backgroundColor: Colors.red, duration: const Duration(seconds: 4)),
     );
   }
 
@@ -911,6 +945,34 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
             child: Text(buttonText),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+/// Shown after SUBMIT. Nurse waits here - signed out, cannot log in until CEO approves.
+class PendingApprovalPage extends StatelessWidget {
+  final String name;
+  final String email;
+  const PendingApprovalPage({super.key, required this.name, required this.email});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), title: const Text('Registration Sent')),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.hourglass_top, size: 80, color: Color(0xFF880E4F)),
+          const SizedBox(height: 20),
+          Text('Thank you, $name!', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          const Text('Your registration has been sent to the CEO for approval.\n\nYou will NOT be able to log in until you are approved.\nPlease wait - you will be notified once approved.', textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
+          const SizedBox(height: 12),
+          Text('Submitted as: $email', style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 28),
+          SizedBox(width: double.infinity, height: 52, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F)), onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst), child: const Text('BACK TO LOGIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+        ]),
       ),
     );
   }
