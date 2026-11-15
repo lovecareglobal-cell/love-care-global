@@ -65,8 +65,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   bool _isSubmitting = false;
 
   // NO API KEY NEEDED: ID check uses on-device ML Kit OCR.
-  // Never put a Google Cloud Vision API key in this file -
-  // anyone can extract it from the APK and run up your bill.
 
   List<IdTypeOption> get _idTypesForCountry =>
       IdCatalog.forCountry(_selectedCountry);
@@ -233,23 +231,14 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   Future<void> _checkIdAgain() async {
     if (_selectedCountry == null || _selectedIdType == null) return;
     if (_idNumberController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter ID Number first')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter ID Number first')));
       return;
     }
     if (_idFrontName == null || _idFrontBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Scan FRONT of ID first')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Scan FRONT of ID first')));
       return;
     }
-    setState(() {
-      _idCheckAttempted = true;
-      _isCheckingId = true;
-      _idCheckMessage = 'Checking ID... reading photo...';
-      _idCheckDetails = [];
-    });
+    setState(() { _idCheckAttempted = true; _isCheckingId = true; _idCheckMessage = 'Checking ID... reading photo...'; _idCheckDetails = []; });
     try {
       final pattern = _selectedIdType!.pattern;
       final typed = _idNumberController.text.trim().toUpperCase();
@@ -260,18 +249,13 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       final ocrNorm = norm(ocrText);
       final typedDigits = typed.replaceAll(RegExp(r'[^0-9]'), '');
       final ocrDigits = ocrText.replaceAll(RegExp(r'[^0-9]'), '');
-      final digitsMatch = typedDigits.length >= 6 &&
-          (ocrDigits.contains(typedDigits) ||
-              _containsMostInOrder(ocrDigits, typedDigits, 0.8));
+      final digitsMatch = typedDigits.length >= 6 && (ocrDigits.contains(typedDigits) || _containsMostInOrder(ocrDigits, typedDigits, 0.8));
       final fullMatch = typedNorm.isNotEmpty && ocrNorm.contains(typedNorm);
       setState(() {
         _idCheckPassed = formatOk && (fullMatch || digitsMatch);
         if (_idCheckPassed) {
           _idCheckMessage = 'ID verified: number on your ID matches what you typed.';
-          _idCheckDetails = [
-            '✅ Format matches ${_selectedIdType!.label} (${_selectedIdType!.example})',
-            '✅ Number found on ID photo',
-          ];
+          _idCheckDetails = ['✅ Format matches ${_selectedIdType!.label} (${_selectedIdType!.example})', '✅ Number found on ID photo'];
         } else if (!formatOk) {
           _idCheckMessage = _selectedIdType!.patternError ?? 'ID number format does not match.';
           _idCheckDetails = ['❌ Format check failed', 'Expected: ${_selectedIdType!.example}'];
@@ -280,18 +264,12 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
           _idCheckDetails = ['❌ No text found on ID photo', 'Tip: fill the frame, turn on flash if dark'];
         } else {
           _idCheckMessage = 'Number on ID photo does not match what you typed. Check both and try again.';
-          _idCheckDetails = ['❌ Typed: $typed', '❌ Photo read as: ${ocrText.trim().split(RegExp(r'\\s+')).take(12).join(' ')}'];
+          _idCheckDetails = ['❌ Typed: $typed', '❌ Photo read as: ${ocrText.trim().split(RegExp(r'\s+')).take(12).join(' ')}'];
         }
       });
     } catch (e) {
-      setState(() {
-        _idCheckPassed = false;
-        _idCheckMessage = 'ID check failed: $e. Try retaking the photo.';
-        _idCheckDetails = ['❌ OCR error'];
-      });
-    } finally {
-      if (mounted) setState(() => _isCheckingId = false);
-    }
+      setState(() { _idCheckPassed = false; _idCheckMessage = 'ID check failed: $e. Try retaking the photo.'; _idCheckDetails = ['❌ OCR error']; });
+    } finally { if (mounted) setState(() => _isCheckingId = false); }
   }
 
   Future<String> _ocrFromBytes(Uint8List bytes) async {
@@ -300,25 +278,14 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     await file.writeAsBytes(bytes);
     try {
       final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
-      try {
-        final result = await recognizer.processImage(InputImage.fromFilePath(file.path));
-        return result.text;
-      } finally {
-        await recognizer.close();
-      }
-    } finally {
-      try { await file.delete(); } catch (_) {}
-    }
+      try { final result = await recognizer.processImage(InputImage.fromFilePath(file.path)); return result.text; }
+      finally { await recognizer.close(); }
+    } finally { try { await file.delete(); } catch (_) {} }
   }
 
   bool _containsMostInOrder(String haystack, String needle, double ratio) {
     int found = 0, pos = 0;
-    for (int i = 0; i < needle.length; i++) {
-      final idx = haystack.indexOf(needle[i], pos);
-      if (idx == -1) continue;
-      found++;
-      pos = idx + 1;
-    }
+    for (int i = 0; i < needle.length; i++) { final idx = haystack.indexOf(needle[i], pos); if (idx == -1) continue; found++; pos = idx + 1; }
     return needle.isNotEmpty && (found / needle.length) >= ratio;
   }
 
