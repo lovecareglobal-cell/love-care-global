@@ -1,4 +1,13 @@
+import 'dart:typed_data';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../models/id_catalog.dart';
 
 class NurseRegistrationPage extends StatefulWidget {
@@ -32,14 +41,17 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   String? _selectedExperience;
   bool _obscurePassword = true;
 
-  // --- Files ---
-  String? _photoName;
-  String? _videoName;
-  String? _cvName;
-  String? _pinCardName;
-  String? _idFrontName;
-  String? _idBackName;
-  String? _certificateName;
+  // --- Files: name for UI + bytes for upload ---
+  String? _photoName; Uint8List? _photoBytes;
+  String? _videoName; Uint8List? _videoBytes;
+  String? _cvName; Uint8List? _cvBytes;
+  String? _pinCardName; Uint8List? _pinCardBytes;
+  String? _idFrontName; Uint8List? _idFrontBytes;
+  String? _idBackName; Uint8List? _idBackBytes;
+  String? _certificateName; Uint8List? _certificateBytes;
+
+  final ImagePicker _picker = ImagePicker();
+  String? _uploadStatus;
 
   // --- ID Check ---
   bool _idCheckAttempted = false;
@@ -98,8 +110,8 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       _selectedCountry = country;
       _selectedIdType = null;
       _idNumberController.clear();
-      _idFrontName = null;
-      _idBackName = null;
+      _idFrontName = null; _idFrontBytes = null;
+      _idBackName = null; _idBackBytes = null;
       _idCheckAttempted = false;
       _idCheckPassed = false;
       _idCheckMessage = null;
@@ -111,8 +123,8 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     setState(() {
       _selectedIdType = type;
       _idNumberController.clear();
-      _idFrontName = null;
-      _idBackName = null;
+      _idFrontName = null; _idFrontBytes = null;
+      _idBackName = null; _idBackBytes = null;
       _idCheckAttempted = false;
       _idCheckPassed = false;
       _idCheckMessage = null;
@@ -121,37 +133,64 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   }
 
   Future<void> _pickFile(String kind) async {
-    final fakeName = switch (kind) {
-      'photo' => 'scaled_1000011119.jpg',
-      'video' => '1000024445.mp4',
-      'cv' => 'scaled_IMG_20261108_163152_897.jpg',
-      'pin' => 'scaled_1000028400.jpg',
-      'cert' => 'certificate.pdf',
-      _ => 'file.jpg',
-    };
-    setState(() {
-      switch (kind) {
-        case 'photo':
-          _photoName = fakeName;
-          break;
-        case 'video':
-          _videoName = fakeName;
-          break;
-        case 'cv':
-          _cvName = fakeName;
-          break;
-        case 'pin':
-          _pinCardName = fakeName;
-          break;
-        case 'cert':
-          _certificateName = fakeName;
-          break;
+    try {
+      Uint8List? bytes;
+      String? name;
+
+      if (kind == 'photo' || kind == 'pin') {
+        final XFile? picked = await _picker.pickImage(
+          source: ImageSource.gallery,
+          imageQuality: 85,
+        );
+        if (picked == null) return; // user cancelled
+        bytes = await picked.readAsBytes();
+        name = picked.name;
+      } else if (kind == 'video') {
+        final XFile? picked = await _picker.pickVideo(source: ImageSource.gallery);
+        if (picked == null) return;
+        bytes = await picked.readAsBytes();
+        name = picked.name;
+      } else {
+        // cv / cert: PDF or image. withData:true is REQUIRED on Web,
+        // otherwise file.bytes is null and upload silently fails.
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+          withData: true,
+        );
+        if (result == null || result.files.isEmpty) return;
+        final file = result.files.first;
+        bytes = file.bytes;
+        name = file.name;
       }
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$kind selected (connect picker)')),
-      );
+
+      if (bytes == null || bytes.isEmpty) {
+        _showError('Could not read that file. Please try again.');
+        return;
+      }
+      // Safety: keep uploads sane on mobile data (video can be huge).
+      if (kind == 'video' && bytes.length > 100 * 1024 * 1024) {
+        _showError('Video is too large. Please pick a video under 100 MB.');
+        return;
+      }
+
+      setState(() {
+        switch (kind) {
+          case 'photo': _photoName = name; _photoBytes = bytes; break;
+          case 'video': _videoName = name; _videoBytes = bytes; break;
+          case 'cv': _cvName = name; _cvBytes = bytes; break;
+          case 'pin': _pinCardName = name; _pinCardBytes = bytes; break;
+          case 'cert': _certificateName = name; _certificateBytes = bytes; break;
+        }
+        _uploadStatus = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$kind selected: $name')),
+        );
+      }
+    } catch (e) {
+      _showError('Picker failed: $e');
     }
   }
 
@@ -162,21 +201,27 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       );
       return;
     }
-    setState(() {
-      if (side == 'front') {
-        _idFrontName = 'id_front_scanned.jpg';
-      } else {
-        _idBackName = 'id_back_scanned.jpg';
-      }
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Scanned $side of ${_selectedIdType!.label} ($_selectedCountry)',
-          ),
-        ),
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
       );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        if (side == 'front') {
+          _idFrontName = picked.name; _idFrontBytes = bytes;
+        } else {
+          _idBackName = picked.name; _idBackBytes = bytes;
+        }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Scanned $side of ${_selectedIdType!.label} ($_selectedCountry)')),
+        );
+      }
+    } catch (e) {
+      _showError('ID scan failed: $e');
     }
   }
 
@@ -229,38 +274,117 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     });
   }
 
+  String _contentTypeFor(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.mp4') || lower.endsWith('.mov')) return 'video/mp4';
+    if (lower.endsWith('.png')) return 'image/png';
+    return 'image/jpeg';
+  }
+
+  String _safeFileName(String name) =>
+      name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+
+  Future<String> _uploadFile({
+    required String folder,
+    required String fileName,
+    required Uint8List bytes,
+    required String uid,
+  }) async {
+    final safe = _safeFileName(fileName);
+    final ref = FirebaseStorage.instance.ref('nurses/$uid/$folder/$safe');
+    final task = await ref.putData(
+      bytes,
+      SettableMetadata(contentType: _contentTypeFor(safe)),
+    );
+    return task.ref.getDownloadURL();
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_photoName == null) {
-      _showError('Please pick a Photo');
-      return;
+    if (_photoBytes == null) return _showError('Please pick a Photo');
+    if (_cvBytes == null) return _showError('Please pick your CV');
+    if (_pinCardBytes == null) return _showError('Please pick your PIN Card');
+    if (_idFrontBytes == null || _idBackBytes == null) {
+      return _showError('Please scan FRONT + BACK of your ID');
     }
-    if (_cvName == null) {
-      _showError('Please pick your CV');
-      return;
-    }
-    if (_pinCardName == null) {
-      _showError('Please pick your PIN Card');
-      return;
-    }
-    if (_idFrontName == null || _idBackName == null) {
-      _showError('Please scan FRONT + BACK of your ID');
-      return;
-    }
-    if (_certificateName == null) {
-      _showError('Please pick your Certificate');
-      return;
-    }
+    if (_certificateBytes == null) return _showError('Please pick your Certificate');
 
-    setState(() => _isSubmitting = true);
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() => _isSubmitting = false);
+    setState(() {
+      _isSubmitting = true;
+      _uploadStatus = 'Creating account...';
+    });
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registration submitted for review')),
-    );
+    try {
+      // 1. Auth: reuse existing session if already signed in (e.g. retry
+      // after a failed upload), otherwise create the account. Storage
+      // rules use request.auth.uid, so this MUST happen before upload.
+      User? user = FirebaseAuth.instance.currentUser;
+      if (user == null || user.email?.toLowerCase() != _emailController.text.trim().toLowerCase()) {
+        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        user = cred.user;
+      }
+      final uid = user!.uid;
+
+      // 2. Upload. Video is optional in the original form - only upload if picked.
+      setState(() => _uploadStatus = 'Uploading documents... please keep the app open');
+      final photoUrl = await _uploadFile(folder: 'photo', fileName: _photoName!, bytes: _photoBytes!, uid: uid);
+      final cvUrl = await _uploadFile(folder: 'cv', fileName: _cvName!, bytes: _cvBytes!, uid: uid);
+      final pinUrl = await _uploadFile(folder: 'pin', fileName: _pinCardName!, bytes: _pinCardBytes!, uid: uid);
+      final idFrontUrl = await _uploadFile(folder: 'id_front', fileName: _idFrontName!, bytes: _idFrontBytes!, uid: uid);
+      final idBackUrl = await _uploadFile(folder: 'id_back', fileName: _idBackName!, bytes: _idBackBytes!, uid: uid);
+      final certUrl = await _uploadFile(folder: 'certificate', fileName: _certificateName!, bytes: _certificateBytes!, uid: uid);
+      String videoUrl = '';
+      if (_videoBytes != null && _videoName != null) {
+        videoUrl = await _uploadFile(folder: 'video', fileName: _videoName!, bytes: _videoBytes!, uid: uid);
+      }
+
+      // 3. Save profile. Use Firestore (already in pubspec) - do NOT also
+      // write to Realtime Database unless your CEO screen reads from there.
+      setState(() => _uploadStatus = 'Saving registration...');
+      await FirebaseFirestore.instance.collection('nurses').doc(uid).set({
+        'fullName': _fullNameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'pinNumber': _pinNumberController.text.trim(),
+        'country': _selectedCountry,
+        'idType': _selectedIdType?.label,
+        'idNumber': _idNumberController.text.trim(),
+        'specialty': _selectedSpecialty,
+        'experience': _selectedExperience,
+        'photoUrl': photoUrl,
+        'videoUrl': videoUrl,
+        'cvUrl': cvUrl,
+        'pinCardUrl': pinUrl,
+        'idFrontUrl': idFrontUrl,
+        'idBackUrl': idBackUrl,
+        'certificateUrl': certUrl,
+        'idCheckPassed': _idCheckPassed,
+        'status': 'pending_review',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (!mounted) return;
+      setState(() => _uploadStatus = null);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration submitted for review')),
+      );
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? 'Sign-up failed (${e.code})');
+    } on FirebaseException catch (e) {
+      // Storage errors land here: permission-denied = Storage Rules,
+      // unauthenticated = user was not created/signed in first.
+      _showError('Upload failed (${e.code}): ${e.message}');
+      if (kIsWeb) debugPrint('Firebase upload error: $e');
+    } catch (e) {
+      _showError('Upload failed: $e');
+    } finally {
+      if (mounted) setState(() { _isSubmitting = false; _uploadStatus = null; });
+    }
   }
 
   void _showError(String msg) {
@@ -645,6 +769,17 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
                 validator: (v) => v == null ? 'Select experience' : null,
               ),
 
+              if (_uploadStatus != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(_uploadStatus!, style: const TextStyle(fontSize: 13))),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 28),
               SizedBox(
                 width: double.infinity,
