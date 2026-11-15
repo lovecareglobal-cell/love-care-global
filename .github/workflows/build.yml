@@ -28,25 +28,30 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
-      - name: Keep Android folder - DO NOT delete it
+      - name: Recreate Android folder FRESH (v2 embedding) - then re-apply fixes below
         run: |
           if [ -f "android/app/google-services.json" ]; then
-            echo "✅ google-services.json present"
+            cp android/app/google-services.json /tmp/google-services.json
+            echo "✅ Saved google-services.json"
           else
             echo "⚠️ NO google-services.json found! Upload it to android/app/ first!"
             ls -la android/app/
           fi
-          # DO NOT run rm -rf android here.
-          # Deleting android/ wipes build.gradle.kts, proguard-rules.pro
-          # and the 4 ML Kit dependencies, which is why R8 kept failing.
-          # Only create android/ if it is completely missing.
-          if [ ! -d "android/app" ]; then
-            PROJ=$(grep -m1 '^name:' pubspec.yaml | sed 's/name: *//;s/ *//g')
-            if [ -z "$PROJ" ]; then PROJ="love_care_global"; fi
-            flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
+          # Old android/ folder is v1 embedding (deleted in Flutter 3.35).
+          # Patching it failed. Delete it and let Flutter create a fresh v2 folder.
+          # The steps BELOW re-add ML Kit + R8 fix, so nothing is lost.
+          rm -rf android
+          PROJ=$(grep -m1 '^name:' pubspec.yaml | sed 's/name: *//;s/ *//g')
+          if [ -z "$PROJ" ]; then PROJ="love_care_global"; fi
+          flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
+          if [ -f "/tmp/google-services.json" ]; then
+            cp /tmp/google-services.json android/app/google-services.json
+            echo "✅ Restored google-services.json"
           fi
-          ls -la android/app/
-          cat android/app/build.gradle.kts
+          echo "=== Fresh MainActivity (should be v2) ==="
+          find android/app/src/main -name "MainActivity.*"
+          echo "=== Fresh Manifest (should have flutterEmbedding=2) ==="
+          grep -n flutterEmbedding android/app/src/main/AndroidManifest.xml || echo "MISSING flutterEmbedding"
 
       - name: Fix Android - Firebase + Maps + Notifications + ML Kit R8 fix
         run: |
@@ -150,48 +155,6 @@ jobs:
         run: |
           sed -i 's/android:label="[^"]*"/android:label="Love Care Global"/' android/app/src/main/AndroidManifest.xml
           grep -n "android:label" android/app/src/main/AndroidManifest.xml
-
-      - name: Fix Android v1 embedding -> v2
-        run: |
-          python3 - << 'PYEOF'
-          import pathlib
-          # 1. AndroidManifest.xml - must have flutterEmbedding = 2
-          m = pathlib.Path("android/app/src/main/AndroidManifest.xml")
-          txt = m.read_text()
-          if "flutterEmbedding" not in txt:
-              txt = txt.replace("<application", '<application\n        <meta-data android:name="flutterEmbedding" android:value="2" />', 1)
-          else:
-              import re
-              txt = re.sub(r'android:name="flutterEmbedding"[^>]*android:value="[^"]*"', 'android:name="flutterEmbedding" android:value="2"', txt)
-              txt = re.sub(r'android:value="[^"]*"[^>]*android:name="flutterEmbedding"', 'android:value="2" android:name="flutterEmbedding"', txt)
-          # Remove old v1 metadata if present
-          txt = txt.replace('<meta-data android:name="io.flutter.app.android.SplashScreenUntilFirstFrame" android:value="true" />', '')
-          m.write_text(txt)
-          print("=== AndroidManifest.xml ===")
-          print(txt)
-          # 2. MainActivity.kt - must extend FlutterActivity from embedding v2
-          for path in [pathlib.Path("android/app/src/main/kotlin/com/ecareglobal/love_care_global/MainActivity.kt")]:
-              path.parent.mkdir(parents=True, exist_ok=True)
-          # Find any MainActivity file, whatever the package folder is
-          found = list(pathlib.Path("android/app/src/main").rglob("MainActivity.*"))
-          print("Found MainActivity:", found)
-          for f in found:
-              print("--- before", f)
-              print(f.read_text()[:1000])
-              f.unlink()
-          # Recreate correct v2 MainActivity in the right package folder
-          # Detect package from build.gradle.kts applicationId / namespace
-          import re
-          gradle = pathlib.Path("android/app/build.gradle.kts").read_text()
-          mm = re.search(r'applicationId\s*=\s*"([^"]+)"', gradle) or re.search(r'namespace\s*=\s*"([^"]+)"', gradle)
-          pkg = mm.group(1) if mm else "com.ecareglobal.love_care_global"
-          print("Using package:", pkg)
-          dest = pathlib.Path("android/app/src/main/kotlin") / pkg.replace(".", "/") / "MainActivity.kt"
-          dest.parent.mkdir(parents=True, exist_ok=True)
-          dest.write_text(f"package {pkg}\n\nimport io.flutter.embedding.android.FlutterActivity\n\nclass MainActivity : FlutterActivity()\n")
-          print("Wrote", dest)
-          print(dest.read_text())
-          PYEOF
 
       - name: Build APK (Release)
         run: flutter build apk --release
