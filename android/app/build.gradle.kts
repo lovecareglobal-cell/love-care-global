@@ -31,6 +31,14 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
+            // R8 fix for ML Kit: without this, :app:minifyReleaseWithR8 fails with
+            // Missing class ChineseTextRecognizerOptions / KoreanTextRecognizerOptions
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
