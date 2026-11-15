@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
+import 'id_scanner_screen.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:math' as math;
@@ -282,7 +283,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   // To turn on auto-check: paste a Google Cloud Vision API key below
   // (Google Cloud Console -> APIs -> Cloud Vision API -> Create API key).
   // If no key is set, registration is NOT blocked - it is marked for CEO manual check.
-  static const String _visionApiKey = 'AIzaSyB01aAClOFH14tmdsyFcQeJ0t0eh_tWVFA';
+  static const String _visionApiKey = 'AIzaSyB52-X1D8Cg-wUDWPds_tR7X3cF82dMdRg';
 
   Future<String?> _ocrWithVision(Uint8List bytes) async {
     if (_visionApiKey == 'PASTE_YOUR_GOOGLE_VISION_API_KEY_HERE' || _visionApiKey.isEmpty) return null;
@@ -433,30 +434,33 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     } catch (e) { setState(() { _idCheck = '❌ Could not check ID automatically ($e). Try again with clearer photos.'; _idVerified = false; _idScore = 0; }); return false; }
   }
 
-  // LIVE SCAN OF ID - camera, NOT gallery upload.
-  // Gallery photos are often old / cropped / blurry, so Vision API fails.
-  // Live scan = fresh, straight, well-lit photo, so the API reads it properly.
-  // After the live scan, the API check runs automatically.
+  // LIVE SCAN OF ID - with box overlay scanner (id_scanner_screen.dart)
+  // Opens camera INSIDE the app, shows white box, Capture button.
+  // Returns photo to _verifyIdDocument() which uses Vision API key on line 285.
   Future<void> _pickIdSide(bool isFront) async {
     if (_selectedIdCountry.isEmpty || _selectedIdType.isEmpty) {
       setState(() => _idCheck = 'Pick ID Country + ID Type FIRST, then scan your ID.');
       return;
     }
-    setState(() => _idCheck = 'Open camera - hold your $_selectedIdType steady, fill the frame, good light, no glare...');
-    // LIVE CAMERA first. If camera is not available (web / no camera), fall back to gallery.
-    XFile? f;
-    try {
-      f = await _picker.pickImage(source: ImageSource.camera, imageQuality: 90, maxWidth: 2000, maxHeight: 2000);
-    } catch (_) {
-      f = null;
-    }
+    setState(() => _idCheck = 'Fit your ID inside the box, then tap Capture...');
+
+    final XFile? f = await Navigator.push<XFile>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => IdScannerScreen(
+          title: isFront ? 'Scan FRONT of $_selectedIdType' : 'Scan BACK of $_selectedIdType',
+          isPassport: _selectedIdType == 'Passport',
+        ),
+      ),
+    );
+
     if (f == null) {
-      // Camera cancelled or not available - offer gallery as fallback, do not block.
-      setState(() => _idCheck = 'Camera not available or cancelled. You can pick from gallery as fallback.');
-      f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 90);
-      if (f == null) { setState(() => _idCheck = ''); return; }
+      setState(() => _idCheck = 'Scan cancelled.');
+      return;
     }
+
     setState(() { if (isFront) _idFront = f; else _idBack = f; _idVerified = false; });
+
     // After live scan, run the API check automatically when we have what we need.
     if (_photo != null && _idFront != null && (_selectedIdType == 'Passport' || _idBack != null) && _selectedIdType.isNotEmpty && _selectedIdCountry.isNotEmpty) await _verifyIdDocument();
     else if (_photo == null) setState(() => _idCheck = 'ID scanned. Now upload YOUR OWN profile photo, then tap CHECK MY ID AGAIN.');
