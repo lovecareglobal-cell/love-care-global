@@ -41,7 +41,7 @@ jobs:
           flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
           cat android/settings.gradle.kts
 
-      - name: Fix Android - Kotlin 2.3.10 + Clean Root Build File
+      - name: Fix Android - Kotlin 2.3.10 + NO Desugaring
         run: |
           python3 - << 'PYEOF'
           import pathlib, re
@@ -57,7 +57,7 @@ jobs:
                           'id("org.jetbrains.kotlin.android") version "2.3.10" apply false\n    id("dev.flutter.flutter-gradle-plugin")'
                       )
                   p.write_text(t)
-          # 2. OVERWRITE ROOT android/build.gradle.kts - DELETE the broken android.compileSdk line
+          # 2. OVERWRITE ROOT android/build.gradle.kts - clean
           root = pathlib.Path("android/build.gradle.kts")
           if root.exists():
               root.write_text('''allprojects {
@@ -82,23 +82,24 @@ jobs:
               delete(rootProject.layout.buildDirectory)
           }
           ''')
-              print("--- OVERWROTE android/build.gradle.kts ---")
-              print(root.read_text())
-          # 3. Fix app/build.gradle.kts - correct kotlin block outside android { }
+          # 3. Fix app/build.gradle.kts - REMOVE desugaring completely
           for p in [pathlib.Path("android/app/build.gradle.kts"), pathlib.Path("android/app/build.gradle")]:
               if not p.exists():
                   continue
               t = p.read_text()
+              # Remove old kotlinOptions / compilerOptions
               t = re.sub(r'kotlinOptions\s*\{[^}]*\}', '', t, flags=re.DOTALL)
               t = re.sub(r'compilerOptions\s*\{\s*jvmTarget[^}]*\}', '', t, flags=re.DOTALL)
               t = re.sub(r'compilerOptions\s*\{\s*jvmTarget.*?\n\s*\}', '', t, flags=re.DOTALL)
+              # REMOVE desugaring - THIS IS THE FIX FOR THIS ERROR
+              t = re.sub(r'.*isCoreLibraryDesugaringEnabled.*\n', '', t)
+              t = re.sub(r'.*coreLibraryDesugaring.*\n', '', t)
+              t = re.sub(r'.*desugar_jdk_libs.*\n', '', t)
+              # Ensure Java 17
               t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
               t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
               t = t.replace("VERSION_1_8", "VERSION_17")
-              if "isCoreLibraryDesugaringEnabled" not in t:
-                  t = t.replace("compileOptions {", "compileOptions {\n        isCoreLibraryDesugaringEnabled = true", 1)
-              if "desugar_jdk_libs" not in t:
-                  t = t.replace("dependencies {", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', 1)
+              # Add correct kotlin block outside android { }
               if "kotlin {" not in t and "kotlin{" not in t:
                   t = t.rstrip() + "\n\nkotlin {\n    compilerOptions {\n        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17\n    }\n}\n"
               p.write_text(t)
