@@ -3,7 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-// V7 - COMPLETE FILE. Replace ALL of lib/screens/id_auto_capture_scanner.dart with this.
+// V8 - COMPLETE FILE. Auto-resume camera when you return to app. Light also restarts camera. Replace ALL of lib/screens/id_auto_capture_scanner.dart with this.
 // Fixes: black preview (low res on web), build errors, missing getters.
 // Camera stays INSIDE the app - it does NOT open phone Camera app.
 
@@ -17,7 +17,7 @@ class IdAutoCaptureScanner extends StatefulWidget {
   State<IdAutoCaptureScanner> createState() => _IdAutoCaptureScannerState();
 }
 
-class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> {
+class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> with WidgetsBindingObserver {
   CameraController? _controller;
   List<CameraDescription> _cameras = [];
   int _cameraIndex = 0;
@@ -32,7 +32,26 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> {
   Timer? _countdownTimer;
 
   @override
-  void initState() { super.initState(); _initCamera(); }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initCamera();
+  }
+
+  // V8 FIX: When you leave the app and come back, Android kills the camera.
+  // This auto-restarts it - you do NOT need to open phone Camera app.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Small delay so Chrome / Android releases the camera first
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted && (_controller == null || !_controller!.value.isInitialized)) {
+          _initCamera();
+        }
+      });
+    }
+  }
 
   Future<void> _initCamera({int? useIndex}) async {
     _countdownTimer?.cancel();
@@ -51,7 +70,7 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> {
       setState(() {
         _controller = controller;
         _camStatus = 'Camera ON - ${_cameras[idx].lensDirection == CameraLensDirection.back ? "Back camera" : "Front camera"}';
-        _hint = 'Camera is ON inside this box.\n1. Put ID inside white box\n2. Tap CARD IN BOX\n3. Hold steady 3-2-1';
+        _hint = 'Camera is ON inside this box.\nDo NOT open phone Camera app.\n1. Put ID inside white box\n2. Tap CARD IN BOX\n3. Hold steady 3-2-1';
       });
     } catch (e) {
       if (mounted) setState(() { _error = 'Camera blocked: $e\n\n1. Tap RETRY below\n2. Allow Camera when Chrome asks\n3. Close Camera / WhatsApp app'; _camStatus = 'Camera BLOCKED'; });
@@ -90,6 +109,12 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> {
   }
 
   void _toggleLight() {
+    // V8 FIX: If camera is OFF, Light alone cannot turn it on.
+    // So Light now ALSO restarts the camera.
+    if (_controller == null || !_controller!.value.isInitialized) {
+      _initCamera();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Camera was OFF - restarting camera now... Do NOT open phone Camera app.')));
+    }
     setState(() => _lightOn = !_lightOn);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(_lightOn ? 'Light ON - bright screen to light card' : 'Light OFF')));
   }
@@ -114,7 +139,7 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> {
   }
 
   @override
-  void dispose() { _countdownTimer?.cancel(); _controller?.dispose(); super.dispose(); }
+  void dispose() { WidgetsBinding.instance.removeObserver(this); _countdownTimer?.cancel(); _controller?.dispose(); super.dispose(); }
 
   Color get _boxColor {
     switch (_state) {
