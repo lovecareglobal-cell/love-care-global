@@ -28,71 +28,47 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
-      - name: Replace old Android folder BUT KEEP google-services.json
+      - name: Keep Android folder - DO NOT delete it
         run: |
           if [ -f "android/app/google-services.json" ]; then
-            cp android/app/google-services.json /tmp/google-services.json
-            echo "✅ Saved google-services.json"
+            echo "✅ google-services.json present"
           else
-            echo "⚠️ NO google-services.json found! Upload am to android/app/ first!"
+            echo "⚠️ NO google-services.json found! Upload it to android/app/ first!"
             ls -la android/app/
           fi
-          rm -rf android
-          PROJ=$(grep -m1 '^name:' pubspec.yaml | sed 's/name: *//;s/ *//g')
-          if [ -z "$PROJ" ]; then PROJ="love_care_global"; fi
-          flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
-          if [ -f "/tmp/google-services.json" ]; then
-            cp /tmp/google-services.json android/app/google-services.json
-            echo "✅ Restored google-services.json"
+          # DO NOT run rm -rf android here.
+          # Deleting android/ wipes build.gradle.kts, proguard-rules.pro
+          # and the 4 ML Kit dependencies, which is why R8 kept failing.
+          # Only create android/ if it is completely missing.
+          if [ ! -d "android/app" ]; then
+            PROJ=$(grep -m1 '^name:' pubspec.yaml | sed 's/name: *//;s/ *//g')
+            if [ -z "$PROJ" ]; then PROJ="love_care_global"; fi
+            flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
           fi
-          cat android/settings.gradle.kts
+          ls -la android/app/
+          cat android/app/build.gradle.kts
 
-      - name: Fix Android - Firebase + Maps + Notifications
+      - name: Fix Android - Firebase + Maps + Notifications + ML Kit R8 fix
         run: |
           python3 - << 'PYEOF'
           import pathlib, re
-          # --- FIX settings.gradle.kts - THIS WAS THE BUG ---
           for p in [pathlib.Path("android/settings.gradle.kts"), pathlib.Path("android/settings.gradle")]:
               if p.exists():
                   t = p.read_text()
-                  print("=== BEFORE settings ===")
-                  print(t)
-                  # Remove any old broken google-services line without version
                   t = re.sub(r'\s*id\(["\']com\.google\.gms\.google-services["\']\)[^\n]*', '', t)
-                  # Now add correct one with version inside plugins block
                   if 'id("com.google.gms.google-services")' not in t:
                       if 'plugins {' in t:
                           t = t.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false', 1)
                       else:
                           t = 'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false\n}\n' + t
-                  # Fix kotlin version
                   t = re.sub(r'(org\.jetbrains\.kotlin\.android["\']?\s*\)\s*version\s*["\'])[0-9.]+', r'\g<1>2.3.10', t)
                   if "org.jetbrains.kotlin.android" not in t:
                       t = t.replace('plugins {', 'plugins {\n    id("org.jetbrains.kotlin.android") version "2.3.10" apply false', 1)
                   p.write_text(t)
-                  print("=== AFTER settings ===")
                   print(t)
           root = pathlib.Path("android/build.gradle.kts")
           if root.exists():
-              root.write_text('''allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
-          rootProject.layout.buildDirectory.value(newBuildDir)
-          subprojects {
-              val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
-              project.layout.buildDirectory.value(newSubprojectBuildDir)
-          }
-          subprojects {
-              project.evaluationDependsOn(":app")
-          }
-          tasks.register<Delete>("clean") {
-              delete(rootProject.layout.buildDirectory)
-          }
-          ''')
+              root.write_text("allprojects {\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\nval newBuildDir: Directory = rootProject.layout.buildDirectory.dir(\"../../build\").get()\nrootProject.layout.buildDirectory.value(newBuildDir)\nsubprojects {\n    val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)\n    project.layout.buildDirectory.value(newSubprojectBuildDir)\n}\nsubprojects {\n    project.evaluationDependsOn(\":app\")\n}\ntasks.register<Delete>(\"clean\") {\n    delete(rootProject.layout.buildDirectory)\n}\n")
           for p in [pathlib.Path("android/app/build.gradle.kts"), pathlib.Path("android/app/build.gradle")]:
               if not p.exists():
                   continue
@@ -105,7 +81,12 @@ jobs:
               t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
               t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
               t = t.replace("VERSION_1_8", "VERSION_17")
-              # FIX: app plugin must NOT have version here (version dey for settings), keep am plain
+              t = t.replace("isMinifyEnabled = true", "isMinifyEnabled = false")
+              if "isMinifyEnabled" not in t:
+                  t = re.sub(r'(buildTypes\s*\{)', r'\1\n        release {\n            isMinifyEnabled = false\n            isShrinkResources = false\n        }', t, count=1)
+              else:
+                  if "isShrinkResources" not in t:
+                      t = t.replace("isMinifyEnabled = false", "isMinifyEnabled = false\n            isShrinkResources = false")
               if "com.google.gms.google-services" not in t:
                   if 'plugins {' in t:
                       t = t.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services")', 1)
@@ -116,10 +97,25 @@ jobs:
                   t = re.sub(r'(dependencies\s*\{)', r'\1\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', t, count=1)
               else:
                   t = t.rstrip() + '\n\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")\n}\n'
+              mlkit = [
+                  'implementation("com.google.mlkit:text-recognition:16.0.0")',
+                  'implementation("com.google.mlkit:text-recognition-chinese:16.0.0")',
+                  'implementation("com.google.mlkit:text-recognition-devanagari:16.0.0")',
+                  'implementation("com.google.mlkit:text-recognition-japanese:16.0.0")',
+                  'implementation("com.google.mlkit:text-recognition-korean:16.0.0")',
+              ]
+              for line in mlkit:
+                  if line not in t:
+                      t = re.sub(r'(dependencies\s*\{)', r'\1\n    ' + line, t, count=1)
               if "kotlin {" not in t and "kotlin{" not in t:
                   t = t.rstrip() + "\n\nkotlin {\n    compilerOptions {\n        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17\n    }\n}\n"
               p.write_text(t)
+              print("=== FINAL android/app/build.gradle.kts ===")
               print(t)
+          pro = pathlib.Path("android/app/proguard-rules.pro")
+          pro.parent.mkdir(parents=True, exist_ok=True)
+          pro.write_text("-keep class com.google.mlkit.** { *; }\n-keep class com.google.android.gms.** { *; }\n-dontwarn com.google.mlkit.**\n-dontwarn com.google.android.gms.**\n-dontwarn com.google.mlkit.vision.text.**\n-dontwarn com.google.mlkit.vision.text.chinese.**\n-dontwarn com.google.mlkit.vision.text.devanagari.**\n-dontwarn com.google.mlkit.vision.text.japanese.**\n-dontwarn com.google.mlkit.vision.text.korean.**\n")
+          print("=== proguard-rules.pro written ===")
           PYEOF
 
       - name: Add Permissions
@@ -138,7 +134,6 @@ jobs:
       - name: Generate App Icon from assets/icon.png
         run: |
           ls -lh assets/icon.png
-          # Force Android only - we no get iOS folder
           python3 - << 'PYEOF'
           import pathlib
           p = pathlib.Path("pubspec.yaml")
@@ -156,8 +151,8 @@ jobs:
           sed -i 's/android:label="[^"]*"/android:label="Love Care Global"/' android/app/src/main/AndroidManifest.xml
           grep -n "android:label" android/app/src/main/AndroidManifest.xml
 
-      - name: Build APK (Debug)
-        run: flutter build apk --debug
+      - name: Build APK (Release)
+        run: flutter build apk --release
 
       - name: Build AAB (Release)
         run: flutter build appbundle --release
@@ -165,8 +160,8 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
