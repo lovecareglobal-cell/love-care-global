@@ -35,6 +35,8 @@ dependencies:
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
   http: ^1.2.0
+  google_mlkit_text_recognition: ^0.15.0
+  path_provider: ^2.1.5
 
 dependency_overrides:
   firebase_auth_web: ^5.13.0
