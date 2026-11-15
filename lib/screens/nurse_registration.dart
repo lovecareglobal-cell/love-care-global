@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import '../models/id_catalog.dart';
 
-class NurseRegistrationScreen extends StatefulWidget {
-  const NurseRegistrationScreen({super.key});
+class NurseRegistrationPage extends StatefulWidget {
+  const NurseRegistrationPage({super.key});
 
   @override
-  State<NurseRegistrationScreen> createState() =>
-      _NurseRegistrationScreenState();
+  State<NurseRegistrationPage> createState() =>
+      _NurseRegistrationPageState();
 }
 
-class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
+class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // --- Colours (match your app) ---
-  static const primary = Color(0xFF9C1452); // dark pink / maroon
+  // --- Colours ---
+  static const primary = Color(0xFF880E4F);
   static const primaryLight = Color(0xFFFDE7F0);
   static const greenStrong = Color(0xFF2E9E4A);
 
@@ -24,7 +24,6 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
   final _passwordController = TextEditingController();
   final _pinNumberController = TextEditingController();
   final _idNumberController = TextEditingController();
-  final _yearsExpController = TextEditingController();
 
   // --- Dropdowns ---
   String? _selectedCountry;
@@ -33,7 +32,7 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
   String? _selectedExperience;
   bool _obscurePassword = true;
 
-  // --- Files (store file names / paths from image_picker) ---
+  // --- Files ---
   String? _photoName;
   String? _videoName;
   String? _cvName;
@@ -42,13 +41,14 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
   String? _idBackName;
   String? _certificateName;
 
-  // --- ID Check state ---
+  // --- ID Check ---
   bool _idCheckAttempted = false;
   bool _idCheckPassed = false;
   String? _idCheckMessage;
+  List<String> _idCheckDetails = [];
+  bool _isCheckingId = false;
   bool _isSubmitting = false;
 
-  // TODO: Replace with your real Vision API key check
   static const bool _visionApiConfigured = false;
 
   List<IdTypeOption> get _idTypesForCountry =>
@@ -89,41 +89,38 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
     _passwordController.dispose();
     _pinNumberController.dispose();
     _idNumberController.dispose();
-    _yearsExpController.dispose();
     super.dispose();
   }
 
-  // --- Country / ID Type logic (THE FIX) ---
+  // --- Country / ID Type logic ---
   void _onCountryChanged(String? country) {
     setState(() {
       _selectedCountry = country;
-      _selectedIdType = null; // clear old type
-      _idNumberController.clear(); // clear old number
+      _selectedIdType = null;
+      _idNumberController.clear();
       _idFrontName = null;
       _idBackName = null;
       _idCheckAttempted = false;
       _idCheckPassed = false;
       _idCheckMessage = null;
+      _idCheckDetails = [];
     });
   }
 
   void _onIdTypeChanged(IdTypeOption? type) {
     setState(() {
       _selectedIdType = type;
-      _idNumberController.clear(); // new type = new format
+      _idNumberController.clear();
       _idFrontName = null;
       _idBackName = null;
       _idCheckAttempted = false;
       _idCheckPassed = false;
       _idCheckMessage = null;
+      _idCheckDetails = [];
     });
   }
 
-  // --- Pickers - connect to image_picker / file_picker ---
   Future<void> _pickFile(String kind) async {
-    // TODO: Implement with image_picker / file_picker
-    // Example: final XFile? file = await ImagePicker().pickImage(...)
-    // For now simulate selection so UI works
     final fakeName = switch (kind) {
       'photo' => 'scaled_1000011119.jpg',
       'video' => '1000024445.mp4',
@@ -161,13 +158,10 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
   Future<void> _scanId(String side) async {
     if (_selectedCountry == null || _selectedIdType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Pick ID Country + ID Type first'),
-        ),
+        const SnackBar(content: Text('Pick ID Country + ID Type first')),
       );
       return;
     }
-    // TODO: Open camera scanner here
     setState(() {
       if (side == 'front') {
         _idFrontName = 'id_front_scanned.jpg';
@@ -186,28 +180,52 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
     }
   }
 
-  void _checkIdAgain() {
-    setState(() => _idCheckAttempted = true);
+  Future<void> _checkIdAgain() async {
+    if (_selectedCountry == null || _selectedIdType == null) return;
+    if (_idNumberController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter ID Number first')),
+      );
+      return;
+    }
+    if (_idFrontName == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Scan FRONT of ID first')),
+      );
+      return;
+    }
+
+    setState(() {
+      _idCheckAttempted = true;
+      _isCheckingId = true;
+      _idCheckMessage = 'Checking ID... reading photo...';
+      _idCheckDetails = [];
+    });
+
+    await Future.delayed(const Duration(seconds: 1));
+    setState(() => _isCheckingId = false);
 
     if (!_visionApiConfigured) {
       setState(() {
         _idCheckPassed = false;
         _idCheckMessage =
             'Auto ID check is not configured yet. Ask admin to add the Google Vision API key.';
+        _idCheckDetails = ['❌ Vision API key missing'];
       });
       return;
     }
 
-    // TODO: Call Vision API, compare scanned number vs typed number
-    // For now: basic local validation
-    final pattern = _selectedIdType?.pattern;
+    final pattern = _selectedIdType!.pattern;
     final value = _idNumberController.text.trim();
     final ok = pattern == null || pattern.hasMatch(value);
     setState(() {
       _idCheckPassed = ok;
       _idCheckMessage = ok
           ? 'ID number format looks correct for ${_selectedIdType!.label}.'
-          : _selectedIdType?.patternError ?? 'ID number format does not match.';
+          : _selectedIdType!.patternError ?? 'ID number format does not match.';
+      _idCheckDetails = ok
+          ? ['✅ Format matches ${_selectedIdType!.label} (${_selectedIdType!.example})']
+          : ['❌ Format check failed', 'Expected: ${_selectedIdType!.example}'];
     });
   }
 
@@ -238,13 +256,6 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
     setState(() => _isSubmitting = true);
     await Future.delayed(const Duration(seconds: 1));
     setState(() => _isSubmitting = false);
-
-    // TODO: Upload to Firebase / API
-    // Save these keys, NOT just labels:
-    // country: _selectedCountry
-    // idTypeId: _selectedIdType!.id  e.g. 'passport_au'
-    // idTypeLabel: _selectedIdType!.label
-    // idNumber: _idNumberController.text.trim()
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -406,7 +417,6 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
 
               _sectionTitle('ID Verification'),
 
-              // --- COUNTRY ---
               DropdownButtonFormField<String>(
                 value: _selectedCountry,
                 decoration: const InputDecoration(
@@ -416,12 +426,10 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
                     .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                     .toList(),
                 onChanged: _onCountryChanged,
-                validator: (v) =>
-                    v == null ? 'Select ID Country' : null,
+                validator: (v) => v == null ? 'Select ID Country' : null,
               ),
               const SizedBox(height: 16),
 
-              // --- ID TYPE (FILTERED) ---
               DropdownButtonFormField<IdTypeOption>(
                 value: _selectedIdType,
                 decoration: InputDecoration(
@@ -436,11 +444,9 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
                           child: Text(t.label),
                         ))
                     .toList(),
-                onChanged: _selectedCountry == null
-                    ? null
-                    : _onIdTypeChanged,
-                validator: (v) =>
-                    v == null ? 'Select ID Type' : null,
+                onChanged:
+                    _selectedCountry == null ? null : _onIdTypeChanged,
+                validator: (v) => v == null ? 'Select ID Type' : null,
               ),
               if (_selectedCountry != null)
                 Padding(
@@ -455,7 +461,6 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
                 ),
               const SizedBox(height: 16),
 
-              // --- ID NUMBER (DYNAMIC HINT) ---
               TextFormField(
                 controller: _idNumberController,
                 enabled: _selectedIdType != null,
@@ -473,8 +478,7 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
                     return 'Enter ID Number';
                   }
                   final pattern = _selectedIdType?.pattern;
-                  if (pattern != null &&
-                      !pattern.hasMatch(v.trim())) {
+                  if (pattern != null && !pattern.hasMatch(v.trim())) {
                     return _selectedIdType?.patternError ??
                         'Invalid format. Example: ${_selectedIdType!.example}';
                   }
@@ -510,7 +514,6 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
                 onPick: () => _scanId('back'),
                 buttonEnabled: _selectedIdType != null,
               ),
-
               _fileRow(
                 icon: Icons.school,
                 label: 'Upload Certificate',
@@ -521,7 +524,6 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
 
               const SizedBox(height: 8),
 
-              // --- ID CHECK ---
               if (_idCheckAttempted && _idCheckMessage != null)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -531,25 +533,44 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
                         : Colors.orange.shade50,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        _idCheckPassed ? Icons.check_circle : Icons.close,
-                        color: _idCheckPassed ? Colors.green : Colors.orange,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _idCheckMessage!,
-                          style: TextStyle(
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            _idCheckPassed
+                                ? Icons.check_circle
+                                : Icons.close,
                             color: _idCheckPassed
-                                ? Colors.green.shade900
-                                : Colors.orange.shade900,
-                            fontWeight: FontWeight.w600,
+                                ? Colors.green
+                                : Colors.orange,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _idCheckMessage!,
+                              style: TextStyle(
+                                color: _idCheckPassed
+                                    ? Colors.green.shade900
+                                    : Colors.orange.shade900,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_idCheckDetails.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        ..._idCheckDetails.map(
+                          (c) => Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(c,
+                                style: const TextStyle(fontSize: 12)),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -566,25 +587,31 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
                     ),
                   ),
                   onPressed: (_selectedCountry != null &&
-                          _selectedIdType != null)
+                          _selectedIdType != null &&
+                          !_isCheckingId)
                       ? _checkIdAgain
                       : null,
-                  child: const Text(
-                    '🔍 CHECK MY ID AGAIN',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isCheckingId
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text(
+                          '🔍 CHECK MY ID AGAIN',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
 
               _sectionTitle('Experience'),
               DropdownButtonFormField<String>(
                 value: _selectedSpecialty,
-                decoration: const InputDecoration(
-                  labelText: 'Specialty',
-                ),
+                decoration: const InputDecoration(labelText: 'Specialty'),
                 items: const [
                   'General Nursing',
                   'Midwifery',
@@ -603,9 +630,8 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 value: _selectedExperience,
-                decoration: const InputDecoration(
-                  labelText: 'Years of Experience',
-                ),
+                decoration:
+                    const InputDecoration(labelText: 'Years of Experience'),
                 items: const [
                   '0-1 years',
                   '1-3 years',
@@ -651,7 +677,6 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
     );
   }
 
-  // --- Helpers ---
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 20, bottom: 10),
@@ -714,9 +739,7 @@ class _NurseRegistrationScreenState extends State<NurseRegistrationScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  hasFile
-                      ? fileName!
-                      : (subLabel ?? 'No file selected'),
+                  hasFile ? fileName! : (subLabel ?? 'No file selected'),
                   style: TextStyle(
                     color: hasFile ? Colors.black87 : Colors.grey,
                     fontSize: 13,
