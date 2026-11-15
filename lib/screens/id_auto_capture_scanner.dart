@@ -3,7 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-// V8 - COMPLETE FILE. Auto-resume camera when you return to app. Light also restarts camera. Replace ALL of lib/screens/id_auto_capture_scanner.dart with this.
+// V9 - COMPLETE FILE. Force BACK camera, auto-retry if locked by other app. Auto-resume camera when you return to app. Light also restarts camera. Replace ALL of lib/screens/id_auto_capture_scanner.dart with this.
 // Fixes: black preview (low res on web), build errors, missing getters.
 // Camera stays INSIDE the app - it does NOT open phone Camera app.
 
@@ -61,7 +61,14 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> with Widget
     try {
       _cameras = await availableCameras();
       if (_cameras.isEmpty) { setState(() { _error = 'No camera found on this phone.\nClose Camera / WhatsApp app and try again.'; _camStatus = 'No camera found'; }); return; }
-      int idx = useIndex ?? _cameras.indexWhere((c) => c.lensDirection == CameraLensDirection.back);
+      // V9: ALWAYS try BACK camera first - FRONT is selfie, wrong for ID card.
+      int idx;
+      if (useIndex != null) {
+        idx = useIndex;
+      } else {
+        idx = _cameras.indexWhere((c) => c.lensDirection == CameraLensDirection.back);
+        if (idx < 0) idx = 0;
+      }
       if (idx < 0) idx = 0;
       _cameraIndex = idx;
       final controller = CameraController(_cameras[idx], kIsWeb ? ResolutionPreset.low : ResolutionPreset.medium, enableAudio: false);
@@ -69,11 +76,20 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> with Widget
       if (!mounted) return;
       setState(() {
         _controller = controller;
-        _camStatus = 'Camera ON - ${_cameras[idx].lensDirection == CameraLensDirection.back ? "Back camera" : "Front camera"}';
-        _hint = 'Camera is ON inside this box.\nDo NOT open phone Camera app.\n1. Put ID inside white box\n2. Tap CARD IN BOX\n3. Hold steady 3-2-1';
+        _camStatus = 'Camera ON - ${_cameras[idx].lensDirection == CameraLensDirection.back ? "Back camera" : "FRONT selfie camera - TAP SWITCH!"}';
+        _hint = _cameras[idx].lensDirection == CameraLensDirection.back
+            ? 'Camera is ON inside this box.\nDo NOT open phone Camera app.\n1. Put ID inside white box\n2. Tap CARD IN BOX\n3. Hold steady 3-2-1'
+            : 'YOU ARE ON FRONT SELFIE CAMERA!\nThis is wrong for ID card.\nTap SWITCH CAMERA below to go to BACK camera.';
       });
     } catch (e) {
-      if (mounted) setState(() { _error = 'Camera blocked: $e\n\n1. Tap RETRY below\n2. Allow Camera when Chrome asks\n3. Close Camera / WhatsApp app'; _camStatus = 'Camera BLOCKED'; });
+      if (mounted) setState(() { _error = 'Camera blocked: $e\n\nCAMERA IS STILL HELD BY ANOTHER APP.\n1. Close Phone Camera / WhatsApp / Facebook\n2. Restart phone (best fix)\n3. Come back and tap RETRY CAMERA'; _camStatus = 'Camera BLOCKED'; });
+      // V9: if camera is locked by another app, wait 1.5s and try once more
+      // in case the other app just released it.
+      if ('$e'.contains('cameraNotReadable') || '$e'.contains('CameraException')) {
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted && (_controller == null || !_controller!.value.isInitialized)) _initCamera();
+        });
+      }
     }
   }
 
@@ -167,7 +183,7 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> with Widget
         const SizedBox(height: 16),
         ElevatedButton.icon(onPressed: () => _initCamera(), icon: const Icon(Icons.refresh), label: const Text('RETRY CAMERA')),
         const SizedBox(height: 8),
-        ElevatedButton.icon(onPressed: _switchCamera, icon: const Icon(Icons.switch_camera), label: const Text('SWITCH CAMERA'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white)),
+        ElevatedButton.icon(onPressed: _switchCamera, icon: const Icon(Icons.switch_camera), label: const Text('SWITCH CAMERA - GO TO BACK'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white)),
       ])))));
     }
     if (previewOk) {
