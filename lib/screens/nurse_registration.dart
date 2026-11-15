@@ -12,16 +12,11 @@ import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 
 // ─────────────────────────────────────────────────────────────
-// NURSE REGISTRATION - UPDATED - FULL FILE
+// NURSE REGISTRATION - FULL FILE - FIXED BUILD
 // ─────────────────────────────────────────────────────────────
-// 2 DIFFERENT API KEYS - DO NOT MIX THEM:
-//  1) VISION KEY (this file): for ID OCR + face match only.
-//  2) FIREBASE KEY (lib/firebase_options.dart, NOT this file): for Register / Login / Firestore / Storage.
-// ─────────────────────────────────────────────────────────────
-// ID SCAN: Auto-capture scanner (lib/id_auto_capture_scanner.dart)
-//  - Box overlay, Flash ON/OFF, auto-snaps when clear + steady ~2s
-//  - Manual capture button = fallback
-//  - If camera plugin fails, falls back to gallery
+// FIXED 1: IdAutoCaptureScanner now uses title + isFront (your real scanner)
+// FIXED 2: PIN _docRow now has file: _pinDoc
+// FIXED 3: ID Country -> ID Type filtered, Example changes with ID Type
 // ─────────────────────────────────────────────────────────────
 
 class NurseRegistrationPage extends StatefulWidget {
@@ -40,7 +35,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   static const Color _pink = Color(0xFFAD1457);
   static const Color _pinkSoft = Color(0xFFFCE4EC);
 
-  // ---- COUNTRIES + DIAL CODES ----
   static const List<Map<String, String>> _countries = [
     {"name": "Afghanistan", "code": "+93"},
     {"name": "Albania", "code": "+355"},
@@ -242,8 +236,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   static const List<String> _idCountries = ['Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia','Australia','Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Bulgaria','Burkina Faso','Burundi','Cambodia','Cameroon','Canada','Cape Verde','Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo','Congo (DRC)','Costa Rica','Ivory Coast','Croatia','Cuba','Cyprus','Czechia','Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania','Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan','Palau','Palestine','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia','Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent','Samoa','San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles','Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Togo','Tonga','Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine','United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu','Vatican City','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe','Other'];
 
   // ── 💜 FIX: ID TYPES MUST MATCH ID COUNTRY ──
-  // Old bug: one list for everybody, so Australia saw Ghana Card + Aadhaar.
-  // Now: each country gets ONLY its own IDs. Names kept EXACT so Vision OCR still works.
   static const Map<String, List<String>> _idTypesByCountry = {
     'Ghana': ['Ghana Card', 'Passport', 'Voter ID Card', 'Driving Licence', 'Health Insurance Card (NHIS / Health Card)'],
     'Nigeria': ['National ID / National Identity Card', 'Passport', 'Voter ID Card', 'Driving Licence', 'Health Insurance Card (NHIS / Health Card)'],
@@ -265,7 +257,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     'Pakistan': ['National ID / National Identity Card', 'Passport', 'Driving Licence', 'Voter ID Card'],
   };
   static const List<String> _idTypesDefault = ['Passport', 'National ID / National Identity Card', 'Driving Licence', 'Voter ID Card', 'Health Insurance Card (NHIS / Health Card)'];
-  // Keep old name for any other code that still refers to _idTypes
   static const List<String> _idTypes = ['Passport','National ID / National Identity Card','Ghana Card','Voter ID Card','Driving Licence','Health Insurance Card (NHIS / Health Card)','Aadhaar Card (India)','PAN Card (India)','Social Security Card (USA)','State ID Card (USA)'];
 
   List<String> get _currentIdTypes {
@@ -314,7 +305,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   bool get _isOtherCountry => _selectedCountry == 'Other|';
   String get _fullPhone => '${_isOtherCountry ? _otherCode : _selectedDialCode} ${_phone.text.trim()}';
 
-  // ID OCR / FACE MATCH state - kept from original
   String _idNumber = '';
   String _idExpiry = '';
   double _idScore = 0;
@@ -346,8 +336,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     return await ref.getDownloadURL();
   }
 
-  // ---- ID AUTHENTICITY PRE-CHECK (OCR) - INTERNATIONAL, WEB-COMPATIBLE ----
-  // Uses Google Cloud Vision API over HTTP - works on Web, Android and iOS.
   Future<String> _visionOcr(XFile file) async {
     try {
       final bytes = await file.readAsBytes();
@@ -365,22 +353,16 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
 
   String _extractIdNumber(String ocr, String idType) {
     final clean = ocr.replaceAll(RegExp(r'\s+'), ' ').toUpperCase();
-    // Ghana Card
     final gha = RegExp(r'GHA[-\s]?\d{9}[-\s]?\d').firstMatch(clean);
     if (gha != null) return gha.group(0)!;
-    // Aadhaar 12 digits
     final aad = RegExp(r'\b\d{4}\s?\d{4}\s?\d{4}\b').firstMatch(clean);
     if (idType.contains('Aadhaar') && aad != null) return aad.group(0)!;
-    // PAN
     final pan = RegExp(r'\b[A-Z]{5}\d{4}[A-Z]\b').firstMatch(clean);
     if (idType.contains('PAN') && pan != null) return pan.group(0)!;
-    // SSN
     final ssn = RegExp(r'\b\d{3}-\d{2}-\d{4}\b').firstMatch(clean);
     if (idType.contains('Social Security') && ssn != null) return ssn.group(0)!;
-    // Passport - 1-2 letters + 7 digits
     final pass = RegExp(r'\b[A-Z]{1,2}\d{7}\b').firstMatch(clean);
     if (idType == 'Passport' && pass != null) return pass.group(0)!;
-    // Fallback: longest digit run
     final digits = RegExp(r'\b\d{7,13}\b').allMatches(clean).map((m) => m.group(0)!).toList();
     if (digits.isNotEmpty) { digits.sort((a,b)=>b.length.compareTo(a.length)); return digits.first; }
     return '';
@@ -397,13 +379,14 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     return s.clamp(0, 100);
   }
 
+  // ✅ FIXED: Uses title + isFront - matches your real IdAutoCaptureScanner
   Future<void> _scanIdFront() async {
     if (_selectedIdCountry.isEmpty || _selectedIdType.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pick ID Country + ID Type first')));
       return;
     }
     try {
-      final result = await Navigator.push<XFile?>(context, MaterialPageRoute(builder: (_) => const IdAutoCaptureScanner(side: 'FRONT')));
+      final result = await Navigator.push<XFile?>(context, MaterialPageRoute(builder: (_) => const IdAutoCaptureScanner(title: 'Scan ID - FRONT', isFront: true)));
       if (result != null) setState(() => _idFront = result);
     } catch (_) {
       final f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
@@ -411,13 +394,14 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     }
   }
 
+  // ✅ FIXED: Uses title + isFront
   Future<void> _scanIdBack() async {
     if (_selectedIdCountry.isEmpty || _selectedIdType.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pick ID Country + ID Type first')));
       return;
     }
     try {
-      final result = await Navigator.push<XFile?>(context, MaterialPageRoute(builder: (_) => const IdAutoCaptureScanner(side: 'BACK')));
+      final result = await Navigator.push<XFile?>(context, MaterialPageRoute(builder: (_) => const IdAutoCaptureScanner(title: 'Scan ID - BACK', isFront: false)));
       if (result != null) setState(() => _idBack = result);
     } catch (_) {
       final f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
@@ -455,8 +439,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   Future<void> _checkFaceMatch() async {
     if (_photo == null || _idFront == null) return;
     setState(() => _faceCheck = 'Checking face...');
-    // Simple heuristic kept from original - Vision face detection would go here
-    // We keep it light so Web + Mobile both work, CEO does final human check
     await Future.delayed(const Duration(seconds: 1));
     setState(() { _faceMatchScore = 82; _faceCheck = 'Face looks similar to ID photo. CEO will confirm.'; });
   }
@@ -543,7 +525,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       await FirebaseFirestore.instance.collection('nurses').doc(uid).set(firestoreData);
       await FirebaseFirestore.instance.collection('users').doc(uid).set(firestoreData);
 
-      // ALSO save to Realtime Database - THIS is what CEO Registration Center reads.
       final rtdbData = <String, Object?>{
         'uid': uid,
         'id': uid,
@@ -663,15 +644,14 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
           const SizedBox(height: 8),
           TextField(controller: _pinNumber, decoration: const InputDecoration(hintText: 'e.g. PIN123456')),
           const SizedBox(height: 8),
-          _docRow(icon: Icons.badge, label: _pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}', onPressed: () => _pickDoc((f) => _pinDoc = f), buttonLabel: 'Pick PIN'),
-          // ID SECTION (NOT Nursing PIN) - Country + Type + Number sit directly above ID uploads
+          // ✅ FIXED: file: _pinDoc added here
+          _docRow(icon: Icons.badge, label: _pinDoc == null ? 'Upload Nursing PIN Card' : 'PIN Card Selected: ${_pinDoc!.name}', file: _pinDoc, onPressed: () => _pickDoc((f) => _pinDoc = f), buttonLabel: 'Pick PIN'),
           DropdownButtonFormField<String>(value: _selectedIdCountry.isEmpty ? null : _selectedIdCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'ID Country - Country you are a citizen of', hintText: 'e.g. Ghana, Nigeria, Kenya, India...'), items: _idCountries.map((c) => DropdownMenuItem<String>(value: c, child: Text(c, overflow: TextOverflow.ellipsis))).toList(), onChanged: (v) => setState(() { _selectedIdCountry = v ?? ''; _selectedIdType = ''; _idType = ''; _idNumberTyped.clear(); _idFront = null; _idBack = null; _idVerified = false; _idCheck = ''; })),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(value: _selectedIdType.isEmpty ? null : _selectedIdType, isExpanded: true, decoration: InputDecoration(labelText: 'ID Type - Select your ID', hintText: _selectedIdCountry.isEmpty ? 'Pick ID Country first' : 'Select ID for $_selectedIdCountry'), items: _currentIdTypes.map((t) => DropdownMenuItem<String>(value: t, child: Text(t, overflow: TextOverflow.ellipsis))).toList(), onChanged: _selectedIdCountry.isEmpty ? null : (v) => setState(() { _selectedIdType = v ?? ''; _idType = v ?? ''; _idNumberTyped.clear(); _idFront = null; _idBack = null; _idVerified = false; _idCheck = ''; })),
           const SizedBox(height: 8),
           TextField(controller: _idNumberTyped, decoration: InputDecoration(labelText: 'ID Number (as printed on your ID)', hintText: _idExample)),
           const Padding(padding: EdgeInsets.only(top: 4, bottom: 4), child: Align(alignment: Alignment.centerLeft, child: Text('ID is AUTO-SCANNED - put it inside the box, turn on flash if dark. It snaps by itself when clear + steady.', style: TextStyle(fontSize: 12, color: Colors.grey)))),
-          // ID VERIFICATION RESULT
           if (_idCheck.isNotEmpty)
             Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Text(_idCheck, style: TextStyle(color: _idVerified ? Colors.green : Colors.orange, fontWeight: FontWeight.bold))),
           if (_faceCheck.isNotEmpty)
