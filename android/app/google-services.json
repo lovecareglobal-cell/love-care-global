@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "1062578660694",
+    "firebase_url": "https://web-care-618e8-default-rtdb.firebaseio.com",
+    "project_id": "web-care-618e8",
+    "storage_bucket": "web-care-618e8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1062578660694:android:df04f104993d2ae6bce2f7",
+        "android_client_info": {
+          "package_name": "com.ecareglobal.love_care_global"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1062578660694-0hsgkhhrpgiqlnb2s5s6o088d2241qba.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCdIXFF9gHMEzH_ARBKCxTvE6Imd0qfzKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1062578660694-0hsgkhhrpgiqlnb2s5s6o088d2241qba.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
