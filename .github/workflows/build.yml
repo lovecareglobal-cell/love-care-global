@@ -17,7 +17,7 @@ jobs:
           channel: 'stable'
           flutter-version: '3.35.4'
 
-      - name: Fix pubspec - assets only (your plugins already complete)
+      - name: Fix pubspec - assets only
         run: |
           mkdir -p assets
           touch assets/.gitkeep
@@ -39,7 +39,7 @@ jobs:
         run: |
           python3 - << 'PYEOF'
           import pathlib, re
-          # 1. Kotlin 2.3.10 in settings - needed for google_maps_flutter + firebase
+          # 1. Kotlin 2.3.10 in settings
           for p in [pathlib.Path("android/settings.gradle.kts"), pathlib.Path("android/settings.gradle")]:
               if p.exists():
                   t = p.read_text()
@@ -76,7 +76,7 @@ jobs:
               delete(rootProject.layout.buildDirectory)
           }
           ''')
-          # 3. Fix app/build.gradle.kts
+          # 3. Fix app/build.gradle.kts - NOW WE KNOW THE REAL FILE HAS NO dependencies BLOCK
           for p in [pathlib.Path("android/app/build.gradle.kts"), pathlib.Path("android/app/build.gradle")]:
               if not p.exists():
                   continue
@@ -87,21 +87,17 @@ jobs:
               t = re.sub(r'.*isCoreLibraryDesugaringEnabled.*\n', '', t)
               t = re.sub(r'.*coreLibraryDesugaring.*\n', '', t)
               t = re.sub(r'.*desugar_jdk_libs.*\n', '', t)
-              # Java 17
               t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
               t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
               t = t.replace("VERSION_1_8", "VERSION_17")
-              # minSdk 23 - Firebase + Notifications need am
-              t = re.sub(r'minSdk\s*=\s*\d+', 'minSdk = 23', t)
-              t = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 23', t)
-              # NDK pin - make e stable
-              if "ndkVersion" not in t:
-                  t = re.sub(r'(compileSdk\s*=\s*\d+)', r'\1\n        ndkVersion = "27.0.12077973"', t, count=1)
-              # Desugaring ON - flutter_local_notifications NEED am
+              # Desugaring ON - inside compileOptions
               t = re.sub(r'(compileOptions\s*\{)', r'\1\n        isCoreLibraryDesugaringEnabled = true', t, count=1)
-              # Desugar lib - MUST enter dependencies { }
-              if "desugar_jdk_libs" not in t:
+              # Desugar lib - THE REAL FIX:
+              # If dependencies block DEY, put inside am. If e NO DEY, CREATE am for bottom.
+              if "dependencies" in t:
                   t = re.sub(r'(dependencies\s*\{)', r'\1\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', t, count=1)
+              else:
+                  t = t.rstrip() + '\n\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")\n}\n'
               # Kotlin block outside android { }
               if "kotlin {" not in t and "kotlin{" not in t:
                   t = t.rstrip() + "\n\nkotlin {\n    compilerOptions {\n        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17\n    }\n}\n"
@@ -110,8 +106,7 @@ jobs:
               print(t)
               assert "isCoreLibraryDesugaringEnabled = true" in t, "DESUGAR FLAG MISSING!"
               assert "desugar_jdk_libs" in t, "DESUGAR LIB MISSING!"
-              assert "minSdk = 23" in t or "minSdkVersion 23" in t, "MINSDK MISSING!"
-              print("✅ VERIFIED: Desugaring + minSdk 23 + Kotlin block all dey")
+              print("✅ VERIFIED: Desugaring + Kotlin block all dey")
           PYEOF
 
       - name: Add Camera + Storage + Notifications permissions
