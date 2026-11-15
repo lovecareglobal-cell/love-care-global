@@ -3,7 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-// V9 - COMPLETE FILE. Force BACK camera, auto-retry if locked by other app. Auto-resume camera when you return to app. Light also restarts camera. Replace ALL of lib/screens/id_auto_capture_scanner.dart with this.
+// V10 - COMPLETE FILE. Fix stuck Opening, Flash needs camera ON first. Force BACK camera, auto-retry if locked by other app. Auto-resume camera when you return to app. Light also restarts camera. Replace ALL of lib/screens/id_auto_capture_scanner.dart with this.
 // Fixes: black preview (low res on web), build errors, missing getters.
 // Camera stays INSIDE the app - it does NOT open phone Camera app.
 
@@ -25,6 +25,7 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> with Widget
   String _camStatus = 'Opening camera...';
   bool _flashOn = false;
   bool _lightOn = false;
+  bool _isOpening = false;
   bool _isCapturing = false;
   ScanState _state = ScanState.align;
   String _hint = 'Put your ID inside the white box.\nFill the box. No glare.';
@@ -82,6 +83,7 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> with Widget
             : 'YOU ARE ON FRONT SELFIE CAMERA!\nThis is wrong for ID card.\nTap SWITCH CAMERA below to go to BACK camera.';
       });
     } catch (e) {
+      _isOpening = false;
       if (mounted) setState(() { _error = 'Camera blocked: $e\n\nCAMERA IS STILL HELD BY ANOTHER APP.\n1. Close Phone Camera / WhatsApp / Facebook\n2. Restart phone (best fix)\n3. Come back and tap RETRY CAMERA'; _camStatus = 'Camera BLOCKED'; });
       // V9: if camera is locked by another app, wait 1.5s and try once more
       // in case the other app just released it.
@@ -112,12 +114,18 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> with Widget
   }
 
   Future<void> _toggleFlash() async {
-    if (_controller == null) return;
+    // V10: Flash needs a camera that is ALREADY ON. If camera is still Opening / BLOCKED, Flash MUST stay OFF.
+    // On Chrome / PWA, torch is blocked by the browser anyway, so Flash will stay OFF on web - this is normal.
+    if (_controller == null || !_controller!.value.isInitialized) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Flash needs camera ON first. Camera is still Opening / BLOCKED. Use LIGHT instead - Flash is blocked on web.')));
+      setState(() => _lightOn = true);
+      return;
+    }
     final wantOn = !_flashOn;
     try {
       await _controller!.setFlashMode(wantOn ? FlashMode.torch : FlashMode.off);
       setState(() => _flashOn = wantOn);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(wantOn ? 'Flash ON - torch is on inside this screen' : 'Flash OFF')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(wantOn ? 'Flash ON - torch is on inside this screen' : 'Flash OFF - Web blocked')));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Torch blocked by browser. Use LIGHT instead.')));
       setState(() => _lightOn = true);
@@ -210,7 +218,7 @@ class _IdAutoCaptureScannerState extends State<IdAutoCaptureScanner> with Widget
       stackChildren.add(Positioned(bottom: 132, left: 0, right: 0, child: Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(3, (i) => Container(margin: const EdgeInsets.symmetric(horizontal: 4), width: 28, height: 8, decoration: BoxDecoration(color: (3 - _countdown) > i ? Colors.greenAccent : Colors.white30, borderRadius: BorderRadius.circular(99)))))));
     }
     stackChildren.add(Positioned(bottom: 18, left: 12, right: 12, child: Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-      GestureDetector(onTap: _toggleFlash, child: Column(children: [Container(width: 52, height: 52, decoration: BoxDecoration(shape: BoxShape.circle, color: _flashOn ? Colors.amber : Colors.white24), child: Icon(_flashOn ? Icons.flash_on : Icons.flash_off, color: Colors.white)), const SizedBox(height: 4), Text(_flashOn ? 'Flash ON' : 'Flash OFF', style: const TextStyle(color: Colors.white, fontSize: 11))])),
+      GestureDetector(onTap: _toggleFlash, child: Column(children: [Container(width: 52, height: 52, decoration: BoxDecoration(shape: BoxShape.circle, color: _flashOn ? Colors.amber : Colors.white24), child: Icon(_flashOn ? Icons.flash_on : Icons.flash_off, color: Colors.white)), const SizedBox(height: 4), Text(_flashOn ? 'Flash ON' : 'Flash OFF - Web blocked', style: const TextStyle(color: Colors.white, fontSize: 11))])),
       GestureDetector(onTap: _toggleLight, child: Column(children: [Container(width: 52, height: 52, decoration: BoxDecoration(shape: BoxShape.circle, color: _lightOn ? Colors.amber : Colors.white24), child: Icon(_lightOn ? Icons.lightbulb : Icons.lightbulb_outline, color: Colors.white)), const SizedBox(height: 4), const Text('Light', style: TextStyle(color: Colors.white, fontSize: 11))])),
       GestureDetector(onTap: _autoCapture, child: Container(width: 68, height: 68, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 4), color: _isCapturing ? Colors.green : Colors.white), child: Icon(_isCapturing ? Icons.check : Icons.camera_alt, color: _isCapturing ? Colors.white : Colors.black, size: 30))),
       GestureDetector(onTap: () => Navigator.pop(context), child: Column(children: [Container(width: 52, height: 52, decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white24), child: const Icon(Icons.close, color: Colors.white)), const SizedBox(height: 4), const Text('Cancel', style: TextStyle(color: Colors.white, fontSize: 11))])),
