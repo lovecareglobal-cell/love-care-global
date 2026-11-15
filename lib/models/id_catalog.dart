@@ -1,9 +1,12 @@
+// lib/models/id_catalog.dart - FIXED: RegExp cannot be const
+// Pattern is stored as a String, converted to RegExp only when needed.
+
 class IdTypeOption {
   final String id;
   final String label;
   final String example;
   final String hint;
-  final RegExp? pattern;
+  final String? patternSource;
   final String? patternError;
 
   const IdTypeOption({
@@ -11,9 +14,13 @@ class IdTypeOption {
     required this.label,
     required this.example,
     required this.hint,
-    this.pattern,
+    String? pattern,
     this.patternError,
-  });
+  }) : patternSource = pattern;
+
+  // Use this everywhere: idType.pattern?.hasMatch(value)
+  RegExp? get pattern =>
+      patternSource == null ? null : RegExp(patternSource!);
 }
 
 class IdCatalog {
@@ -24,7 +31,7 @@ class IdCatalog {
         label: 'Ghana Card',
         example: 'GHA-123456789-0',
         hint: 'e.g. GHA-123456789-0',
-        pattern: RegExp(r'^GHA-\d{9}-\d$'),
+        pattern: r'^GHA-\d{9}-\d$',
         patternError: 'Ghana Card must look like GHA-123456789-0',
       ),
       IdTypeOption(
@@ -32,14 +39,14 @@ class IdCatalog {
         label: 'Passport',
         example: 'G1234567',
         hint: 'e.g. G1234567',
-        pattern: RegExp(r'^[A-Z]\d{7}$'),
+        pattern: r'^[A-Z]\d{7}$',
       ),
       IdTypeOption(
         id: 'voter_id_gh',
         label: 'Voter ID Card',
         example: '1234567890',
         hint: 'e.g. 1234567890',
-        pattern: RegExp(r'^\d{10}$'),
+        pattern: r'^\d{10}$',
       ),
       IdTypeOption(
         id: 'driving_licence_gh',
@@ -60,7 +67,7 @@ class IdCatalog {
         label: 'Passport',
         example: 'P1234567',
         hint: 'e.g. P1234567',
-        pattern: RegExp(r'^[A-Z]\d{7}$'),
+        pattern: r'^[A-Z]\d{7}$',
         patternError: 'Australian passport must look like P1234567',
       ),
       IdTypeOption(
@@ -88,21 +95,21 @@ class IdCatalog {
         label: 'Aadhaar Card',
         example: '1234 5678 9012',
         hint: 'e.g. 1234 5678 9012',
-        pattern: RegExp(r'^\d{4}\s?\d{4}\s?\d{4}$'),
+        pattern: r'^\d{4}\s?\d{4}\s?\d{4}$',
       ),
       IdTypeOption(
         id: 'pan',
         label: 'PAN Card',
         example: 'ABCDE1234F',
         hint: 'e.g. ABCDE1234F',
-        pattern: RegExp(r'^[A-Z]{5}\d{4}[A-Z]$'),
+        pattern: r'^[A-Z]{5}\d{4}[A-Z]$',
       ),
       IdTypeOption(
         id: 'passport_in',
         label: 'Passport',
         example: 'A1234567',
         hint: 'e.g. A1234567',
-        pattern: RegExp(r'^[A-Z]\d{7}$'),
+        pattern: r'^[A-Z]\d{7}$',
       ),
       IdTypeOption(
         id: 'voter_id_in',
@@ -123,7 +130,7 @@ class IdCatalog {
         label: 'Passport',
         example: 'C79403752',
         hint: 'e.g. C79403752',
-        pattern: RegExp(r'^[A-Z]\d{8}$'),
+        pattern: r'^[A-Z]\d{8}$',
       ),
       IdTypeOption(
         id: 'state_id_us',
@@ -144,7 +151,7 @@ class IdCatalog {
         label: 'Passport',
         example: '123456789',
         hint: 'e.g. 123456789',
-        pattern: RegExp(r'^\d{9}$'),
+        pattern: r'^\d{9}$',
       ),
       IdTypeOption(
         id: 'driving_licence_uk',
@@ -165,7 +172,7 @@ class IdCatalog {
         label: 'National ID (NIN)',
         example: '12345678901',
         hint: 'e.g. 12345678901 (11 digits)',
-        pattern: RegExp(r'^\d{11}$'),
+        pattern: r'^\d{11}$',
       ),
       IdTypeOption(
         id: 'passport_ng',
@@ -192,7 +199,7 @@ class IdCatalog {
         label: 'National ID',
         example: '12345678',
         hint: 'e.g. 12345678 (8 digits)',
-        pattern: RegExp(r'^\d{8}$'),
+        pattern: r'^\d{8}$',
       ),
       IdTypeOption(
         id: 'passport_ke',
@@ -207,7 +214,7 @@ class IdCatalog {
         label: 'South African ID Number',
         example: '8001015009087',
         hint: 'e.g. 8001015009087 (13 digits)',
-        pattern: RegExp(r'^\d{13}$'),
+        pattern: r'^\d{13}$',
       ),
       IdTypeOption(
         id: 'passport_za',
