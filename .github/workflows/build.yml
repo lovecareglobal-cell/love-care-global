@@ -16,13 +16,21 @@ jobs:
         with:
           channel: 'stable'
           flutter-version: '3.35.4'
-      - name: Downgrade camera to avoid CameraX (0.11 pulls broken CameraX 1.5.3)
+      - name: Fix pubspec - camera + missing assets folder
         run: |
           echo "=== Before ==="
           grep -i "camera" pubspec.yaml || true
-          # Replace any camera: ^0.11.x / 0.11.x with 0.10.6 (Camera2, no CameraX)
+          grep -A5 "assets" pubspec.yaml || true
+          # camera 0.10.6 = Camera2, no broken CameraX 1.5.3
           sed -i -E 's/^([[:space:]]*camera:[[:space:]]*).*/\1 0.10.6/' pubspec.yaml || true
-          echo "=== After ==="
+          # V6: pubspec declares assets/ but folder does not exist in repo -> create it
+          if grep -q "assets/" pubspec.yaml; then
+            mkdir -p assets
+            touch assets/.gitkeep
+            echo "Created missing assets/ folder"
+          fi
+          ls -la assets/ || true
+          echo "=== After pubspec ==="
           cat pubspec.yaml
       - name: Get packages
         run: flutter pub get
@@ -33,14 +41,35 @@ jobs:
           if [ -z "$PROJ" ]; then PROJ="lovecare"; fi
           echo "Project: $PROJ"
           flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
-          # Force Java 17 in app build.gradle (both .kts and .gradle)
-          for F in android/app/build.gradle.kts android/app/build.gradle; do
-            if [ -f "$F" ]; then
-              sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g; s/JavaVersion.VERSION_11/JavaVersion.VERSION_17/g; s/JavaVersion.VERSION_1_7/JavaVersion.VERSION_17/g' "$F" || true
-              sed -i 's/sourceCompatibility = 1.8/sourceCompatibility = 17/g; s/targetCompatibility = 1.8/targetCompatibility = 17/g' "$F" || true
-              cat "$F"
-            fi
-          done
+      - name: Fix Android - Java 17 + Desugaring for flutter_local_notifications
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib, re
+          for p in [pathlib.Path("android/app/build.gradle.kts"), pathlib.Path("android/app/build.gradle")]:
+              if not p.exists():
+                  continue
+              t = p.read_text()
+              # Force Java 17
+              t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
+              t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
+              t = t.replace("sourceCompatibility = 1.8", "sourceCompatibility = 17")
+              t = t.replace("targetCompatibility = 1.8", "targetCompatibility = 17")
+              # V6: Enable core library desugaring (required by flutter_local_notifications)
+              if "isCoreLibraryDesugaringEnabled" not in t:
+                  # Insert inside compileOptions block if present, else add it
+                  if "compileOptions" in t:
+                      t = re.sub(r"(compileOptions\s*\{[^}]*?)(\})", r"\1\n        isCoreLibraryDesugaringEnabled = true\n    \2", t, count=1, flags=re.DOTALL)
+                  else:
+                      t = t.replace("android {", "android {\n    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n    }", 1)
+              if "desugar_jdk_libs" not in t:
+                  if "dependencies {" in t:
+                      t = t.replace("dependencies {", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', 1)
+                  else:
+                      t += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")\n}\n'
+              p.write_text(t)
+              print(f"--- {p} ---")
+              print(t)
+          PYEOF
       - name: Add Camera + Flashlight permission
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
