@@ -17,14 +17,8 @@ jobs:
           channel: 'stable'
           flutter-version: '3.35.4'
 
-      - name: Fix pubspec - camera + assets
+      - name: Fix pubspec - assets only (your plugins already complete)
         run: |
-          if ! grep -q "image_picker:" pubspec.yaml; then
-            echo "  image_picker: ^1.1.2" >> pubspec.yaml
-          fi
-          if ! grep -q "permission_handler:" pubspec.yaml; then
-            echo "  permission_handler: ^11.3.1" >> pubspec.yaml
-          fi
           mkdir -p assets
           touch assets/.gitkeep
           cat pubspec.yaml
@@ -36,16 +30,16 @@ jobs:
         run: |
           rm -rf android
           PROJ=$(grep -m1 '^name:' pubspec.yaml | sed 's/name: *//;s/ *//g')
-          if [ -z "$PROJ" ]; then PROJ="lovecare"; fi
+          if [ -z "$PROJ" ]; then PROJ="love_care_global"; fi
           echo "Project: $PROJ"
           flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
           cat android/settings.gradle.kts
 
-      - name: Fix Android - Kotlin 2.3.10 + NO Desugaring
+      - name: Fix Android - For YOUR pubspec (Firebase + Maps + Notifications)
         run: |
           python3 - << 'PYEOF'
           import pathlib, re
-          # 1. Kotlin 2.3.10 in settings
+          # 1. Kotlin 2.3.10 in settings - needed for google_maps_flutter + firebase
           for p in [pathlib.Path("android/settings.gradle.kts"), pathlib.Path("android/settings.gradle")]:
               if p.exists():
                   t = p.read_text()
@@ -82,35 +76,48 @@ jobs:
               delete(rootProject.layout.buildDirectory)
           }
           ''')
-          # 3. Fix app/build.gradle.kts - REMOVE desugaring completely
+          # 3. Fix app/build.gradle.kts
           for p in [pathlib.Path("android/app/build.gradle.kts"), pathlib.Path("android/app/build.gradle")]:
               if not p.exists():
                   continue
               t = p.read_text()
-              # Remove old kotlinOptions / compilerOptions
               t = re.sub(r'kotlinOptions\s*\{[^}]*\}', '', t, flags=re.DOTALL)
               t = re.sub(r'compilerOptions\s*\{\s*jvmTarget[^}]*\}', '', t, flags=re.DOTALL)
               t = re.sub(r'compilerOptions\s*\{\s*jvmTarget.*?\n\s*\}', '', t, flags=re.DOTALL)
-              # REMOVE desugaring - THIS IS THE FIX FOR THIS ERROR
               t = re.sub(r'.*isCoreLibraryDesugaringEnabled.*\n', '', t)
               t = re.sub(r'.*coreLibraryDesugaring.*\n', '', t)
               t = re.sub(r'.*desugar_jdk_libs.*\n', '', t)
-              # Ensure Java 17
+              # Java 17
               t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
               t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
               t = t.replace("VERSION_1_8", "VERSION_17")
-              # Add correct kotlin block outside android { }
+              # minSdk 23 - Firebase + Notifications need am
+              t = re.sub(r'minSdk\s*=\s*\d+', 'minSdk = 23', t)
+              t = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 23', t)
+              # NDK pin - make e stable
+              if "ndkVersion" not in t:
+                  t = re.sub(r'(compileSdk\s*=\s*\d+)', r'\1\n        ndkVersion = "27.0.12077973"', t, count=1)
+              # Desugaring ON - flutter_local_notifications NEED am
+              t = re.sub(r'(compileOptions\s*\{)', r'\1\n        isCoreLibraryDesugaringEnabled = true', t, count=1)
+              # Desugar lib - MUST enter dependencies { }
+              if "desugar_jdk_libs" not in t:
+                  t = re.sub(r'(dependencies\s*\{)', r'\1\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', t, count=1)
+              # Kotlin block outside android { }
               if "kotlin {" not in t and "kotlin{" not in t:
                   t = t.rstrip() + "\n\nkotlin {\n    compilerOptions {\n        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17\n    }\n}\n"
               p.write_text(t)
               print(f"--- {p} ---")
               print(t)
+              assert "isCoreLibraryDesugaringEnabled = true" in t, "DESUGAR FLAG MISSING!"
+              assert "desugar_jdk_libs" in t, "DESUGAR LIB MISSING!"
+              assert "minSdk = 23" in t or "minSdkVersion 23" in t, "MINSDK MISSING!"
+              print("✅ VERIFIED: Desugaring + minSdk 23 + Kotlin block all dey")
           PYEOF
 
-      - name: Add Camera + Storage permissions
+      - name: Add Camera + Storage + Notifications permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          for PERM in "CAMERA" "RECORD_AUDIO" "FLASHLIGHT" "READ_MEDIA_IMAGES" "READ_MEDIA_VIDEO"; do
+          for PERM in "CAMERA" "RECORD_AUDIO" "FLASHLIGHT" "READ_MEDIA_IMAGES" "READ_MEDIA_VIDEO" "POST_NOTIFICATIONS" "RECEIVE_BOOT_COMPLETED" "VIBRATE" "ACCESS_FINE_LOCATION" "ACCESS_COARSE_LOCATION"; do
             if ! grep -q "android.permission.$PERM" "$MANIFEST"; then
               sed -i "s|<manifest[^>]*>|&\n    <uses-permission android:name=\"android.permission.$PERM\" />|" "$MANIFEST"
             fi
