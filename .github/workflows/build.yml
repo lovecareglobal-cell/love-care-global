@@ -8,29 +8,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          flutter-version: '3.35.4'
+      - name: Downgrade camera to avoid CameraX (0.11 pulls broken CameraX 1.5.3)
+        run: |
+          echo "=== Before ==="
+          grep -i "camera" pubspec.yaml || true
+          # Replace any camera: ^0.11.x / 0.11.x with 0.10.6 (Camera2, no CameraX)
+          sed -i -E 's/^([[:space:]]*camera:[[:space:]]*).*/\1 0.10.6/' pubspec.yaml || true
+          echo "=== After ==="
+          cat pubspec.yaml
       - name: Get packages
         run: flutter pub get
-      - name: Replace old broken Android folder with fresh v2 folder
+      - name: Replace old Android folder with fresh v2 folder
         run: |
-          echo "=== Deleting old Android v1 folder (it has flutterEmbedding=1, deleted in Flutter 3.50) ==="
           rm -rf android
-          # Project name from pubspec.yaml (first name: line)
           PROJ=$(grep -m1 '^name:' pubspec.yaml | sed 's/name: *//;s/ *//g')
           if [ -z "$PROJ" ]; then PROJ="lovecare"; fi
           echo "Project: $PROJ"
           flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
-          echo "=== New MainActivity ==="
-          find android -name "MainActivity.kt" -exec cat {} \;
-          echo "=== New Manifest ==="
-          cat android/app/src/main/AndroidManifest.xml
+          # Force Java 17 in app build.gradle (both .kts and .gradle)
+          for F in android/app/build.gradle.kts android/app/build.gradle; do
+            if [ -f "$F" ]; then
+              sed -i 's/JavaVersion.VERSION_1_8/JavaVersion.VERSION_17/g; s/JavaVersion.VERSION_11/JavaVersion.VERSION_17/g; s/JavaVersion.VERSION_1_7/JavaVersion.VERSION_17/g' "$F" || true
+              sed -i 's/sourceCompatibility = 1.8/sourceCompatibility = 17/g; s/targetCompatibility = 1.8/targetCompatibility = 17/g' "$F" || true
+              cat "$F"
+            fi
+          done
       - name: Add Camera + Flashlight permission
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
-            sed -i 's|<manifest[^>]*>|&\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.FLASHLIGHT" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />|' "$MANIFEST"
+            sed -i 's|<manifest[^>]*>|&\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.FLASHLIGHT" />|' "$MANIFEST"
           fi
           cat "$MANIFEST"
       - name: Build APK (Debug - for testing camera on phone)
