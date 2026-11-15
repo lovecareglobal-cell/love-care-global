@@ -26,32 +26,44 @@ jobs:
       - name: Get packages
         run: flutter pub get
 
-      - name: Replace old Android folder with fresh v2 folder
+      - name: Replace old Android folder BUT KEEP google-services.json
         run: |
+          if [ -f "android/app/google-services.json" ]; then
+            cp android/app/google-services.json /tmp/google-services.json
+            echo "✅ Saved google-services.json"
+          else
+            echo "⚠️ NO google-services.json found! Upload am to android/app/ first!"
+            ls -la android/app/
+          fi
           rm -rf android
           PROJ=$(grep -m1 '^name:' pubspec.yaml | sed 's/name: *//;s/ *//g')
           if [ -z "$PROJ" ]; then PROJ="love_care_global"; fi
-          echo "Project: $PROJ"
           flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
+          if [ -f "/tmp/google-services.json" ]; then
+            cp /tmp/google-services.json android/app/google-services.json
+            echo "✅ Restored google-services.json"
+          fi
           cat android/settings.gradle.kts
 
-      - name: Fix Android - For YOUR pubspec (Firebase + Maps + Notifications)
+      - name: Fix Android - Firebase + Maps + Notifications
         run: |
           python3 - << 'PYEOF'
           import pathlib, re
-          # 1. Kotlin 2.3.10 in settings
           for p in [pathlib.Path("android/settings.gradle.kts"), pathlib.Path("android/settings.gradle")]:
               if p.exists():
                   t = p.read_text()
                   t = re.sub(r'(org\.jetbrains\.kotlin\.android["\']?\s*\)\s*version\s*["\'])[0-9.]+', r'\g<1>2.3.10', t)
-                  t = re.sub(r'kotlin_version\s*=\s*["\'][0-9.]+["\']', 'kotlin_version = "2.3.10"', t)
                   if "org.jetbrains.kotlin.android" not in t:
                       t = t.replace(
                           'id("dev.flutter.flutter-gradle-plugin")',
                           'id("org.jetbrains.kotlin.android") version "2.3.10" apply false\n    id("dev.flutter.flutter-gradle-plugin")'
                       )
+                  if "com.google.gms.google-services" not in t:
+                      t = t.replace(
+                          'id("dev.flutter.flutter-gradle-plugin")',
+                          'id("com.google.gms.google-services") version "4.4.2" apply false\n    id("dev.flutter.flutter-gradle-plugin")'
+                      )
                   p.write_text(t)
-          # 2. OVERWRITE ROOT android/build.gradle.kts - clean
           root = pathlib.Path("android/build.gradle.kts")
           if root.exists():
               root.write_text('''allprojects {
@@ -60,10 +72,8 @@ jobs:
                   mavenCentral()
               }
           }
-
           val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
           rootProject.layout.buildDirectory.value(newBuildDir)
-
           subprojects {
               val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
               project.layout.buildDirectory.value(newSubprojectBuildDir)
@@ -71,12 +81,10 @@ jobs:
           subprojects {
               project.evaluationDependsOn(":app")
           }
-
           tasks.register<Delete>("clean") {
               delete(rootProject.layout.buildDirectory)
           }
           ''')
-          # 3. Fix app/build.gradle.kts - NOW WE KNOW THE REAL FILE HAS NO dependencies BLOCK
           for p in [pathlib.Path("android/app/build.gradle.kts"), pathlib.Path("android/app/build.gradle")]:
               if not p.exists():
                   continue
@@ -90,26 +98,26 @@ jobs:
               t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
               t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
               t = t.replace("VERSION_1_8", "VERSION_17")
-              # Desugaring ON - inside compileOptions
+              if "com.google.gms.google-services" not in t:
+                  if 'plugins {' in t:
+                      t = t.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services")', 1)
+                  else:
+                      t = 'plugins {\n    id("com.google.gms.google-services")\n}\n' + t
               t = re.sub(r'(compileOptions\s*\{)', r'\1\n        isCoreLibraryDesugaringEnabled = true', t, count=1)
-              # Desugar lib - THE REAL FIX:
-              # If dependencies block DEY, put inside am. If e NO DEY, CREATE am for bottom.
               if "dependencies" in t:
                   t = re.sub(r'(dependencies\s*\{)', r'\1\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', t, count=1)
               else:
                   t = t.rstrip() + '\n\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")\n}\n'
-              # Kotlin block outside android { }
               if "kotlin {" not in t and "kotlin{" not in t:
                   t = t.rstrip() + "\n\nkotlin {\n    compilerOptions {\n        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17\n    }\n}\n"
               p.write_text(t)
-              print(f"--- {p} ---")
               print(t)
-              assert "isCoreLibraryDesugaringEnabled = true" in t, "DESUGAR FLAG MISSING!"
-              assert "desugar_jdk_libs" in t, "DESUGAR LIB MISSING!"
-              print("✅ VERIFIED: Desugaring + Kotlin block all dey")
+              assert "isCoreLibraryDesugaringEnabled = true" in t
+              assert "desugar_jdk_libs" in t
+              print("✅ VERIFIED")
           PYEOF
 
-      - name: Add Camera + Storage + Notifications permissions
+      - name: Add Permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           for PERM in "CAMERA" "RECORD_AUDIO" "FLASHLIGHT" "READ_MEDIA_IMAGES" "READ_MEDIA_VIDEO" "POST_NOTIFICATIONS" "RECEIVE_BOOT_COMPLETED" "VIBRATE" "ACCESS_FINE_LOCATION" "ACCESS_COARSE_LOCATION"; do
@@ -122,10 +130,10 @@ jobs:
           fi
           cat "$MANIFEST"
 
-      - name: Build APK (Debug - for testing camera on phone)
+      - name: Build APK (Debug)
         run: flutter build apk --debug
 
-      - name: Build AAB (Release - for Play Store)
+      - name: Build AAB (Release)
         run: flutter build appbundle --release
 
       - name: Upload APK
