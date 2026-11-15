@@ -31,13 +31,16 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
-            // FIX for ML Kit R8 failure:
-            // :app:minifyReleaseWithR8 -> Missing class Chinese/Korean/Japanese/Devanagari TextRecognizerOptions
-            // ProGuard -dontwarn did NOT suppress this in AGP 8.x - it is a hard R8 error.
-            // Turning minify OFF bypasses R8 completely. App will be a bit bigger,
-            // but it WILL build. Re-enable minify only after ProGuard is proven to work.
+            // R8 fix: keep minify OFF here.
+            // NOTE: if your GitHub workflow runs 'flutter build appbundle --obfuscate',
+            // that flag forces R8 ON and ignores this. The 4 ML Kit libs below
+            // make R8 pass even then.
             isMinifyEnabled = false
             isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }
@@ -48,4 +51,11 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    // FIX for :app:minifyReleaseWithR8 -> Missing class Chinese/Korean/Japanese/Devanagari TextRecognizerOptions
+    // google_mlkit_text_recognition references ALL 4, but only Latin is bundled.
+    // Adding them gives R8 the real classes. You only use Latin (Ghana Card/Passport).
+    implementation("com.google.mlkit:text-recognition-chinese:16.0.0")
+    implementation("com.google.mlkit:text-recognition-japanese:16.0.0")
+    implementation("com.google.mlkit:text-recognition-korean:16.0.0")
+    implementation("com.google.mlkit:text-recognition-devanagari:16.0.0")
 }
