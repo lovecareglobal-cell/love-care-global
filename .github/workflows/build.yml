@@ -13,43 +13,24 @@ jobs:
           channel: 'stable'
       - name: Get packages
         run: flutter pub get
-      - name: Create Android folder if repo is Web-only
+      - name: Replace old broken Android folder with fresh v2 folder
         run: |
-          if [ ! -d "android" ]; then
-            echo "No android folder - creating it"
-            flutter create . --platforms android --org com.ecareglobal --project-name lovecare
-          else
-            echo "android folder exists - keeping it"
-          fi
-          ls android/app/src/main/
-      - name: Fix Android v1 embedding (Flutter 3.50 deleted v1)
+          echo "=== Deleting old Android v1 folder (it has flutterEmbedding=1, deleted in Flutter 3.50) ==="
+          rm -rf android
+          # Project name from pubspec.yaml (first name: line)
+          PROJ=$(grep -m1 '^name:' pubspec.yaml | sed 's/name: *//;s/ *//g')
+          if [ -z "$PROJ" ]; then PROJ="lovecare"; fi
+          echo "Project: $PROJ"
+          flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
+          echo "=== New MainActivity ==="
+          find android -name "MainActivity.kt" -exec cat {} \;
+          echo "=== New Manifest ==="
+          cat android/app/src/main/AndroidManifest.xml
+      - name: Add Camera + Flashlight permission
         run: |
-          # Find package name from build.gradle / AndroidManifest
-          PKG=$(grep -oP 'applicationId\s*=\s*"\K[^"]+' android/app/build.gradle* 2>/dev/null | head -1)
-          if [ -z "$PKG" ]; then PKG=$(grep -oP 'package="\K[^"]+' android/app/src/main/AndroidManifest.xml | head -1); fi
-          if [ -z "$PKG" ]; then PKG="com.ecareglobal.lovecare"; fi
-          echo "Package: $PKG"
-          # Path for MainActivity.kt
-          DIR="android/app/src/main/kotlin/$(echo $PKG | tr '.' '/')"
-          mkdir -p "$DIR"
-          # Remove old v1 MainActivity (java or kotlin)
-          find android/app/src/main -name "MainActivity.java" -delete || true
-          find android/app/src/main -name "MainActivity.kt" -delete || true
-          # Write new v2 MainActivity
-          cat > "$DIR/MainActivity.kt" <<EOF
-          package $PKG
-          import io.flutter.embedding.android.FlutterActivity
-          class MainActivity : FlutterActivity()
-          EOF
-          cat "$DIR/MainActivity.kt"
-          # Ensure flutterEmbedding = 2 in manifest
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if ! grep -q 'flutterEmbedding' "$MANIFEST"; then
-            sed -i 's|</application>|    <meta-data android:name="flutterEmbedding" android:value="2" />\n    </application>|' "$MANIFEST"
-          fi
-          # Add Camera + Flashlight if missing
           if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
-            sed -i 's|<manifest[^>]*>|&\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.FLASHLIGHT" />|' "$MANIFEST"
+            sed -i 's|<manifest[^>]*>|&\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.FLASHLIGHT" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />|' "$MANIFEST"
           fi
           cat "$MANIFEST"
       - name: Build APK (Debug - for testing camera on phone)
