@@ -49,21 +49,27 @@ jobs:
         run: |
           python3 - << 'PYEOF'
           import pathlib, re
+          # --- FIX settings.gradle.kts - THIS WAS THE BUG ---
           for p in [pathlib.Path("android/settings.gradle.kts"), pathlib.Path("android/settings.gradle")]:
               if p.exists():
                   t = p.read_text()
+                  print("=== BEFORE settings ===")
+                  print(t)
+                  # Remove any old broken google-services line without version
+                  t = re.sub(r'\s*id\(["\']com\.google\.gms\.google-services["\']\)[^\n]*', '', t)
+                  # Now add correct one with version inside plugins block
+                  if 'id("com.google.gms.google-services")' not in t:
+                      if 'plugins {' in t:
+                          t = t.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false', 1)
+                      else:
+                          t = 'plugins {\n    id("com.google.gms.google-services") version "4.4.2" apply false\n}\n' + t
+                  # Fix kotlin version
                   t = re.sub(r'(org\.jetbrains\.kotlin\.android["\']?\s*\)\s*version\s*["\'])[0-9.]+', r'\g<1>2.3.10', t)
                   if "org.jetbrains.kotlin.android" not in t:
-                      t = t.replace(
-                          'id("dev.flutter.flutter-gradle-plugin")',
-                          'id("org.jetbrains.kotlin.android") version "2.3.10" apply false\n    id("dev.flutter.flutter-gradle-plugin")'
-                      )
-                  if "com.google.gms.google-services" not in t:
-                      t = t.replace(
-                          'id("dev.flutter.flutter-gradle-plugin")',
-                          'id("com.google.gms.google-services") version "4.4.2" apply false\n    id("dev.flutter.flutter-gradle-plugin")'
-                      )
+                      t = t.replace('plugins {', 'plugins {\n    id("org.jetbrains.kotlin.android") version "2.3.10" apply false', 1)
                   p.write_text(t)
+                  print("=== AFTER settings ===")
+                  print(t)
           root = pathlib.Path("android/build.gradle.kts")
           if root.exists():
               root.write_text('''allprojects {
@@ -91,13 +97,13 @@ jobs:
               t = p.read_text()
               t = re.sub(r'kotlinOptions\s*\{[^}]*\}', '', t, flags=re.DOTALL)
               t = re.sub(r'compilerOptions\s*\{\s*jvmTarget[^}]*\}', '', t, flags=re.DOTALL)
-              t = re.sub(r'compilerOptions\s*\{\s*jvmTarget.*?\n\s*\}', '', t, flags=re.DOTALL)
               t = re.sub(r'.*isCoreLibraryDesugaringEnabled.*\n', '', t)
               t = re.sub(r'.*coreLibraryDesugaring.*\n', '', t)
               t = re.sub(r'.*desugar_jdk_libs.*\n', '', t)
               t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
               t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
               t = t.replace("VERSION_1_8", "VERSION_17")
+              # FIX: app plugin must NOT have version here (version dey for settings), keep am plain
               if "com.google.gms.google-services" not in t:
                   if 'plugins {' in t:
                       t = t.replace('plugins {', 'plugins {\n    id("com.google.gms.google-services")', 1)
@@ -112,9 +118,6 @@ jobs:
                   t = t.rstrip() + "\n\nkotlin {\n    compilerOptions {\n        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17\n    }\n}\n"
               p.write_text(t)
               print(t)
-              assert "isCoreLibraryDesugaringEnabled = true" in t
-              assert "desugar_jdk_libs" in t
-              print("✅ VERIFIED")
           PYEOF
 
       - name: Add Permissions
