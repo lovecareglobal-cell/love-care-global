@@ -151,6 +151,48 @@ jobs:
           sed -i 's/android:label="[^"]*"/android:label="Love Care Global"/' android/app/src/main/AndroidManifest.xml
           grep -n "android:label" android/app/src/main/AndroidManifest.xml
 
+      - name: Fix Android v1 embedding -> v2
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib
+          # 1. AndroidManifest.xml - must have flutterEmbedding = 2
+          m = pathlib.Path("android/app/src/main/AndroidManifest.xml")
+          txt = m.read_text()
+          if "flutterEmbedding" not in txt:
+              txt = txt.replace("<application", '<application\n        <meta-data android:name="flutterEmbedding" android:value="2" />', 1)
+          else:
+              import re
+              txt = re.sub(r'android:name="flutterEmbedding"[^>]*android:value="[^"]*"', 'android:name="flutterEmbedding" android:value="2"', txt)
+              txt = re.sub(r'android:value="[^"]*"[^>]*android:name="flutterEmbedding"', 'android:value="2" android:name="flutterEmbedding"', txt)
+          # Remove old v1 metadata if present
+          txt = txt.replace('<meta-data android:name="io.flutter.app.android.SplashScreenUntilFirstFrame" android:value="true" />', '')
+          m.write_text(txt)
+          print("=== AndroidManifest.xml ===")
+          print(txt)
+          # 2. MainActivity.kt - must extend FlutterActivity from embedding v2
+          for path in [pathlib.Path("android/app/src/main/kotlin/com/ecareglobal/love_care_global/MainActivity.kt")]:
+              path.parent.mkdir(parents=True, exist_ok=True)
+          # Find any MainActivity file, whatever the package folder is
+          found = list(pathlib.Path("android/app/src/main").rglob("MainActivity.*"))
+          print("Found MainActivity:", found)
+          for f in found:
+              print("--- before", f)
+              print(f.read_text()[:1000])
+              f.unlink()
+          # Recreate correct v2 MainActivity in the right package folder
+          # Detect package from build.gradle.kts applicationId / namespace
+          import re
+          gradle = pathlib.Path("android/app/build.gradle.kts").read_text()
+          mm = re.search(r'applicationId\s*=\s*"([^"]+)"', gradle) or re.search(r'namespace\s*=\s*"([^"]+)"', gradle)
+          pkg = mm.group(1) if mm else "com.ecareglobal.love_care_global"
+          print("Using package:", pkg)
+          dest = pathlib.Path("android/app/src/main/kotlin") / pkg.replace(".", "/") / "MainActivity.kt"
+          dest.parent.mkdir(parents=True, exist_ok=True)
+          dest.write_text(f"package {pkg}\n\nimport io.flutter.embedding.android.FlutterActivity\n\nclass MainActivity : FlutterActivity()\n")
+          print("Wrote", dest)
+          print(dest.read_text())
+          PYEOF
+
       - name: Build APK (Release)
         run: flutter build apk --release
 
