@@ -31,14 +31,13 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")
-            // R8 fix for ML Kit: without this, :app:minifyReleaseWithR8 fails with
-            // Missing class ChineseTextRecognizerOptions / KoreanTextRecognizerOptions
-            isMinifyEnabled = true
-            isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            // FIX for ML Kit R8 failure:
+            // :app:minifyReleaseWithR8 -> Missing class Chinese/Korean/Japanese/Devanagari TextRecognizerOptions
+            // ProGuard -dontwarn did NOT suppress this in AGP 8.x - it is a hard R8 error.
+            // Turning minify OFF bypasses R8 completely. App will be a bit bigger,
+            // but it WILL build. Re-enable minify only after ProGuard is proven to work.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
