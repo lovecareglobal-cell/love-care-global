@@ -11,22 +11,29 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          # V7: NO flutter-version pin - use latest stable (3.50) so Kotlin 2.3 matches google_maps plugin.
-          # Pinning to 3.35.4 gave Kotlin 2.1.0, but google_maps needs 2.3.0 -> build failed.
-      - name: Fix pubspec - camera + missing assets folder
+          flutter-version: '3.35.4'
+
+      - name: Fix pubspec - camera + assets
         run: |
-          sed -i -E 's/^([[:space:]]*camera:[[:space:]]*).*/\1 0.10.6/' pubspec.yaml || true
-          if grep -q "assets/" pubspec.yaml; then
-            mkdir -p assets
-            touch assets/.gitkeep
+          # Use image_picker (better for Ghana Card photo) + permission_handler
+          # Don't force old camera: 0.10.6, it breaks with Kotlin 2.3
+          if ! grep -q "image_picker:" pubspec.yaml; then
+            echo "  image_picker: ^1.1.2" >> pubspec.yaml
           fi
+          if ! grep -q "permission_handler:" pubspec.yaml; then
+            echo "  permission_handler: ^11.3.1" >> pubspec.yaml
+          fi
+          mkdir -p assets
+          touch assets/.gitkeep
           cat pubspec.yaml
+
       - name: Get packages
         run: flutter pub get
+
       - name: Replace old Android folder with fresh v2 folder
         run: |
           rm -rf android
@@ -34,61 +41,75 @@ jobs:
           if [ -z "$PROJ" ]; then PROJ="lovecare"; fi
           echo "Project: $PROJ"
           flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
-          echo "=== Kotlin version in fresh template ==="
-          grep -r "kotlin" android/settings.gradle* || true
+          echo "=== Fresh settings ==="
+          cat android/settings.gradle.kts
+
       - name: Fix Android - Java 17 + Kotlin 2.3.10 + Desugaring
         run: |
           python3 - << 'PYEOF'
           import pathlib, re
-          # 1. Force Kotlin 2.3.10 in settings.gradle.kts / settings.gradle - must match google_maps (2.3.0)
+          # 1. Force Kotlin 2.3.10 - handle BOTH old and new Flutter template formats
           for p in [pathlib.Path("android/settings.gradle.kts"), pathlib.Path("android/settings.gradle")]:
               if p.exists():
                   t = p.read_text()
-                  # Replace any kotlin version 2.1.x / 2.2.x with 2.3.10
-                  t = re.sub(r'(org\.jetbrains\.kotlin\.android[^\n]*?version\s*["\']?)[0-9]+\.[0-9]+\.[0-9]+', r'\g<1>2.3.10', t)
-                  t = re.sub(r'(id\s*\(\s*["\']org\.jetbrains\.kotlin\.android["\']\s*\)\s*version\s*["\'])[0-9.]+', r'\g<1>2.3.10', t)
+                  # Old format: id("org.jetbrains.kotlin.android") version "2.1.0"
+                  t = re.sub(r'(org\.jetbrains\.kotlin\.android["\']?\s*\)\s*version\s*["\'])[0-9.]+', r'\g<1>2.3.10', t)
+                  t = re.sub(r'(kotlin-android.*?version\s*["\'])[0-9.]+', r'\g<1>2.3.10', t)
                   t = re.sub(r'kotlin_version\s*=\s*["\'][0-9.]+["\']', 'kotlin_version = "2.3.10"', t)
-                  # If no version found at all, append explicit pluginManagement pin is handled by template - just log
+                  # NEW Flutter 3.35+ format: plugins block in settings.gradle.kts
+                  # If still no kotlin version found, inject it
+                  if "org.jetbrains.kotlin.android" not in t:
+                      t = t.replace(
+                          'id("dev.flutter.flutter-gradle-plugin")',
+                          'id("org.jetbrains.kotlin.android") version "2.3.10" apply false\n    id("dev.flutter.flutter-gradle-plugin")'
+                      )
                   p.write_text(t)
                   print(f"--- {p} ---")
                   print(t)
-          # 2. Java 17 + Desugaring in app build.gradle.kts
+          # 2. Java 17 in app build.gradle.kts
           for p in [pathlib.Path("android/app/build.gradle.kts"), pathlib.Path("android/app/build.gradle")]:
               if not p.exists():
                   continue
               t = p.read_text()
               t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
               t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
+              t = t.replace("VERSION_1_8", "VERSION_17")
               if "isCoreLibraryDesugaringEnabled" not in t:
-                  if "compileOptions" in t:
-                      t = re.sub(r"(compileOptions\s*\{[^}]*?)(\})", r"\1\n        isCoreLibraryDesugaringEnabled = true\n    \2", t, count=1, flags=re.DOTALL)
-                  else:
-                      t = t.replace("android {", "android {\n    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n    }", 1)
+                  t = t.replace("compileOptions {", "compileOptions {\n        isCoreLibraryDesugaringEnabled = true", 1)
               if "desugar_jdk_libs" not in t:
-                  if "dependencies {" in t:
-                      t = t.replace("dependencies {", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', 1)
-                  else:
-                      t += '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")\n}\n'
+                  t = t.replace("dependencies {", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', 1)
               p.write_text(t)
               print(f"--- {p} ---")
               print(t)
           PYEOF
-      - name: Add Camera + Flashlight permission
+
+      - name: Add Camera + Storage permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
-            sed -i 's|<manifest[^>]*>|&\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.FLASHLIGHT" />|' "$MANIFEST"
+          # Add all needed permissions if not there
+          for PERM in "CAMERA" "RECORD_AUDIO" "FLASHLIGHT" "READ_MEDIA_IMAGES" "READ_MEDIA_VIDEO"; do
+            if ! grep -q "android.permission.$PERM" "$MANIFEST"; then
+              sed -i "s|<manifest[^>]*>|&\n    <uses-permission android:name=\"android.permission.$PERM\" />|" "$MANIFEST"
+            fi
+          done
+          # Camera hardware - not required so tablets no go crash
+          if ! grep -q "android.hardware.camera" "$MANIFEST"; then
+            sed -i 's|<application|<uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application|' "$MANIFEST"
           fi
           cat "$MANIFEST"
+
       - name: Build APK (Debug - for testing camera on phone)
         run: flutter build apk --debug
+
       - name: Build AAB (Release - for Play Store)
         run: flutter build appbundle --release
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
