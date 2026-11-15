@@ -11,25 +11,27 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-      - name: Fix pubspec - camera + missing assets folder
+          flutter-version: '3.35.4'
+
+      - name: Fix pubspec - camera + assets
         run: |
-          sed -i -E 's/^([[:space:]]*camera:[[:space:]]*).*/\1 0.10.6/' pubspec.yaml || true
-          if grep -q "assets/" pubspec.yaml; then
-            mkdir -p assets
-            touch assets/.gitkeep
+          if ! grep -q "image_picker:" pubspec.yaml; then
+            echo "  image_picker: ^1.1.2" >> pubspec.yaml
           fi
+          if ! grep -q "permission_handler:" pubspec.yaml; then
+            echo "  permission_handler: ^11.3.1" >> pubspec.yaml
+          fi
+          mkdir -p assets
+          touch assets/.gitkeep
           cat pubspec.yaml
-      - name: Upgrade plugins to versions that support SDK 36 + Built-in Kotlin
-        run: |
-          flutter pub get
-          flutter pub upgrade --major-versions || flutter pub upgrade || true
-          cat pubspec.yaml
+
       - name: Get packages
         run: flutter pub get
+
       - name: Replace old Android folder with fresh v2 folder
         run: |
           rm -rf android
@@ -37,82 +39,98 @@ jobs:
           if [ -z "$PROJ" ]; then PROJ="lovecare"; fi
           echo "Project: $PROJ"
           flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
-      - name: Fix Android - compileSdk 36 for APP + ALL PLUGINS + Java 17 + Kotlin 2.3.10 + Desugaring
+          cat android/settings.gradle.kts
+
+      - name: Fix Android - Kotlin 2.3.10 + Clean Root Build File
         run: |
           python3 - << 'PYEOF'
           import pathlib, re
+          # 1. Kotlin 2.3.10 in settings
           for p in [pathlib.Path("android/settings.gradle.kts"), pathlib.Path("android/settings.gradle")]:
               if p.exists():
                   t = p.read_text()
-                  t = re.sub(r'(org\.jetbrains\.kotlin\.android[^\n]*?version\s*["\']?)[0-9]+\.[0-9]+\.[0-9]+', r'\g<1>2.3.10', t)
+                  t = re.sub(r'(org\.jetbrains\.kotlin\.android["\']?\s*\)\s*version\s*["\'])[0-9.]+', r'\g<1>2.3.10', t)
                   t = re.sub(r'kotlin_version\s*=\s*["\'][0-9.]+["\']', 'kotlin_version = "2.3.10"', t)
+                  if "org.jetbrains.kotlin.android" not in t:
+                      t = t.replace(
+                          'id("dev.flutter.flutter-gradle-plugin")',
+                          'id("org.jetbrains.kotlin.android") version "2.3.10" apply false\n    id("dev.flutter.flutter-gradle-plugin")'
+                      )
                   p.write_text(t)
-                  print("--- settings ---")
-                  print(t)
-          for p in [pathlib.Path("android/build.gradle.kts"), pathlib.Path("android/build.gradle")]:
-              if p.exists():
-                  t = p.read_text()
-                  if "Force all plugins to compileSdk 36" not in t:
-                      block = "\n// V9: Force all plugins to compileSdk 36\n"
-                      block += "subprojects {\n"
-                      block += "    afterEvaluate {\n"
-                      block += "        if (hasProperty(\"android\")) {\n"
-                      block += "            try { android.compileSdk = 36 } catch (e: Exception) { println(\"skip \" + project.name) }\n"
-                      block += "        }\n"
-                      block += "    }\n"
-                      block += "}\n"
-                      t = t + block
-                  p.write_text(t)
-                  print("--- root build ---")
-                  print(t)
+          # 2. OVERWRITE ROOT android/build.gradle.kts - DELETE the broken android.compileSdk line
+          root = pathlib.Path("android/build.gradle.kts")
+          if root.exists():
+              root.write_text('''allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          val newBuildDir: Directory = rootProject.layout.buildDirectory.dir("../../build").get()
+          rootProject.layout.buildDirectory.value(newBuildDir)
+
+          subprojects {
+              val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
+              project.layout.buildDirectory.value(newSubprojectBuildDir)
+          }
+          subprojects {
+              project.evaluationDependsOn(":app")
+          }
+
+          tasks.register<Delete>("clean") {
+              delete(rootProject.layout.buildDirectory)
+          }
+          ''')
+              print("--- OVERWROTE android/build.gradle.kts ---")
+              print(root.read_text())
+          # 3. Fix app/build.gradle.kts - correct kotlin block outside android { }
           for p in [pathlib.Path("android/app/build.gradle.kts"), pathlib.Path("android/app/build.gradle")]:
               if not p.exists():
                   continue
               t = p.read_text()
-              t = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 36', t)
-              t = re.sub(r'compileSdkVersion\s+\d+', 'compileSdkVersion 36', t)
-              t = re.sub(r'targetSdk\s*=\s*\d+', 'targetSdk = 36', t)
-              t = re.sub(r'targetSdkVersion\s+\d+', 'targetSdkVersion 36', t)
-              t = re.sub(r'minSdk\s*=\s*\d+', 'minSdk = 23', t)
-              t = re.sub(r'minSdkVersion\s+\d+', 'minSdkVersion 23', t)
-              if "compileSdk" not in t:
-                  t = t.replace("android {", "android {\n    compileSdk = 36", 1)
+              t = re.sub(r'kotlinOptions\s*\{[^}]*\}', '', t, flags=re.DOTALL)
+              t = re.sub(r'compilerOptions\s*\{\s*jvmTarget[^}]*\}', '', t, flags=re.DOTALL)
+              t = re.sub(r'compilerOptions\s*\{\s*jvmTarget.*?\n\s*\}', '', t, flags=re.DOTALL)
               t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
               t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
+              t = t.replace("VERSION_1_8", "VERSION_17")
               if "isCoreLibraryDesugaringEnabled" not in t:
-                  if "compileOptions" in t:
-                      t = re.sub(r"(compileOptions\s*\{[^}]*?)(\})", r"\1\n        isCoreLibraryDesugaringEnabled = true\n    \2", t, count=1, flags=re.DOTALL)
-                  else:
-                      t = t.replace("android {", "android {\n    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n    }", 1)
+                  t = t.replace("compileOptions {", "compileOptions {\n        isCoreLibraryDesugaringEnabled = true", 1)
               if "desugar_jdk_libs" not in t:
-                  if "dependencies {" in t:
-                      t = t.replace("dependencies {", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', 1)
-                  else:
-                      t = t + '\ndependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")\n}\n'
+                  t = t.replace("dependencies {", 'dependencies {\n    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")', 1)
+              if "kotlin {" not in t and "kotlin{" not in t:
+                  t = t.rstrip() + "\n\nkotlin {\n    compilerOptions {\n        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17\n    }\n}\n"
               p.write_text(t)
-              print("--- app build ---")
+              print(f"--- {p} ---")
               print(t)
-          lp = pathlib.Path("android/local.properties")
-          lp.write_text("sdk.dir=/usr/local/lib/android/sdk\nflutter.sdk=/opt/hostedtoolcache/flutter/stable-3.50.0-x64\nflutter.buildMode=debug\nflutter.versionName=1.0.0\nflutter.versionCode=1\nflutter.compileSdkVersion=36\nflutter.targetSdkVersion=36\nflutter.minSdkVersion=23\n")
-          print("--- local.properties ---")
-          print(lp.read_text())
           PYEOF
-      - name: Add Camera + Flashlight permission
+
+      - name: Add Camera + Storage permissions
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
-          if ! grep -q "android.permission.CAMERA" "$MANIFEST"; then
-            sed -i 's|<manifest[^>]*>|&\n    <uses-permission android:name="android.permission.CAMERA" />\n    <uses-permission android:name="android.permission.FLASHLIGHT" />|' "$MANIFEST"
+          for PERM in "CAMERA" "RECORD_AUDIO" "FLASHLIGHT" "READ_MEDIA_IMAGES" "READ_MEDIA_VIDEO"; do
+            if ! grep -q "android.permission.$PERM" "$MANIFEST"; then
+              sed -i "s|<manifest[^>]*>|&\n    <uses-permission android:name=\"android.permission.$PERM\" />|" "$MANIFEST"
+            fi
+          done
+          if ! grep -q "android.hardware.camera" "$MANIFEST"; then
+            sed -i 's|<application|<uses-feature android:name="android.hardware.camera" android:required="false" />\n    <application|' "$MANIFEST"
           fi
           cat "$MANIFEST"
+
       - name: Build APK (Debug - for testing camera on phone)
         run: flutter build apk --debug
+
       - name: Build AAB (Release - for Play Store)
         run: flutter build appbundle --release
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+
       - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
