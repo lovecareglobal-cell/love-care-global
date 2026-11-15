@@ -16,7 +16,7 @@ dependencies:
   firebase_storage: ^12.3.0
   cloud_firestore: ^5.6.0
   firebase_messaging: ^15.2.0
-  flutter_local_notifications: ^18.0.1 # APK ONLY - custom sound when closed. Website ignores it. # FCM Push - phone alerts even when app is closed
+  flutter_local_notifications: ^18.0.1
   web: ^1.1.0
   just_audio: ^0.9.42
   audioplayers: ^6.4.0
@@ -31,12 +31,9 @@ dependencies:
   shared_preferences: ^2.3.2
   file_picker: ^8.1.4
   image_picker: ^1.1.2
-  camera: ^0.11.0 # ID SCANNER - live camera + box overlay
+  camera: ^0.11.0
   geolocator: ^13.0.2
   permission_handler: ^11.3.1
-  # WEB OCR - for ID check. Works on Web.
-  # DO NOT ADD google_mlkit_text_recognition - it is Android/iOS ONLY
-  # and breaks flutter build web with "Couldn't resolve the package".
   http: ^1.2.0
 
 dependency_overrides:
@@ -48,8 +45,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
 
 flutter:
   uses-material-design: true
   assets:
     - assets/
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon.png"
+  min_sdk_android: 21
