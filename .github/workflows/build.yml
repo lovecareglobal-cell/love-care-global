@@ -15,22 +15,15 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          flutter-version: '3.35.4'
+          # V7: NO flutter-version pin - use latest stable (3.50) so Kotlin 2.3 matches google_maps plugin.
+          # Pinning to 3.35.4 gave Kotlin 2.1.0, but google_maps needs 2.3.0 -> build failed.
       - name: Fix pubspec - camera + missing assets folder
         run: |
-          echo "=== Before ==="
-          grep -i "camera" pubspec.yaml || true
-          grep -A5 "assets" pubspec.yaml || true
-          # camera 0.10.6 = Camera2, no broken CameraX 1.5.3
           sed -i -E 's/^([[:space:]]*camera:[[:space:]]*).*/\1 0.10.6/' pubspec.yaml || true
-          # V6: pubspec declares assets/ but folder does not exist in repo -> create it
           if grep -q "assets/" pubspec.yaml; then
             mkdir -p assets
             touch assets/.gitkeep
-            echo "Created missing assets/ folder"
           fi
-          ls -la assets/ || true
-          echo "=== After pubspec ==="
           cat pubspec.yaml
       - name: Get packages
         run: flutter pub get
@@ -41,22 +34,32 @@ jobs:
           if [ -z "$PROJ" ]; then PROJ="lovecare"; fi
           echo "Project: $PROJ"
           flutter create . --platforms android --org com.ecareglobal --project-name "$PROJ"
-      - name: Fix Android - Java 17 + Desugaring for flutter_local_notifications
+          echo "=== Kotlin version in fresh template ==="
+          grep -r "kotlin" android/settings.gradle* || true
+      - name: Fix Android - Java 17 + Kotlin 2.3.10 + Desugaring
         run: |
           python3 - << 'PYEOF'
           import pathlib, re
+          # 1. Force Kotlin 2.3.10 in settings.gradle.kts / settings.gradle - must match google_maps (2.3.0)
+          for p in [pathlib.Path("android/settings.gradle.kts"), pathlib.Path("android/settings.gradle")]:
+              if p.exists():
+                  t = p.read_text()
+                  # Replace any kotlin version 2.1.x / 2.2.x with 2.3.10
+                  t = re.sub(r'(org\.jetbrains\.kotlin\.android[^\n]*?version\s*["\']?)[0-9]+\.[0-9]+\.[0-9]+', r'\g<1>2.3.10', t)
+                  t = re.sub(r'(id\s*\(\s*["\']org\.jetbrains\.kotlin\.android["\']\s*\)\s*version\s*["\'])[0-9.]+', r'\g<1>2.3.10', t)
+                  t = re.sub(r'kotlin_version\s*=\s*["\'][0-9.]+["\']', 'kotlin_version = "2.3.10"', t)
+                  # If no version found at all, append explicit pluginManagement pin is handled by template - just log
+                  p.write_text(t)
+                  print(f"--- {p} ---")
+                  print(t)
+          # 2. Java 17 + Desugaring in app build.gradle.kts
           for p in [pathlib.Path("android/app/build.gradle.kts"), pathlib.Path("android/app/build.gradle")]:
               if not p.exists():
                   continue
               t = p.read_text()
-              # Force Java 17
               t = t.replace("JavaVersion.VERSION_1_8", "JavaVersion.VERSION_17")
               t = t.replace("JavaVersion.VERSION_11", "JavaVersion.VERSION_17")
-              t = t.replace("sourceCompatibility = 1.8", "sourceCompatibility = 17")
-              t = t.replace("targetCompatibility = 1.8", "targetCompatibility = 17")
-              # V6: Enable core library desugaring (required by flutter_local_notifications)
               if "isCoreLibraryDesugaringEnabled" not in t:
-                  # Insert inside compileOptions block if present, else add it
                   if "compileOptions" in t:
                       t = re.sub(r"(compileOptions\s*\{[^}]*?)(\})", r"\1\n        isCoreLibraryDesugaringEnabled = true\n    \2", t, count=1, flags=re.DOTALL)
                   else:
