@@ -73,8 +73,20 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   Map _normalize(String id, Map raw, String type) {
     final v = raw['profile'] is Map ? Map<String, dynamic>.from(raw['profile']) : raw['data'] is Map ? Map<String, dynamic>.from(raw['data']) : raw;
     final email = ((v['email'] ?? v['clientEmail'] ?? '') as String).toLowerCase();
-    final username = v['username'] ?? v['userName'] ?? id;
-    var fullName = (v['fullName'] ?? v['name'] ?? v['displayName'] ?? v['clientName'] ?? username ?? (email.isNotEmpty ? email.split('@')[0] : 'Unnamed')).toString();
+    // FIX: NEVER use UID / doc id as username - that is the gibberish
+    // like 0DhJwm6Gn6gi2SYEmop... that was showing under the name.
+    // Real username only, else email prefix, else empty (hidden in UI).
+    String _cleanUsername(Object? raw) {
+      final s = (raw ?? '').toString().trim();
+      if (s.isEmpty) return '';
+      if (s == id) return ''; // doc id IS the UID
+      // UID-like: long, no spaces, mixed upper/lower/digits, 20+ chars
+      final looksLikeUid = s.length >= 20 && !s.contains(' ') && !s.contains('@') && RegExp(r'[A-Z]').hasMatch(s) && RegExp(r'[a-z]').hasMatch(s) && RegExp(r'[0-9]').hasMatch(s);
+      if (looksLikeUid) return '';
+      return s;
+    }
+    final username = _cleanUsername(v['username'] ?? v['userName']);
+    var fullName = (v['fullName'] ?? v['name'] ?? v['displayName'] ?? v['clientName'] ?? (username.isNotEmpty ? username : null) ?? (email.isNotEmpty ? email.split('@')[0] : 'Unnamed')).toString();
     if (fullName.length > 50) fullName = fullName.substring(0, 50);
     final photo = v['photoURL'] ?? v['photo'] ?? v['photoUrl'] ?? v['avatar'] ?? v['avatarUrl'] ?? '';
     // NEW nurse_registration.dart fields: photoUrl, idFrontUrl, idBackUrl, pinCardUrl/pinUrl, cvUrl, certificateUrl
@@ -221,7 +233,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   void _viewAllDocs(Map rec) {
     showDialog(context: context, builder: (_) => AlertDialog(
       title: Text('All Uploads — ${rec['fullName'] ?? rec['name']}'),
-      content: SingleChildScrollView(child: Text('Full Name: ${rec['fullName'] ?? rec['name']}\nUsername (Login): ${rec['username'] ?? rec['id']}\nEmail: ${rec['email'].toString().isEmpty ? 'N/A (Username System)' : rec['email']}\nCountry Code: ${rec['countryCode'] ?? 'N/A'}\nPhone: ${rec['phone']}\nFull Phone: ${rec['countryCode'] ?? ''} ${rec['phone']}\nApproved: ${rec['isApproved'] == true ? 'YES ✅' : 'NO ⏳'}\nHasAll4: ${rec['hasAll4'] == true ? 'YES ✅' : 'NO'}\nPhoto: ${rec['photo'].toString().isNotEmpty ? 'View' : 'Missing'}\nID: ${rec['idURL'].toString().isNotEmpty ? 'View' : 'Missing'}\nLicence: ${rec['licenceURL'].toString().isNotEmpty ? 'View' : 'Missing'}\nVideo: ${rec['videoURL'].toString().isNotEmpty ? 'View' : 'Missing'}\nCert: ${rec['certURL'].toString().isNotEmpty ? 'View' : 'Optional'}')),
+      content: SingleChildScrollView(child: Text('Full Name: ${rec['fullName'] ?? rec['name']}\nUsername: ${(rec['username'] as String?)?.isNotEmpty == true ? rec['username'] : '— (login with email)'}\nEmail: ${rec['email'].toString().isEmpty ? 'N/A (Username System)' : rec['email']}\nCountry Code: ${rec['countryCode'] ?? 'N/A'}\nPhone: ${rec['phone']}\nFull Phone: ${rec['countryCode'] ?? ''} ${rec['phone']}\nApproved: ${rec['isApproved'] == true ? 'YES ✅' : 'NO ⏳'}\nHasAll4: ${rec['hasAll4'] == true ? 'YES ✅' : 'NO'}\nPhoto: ${rec['photo'].toString().isNotEmpty ? 'View' : 'Missing'}\nID: ${rec['idURL'].toString().isNotEmpty ? 'View' : 'Missing'}\nLicence: ${rec['licenceURL'].toString().isNotEmpty ? 'View' : 'Missing'}\nVideo: ${rec['videoURL'].toString().isNotEmpty ? 'View' : 'Missing'}\nCert: ${rec['certURL'].toString().isNotEmpty ? 'View' : 'Optional'}')),
       actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
     ));
   }
@@ -492,7 +504,13 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           final rec = list[i];
           final displayName = rec['fullName'] ?? rec['name'];
           return Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: rec['isApproved'] == true ? Colors.green.withOpacity(0.08) : const Color(0xFF1C1238), borderRadius: BorderRadius.circular(18), border: Border.all(color: rec['isApproved'] == true ? Colors.green.withOpacity(0.4) : Colors.purple.withOpacity(0.2))), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [CircleAvatar(radius: 22, backgroundImage: rec['photo'].toString().isNotEmpty ? NetworkImage(rec['photo']) : null, child: rec['photo'].toString().isEmpty ? Text(displayName.toString().isNotEmpty ? displayName[0].toUpperCase() : '?') : null), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('$displayName ${rec['type'] == 'nurse' ? '👩‍⚕️' : '👤'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), Text('Username: ${rec['username'] ?? rec['email'] ?? rec['id']}', style: const TextStyle(color: Colors.purple, fontSize: 10))]))]),
+            // NAME UNDER PHOTO - big, white, always visible. Username only if real, never UID.
+            Column(children: [
+              CircleAvatar(radius: 42, backgroundImage: rec['photo'].toString().isNotEmpty ? NetworkImage(rec['photo']) : null, child: rec['photo'].toString().isEmpty ? Text(displayName.toString().isNotEmpty ? displayName[0].toUpperCase() : '?', style: const TextStyle(fontSize: 28)) : null),
+              const SizedBox(height: 8),
+              Text('$displayName ${rec['type'] == 'nurse' ? '👩‍⚕️' : '👤'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white), textAlign: TextAlign.center),
+              if (rec['username'] != null && (rec['username'] as String).isNotEmpty) Text('@${rec['username']}', style: const TextStyle(color: Colors.purpleAccent, fontSize: 12)),
+            ]),
             const SizedBox(height: 8),
             Row(children: [Chip(label: Text(rec['isApproved'] == true ? '✅ APPROVED' : '⏳ PENDING', style: const TextStyle(fontSize: 10)), backgroundColor: rec['isApproved'] == true ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2)), const SizedBox(width: 6), Chip(label: Text((rec['hasAll5'] == true || rec['hasAll4'] == true) ? '✅ ALL 4' : '❌ Missing', style: const TextStyle(fontSize: 10)), backgroundColor: (rec['hasAll5'] == true || rec['hasAll4'] == true) ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2))]),
             const SizedBox(height: 6),
@@ -500,7 +518,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
             Text('📞 ${rec['phone'].toString().isEmpty ? 'no phone' : rec['phone']}', style: const TextStyle(fontSize: 11)),
             if (rec['type'] == 'nurse') Text('🎓 ${rec['qualification'] ?? ''} • ${rec['services'] ?? ''}\n👤 Ref: ${rec['referenceName'] ?? ''} ${rec['referencePhone'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
             Text('📍 ${rec['gpsName'] ?? ''} ${rec['lat'] != null ? '(${(rec['lat'] as num).toStringAsFixed(4)}, ${(rec['lng'] as num).toStringAsFixed(4)})' : ''}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
-            Text('UID: ${rec['uid']} • ${rec['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((rec['createdAt'] as num).toInt()) : ''}', style: const TextStyle(fontSize: 10, color: Colors.white60)),
+            Text(rec['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((rec['createdAt'] as num).toInt()).toString() : '', style: const TextStyle(fontSize: 10, color: Colors.white60)), // UID hidden - it is gibberish, not a name
             const SizedBox(height: 10),
             GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), childAspectRatio: 1.2, crossAxisSpacing: 8, mainAxisSpacing: 8, children: [
               _docBox(rec['photo'], 'Photo', rec['hasPhoto'] == true, 'image'),
