@@ -6,10 +6,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models/id_catalog.dart';
 
@@ -64,11 +64,9 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   bool _isCheckingId = false;
   bool _isSubmitting = false;
 
-  // NO API KEY NEEDED: ID check now uses on-device ML Kit OCR.
-  // DO NOT put a Google Cloud Vision API key in this file.
-  // Anyone can extract it from the APK and run up your bill.
-  // If you ever need cloud Vision, call it from a Cloud Function,
-  // never from the app.
+  // NO API KEY NEEDED: ID check uses on-device ML Kit OCR.
+  // Never put a Google Cloud Vision API key in this file -
+  // anyone can extract it from the APK and run up your bill.
 
   List<IdTypeOption> get _idTypesForCountry =>
       IdCatalog.forCountry(_selectedCountry);
@@ -246,42 +244,26 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       );
       return;
     }
-
     setState(() {
       _idCheckAttempted = true;
       _isCheckingId = true;
       _idCheckMessage = 'Checking ID... reading photo...';
       _idCheckDetails = [];
     });
-
     try {
-      // --- Step 1: Format check (what you already had) ---
       final pattern = _selectedIdType!.pattern;
       final typed = _idNumberController.text.trim().toUpperCase();
       final formatOk = pattern == null || pattern.hasMatch(typed);
-
-      // --- Step 2: REAL OCR - read the number off the ID photo ---
-      // ML Kit runs on the phone, no API key, no internet, no bill.
-      // Write bytes to a temp file - fromFilePath is far more reliable
-      // than fromBytes (no manual camera metadata needed).
       final ocrText = await _ocrFromBytes(_idFrontBytes!);
-
-      // Normalise OCR: remove spaces/dashes, uppercase, keep A-Z + 0-9.
-      // Ghana Card GHA-123456789-0 -> GHA1234567890, typed GHA-123456789-0 -> same.
       String norm(String s) => s.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
       final typedNorm = norm(typed);
       final ocrNorm = norm(ocrText);
-
-      // The typed number (or a long chunk of it) must appear in the photo text.
-      // Use the digits-only core so GHA- prefix / OCR misreads don't fail good IDs.
       final typedDigits = typed.replaceAll(RegExp(r'[^0-9]'), '');
       final ocrDigits = ocrText.replaceAll(RegExp(r'[^0-9]'), '');
       final digitsMatch = typedDigits.length >= 6 &&
           (ocrDigits.contains(typedDigits) ||
-              // Fallback: at least 80% of the typed digits appear in order in OCR
               _containsMostInOrder(ocrDigits, typedDigits, 0.8));
       final fullMatch = typedNorm.isNotEmpty && ocrNorm.contains(typedNorm);
-
       setState(() {
         _idCheckPassed = formatOk && (fullMatch || digitsMatch);
         if (_idCheckPassed) {
@@ -298,10 +280,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
           _idCheckDetails = ['❌ No text found on ID photo', 'Tip: fill the frame, turn on flash if dark'];
         } else {
           _idCheckMessage = 'Number on ID photo does not match what you typed. Check both and try again.';
-          _idCheckDetails = [
-            '❌ Typed: $typed',
-            '❌ Photo read as: ${ocrText.trim().split(RegExp(r'\s+')).take(12).join(' ')}',
-          ];
+          _idCheckDetails = ['❌ Typed: $typed', '❌ Photo read as: ${ocrText.trim().split(RegExp(r'\\s+')).take(12).join(' ')}'];
         }
       });
     } catch (e) {
@@ -315,8 +294,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     }
   }
 
-  /// OCR helper: ML Kit's fromFilePath is far more reliable than
-  /// fromBytes (no manual camera metadata needed).
   Future<String> _ocrFromBytes(Uint8List bytes) async {
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/id_front_${DateTime.now().millisecondsSinceEpoch}.jpg');
@@ -334,7 +311,6 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     }
   }
 
-  /// True if at least [ratio] of [needle] chars appear in [haystack] in order.
   bool _containsMostInOrder(String haystack, String needle, double ratio) {
     int found = 0, pos = 0;
     for (int i = 0; i < needle.length; i++) {
