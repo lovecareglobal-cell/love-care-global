@@ -138,6 +138,17 @@ jobs:
       - name: Generate App Icon from assets/icon.png
         run: |
           ls -lh assets/icon.png
+          # Force Android only - we no get iOS folder
+          python3 - << 'PYEOF'
+          import pathlib
+          p = pathlib.Path("pubspec.yaml")
+          t = p.read_text()
+          t = t.replace("ios: true", "ios: false")
+          if "ios: false" not in t:
+              t = t.replace("android: true", "android: true\n  ios: false")
+          p.write_text(t)
+          print(p.read_text()[-400:])
+          PYEOF
           dart run flutter_launcher_icons
 
       - name: Set App Name to Love Care Global
