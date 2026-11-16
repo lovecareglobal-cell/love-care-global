@@ -30,27 +30,64 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
     if (email.isEmpty || pass.isEmpty) { setState(() => _msg = 'Enter email + password'); return; }
     setState(() { _loading = true; _msg = 'Checking...'; });
     try {
-      // GUARD: If this email is a CLIENT, BLOCK immediately - before sign in
+      // GUARD: If this email is a CLIENT, BLOCK immediately - before sign in.
+      // Check BOTH lowercased and original-case, in case the client doc was saved before lowercasing.
       final clientCheck = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: email).limit(1).get();
-      if (clientCheck.docs.isNotEmpty) {
-        setState(() { _loading = false; _msg = 'BLOCKED: This is a CLIENT account. Use Client Login.'; });
+      final clientCheckRaw = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: _emailCtrl.text.trim()).limit(1).get();
+      if (clientCheck.docs.isNotEmpty || clientCheckRaw.docs.isNotEmpty) {
+        setState(() { _loading = false; _msg = 'BLOCKED: This is a CLIENT account. Use Client Login. One email cannot be both.'; });
         return;
       }
       final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pass);
       final uid = cred.user!.uid;
 
-      // GUARD 2: Must exist in nurses/pending + be approved + complete
-      var doc = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
-      if (!doc.exists) {
-        doc = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
-      }
-      if (!doc.exists) {
-        // NOT REGISTERED - DELETE Auth user + BLOCK
-        await cred.user!.delete().catchError((_) {});
+      // GUARD 2: Must exist in nurses/pending + be approved + complete.
+      // BYPASS FIX: Before deleting, check EVERYWHERE. If this UID is a real Client,
+      // sign out ONLY and NEVER delete - deleting would erase their Client account.
+      // This is the bug where a Client trying Nurse Login got deleted.
+      final clientByUid = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
+      if (clientByUid.exists) {
         await FirebaseAuth.instance.signOut();
-        setState(() { _loading = false; _msg = 'BLOCKED: NOT A REGISTERED NURSE. Go Register first.'; });
+        setState(() { _loading = false; _msg = 'BLOCKED: This is a CLIENT account. Use Client Login. One email cannot be both.'; });
         return;
       }
+      // Nurse can be in any of these (old registrations wrote to different ones).
+      // Check all before declaring NOT REGISTERED.
+      var doc = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
+      DocumentSnapshot<Map<String, dynamic>>? pendingDoc;
+      if (!doc.exists) {
+        pendingDoc = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
+        if (pendingDoc.exists) doc = pendingDoc;
+      } else {
+        pendingDoc = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
+      }
+      if (!doc.exists) {
+        final inRegs = await FirebaseFirestore.instance.collection('nurse_registrations').doc(uid).get();
+        if (inRegs.exists) doc = inRegs;
+      }
+      if (!doc.exists) {
+        final inCeo = await FirebaseFirestore.instance.collection('ceo_registration').doc(uid).get();
+        if (inCeo.exists) doc = inCeo;
+      }
+      // If nurses doc is pending but pending_nurses doc is approved, CEO approved in the
+      // pending list - use the approved one.
+      if (doc.exists && pendingDoc != null && pendingDoc.exists) {
+        final pData = pendingDoc.data()!;
+        final pApproved = pData['isApproved'] == true || pData['approved'] == true || pData['status'] == 'approved';
+        final nData = doc.data()!;
+        final nApproved = nData['isApproved'] == true || nData['approved'] == true || nData['status'] == 'approved';
+        if (pApproved && !nApproved) doc = pendingDoc;
+      }
+      if (!doc.exists) {
+        // No profile in ANY role: leftover from failed / bypassed registration.
+        // Sign-out alone leaves it in Auth, so 2nd login slips through. DELETE it.
+        // (Client case already returned above, so this delete is safe.)
+        try { await cred.user!.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); }
+        setState(() { _loading = false; _msg = 'BLOCKED: NOT A REGISTERED NURSE. Go Register first. Leftover account deleted.'; });
+        return;
+      }
+      // NURSE GATE: CEO approval is the gate, NOT email verification.
+      // Email verification is for CLIENT only. Do NOT block nurses on emailVerified here.
       final data = doc.data()!;
       final approved = data['isApproved'] == true || data['approved'] == true || data['status'] == 'approved';
 
@@ -96,9 +133,30 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
         context,
         MaterialPageRoute(builder: (_) => const NurseDashboardScreen()),
       );
+    } on FirebaseAuthException catch (e) {
+      String m;
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential' || e.code == 'wrong-password') {
+        m = 'Login failed: Wrong email or password. If you never completed registration, register again - a failed registration does not create a login.';
+      } else if (e.code == 'invalid-email') {
+        m = 'Login failed: Enter a valid email.';
+      } else if (e.code == 'too-many-requests') {
+        m = 'Too many tries. Wait a few minutes and try again.';
+      } else if (e.code == 'user-disabled') {
+        m = 'This account is disabled. Contact CEO.';
+      } else {
+        m = 'Login failed: ${e.message ?? e.code}';
+      }
+      setState(() { _loading = false; _msg = m; });
     } catch (e) {
       setState(() { _loading = false; _msg = 'Login failed: $e'; });
     }
+  }
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
   }
 
   @override
