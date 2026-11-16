@@ -132,7 +132,7 @@ class _NurseSettingsScreenState extends State<NurseSettingsScreen> {
       final ref = FirebaseStorage.instance.ref('nurses/${currentUser!.uid}/${type}_${DateTime.now().millisecondsSinceEpoch}_${res.files.single.name}');
       final task = ref.putFile(file);
       task.snapshotEvents.listen((s) {
-        final pct = s.totalBytes > 0 ? s.bytesTransferred / s.totalBytes : 0;
+        final double pct = s.totalBytes > 0 ? (s.bytesTransferred / s.totalBytes).toDouble() : 0.0;
         setState(() => uploadProgress[type] = pct);
       });
       await task;
