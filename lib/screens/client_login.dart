@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'client_dashboard.dart';
 
 class ClientLoginPage extends StatefulWidget {
   const ClientLoginPage({super.key});
@@ -135,15 +137,40 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
         setState(() { _loading = false; _msg = 'BLOCKED: Registration incomplete. Register again.'; });
         return;
       }
+      // Save for ClientDashboardScreen - it reads these keys from SharedPreferences.
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('clientName', (data['fullName'] ?? data['name'] ?? '').toString());
+        await prefs.setString('fullName', (data['fullName'] ?? data['name'] ?? '').toString());
+        await prefs.setString('clientUsername', (data['username'] ?? '').toString());
+        await prefs.setString('username', (data['username'] ?? '').toString());
+        await prefs.setString('clientPhone', (data['phone'] ?? '').toString());
+        await prefs.setString('phone', (data['phone'] ?? '').toString());
+        await prefs.setString('clientPhoto', (data['photoUrl'] ?? data['photo'] ?? data['photoURL'] ?? '').toString());
+        await prefs.setString('photoUrl', (data['photoUrl'] ?? data['photo'] ?? data['photoURL'] ?? '').toString());
+        await prefs.setString('clientPhotoUrl', (data['photoUrl'] ?? data['photo'] ?? data['photoURL'] ?? '').toString());
+        await prefs.setString('clientCountryCode', (data['countryCode'] ?? '+233').toString());
+        await prefs.setString('lcg_client_uid', uid);
+        await prefs.setString('clientUid', uid);
+        await prefs.setString('clientEmail', loginEmail);
+      } catch (_) {}
       setState(() { _loading = false; _msg = '✅ Welcome Client!'; });
-      // FIXED: No /client-home in app - go back to Home, user is logged in
+      // 1. CLIENT LOGIN OPENS CLIENT DASHBOARD FILE (ClientDashboardScreen) - not Home.
       if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const ClientDashboardScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String m;
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential' || e.code == 'wrong-password') {
+        m = 'Login failed: Wrong email/username or password. If you never finished email verification, register again.';
+      } else if (e.code == 'invalid-email') { m = 'Login failed: Enter a valid email.'; }
+      else if (e.code == 'too-many-requests') { m = 'Too many tries. Wait a few minutes and try again.'; }
+      else if (e.code == 'user-disabled') { m = 'This account is disabled. Contact CEO.'; }
+      else { m = 'Login failed: ${e.message ?? e.code}'; }
+      setState(() { _loading = false; _msg = m; });
     } catch (e) {
-      setState(() {
-        _loading = false;
-        _msg = 'Login failed: Wrong username/password or not registered.';
-      });
+      setState(() { _loading = false; _msg = 'Login failed: Wrong username/password or not registered.'; });
     }
   }
 
