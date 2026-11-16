@@ -55,6 +55,7 @@ import 'screens/my_bookings.dart';
 import 'screens/my_job_offer.dart';
 import 'screens/nurse_complaint.dart';
 import 'screens/nurse_dashboard.dart';
+import 'screens/nurse_settings.dart';
 import 'screens/nurse_withdrawal.dart';
 import 'screens/rating.dart';
 import 'screens/refund_query.dart';
@@ -235,6 +236,8 @@ class LoveCareApp extends StatelessWidget {
         '/client-settings': (context) => const ClientSettingsScreen(),
         '/my-bookings': (context) => const MyBookingsScreen(),
         '/my-job-offer': (context) => const MyJobOfferScreen(),
+        '/my-job-offers': (context) => const MyJobOfferScreen(), // drawer uses plural - was missing -> went Home
+        '/nurse-settings': (context) => const NurseSettingsScreen(), // was missing -> went Home
         '/nurse-dashboard': (context) => const NurseDashboardScreen(),
         '/nurse-withdrawal': (context) => const NurseWithdrawalScreen(),
         '/rating': (context) => const RatingScreen(),
@@ -264,6 +267,11 @@ class LoveCareApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => CEOForceWipeEmailPage(), settings: settings);
           case '/sound-settings':
             return MaterialPageRoute(builder: (_) => SoundSettingsScreen(), settings: settings);
+          case '/my-job-offer':
+          case '/my-job-offers':
+            return MaterialPageRoute(builder: (_) => const MyJobOfferScreen(), settings: settings);
+          case '/nurse-settings':
+            return MaterialPageRoute(builder: (_) => const NurseSettingsScreen(), settings: settings);
           case '/ceo-dashboard':
             return MaterialPageRoute(builder: (_) => const CEOPasswordGate(), settings: settings);
           case '/ceo-live-tracking-map':
