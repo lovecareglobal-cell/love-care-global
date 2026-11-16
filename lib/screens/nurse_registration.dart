@@ -576,6 +576,8 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         'latitude': _gpsLat, 'longitude': _gpsLng, 'gpsLat': _gpsLat, 'gpsLng': _gpsLng, 'locationLat': _gpsLat, 'locationLng': _gpsLng,
         'pinNumber': _pinNumberController.text.trim(),
         'country': _selectedCountry,
+        'workCountry': _selectedCountry, 'residenceCountry': _selectedCountry,
+        'countryCode': IdCatalog.dialCodeFor(_selectedCountry) ?? '', 'dialCode': IdCatalog.dialCodeFor(_selectedCountry) ?? '',
         'idType': _selectedIdType?.label,
         'idNumber': _idNumberController.text.trim(),
         'specialty': _selectedSpecialty,
@@ -845,7 +847,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
               DropdownButtonFormField<String>(
                 value: _selectedCountry,
                 decoration: const InputDecoration(
-                  labelText: 'ID Country - Country you are a citizen of',
+                  labelText: 'ID Country - All countries (same as Client)',
                 ),
                 items: IdCatalog.countries
                     .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -877,7 +879,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
-                    'Showing IDs for $_selectedCountry only • ${_idTypesForCountry.length} options',
+                    'Showing IDs for $_selectedCountry • ${_idTypesForCountry.length} options • Passport / National ID / Driving Licence work for every country',
                     style: TextStyle(
                       color: Colors.grey.shade600,
                       fontSize: 12,
