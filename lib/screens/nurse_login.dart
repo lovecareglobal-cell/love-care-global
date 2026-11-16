@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'nurse_dashboard.dart';
 
 class NurseLoginPage extends StatefulWidget {
   const NurseLoginPage({super.key});
@@ -13,9 +14,9 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
   final _passCtrl = TextEditingController();
   String _msg = '';
   bool _loading = false;
-  bool _showPass = false; // NEW: For show/hide password eye
+  bool _showPass = false; // For show/hide password eye
 
-  // FIXED: Helper - checks if a field actually has value, no matter the name
+  // Helper - checks if a field actually has value, no matter the name
   bool _hasVal(dynamic v) {
     if (v == null) return false;
     if (v is bool) return v == true;
@@ -53,8 +54,7 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
       final data = doc.data()!;
       final approved = data['isApproved'] == true || data['approved'] == true || data['status'] == 'approved';
 
-      // --- FIXED: Complete check - accept ANY field name Registration used ---
-      // Photo: accept hasPhoto OR photoUrl OR photo OR profilePhoto OR image OR profileImage
+      // Complete check - accept ANY field name Registration used
       final hasPhoto = _hasVal(data['hasPhoto']) ||
           _hasVal(data['photoUrl']) ||
           _hasVal(data['photo']) ||
@@ -63,21 +63,18 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
           _hasVal(data['image']) ||
           _hasVal(data['imageUrl']) ||
           _hasVal(data['photoURL']);
-      // Phone: accept hasPhone OR phone OR phoneNumber OR mobile
       final hasPhone = _hasVal(data['hasPhone']) ||
           _hasVal(data['phone']) ||
           _hasVal(data['phoneNumber']) ||
           _hasVal(data['mobile']) ||
           _hasVal(data['phoneNo']);
-      // Video: accept hasVideo OR videoUrl OR video (optional - CEO approval overrides)
       final hasVideo = _hasVal(data['hasVideo']) ||
           _hasVal(data['videoUrl']) ||
           _hasVal(data['video']) ||
           _hasVal(data['videoURL']);
       final isCompleteFlag = data['isComplete'] == true || data['complete'] == true || data['isCompleted'] == true;
 
-      // CEO approved = CEO don check documents. So if Photo + Phone dey, allow.
-      // Video no go block again if CEO don approve, because registration no always get video.
+      // CEO approved = CEO don check documents. If Photo + Phone dey, allow.
       final complete = isCompleteFlag || (hasPhoto && hasPhone) || (hasPhoto && hasPhone && hasVideo);
 
       if (!approved) {
@@ -90,7 +87,15 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
         setState(() { _loading = false; _msg = 'BLOCKED: Approved but missing Photo/Video/Phone. Contact CEO.'; });
         return;
       }
+
+      // SUCCESS - GO TO DASHBOARD
       setState(() { _loading = false; _msg = '✅ Welcome Nurse! Redirecting to dashboard...'; });
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const NurseDashboardScreen()),
+      );
     } catch (e) {
       setState(() { _loading = false; _msg = 'Login failed: $e'; });
     }
@@ -109,7 +114,6 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
             const SizedBox(height: 16),
             TextField(controller: _emailCtrl, decoration: const InputDecoration(hintText: 'Email', border: OutlineInputBorder())),
             const SizedBox(height: 12),
-            // FIXED: Password with Show/Hide Eye
             TextField(
               controller: _passCtrl,
               obscureText: !_showPass,
