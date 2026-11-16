@@ -341,14 +341,24 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     final emailKey = _sanitizeEmail(email);
     final isNurse = type == 'nurse';
     final fsColls = isNurse
-        ? ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications', 'allNurses', 'nurseUsers', 'ceoNurseUpdates', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid']
-        : ['clients', 'client_registrations', 'pending_clients', 'clientApplications', 'allClients', 'clientUsers', 'ceoClientUpdates', 'verified_clients', 'allowedClients', 'allowedClientsByUid'];
+        ? ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications', 'allNurses', 'nurseUsers', 'ceoNurseUpdates', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'users']
+        : ['clients', 'client_registrations', 'pending_clients', 'clientApplications', 'allClients', 'clientUsers', 'ceoClientUpdates', 'verified_clients', 'allowedClients', 'allowedClientsByUid', 'users', 'pendingClients'];
     for (final coll in fsColls) {
       try { await FirebaseFirestore.instance.collection(coll).doc(uid).delete(); } catch (_) {}
       try { await FirebaseFirestore.instance.collection(coll).doc(emailKey).delete(); } catch (_) {}
       if (eLower.isNotEmpty) {
+        // Email may be stored as email / clientEmail / emailAddress - check all three
+        for (final field in ['email', 'clientEmail', 'emailAddress']) {
+          try {
+            final q = await FirebaseFirestore.instance.collection(coll).where(field, isEqualTo: eLower).get();
+            for (final d in q.docs) { await d.reference.delete(); }
+          } catch (_) {}
+        }
+      }
+      // Doc ID may be a random push-key while the real uid is inside the doc
+      if (uid.isNotEmpty) {
         try {
-          final q = await FirebaseFirestore.instance.collection(coll).where('email', isEqualTo: eLower).get();
+          final q = await FirebaseFirestore.instance.collection(coll).where('uid', isEqualTo: uid).get();
           for (final d in q.docs) { await d.reference.delete(); }
         } catch (_) {}
       }
@@ -384,11 +394,15 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     try {
       final db = FirebaseDatabase.instance;
       Set<String> allUids = {uid, emailKey};
-      for (final p in ['nurses', 'pending_nurses', 'nurse_registrations', 'ceoRegistrationCenter/nurses']) {
-        try { final s = await db.ref(p).get(); if (s.exists) (s.value as Map).forEach((k, v) { if (v is Map && (v['email'] ?? '').toString().toLowerCase() == eLower) { allUids.add(k.toString()); _log('Found RTDB $p/$k with email $email'); } }); } catch (_) {}
+      // FIX: scan CLIENT folders for a client, NURSE folders for a nurse.
+      final scanPaths = type == 'nurse'
+          ? ['nurses', 'pending_nurses', 'nurse_registrations', 'ceoRegistrationCenter/nurses']
+          : ['clients', 'client_registrations', 'ceoRegistrationCenter/clients', 'allClients', 'clientUsers', 'pendingClientRegistrations', 'pending_clients', 'ceoClientUpdates', 'allowedClients', 'allowedClientsByUid'];
+      for (final p in scanPaths) {
+        try { final s = await db.ref(p).get(); if (s.exists) (s.value as Map).forEach((k, v) { if (v is Map && (v['email'] ?? v['clientEmail'] ?? v['emailAddress'] ?? '').toString().toLowerCase() == eLower) { allUids.add(k.toString()); _log('Found RTDB $p/$k with email $email'); } }); } catch (_) {}
       }
       List<String> rtdbBases = []; List<String> mappingPaths = [];
-      if (type == 'nurse' || eLower.contains('@')) {
+      if (type == 'nurse') { // FIX: every client WITH an email went down the nurse branch before
         rtdbBases = ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence'];
         mappingPaths = ['allowedNurses/$emailKey', 'allowedClients/$emailKey', 'nursesByEmail/$emailKey', 'allowedNurses/$uid', 'allowedNursesByUid/$uid'];
       } else {
@@ -396,7 +410,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         final username = ((raw['username'] ?? raw['userName'] ?? '') as String).toLowerCase();
         final phoneRaw = (raw['phone'] ?? raw['phoneNumber'] ?? '').toString();
         final phoneDigits = phoneRaw.replaceAll(RegExp(r'[^0-9]'), '');
-        rtdbBases = ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients', 'allowedClients', 'allowedClientsByUid', 'pendingClientRegistrations', 'verified_clients', 'onlineClients', 'clientPresence', 'clientsByEmail', 'clientBookings', 'bookings'];
+        rtdbBases = ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients', 'allowedClients', 'allowedClientsByUid', 'pendingClientRegistrations', 'verified_clients', 'onlineClients', 'clientPresence', 'clientsByEmail', 'clientBookings', 'bookings', 'pending_clients', 'pendingClients'];
         mappingPaths = ['allowedClients/$emailKey', 'allowedClients/$uid', 'allowedClientsByUid/$uid', 'clientUsernames/$username', 'clientPhones/$phoneRaw', 'clientPhones/$phoneDigits', 'clientsByEmail/$emailKey', 'allowedClients/${raw['username'] ?? ''}', 'clients/${raw['username'] ?? ''}'];
         if (phoneDigits.isNotEmpty) { allUids.add(phoneDigits); allUids.add(phoneRaw); }
         if (username.isNotEmpty) { allUids.add(username); allUids.add(username.toLowerCase()); }
@@ -416,6 +430,20 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       }
       if (type != 'nurse') {
         try { final s = await db.ref('clientUsernames').get(); if (s.exists) (s.value as Map).forEach((k, val) { if (val == uid) db.ref('clientUsernames/$k').remove(); }); } catch (_) {}
+      }
+      // FINAL SWEEP: catch any child whose email matches, even if its key was never in allUids
+      for (final base in rtdbBases) {
+        try {
+          final s = await db.ref(base).get();
+          if (s.exists) {
+            for (final e in (s.value as Map).entries) {
+              if (e.value is Map && (e.value['email'] ?? e.value['clientEmail'] ?? e.value['emailAddress'] ?? '').toString().toLowerCase() == eLower) {
+                await db.ref('$base/${e.key}').remove();
+                _log('Sweep deleted: $base/${e.key} (email match)');
+              }
+            }
+          }
+        } catch (_) {}
       }
       await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
       _log('✅ Firestore + Storage deleted for $email');
