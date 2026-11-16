@@ -186,11 +186,9 @@ class LoveCareApp extends StatelessWidget {
           primary: Color(0xFF880E4F),
           secondary: Color(0xFFAD1457),
           surface: Color(0xFF4A0A26),
-          background: Color(0xFF4A0A26),
           onPrimary: Colors.white,
           onSecondary: Colors.white,
           onSurface: Colors.white,
-          onBackground: Colors.white,
         ),
         // Default text = white, so pages with no colour set stay readable on dark pink.
         textTheme: const TextTheme(
@@ -219,8 +217,8 @@ class LoveCareApp extends StatelessWidget {
           focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFF8BBD0)), borderRadius: BorderRadius.circular(8)),
         ),
         // Cards / dialogs on dark pink.
-        cardTheme: const CardThemeData(color: Color(0xFF5C1230)),
-        dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF4A0A26), titleTextStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18), contentTextStyle: TextStyle(color: Colors.white)),
+        cardTheme: const CardTheme(color: Color(0xFF5C1230)),
+        dialogTheme: const DialogTheme(backgroundColor: Color(0xFF4A0A26), titleTextStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18), contentTextStyle: TextStyle(color: Colors.white)),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF4A0A26), selectedItemColor: Color(0xFFF8BBD0), unselectedItemColor: Colors.white60),
         iconTheme: const IconThemeData(color: Colors.white),
