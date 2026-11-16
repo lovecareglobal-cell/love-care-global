@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,6 +7,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
 
 class ClientRegistrationPage extends StatefulWidget {
   const ClientRegistrationPage({super.key});
@@ -400,6 +402,58 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
     return parts.join(', ');
   }
 
+
+  // ---- WEB-FRIENDLY PLACE NAME (no API key) ----
+  // BigDataCloud is free, needs no key, and allows web browsers (CORS).
+  // Nominatim (OpenStreetMap) is the backup if BigDataCloud is down.
+  // Returns "" if both fail - caller then falls back to Lat/Lng.
+  Future<String> _placeNameFromWeb(double lat, double lng) async {
+    String joinParts(List<String?> values) {
+      final parts = <String>[];
+      for (final v in values) {
+        final s = (v ?? '').trim();
+        if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
+      }
+      return parts.join(', ');
+    }
+    // Try 1: BigDataCloud
+    try {
+      final uri = Uri.parse(
+        'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$lat&longitude=$lng&localityLanguage=en');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final j = jsonDecode(res.body) as Map<String, dynamic>;
+        final name = joinParts([
+          j['locality']?.toString(),
+          j['city']?.toString(),
+          j['principalSubdivision']?.toString(),
+          j['countryName']?.toString(),
+        ]);
+        if (name.isNotEmpty) return name;
+      }
+    } catch (_) {}
+    // Try 2: Nominatim / OpenStreetMap
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1');
+      final res = await http.get(uri, headers: {'Accept': 'application/json'}).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final j = jsonDecode(res.body) as Map<String, dynamic>;
+        final addr = (j['address'] as Map<String, dynamic>?) ?? {};
+        final name = joinParts([
+          addr['suburb']?.toString() ?? addr['neighbourhood']?.toString(),
+          addr['city']?.toString() ?? addr['town']?.toString() ?? addr['village']?.toString(),
+          addr['state']?.toString(),
+          addr['country']?.toString(),
+        ]);
+        if (name.isNotEmpty) return name;
+        final display = (j['display_name'] ?? '').toString().trim();
+        if (display.isNotEmpty) return display;
+      }
+    } catch (_) {}
+    return '';
+  }
+
   Future<void> _pickLiveGps() async {
     if (_locating) return;
     setState(() { _locating = true; });
@@ -428,11 +482,15 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
       _gpsLat = pos.latitude;
       _gpsLng = pos.longitude;
       String place = '';
+      // 1) Phone's built-in lookup - works best on APK, often fails on WEB
       try {
         final marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
         if (marks.isNotEmpty) place = _placeNameFromPlacemark(marks.first);
-      } catch (_) {
-        // No internet for reverse-geocoding - fall back to coordinates below
+      } catch (_) {}
+      // 2) Web-friendly lookup - works on WEB + APK, no API key needed.
+      // This is what fixes the "Lat..., Lng..." you saw on the web version.
+      if (place.isEmpty) {
+        place = await _placeNameFromWeb(pos.latitude, pos.longitude);
       }
       if (place.isEmpty) {
         place = 'Lat ${pos.latitude.toStringAsFixed(5)}, Lng ${pos.longitude.toStringAsFixed(5)}';
