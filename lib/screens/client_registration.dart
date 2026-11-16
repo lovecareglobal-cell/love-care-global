@@ -4,6 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
+import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'client_login.dart';
 
 class ClientRegistrationPage extends StatefulWidget {
   const ClientRegistrationPage({super.key});
@@ -11,7 +14,7 @@ class ClientRegistrationPage extends StatefulWidget {
   State<ClientRegistrationPage> createState() => _ClientRegistrationPageState();
 }
 
-class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
+class _ClientRegistrationPageState extends State<ClientRegistrationPage> with WidgetsBindingObserver {
   final _name = TextEditingController();
   final _username = TextEditingController();
   final _email = TextEditingController();
@@ -19,6 +22,14 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   final _pass = TextEditingController();
   final _otp = TextEditingController();
   XFile? _photo;
+  // ---- AUTO VERIFY (no 'I Verified' button) ----
+  // Some phones kill the app when you go to Gmail. The old dialog was gone on return (fresh start).
+  // So: we save pending data to SharedPreferences + poll reload() every 3s + resume check.
+  // When emailVerified becomes true, we auto-save and open Login straight.
+  bool _waitingVerification = false;
+  String _verifyStatus = '';
+  Timer? _verifyTimer;
+  bool _finishingVerification = false;
   bool _loading = false;
   bool _obscurePassword = true;
   final _picker = ImagePicker();
@@ -278,6 +289,157 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
     return null;
   }
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // If app was killed while user was in Gmail, resume: restore pending fields
+    // and keep waiting - do NOT make them start fresh.
+    _resumePendingVerification();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _verifyTimer?.cancel();
+    _name.dispose();
+    _username.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _pass.dispose();
+    _otp.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // User comes back from Gmail -> check immediately, don't wait for next poll.
+    if (state == AppLifecycleState.resumed && _waitingVerification) _checkVerificationOnce();
+  }
+
+  Future<void> _savePending() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('client_pending_verification', true);
+      await prefs.setString('client_pending_name', _name.text.trim());
+      await prefs.setString('client_pending_username', _username.text.trim());
+      await prefs.setString('client_pending_email', _email.text.trim().toLowerCase());
+      await prefs.setString('client_pending_phone', _fullPhone);
+      await prefs.setString('client_pending_countryCode', _selectedDialCode);
+      await prefs.setString('client_pending_country', _selectedCountryName);
+      // Photo path survives restart if file still exists (gallery temp file).
+      if (_photo != null) await prefs.setString('client_pending_photo_path', _photo!.path);
+    } catch (_) {}
+  }
+
+  Future<void> _clearPending() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('client_pending_verification');
+      await prefs.remove('client_pending_name');
+      await prefs.remove('client_pending_username');
+      await prefs.remove('client_pending_email');
+      await prefs.remove('client_pending_phone');
+      await prefs.remove('client_pending_countryCode');
+      await prefs.remove('client_pending_country');
+      await prefs.remove('client_pending_photo_path');
+    } catch (_) {}
+  }
+
+  Future<void> _resumePendingVerification() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('client_pending_verification') != true) return;
+      final u = FirebaseAuth.instance.currentUser;
+      if (u == null) { await _clearPending(); return; }
+      // Restore the form so user does NOT start fresh.
+      if (_name.text.isEmpty) _name.text = prefs.getString('client_pending_name') ?? '';
+      if (_username.text.isEmpty) _username.text = prefs.getString('client_pending_username') ?? '';
+      if (_email.text.isEmpty) _email.text = prefs.getString('client_pending_email') ?? '';
+      // Phone: pending phone is full e.g. +233201234567 - put local part back.
+      // We keep it simple: if phone field empty, restore full phone digits after code.
+      final photoPath = prefs.getString('client_pending_photo_path');
+      if (_photo == null && photoPath != null && photoPath.isNotEmpty) {
+        try { _photo = XFile(photoPath); } catch (_) {}
+      }
+      if (!mounted) return;
+      setState(() { _waitingVerification = true; _verifyStatus = 'Welcome back! Still waiting for you to tap the link in Gmail...'; });
+      _startVerifyPolling();
+      // Check immediately - user may have already tapped link before app was killed.
+      _checkVerificationOnce();
+    } catch (_) {}
+  }
+
+  void _startVerifyPolling() {
+    _verifyTimer?.cancel();
+    _verifyTimer = Timer.periodic(const Duration(seconds: 3), (_) => _checkVerificationOnce());
+  }
+
+  Future<void> _checkVerificationOnce() async {
+    if (_finishingVerification || !_waitingVerification) return;
+    try {
+      final u = FirebaseAuth.instance.currentUser;
+      if (u == null) return;
+      await u.reload();
+      final fresh = FirebaseAuth.instance.currentUser;
+      if (fresh != null && fresh.emailVerified) {
+        await _finishAfterVerified();
+      }
+    } catch (_) {}
+  }
+
+  // Called AUTOMATICALLY when reload() says emailVerified == true.
+  // No 'I Verified' tap needed. Saves profile, clears pending, opens Login straight.
+  Future<void> _finishAfterVerified() async {
+    if (_finishingVerification) return;
+    _finishingVerification = true;
+    _verifyTimer?.cancel();
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || !user.emailVerified) { _finishingVerification = false; return; }
+      final uid = user.uid;
+      String? photoUrl;
+      if (_photo != null) {
+        try { photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg'); } catch (_) {}
+      }
+      final prefs = await SharedPreferences.getInstance();
+      final name = _name.text.trim().isNotEmpty ? _name.text.trim() : (prefs.getString('client_pending_name') ?? '');
+      final username = _username.text.trim().isNotEmpty ? _username.text.trim() : (prefs.getString('client_pending_username') ?? '');
+      final email = _email.text.trim().isNotEmpty ? _email.text.trim().toLowerCase() : (prefs.getString('client_pending_email') ?? user.email?.toLowerCase() ?? '');
+      final phone = _fullPhone.isNotEmpty ? _fullPhone : (prefs.getString('client_pending_phone') ?? '');
+      final data = <String, Object?>{
+        'uid': uid, 'id': uid,
+        'name': name, 'fullName': name,
+        'username': username, 'email': email,
+        'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
+        'role': 'client', 'type': 'client',
+        'status': 'approved', 'isApproved': true, 'approved': true, 'hasAll4': true,
+        'phoneVerified': false, 'otpVerified': false, 'emailVerified': true, 'verifiedByEmail': true,
+        'photo': photoUrl ?? '', 'photoUrl': photoUrl ?? '', 'photoURL': photoUrl ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+      await FirebaseFirestore.instance.collection('clients').doc(uid).set(data);
+      final rtdbData = Map<String, Object?>.from(data)..['createdAt'] = DateTime.now().millisecondsSinceEpoch;
+      await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
+      await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
+      await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
+      await _clearPending();
+      if (!mounted) return;
+      setState(() { _waitingVerification = false; _verifyStatus = ''; _loading = false; });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email verified! Login now.')));
+      await FirebaseAuth.instance.signOut();
+      if (!mounted) return;
+      // AUTO: Open Login page straight - user does NOT go back to fresh registration.
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const ClientLoginPage()),
+      );
+    } catch (e) {
+      _finishingVerification = false;
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $e')));
+      _startVerifyPolling();
+    }
+  }
+
   // Email Verification ONLY for Client (no OTP, no CEO approval): create account with email+password, send verification email,
   // wait for user to tap the link, then save the same client data as phone flow.
   Future<void> _registerWithEmailVerification() async {
@@ -299,63 +461,32 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
       }
       await cred.user!.sendEmailVerification();
       if (!mounted) return;
-      // Ask user to check email and tap link
-      final verified = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Check your Email'),
-          content: Text('We sent a verification link to\n$email\n\n1. Open Gmail\n2. Tap the link\n3. Come back here and tap "I Verified"'),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            TextButton(onPressed: () async { await FirebaseAuth.instance.currentUser?.sendEmailVerification(); if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Verification email resent'))); }, child: const Text('Resend')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('I Verified')),
-          ],
-        ),
-      );
-      // VERIFICATION FAILED / CANCELLED: DELETE the Auth account.
-      // Client has NO CEO approval, so Email Verification is the ONLY gate.
-      // If we only sign out, that unverified email would still exist and could try to login.
-      // Deleting frees the email to register again properly.
-      if (verified != true) { try { await FirebaseAuth.instance.currentUser?.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); } if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email not verified. Registration cancelled. That email cannot login. Register again and verify.'), backgroundColor: Colors.red)); return; }
-      await FirebaseAuth.instance.currentUser?.reload();
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null || !user.emailVerified) {
-        // Tapped "I Verified" but link not actually clicked: DELETE, cannot login.
-        try { await FirebaseAuth.instance.currentUser?.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); }
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email NOT verified. That email cannot login. Account deleted. Register again and tap the link in Gmail.'), backgroundColor: Colors.red));
-        return;
-      }
-      final uid = user.uid;
-      String? photoUrl;
-      if (_photo != null) photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg');
-      final data = <String, Object?>{
-        'uid': uid, 'id': uid,
-        'name': _name.text.trim(), 'fullName': _name.text.trim(),
-        'username': _username.text.trim(), 'email': email.trim().toLowerCase(),
-        'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
-        'role': 'client', 'type': 'client',
-        'status': 'approved', 'isApproved': true, 'approved': true, 'hasAll4': true,
-        'phoneVerified': false, 'otpVerified': false, 'emailVerified': true, 'verifiedByEmail': true,
-        'photo': photoUrl ?? '', 'photoUrl': photoUrl ?? '', 'photoURL': photoUrl ?? '',
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-      await FirebaseFirestore.instance.collection('clients').doc(uid).set(data);
-      final rtdbData = Map<String, Object?>.from(data)..['createdAt'] = DateTime.now().millisecondsSinceEpoch;
-      await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
-      await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
-      await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
+      // AUTO-CONFIRM: No 'I Verified' button. Save pending (survives app kill/restart),
+      // show waiting screen, poll reload() every 3s. When user taps link in Gmail,
+      // _finishAfterVerified() auto-saves + opens Login straight.
+      await _savePending();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registered! Email verified. You can login now.')));
-      await FirebaseAuth.instance.signOut();
-      Navigator.pop(context);
+      setState(() { _loading = false; _waitingVerification = true; _verifyStatus = 'We sent a link to $email. Open Gmail and tap it - this page will auto-confirm, no button to tap.'; });
+      _startVerifyPolling();
+      return;
     } catch (e) {
-      // BYPASS FIX: If save failed after verification, delete Auth so leftover email cannot login on 2nd try.
-      try { final u = FirebaseAuth.instance.currentUser; if (u != null) { final d = await FirebaseFirestore.instance.collection('clients').doc(u.uid).get(); if (!d.exists) await u.delete(); } } catch (_) {}
+      // If we are already waiting (link sent), don't delete - user is in Gmail.
+      if (!_waitingVerification) {
+        try { final u = FirebaseAuth.instance.currentUser; if (u != null) { final d = await FirebaseFirestore.instance.collection('clients').doc(u.uid).get(); if (!d.exists) await u.delete(); } } catch (_) {}
+      }
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && !_waitingVerification) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _cancelVerification() async {
+    _verifyTimer?.cancel();
+    try { await FirebaseAuth.instance.currentUser?.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); }
+    await _clearPending();
+    if (!mounted) return;
+    setState(() { _waitingVerification = false; _verifyStatus = ''; _loading = false; });
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verification cancelled. That email cannot login. Register again.'), backgroundColor: Colors.red));
   }
 
   // ---- STRONG PASSWORD ----
@@ -427,6 +558,36 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
 
   @override
   Widget build(BuildContext context) {
+    // WAITING SCREEN: shown while auto-verification polls. No 'I Verified' button.
+    // If phone kills app when user goes to Gmail, initState restores this same screen.
+    if (_waitingVerification) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Check your Email'), backgroundColor: Colors.purple, foregroundColor: Colors.white),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.mark_email_read, size: 80, color: Colors.purple),
+              const SizedBox(height: 20),
+              Text(_verifyStatus, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
+              const SizedBox(height: 20),
+              const CircularProgressIndicator(),
+              const SizedBox(height: 8),
+              const Text('Waiting... This page will auto-confirm when you tap the link. Do not press back.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+              const SizedBox(height: 24),
+              OutlinedButton(
+                onPressed: () async { try { await FirebaseAuth.instance.currentUser?.sendEmailVerification(); if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verification email resent'))); } catch (_) {} },
+                child: const Text('Resend Email'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(onPressed: _cancelVerification, child: const Text('Cancel Registration', style: TextStyle(color: Colors.red))),
+            ],
+          ),
+        ),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Client Registration'), backgroundColor: Colors.purple, foregroundColor: Colors.white),
       body: SingleChildScrollView(
