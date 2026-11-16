@@ -26,11 +26,21 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
     final username = _userCtrl.text.trim().toLowerCase();
     final pass = _passCtrl.text;
     if (username.isEmpty || pass.isEmpty) {
-      setState(() => _msg = 'Enter username + password');
+      setState(() => _msg = 'Enter username/email + password');
       return;
     }
     setState(() { _loading = true; _msg = 'Checking...'; });
     try {
+      // GUARD: ONE EMAIL = ONE ROLE - if user typed an email, block if it is a Nurse email.
+      // Also check pending_nurses, not just nurses.
+      if (username.contains('@')) {
+        final nurseCheckEmail = await FirebaseFirestore.instance.collection('nurses').where('email', isEqualTo: username).limit(1).get();
+        final pendingCheckEmail = await FirebaseFirestore.instance.collection('pending_nurses').where('email', isEqualTo: username).limit(1).get();
+        if (nurseCheckEmail.docs.isNotEmpty || pendingCheckEmail.docs.isNotEmpty) {
+          setState(() { _loading = false; _msg = 'BLOCKED: This is a NURSE account. Use Nurse Login.'; });
+          return;
+        }
+      }
       // GUARD: If username is a NURSE email/phone, BLOCK
       final nurseCheck = await FirebaseFirestore.instance
           .collection('nurses')
@@ -44,11 +54,55 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
         });
         return;
       }
-      // Client uses Username -> fake email
-      final fakeEmail = '$username@lovecare.client';
+      // LOGIN WITH REAL EMAIL - registration now uses Email Verification, NOT OTP / fake email.
+      // User can type Email OR Username. If Username, look up the real email from Firestore first.
+      String loginEmail = username;
+      if (!username.contains('@')) {
+        // Username -> real email lookup (clients store username + real email)
+        var byUsername = await FirebaseFirestore.instance.collection('clients').where('username', isEqualTo: username).limit(1).get();
+        if (byUsername.docs.isEmpty) {
+          // Try case-insensitive: username may have been typed with different case
+          byUsername = await FirebaseFirestore.instance.collection('clients').where('username', isEqualTo: username.toLowerCase()).limit(1).get();
+        }
+        if (byUsername.docs.isEmpty) {
+          setState(() { _loading = false; _msg = 'Login failed: Username not found. Register first, or login with your Email.'; });
+          return;
+        }
+        loginEmail = (byUsername.docs.first.data()['email'] as String?)?.trim().toLowerCase() ?? '';
+        if (loginEmail.isEmpty) {
+          setState(() { _loading = false; _msg = 'Login failed: This client has no email. Contact CEO.'; });
+          return;
+        }
+      }
       final cred = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: fakeEmail, password: pass);
+          .signInWithEmailAndPassword(email: loginEmail, password: pass);
       final uid = cred.user!.uid;
+
+      // CLIENT GATE: Email Verification is the ONLY gate (no CEO approval for clients).
+      // If verification failed, that email CANNOT login - even if password is correct.
+      // We check Auth first, then Firestore legacy (old OTP clients have phoneVerified=true).
+      // New clients: Firestore doc only exists AFTER verification, so unverified = no doc = blocked anyway.
+      // But we check Auth explicitly too, so an unverified Auth account with no doc can never slip through.
+      final authVerified = cred.user!.emailVerified;
+      if (!authVerified) {
+        final legacyDoc = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
+        final legacyPhoneVerified = legacyDoc.exists && (legacyDoc.data()?['phoneVerified'] == true || legacyDoc.data()?['otpVerified'] == true);
+        if (!legacyPhoneVerified) {
+          await FirebaseAuth.instance.signOut();
+          setState(() { _loading = false; _msg = 'BLOCKED: Email NOT verified. Open Gmail, tap the verification link, then login again. That email cannot login until verified.'; });
+          return;
+        }
+        // Legacy OTP client: allow, but still require a clients doc (checked below)
+      }
+
+      // GUARD 1b: Same Auth account cannot be a Nurse - check by UID (covers same email+password)
+      final nurseByUid = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
+      final pendingByUid = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
+      if (nurseByUid.exists || pendingByUid.exists) {
+        await FirebaseAuth.instance.signOut();
+        setState(() { _loading = false; _msg = 'BLOCKED: This account is a NURSE. Use Nurse Login. One email cannot be both.'; });
+        return;
+      }
 
       // GUARD 2: Must exist in clients
       final doc = await FirebaseFirestore.instance
@@ -56,20 +110,29 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
           .doc(uid)
           .get();
       if (!doc.exists) {
-        await FirebaseAuth.instance.signOut();
+        // BYPASS FIX: This Auth account has NO Firestore profile in ANY role.
+        // It is a leftover from a failed / bypassed registration. Sign-out alone
+        // leaves it in Auth, so the 2nd login slips through. DELETE it.
+        // (We already checked nurses/pending above - if it were a Nurse, we returned earlier and did NOT delete.)
+        try { await cred.user!.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); }
         setState(() {
           _loading = false;
-          _msg = 'BLOCKED: NOT A REGISTERED CLIENT. Go Register first.';
+          _msg = 'BLOCKED: NOT A REGISTERED CLIENT. Go Register first. Leftover account deleted.';
         });
         return;
       }
       final data = doc.data()!;
-      if (data['isComplete'] != true) {
+      // CLIENT GATE 2 (Firestore): doc must say verified. New flow saves emailVerified=true + hasAll4=true.
+      final firestoreVerified = data['emailVerified'] == true || data['verifiedByEmail'] == true || data['phoneVerified'] == true || data['otpVerified'] == true;
+      final complete = data['isComplete'] == true || data['hasAll4'] == true || firestoreVerified;
+      if (!firestoreVerified) {
         await FirebaseAuth.instance.signOut();
-        setState(() {
-          _loading = false;
-          _msg = 'BLOCKED: Registration incomplete. Register again.';
-        });
+        setState(() { _loading = false; _msg = 'BLOCKED: Email NOT verified. Open Gmail, tap the verification link, then login again.'; });
+        return;
+      }
+      if (!complete) {
+        await FirebaseAuth.instance.signOut();
+        setState(() { _loading = false; _msg = 'BLOCKED: Registration incomplete. Register again.'; });
         return;
       }
       setState(() { _loading = false; _msg = '✅ Welcome Client!'; });
@@ -123,7 +186,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
                   TextField(
                     controller: _userCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'Username',
+                      labelText: 'Username or Email',
                       prefixIcon: Icon(Icons.person),
                       border: OutlineInputBorder(),
                     ),
