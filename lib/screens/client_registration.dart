@@ -1,13 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:http/http.dart' as http;
 
 class ClientRegistrationPage extends StatefulWidget {
   const ClientRegistrationPage({super.key});
@@ -28,19 +24,11 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   final _picker = ImagePicker();
 
   // ---- OTP (Firebase Phone Auth) ----
-  // Set when Google refuses SMS: missing app identifier / Play Integrity / reCAPTCHA
-  bool _otpAppIdentifierFailed = false;
   String? _verificationId;
   int? _resendToken;
   bool _otpSending = false;
   bool _phoneVerified = false;
   PhoneAuthCredential? _pendingPhoneCredential;
-
-  // ---- LIVE GPS + PLACE NAME ----
-  final _location = TextEditingController();
-  double? _gpsLat;
-  double? _gpsLng;
-  bool _locating = false;
 
   // ---- COUNTRY CODE (WORLD) ----
   // Full world list. Value is "Name|+code" so countries sharing a code
@@ -277,308 +265,78 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
     return await ref.getDownloadURL();
   }
 
-  @override
-  void dispose() {
-    _location.dispose();
-    _name.dispose();
-    _username.dispose();
-    _email.dispose();
-    _phone.dispose();
-    _pass.dispose();
-    _otp.dispose();
-    super.dispose();
-  }
-
-  // ---- OTP: send + verify ----
-  // OTP is verified BEFORE any email account is created.
-  // If OTP fails / is cancelled, NO account exists, so NO login is possible.
-  Future<bool> _sendOtp(String phone) async {
-    setState(() { _otpSending = true; _otp.clear(); _otpAppIdentifierFailed = false; });
-    try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: phone,
-        timeout: const Duration(seconds: 60),
-        forceResendingToken: _resendToken,
-        verificationCompleted: (PhoneAuthCredential cred) {
-          _phoneVerified = true;
-          _pendingPhoneCredential = cred;
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          // This is the error in your screenshot. It is NOT a wrong number.
-          // Google could not prove this APK is your app, so it refused to send SMS.
-          final msg = (e.message ?? '').toLowerCase();
-          if (e.code == 'missing-client-identifier' ||
-              e.code == 'app-not-authorized' ||
-              e.code == 'invalid-app-credential' ||
-              msg.contains('app identifier') ||
-              msg.contains('play integrity') ||
-              msg.contains('recaptcha')) {
-            _otpAppIdentifierFailed = true;
-          }
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Could not send OTP: ${e.message ?? e.code}'), backgroundColor: Colors.red));
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          _verificationId = verificationId;
-          _resendToken = resendToken;
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('OTP sent to $phone. Enter the 6-digit code.')));
-        },
-        codeAutoRetrievalTimeout: (String verificationId) { _verificationId = verificationId; },
-      );
-      return true;
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not send OTP: $e'), backgroundColor: Colors.red));
-      return false;
-    } finally {
-      if (mounted) setState(() => _otpSending = false);
-    }
-  }
-
-  // Shows OTP dialog. Returns verified credential, or null on fail/cancel. Max 3 wrong attempts.
-  Future<PhoneAuthCredential?> _askAndVerifyOtp(String phone) async {
-    if (_pendingPhoneCredential != null) return _pendingPhoneCredential;
-    if (_verificationId == null) return null;
-    int attempts = 0;
-    while (attempts < 3) {
-      final code = await showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Enter OTP'),
-          content: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('We sent a 6-digit code to\n$phone', textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            TextField(controller: _otp, keyboardType: TextInputType.number, maxLength: 6,
-              decoration: const InputDecoration(labelText: 'OTP code', hintText: '123456')),
-            if (attempts > 0) Text('Wrong code. ${3 - attempts} attempt(s) left.', style: const TextStyle(color: Colors.red)),
-          ]),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            TextButton(onPressed: () => _sendOtp(phone), child: const Text('Resend')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, _otp.text.trim()), child: const Text('Verify')),
-          ],
-        ),
-      );
-      if (code == null || code.isEmpty) return null;
-      try {
-        final cred = PhoneAuthProvider.credential(verificationId: _verificationId!, smsCode: code);
-        await FirebaseAuth.instance.signInWithCredential(cred);
-        _phoneVerified = true;
-        _pendingPhoneCredential = cred;
-        return cred;
-      } on FirebaseAuthException catch (e) {
-        attempts++;
-        await FirebaseAuth.instance.signOut();
-        if (attempts >= 3) {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Too many wrong OTP attempts. Registration blocked. No login.'), backgroundColor: Colors.red));
-          return null;
-        }
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Wrong OTP (${e.message ?? 'invalid code'}). Try again.'), backgroundColor: Colors.red));
-      }
-    }
+  // ONE EMAIL = ONE ROLE - cross-role block.
+  // Returns error message if this email is already used in the OTHER role or same role, else null.
+  Future<String?> _checkEmailNotUsedAsNurse(String email) async {
+    final e = email.trim().toLowerCase();
+    final inNurses = await FirebaseFirestore.instance.collection('nurses').where('email', isEqualTo: e).limit(1).get();
+    if (inNurses.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a NURSE. One email cannot be both Nurse + Client. Use Nurse Login.';
+    final inPending = await FirebaseFirestore.instance.collection('pending_nurses').where('email', isEqualTo: e).limit(1).get();
+    if (inPending.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a NURSE (waiting for CEO approval). One email cannot be both Nurse + Client.';
+    final inClients = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: e).limit(1).get();
+    if (inClients.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a CLIENT. Login as Client instead of registering again.';
     return null;
   }
 
-
-  // ---- LIVE GPS + PLACE NAME (auto-filled) ----
-  // Tap Pick Live GPS -> phone GPS gives lat/lng -> geocoding turns it into
-  // a place name like "Osu, Accra, Greater Accra Region, Ghana" and fills the field.
-  // User never types the place name.
-  String _placeNameFromPlacemark(Placemark p) {
-    final parts = <String>[];
-    void add(String? v) {
-      final s = (v ?? '').trim();
-      if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
-    }
-    add(p.subLocality);
-    add(p.locality);
-    add(p.subAdministrativeArea);
-    add(p.administrativeArea);
-    add(p.country);
-    return parts.join(', ');
-  }
-
-
-  // ---- WEB-FRIENDLY PLACE NAME (no API key) ----
-  // BigDataCloud is free, needs no key, and allows web browsers (CORS).
-  // Nominatim (OpenStreetMap) is the backup if BigDataCloud is down.
-  // Returns "" if both fail - caller then falls back to Lat/Lng.
-  Future<String> _placeNameFromWeb(double lat, double lng) async {
-    String joinParts(List<String?> values) {
-      final parts = <String>[];
-      for (final v in values) {
-        final s = (v ?? '').trim();
-        if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
-      }
-      return parts.join(', ');
-    }
-    // Try 1: BigDataCloud
+  // Email Verification ONLY for Client (no OTP, no CEO approval): create account with email+password, send verification email,
+  // wait for user to tap the link, then save the same client data as phone flow.
+  Future<void> _registerWithEmailVerification() async {
+    final email = _email.text.trim();
+    // ONE EMAIL = ONE ROLE - re-check here too, user may have tapped fallback after OTP failed
+    final blockedFb = await _checkEmailNotUsedAsNurse(email);
+    if (blockedFb != null) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(blockedFb), backgroundColor: Colors.red)); return; }
+    final pass = _pass.text.trim();
+    final phone = _fullPhone;
+    setState(() => _loading = true);
     try {
-      final uri = Uri.parse(
-        'https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$lat&longitude=$lng&localityLanguage=en');
-      final res = await http.get(uri).timeout(const Duration(seconds: 8));
-      if (res.statusCode == 200) {
-        final j = jsonDecode(res.body) as Map<String, dynamic>;
-        final name = joinParts([
-          j['locality']?.toString(),
-          j['city']?.toString(),
-          j['principalSubdivision']?.toString(),
-          j['countryName']?.toString(),
-        ]);
-        if (name.isNotEmpty) return name;
-      }
-    } catch (_) {}
-    // Try 2: Nominatim / OpenStreetMap
-    try {
-      final uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1');
-      final res = await http.get(uri, headers: {'Accept': 'application/json'}).timeout(const Duration(seconds: 8));
-      if (res.statusCode == 200) {
-        final j = jsonDecode(res.body) as Map<String, dynamic>;
-        final addr = (j['address'] as Map<String, dynamic>?) ?? {};
-        final name = joinParts([
-          addr['suburb']?.toString() ?? addr['neighbourhood']?.toString(),
-          addr['city']?.toString() ?? addr['town']?.toString() ?? addr['village']?.toString(),
-          addr['state']?.toString(),
-          addr['country']?.toString(),
-        ]);
-        if (name.isNotEmpty) return name;
-        final display = (j['display_name'] ?? '').toString().trim();
-        if (display.isNotEmpty) return display;
-      }
-    } catch (_) {}
-    return '';
-  }
-
-  Future<void> _pickLiveGps() async {
-    if (_locating) return;
-    setState(() { _locating = true; });
-    try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Turn on Location / GPS on this phone first, then tap Pick Live GPS again.'), backgroundColor: Colors.red));
-        await Geolocator.openLocationSettings();
-        return;
-      }
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.deniedForever) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location permission is blocked. Open App info > Permissions > Location > Allow.'), backgroundColor: Colors.red));
-        await Geolocator.openAppSettings();
-        return;
-      }
-      if (perm == LocationPermission.denied) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location permission denied. Tap Pick Live GPS and Allow.'), backgroundColor: Colors.red));
-        return;
-      }
-      final pos = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 20),
-      );
-      _gpsLat = pos.latitude;
-      _gpsLng = pos.longitude;
-      String place = '';
-      // 1) Phone's built-in lookup - works best on APK, often fails on WEB
+      // Create the email account (no phone yet)
+      UserCredential cred;
       try {
-        final marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
-        if (marks.isNotEmpty) place = _placeNameFromPlacemark(marks.first);
-      } catch (_) {}
-      // 2) Web-friendly lookup - works on WEB + APK, no API key needed.
-      // This is what fixes the "Lat..., Lng..." you saw on the web version.
-      if (place.isEmpty) {
-        place = await _placeNameFromWeb(pos.latitude, pos.longitude);
+        cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pass);
+      } on FirebaseAuthException catch (e) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not create account: ${e.message ?? e.code}'), backgroundColor: Colors.red));
+        return;
       }
-      if (place.isEmpty) {
-        place = 'Lat ${pos.latitude.toStringAsFixed(5)}, Lng ${pos.longitude.toStringAsFixed(5)}';
-      }
-      if (!mounted) return;
-      setState(() { _location.text = place; });
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Location picked: $place')));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not get GPS: $e'), backgroundColor: Colors.red));
-    } finally {
-      if (mounted) setState(() => _locating = false);
-    }
-  }
-
-  // ---- FALLBACK when Google refuses SMS OTP (app-identifier / Play Integrity) ----
-  // Proves the person owns the EMAIL instead of the phone, so they are not stuck
-  // while you fix SHA / Play Integrity in the console. Phone number is still saved.
-  Future<bool> _registerWithEmailFallback(String phone) async {
-    final useEmail = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('SMS OTP is blocked by Google'),
-        content: const Text(
-          'Google could not prove this app is yours, so it will not send SMS codes.\n\n'
-          'This is fixed in Firebase Console (SHA fingerprints + Play Integrity).\n\n'
-          'For now, verify by EMAIL instead? We will send a link to your email. Tap it, come back here, tap I verified.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Verify by Email')),
-        ],
-      ),
-    );
-    if (useEmail != true) return false;
-    try {
-      await FirebaseAuth.instance.signOut();
-      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _email.text.trim(), password: _pass.text.trim());
       await cred.user!.sendEmailVerification();
-    } on FirebaseAuthException catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Could not create account: ${e.message ?? e.code}'), backgroundColor: Colors.red));
-      return false;
-    }
-    for (int i = 0; i < 3; i++) {
-      final done = await showDialog<bool>(
+      if (!mounted) return;
+      // Ask user to check email and tap link
+      final verified = await showDialog<bool>(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('Check your email'),
-          content: Text('We sent a verification link to ${_email.text.trim()}.\n\n1. Open your email\n2. Tap the link\n3. Come back here and tap I verified.'),
+          title: const Text('Check your Email'),
+          content: Text('We sent a verification link to\n$email\n\n1. Open Gmail\n2. Tap the link\n3. Come back here and tap "I Verified"'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            TextButton(onPressed: () async {
-              try { await FirebaseAuth.instance.currentUser!.sendEmailVerification(); } catch (_) {}
-              if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Link re-sent. Check email again.')));
-            }, child: const Text('Resend link')),
-            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('I verified')),
+            TextButton(onPressed: () async { await FirebaseAuth.instance.currentUser?.sendEmailVerification(); if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Verification email resent'))); }, child: const Text('Resend')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('I Verified')),
           ],
         ),
       );
-      if (done != true) { await FirebaseAuth.instance.signOut(); return false; }
-      await FirebaseAuth.instance.currentUser!.reload();
-      if (FirebaseAuth.instance.currentUser!.emailVerified) break;
-      if (i == 2) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Email not verified yet. Tap the link in your email, then try again.'), backgroundColor: Colors.red));
-        await FirebaseAuth.instance.signOut();
-        return false;
+      // VERIFICATION FAILED / CANCELLED: DELETE the Auth account.
+      // Client has NO CEO approval, so Email Verification is the ONLY gate.
+      // If we only sign out, that unverified email would still exist and could try to login.
+      // Deleting frees the email to register again properly.
+      if (verified != true) { try { await FirebaseAuth.instance.currentUser?.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); } if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email not verified. Registration cancelled. That email cannot login. Register again and verify.'), backgroundColor: Colors.red)); return; }
+      await FirebaseAuth.instance.currentUser?.reload();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || !user.emailVerified) {
+        // Tapped "I Verified" but link not actually clicked: DELETE, cannot login.
+        try { await FirebaseAuth.instance.currentUser?.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); }
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email NOT verified. That email cannot login. Account deleted. Register again and tap the link in Gmail.'), backgroundColor: Colors.red));
+        return;
       }
-    }
-    setState(() => _loading = true);
-    try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final uid = user.uid;
       String? photoUrl;
       if (_photo != null) photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg');
       final data = <String, Object?>{
         'uid': uid, 'id': uid,
         'name': _name.text.trim(), 'fullName': _name.text.trim(),
-        'username': _username.text.trim(), 'email': _email.text.trim(),
+        'username': _username.text.trim(), 'email': email.trim().toLowerCase(),
         'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
-        'location': _location.text.trim(), 'placeName': _location.text.trim(), 'address': _location.text.trim(),
-        'latitude': _gpsLat, 'longitude': _gpsLng, 'gpsLat': _gpsLat, 'gpsLng': _gpsLng, 'locationLat': _gpsLat, 'locationLng': _gpsLng,
         'role': 'client', 'type': 'client',
         'status': 'approved', 'isApproved': true, 'approved': true, 'hasAll4': true,
-        'phoneVerified': false, 'otpVerified': false,
-        'emailVerified': true, 'verificationMethod': 'email',
+        'phoneVerified': false, 'otpVerified': false, 'emailVerified': true, 'verifiedByEmail': true,
         'photo': photoUrl ?? '', 'photoUrl': photoUrl ?? '', 'photoURL': photoUrl ?? '',
         'createdAt': FieldValue.serverTimestamp(),
       };
@@ -587,14 +345,14 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
       await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
       await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
       await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
-      if (!mounted) return true;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registered! Email verified. You can login now.')));
       await FirebaseAuth.instance.signOut();
       Navigator.pop(context);
-      return true;
     } catch (e) {
+      // BYPASS FIX: If save failed after verification, delete Auth so leftover email cannot login on 2nd try.
+      try { final u = FirebaseAuth.instance.currentUser; if (u != null) { final d = await FirebaseFirestore.instance.collection('clients').doc(u.uid).get(); if (!d.exists) await u.delete(); } } catch (_) {}
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      return false;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -645,8 +403,10 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
     return missing;
   }
 
+  // NO OTP ANY MORE - Email Verification ONLY.
+  // Phone OTP needed Play Integrity / SHA and kept failing.
+  // Email verification needs no SHA, no SMS, no Play Integrity.
   Future<void> _register() async {
-    // ALL fields must be filled.
     if (_name.text.trim().isEmpty || _username.text.trim().isEmpty || _email.text.trim().isEmpty ||
         _phone.text.trim().isEmpty || _pass.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill all fields - name, username, email, phone and password')));
@@ -661,71 +421,8 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid country code for Other, e.g. +999')));
       return;
     }
-    final phone = _fullPhone;
-    // 1) OTP TO PHONE - must PASS before any account is created. No ID needed.
-    _pendingPhoneCredential = null; _phoneVerified = false;
-    await _sendOtp(phone);
-    if (_verificationId == null && _pendingPhoneCredential == null) {
-      // If Google blocked SMS because it cannot prove this app is yours,
-      // let them verify by email instead of being stuck forever.
-      if (_otpAppIdentifierFailed) {
-        await _registerWithEmailFallback(phone);
-      }
-      return;
-    }
-    final phoneCred = await _askAndVerifyOtp(phone);
-    if (phoneCred == null || !_phoneVerified) {
-      await FirebaseAuth.instance.signOut();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('OTP not verified. Registration cancelled. You cannot login.'), backgroundColor: Colors.red));
-      return;
-    }
-    setState(() => _loading = true);
-    try {
-      // 2) Create email account LINKED to the verified phone number.
-      final emailCred = EmailAuthProvider.credential(email: _email.text.trim(), password: _pass.text.trim());
-      try {
-        await FirebaseAuth.instance.currentUser!.linkWithCredential(emailCred);
-      } on FirebaseAuthException catch (e) {
-        await FirebaseAuth.instance.signOut();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Could not create account: ${e.message ?? e.code}'), backgroundColor: Colors.red));
-        return;
-      }
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      String? photoUrl;
-      if (_photo != null) photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg');
-
-      // CLIENTS DO NOT NEED CEO APPROVAL: status=approved, can login immediately.
-      // NO ID fields - ID removed from client registration.
-      final data = <String, Object?>{
-        'uid': uid, 'id': uid,
-        'name': _name.text.trim(), 'fullName': _name.text.trim(),
-        'username': _username.text.trim(), 'email': _email.text.trim(),
-        'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
-        'location': _location.text.trim(), 'placeName': _location.text.trim(), 'address': _location.text.trim(),
-        'latitude': _gpsLat, 'longitude': _gpsLng, 'gpsLat': _gpsLat, 'gpsLng': _gpsLng, 'locationLat': _gpsLat, 'locationLng': _gpsLng,
-        'role': 'client', 'type': 'client',
-        'status': 'approved', 'isApproved': true, 'approved': true, 'hasAll4': true,
-        'phoneVerified': true, 'otpVerified': true,
-        'photo': photoUrl ?? '', 'photoUrl': photoUrl ?? '', 'photoURL': photoUrl ?? '',
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-      await FirebaseFirestore.instance.collection('clients').doc(uid).set(data);
-      final rtdbData = Map<String, Object?>.from(data)..['createdAt'] = DateTime.now().millisecondsSinceEpoch;
-      await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
-      await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
-      await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registered! Phone verified. You can login now.')));
-      await FirebaseAuth.instance.signOut();
-      Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    // ONE EMAIL = ONE ROLE - checked again inside _registerWithEmailVerification
+    await _registerWithEmailVerification();
   }
 
   @override
@@ -811,36 +508,6 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
               leading: const Icon(Icons.photo),
               title: Text(_photo == null ? 'Upload Photo (optional)' : 'Photo Selected: ${_photo!.name}'),
               trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo')),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _location,
-              readOnly: true,
-              decoration: const InputDecoration(
-                labelText: 'Location - Live GPS',
-                hintText: 'Tap Pick Live GPS - place name fills itself',
-                prefixIcon: Icon(Icons.location_on),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _locating ? null : _pickLiveGps,
-                icon: const Icon(Icons.my_location),
-                label: Text(_locating ? 'Getting GPS...' : 'Pick Live GPS'),
-              ),
-            ),
-            if (_gpsLat != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text('GPS: ${_gpsLat!.toStringAsFixed(5)}, ${_gpsLng!.toStringAsFixed(5)} - tap again to re-pick',
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ),
-            const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text('Turn on GPS first. Place name is filled automatically - you do not type it.',
-                style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
             const SizedBox(height: 20),
             _loading || _otpSending
