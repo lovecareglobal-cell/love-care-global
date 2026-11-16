@@ -163,26 +163,67 @@ class LoveCareApp extends StatelessWidget {
     return MaterialApp(
       title: 'Love Care Global',
       debugShowCheckedModeBanner: false,
-      // APP COLOUR: DARK PINK (not bright) - applies to ALL pages by default.
+      // APP COLOUR: DARK PINK. Home page bg is dark pink 0xFF4A0A26.
+      // Other pages keep light bg so their black text stays readable - only Home is dark pink.
       // Dark pink 0xFF880E4F = headers / main buttons. Pink 0xFFAD1457 = accents.
       // Any page that sets its own AppBar/button colour overrides this theme,
       // so also change those pages to 0xFF880E4F for a fully pink app.
+      // ONE FILE = ALL PAGES DARK PINK.
+      // scaffoldBackgroundColor here is the DEFAULT background for EVERY page
+      // that does NOT set its own Scaffold(backgroundColor: ...).
+      // That is most pages: Login, Registration, Auth Choice, Terms, Privacy, etc.
+      // Text is forced to WHITE by default, so black text does not disappear on dark pink.
+      // Pages that DO set their own Scaffold colour (Nurse Dashboard, My Job Offers,
+      // Nurse Settings, CEO Center = dark navy 0xFF0E0A1C) keep their own colour.
+      // They are already dark, so the app still looks dark everywhere.
+      // White cards (Nurse / Client cards on Home) stay white on purpose - they pop.
       theme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.dark,
         primaryColor: const Color(0xFF880E4F),
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF880E4F), primary: const Color(0xFF880E4F), secondary: const Color(0xFFAD1457)),
-        scaffoldBackgroundColor: const Color(0xFFFDF2F6),
+        scaffoldBackgroundColor: const Color(0xFF4A0A26),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF880E4F),
+          secondary: Color(0xFFAD1457),
+          surface: Color(0xFF4A0A26),
+          background: Color(0xFF4A0A26),
+          onPrimary: Colors.white,
+          onSecondary: Colors.white,
+          onSurface: Colors.white,
+          onBackground: Colors.white,
+        ),
+        // Default text = white, so pages with no colour set stay readable on dark pink.
+        textTheme: const TextTheme(
+          bodyLarge: TextStyle(color: Colors.white),
+          bodyMedium: TextStyle(color: Colors.white),
+          bodySmall: TextStyle(color: Colors.white70),
+          titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          titleMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          titleSmall: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          labelLarge: TextStyle(color: Colors.white),
+          labelMedium: TextStyle(color: Colors.white),
+        ),
         appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white, elevation: 0),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         ),
-        textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFF880E4F))),
+        // TextButtons on dark pink must be light pink, not dark pink (dark pink on dark pink = invisible).
+        textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFFF8BBD0))),
+        // Inputs: dark pink fill, white text, light pink label.
         inputDecorationTheme: InputDecorationTheme(
-          focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFF880E4F)), borderRadius: BorderRadius.circular(8)),
-          labelStyle: const TextStyle(color: Color(0xFF880E4F)),
+          filled: true,
+          fillColor: const Color(0xFF5C1230),
+          hintStyle: const TextStyle(color: Colors.white60),
+          labelStyle: const TextStyle(color: Color(0xFFF8BBD0)),
+          enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF8BBD0)), borderRadius: BorderRadius.circular(8)),
+          focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFFF8BBD0)), borderRadius: BorderRadius.circular(8)),
         ),
+        // Cards / dialogs on dark pink.
+        cardTheme: const CardThemeData(color: Color(0xFF5C1230)),
+        dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF4A0A26), titleTextStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18), contentTextStyle: TextStyle(color: Colors.white)),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(selectedItemColor: Color(0xFF880E4F), unselectedItemColor: Colors.grey),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF4A0A26), selectedItemColor: Color(0xFFF8BBD0), unselectedItemColor: Colors.white60),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       home: const LoveCareHomePage(),
       routes: {
@@ -586,14 +627,14 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF2F6), // soft pink, not dark navy
+      backgroundColor: const Color(0xFF4A0A26), // DARK PINK background - Boss asked for dark pink page
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0xFF880E4F), Color(0xFFAD1457)], begin: Alignment.topLeft, end: Alignment.bottomRight), // dark pink gradient, not bright pink/purple
+                gradient: LinearGradient(colors: [Color(0xFF880E4F), Color(0xFFC2185B)], begin: Alignment.topLeft, end: Alignment.bottomRight), // dark pink header - stands out on dark pink page
                 borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
               ),
               child: Column(
@@ -645,15 +686,15 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                     alignment: WrapAlignment.center,
                     spacing: 12,
                     children: [
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: const Text('Terms', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const Text('Privacy', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const Text('Community', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const Text('Refund', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const Text('Delete Account', style: TextStyle(color: Color(0xFF880E4F), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: const Text('Terms', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const Text('Privacy', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const Text('Community', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const Text('Refund', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const Text('Delete Account', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  const Text('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.grey, fontSize: 11)),
+                  const Text('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.white60, fontSize: 11)),
                   const SizedBox(height: 20),
                 ],
               ),
