@@ -15,6 +15,14 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
   bool _loading = false;
   bool _showPass = false; // NEW: For show/hide password eye
 
+  // FIXED: Helper - checks if a field actually has value, no matter the name
+  bool _hasVal(dynamic v) {
+    if (v == null) return false;
+    if (v is bool) return v == true;
+    final s = v.toString().trim();
+    return s.isNotEmpty && s.toLowerCase() != 'false' && s.toLowerCase() != 'null';
+  }
+
   Future<void> _login() async {
     final email = _emailCtrl.text.trim().toLowerCase();
     final pass = _passCtrl.text;
@@ -44,7 +52,34 @@ class _NurseLoginPageState extends State<NurseLoginPage> {
       }
       final data = doc.data()!;
       final approved = data['isApproved'] == true || data['approved'] == true || data['status'] == 'approved';
-      final complete = data['isComplete'] == true && data['hasPhoto'] == true && data['hasVideo'] == true && data['hasPhone'] == true;
+
+      // --- FIXED: Complete check - accept ANY field name Registration used ---
+      // Photo: accept hasPhoto OR photoUrl OR photo OR profilePhoto OR image OR profileImage
+      final hasPhoto = _hasVal(data['hasPhoto']) ||
+          _hasVal(data['photoUrl']) ||
+          _hasVal(data['photo']) ||
+          _hasVal(data['profilePhoto']) ||
+          _hasVal(data['profileImage']) ||
+          _hasVal(data['image']) ||
+          _hasVal(data['imageUrl']) ||
+          _hasVal(data['photoURL']);
+      // Phone: accept hasPhone OR phone OR phoneNumber OR mobile
+      final hasPhone = _hasVal(data['hasPhone']) ||
+          _hasVal(data['phone']) ||
+          _hasVal(data['phoneNumber']) ||
+          _hasVal(data['mobile']) ||
+          _hasVal(data['phoneNo']);
+      // Video: accept hasVideo OR videoUrl OR video (optional - CEO approval overrides)
+      final hasVideo = _hasVal(data['hasVideo']) ||
+          _hasVal(data['videoUrl']) ||
+          _hasVal(data['video']) ||
+          _hasVal(data['videoURL']);
+      final isCompleteFlag = data['isComplete'] == true || data['complete'] == true || data['isCompleted'] == true;
+
+      // CEO approved = CEO don check documents. So if Photo + Phone dey, allow.
+      // Video no go block again if CEO don approve, because registration no always get video.
+      final complete = isCompleteFlag || (hasPhoto && hasPhone) || (hasPhoto && hasPhone && hasVideo);
+
       if (!approved) {
         await FirebaseAuth.instance.signOut();
         setState(() { _loading = false; _msg = 'WAITING FOR CEO APPROVAL. You cannot login yet.'; });
