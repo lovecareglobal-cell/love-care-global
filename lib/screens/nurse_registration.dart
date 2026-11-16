@@ -2,7 +2,6 @@ import 'dart:io' show File;
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
@@ -11,6 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 import '../models/id_catalog.dart';
 
@@ -37,6 +38,11 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
   final _passwordController = TextEditingController();
   final _pinNumberController = TextEditingController();
   final _idNumberController = TextEditingController();
+  // ---- LIVE GPS + PLACE NAME ----
+  final _locationController = TextEditingController();
+  double? _gpsLat;
+  double? _gpsLng;
+  bool _locating = false;
 
   // --- Dropdowns ---
   String? _selectedCountry;
@@ -105,6 +111,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     _passwordController.dispose();
     _pinNumberController.dispose();
     _idNumberController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -316,6 +323,73 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     return task.ref.getDownloadURL();
   }
 
+
+  // ---- LIVE GPS + PLACE NAME (auto-filled) ----
+  // Tap Pick Live GPS -> phone GPS gives lat/lng -> geocoding turns it into
+  // a place name like "Osu, Accra, Greater Accra Region, Ghana" and fills the field.
+  // User never types the place name.
+  String _placeNameFromPlacemark(Placemark p) {
+    final parts = <String>[];
+    void add(String? v) {
+      final s = (v ?? '').trim();
+      if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
+    }
+    add(p.subLocality);
+    add(p.locality);
+    add(p.subAdministrativeArea);
+    add(p.administrativeArea);
+    add(p.country);
+    return parts.join(', ');
+  }
+
+  Future<void> _pickLiveGps() async {
+    if (_locating) return;
+    setState(() { _locating = true; });
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showError('Turn on Location / GPS on this phone first, then tap Pick Live GPS again.');
+        await Geolocator.openLocationSettings();
+        return;
+      }
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.deniedForever) {
+        _showError('Location permission is blocked. Open App info > Permissions > Location > Allow.');
+        await Geolocator.openAppSettings();
+        return;
+      }
+      if (perm == LocationPermission.denied) {
+        _showError('Location permission denied. Tap Pick Live GPS and Allow.');
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 20),
+      );
+      _gpsLat = pos.latitude;
+      _gpsLng = pos.longitude;
+      String place = '';
+      try {
+        final marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+        if (marks.isNotEmpty) place = _placeNameFromPlacemark(marks.first);
+      } catch (_) {
+        // No internet for reverse-geocoding - fall back to coordinates below
+      }
+      if (place.isEmpty) {
+        place = 'Lat ${pos.latitude.toStringAsFixed(5)}, Lng ${pos.longitude.toStringAsFixed(5)}';
+      }
+      if (!mounted) return;
+      setState(() { _locationController.text = place; });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Location picked: $place')));
+    } catch (e) {
+      _showError('Could not get GPS: $e');
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       _showError('Please fill all required fields - scroll up to see the red error.');
@@ -375,6 +449,8 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         'name': _fullNameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
+        'location': _locationController.text.trim(), 'placeName': _locationController.text.trim(), 'address': _locationController.text.trim(),
+        'latitude': _gpsLat, 'longitude': _gpsLng, 'gpsLat': _gpsLat, 'gpsLng': _gpsLng, 'locationLat': _gpsLat, 'locationLng': _gpsLng,
         'pinNumber': _pinNumberController.text.trim(),
         'country': _selectedCountry,
         'idType': _selectedIdType?.label,
@@ -385,11 +461,11 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         'videoUrl': videoUrl,
         'cvUrl': cvUrl,
         'pinCardUrl': pinUrl,
-        'pinUrl': pinUrl,
         'idFrontUrl': idFrontUrl,
         'idBackUrl': idBackUrl,
         'certificateUrl': certUrl,
         'idCheckPassed': _idCheckPassed,
+        // Pending gate - CEO must approve before login works
         'role': 'nurse',
         'status': 'pending',
         'approvalStatus': 'pending',
@@ -398,28 +474,27 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         'canLogin': false,
         'createdAt': FieldValue.serverTimestamp(),
       };
+      // Write to EVERY place the CEO screen might read from, so it cannot miss it:
+      // 1) nurses/{uid} - nurse profile, 2) nurse_registrations/{uid} - queue,
+      // 3) ceo_registration/{uid} - the CEO approval screen you named.
       final db = FirebaseFirestore.instance;
       await db.collection('nurses').doc(uid).set(data, SetOptions(merge: true));
       await db.collection('nurse_registrations').doc(uid).set(data, SetOptions(merge: true));
       await db.collection('ceo_registration').doc(uid).set(data, SetOptions(merge: true));
-      // RTDB dual-write - CEO screen reads RTDB first, so it sees it instantly
-      try {
-        final rtdbData = Map<String, dynamic>.from(data);
-        rtdbData['createdAt'] = DateTime.now().millisecondsSinceEpoch;
-        rtdbData['timestamp'] = DateTime.now().millisecondsSinceEpoch;
-        final rtdb = FirebaseDatabase.instance;
-        for (final path in ['nurses/$uid', 'pending_nurses/$uid', 'nurse_registrations/$uid', 'ceo_registration/$uid', 'ceoRegistrationCenter/nurses/$uid', 'ceoNurseUpdates/$uid']) {
-          try { await rtdb.ref(path).set(rtdbData); } catch (_) {}
-        }
-      } catch (_) {}
 
       if (!mounted) return;
       setState(() => _uploadStatus = null);
-      // Sign out so nurse CANNOT log in until CEO approves
+      // IMPORTANT: sign out so the nurse CANNOT log in until CEO approves.
+      // Login must check nurses/{uid}.status == 'approved' before letting them in.
       try { await FirebaseAuth.instance.signOut(); } catch (_) {}
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => PendingApprovalPage(name: _fullNameController.text.trim(), email: _emailController.text.trim())),
+        MaterialPageRoute(
+          builder: (_) => PendingApprovalPage(
+            name: _fullNameController.text.trim(),
+            email: _emailController.text.trim(),
+          ),
+        ),
       );
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? 'Sign-up failed (${e.code})');
@@ -487,6 +562,38 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
                 validator: (v) =>
                     (v == null || v.isEmpty) ? 'Enter phone number' : null,
               ),
+
+              _sectionTitle('Your Location (Live GPS)'),
+              TextFormField(
+                controller: _locationController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Location - Live GPS',
+                  hintText: 'Tap Pick Live GPS - place name fills itself',
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _locating ? null : _pickLiveGps,
+                  icon: const Icon(Icons.my_location),
+                  label: Text(_locating ? 'Getting GPS...' : 'Pick Live GPS'),
+                ),
+              ),
+              if (_gpsLat != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text('GPS: ${_gpsLat!.toStringAsFixed(5)}, ${_gpsLng!.toStringAsFixed(5)} - tap again to re-pick',
+                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ),
+              const Padding(
+                padding: EdgeInsets.only(top: 4),
+                child: Text('Turn on GPS first. Place name is filled automatically - you do not type it.',
+                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ),
+              const SizedBox(height: 8),
 
               _sectionTitle('Password'),
               TextFormField(
@@ -951,28 +1058,43 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
 }
 
 
-/// Shown after SUBMIT. Nurse waits here - signed out, cannot log in until CEO approves.
+/// Shown after SUBMIT. Nurse waits here - they are signed out,
+/// so they cannot log in until CEO approves in ceo_registration.dart.
 class PendingApprovalPage extends StatelessWidget {
   final String name;
   final String email;
   const PendingApprovalPage({super.key, required this.name, required this.email});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(backgroundColor: const Color(0xFF880E4F), title: const Text('Registration Sent')),
       body: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.hourglass_top, size: 80, color: Color(0xFF880E4F)),
-          const SizedBox(height: 20),
-          Text('Thank you, $name!', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          const Text('Your registration has been sent to the CEO for approval.\n\nYou will NOT be able to log in until you are approved.\nPlease wait - you will be notified once approved.', textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
-          const SizedBox(height: 12),
-          Text('Submitted as: $email', style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 28),
-          SizedBox(width: double.infinity, height: 52, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F)), onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst), child: const Text('BACK TO LOGIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-        ]),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.hourglass_top, size: 80, color: Color(0xFF880E4F)),
+            const SizedBox(height: 20),
+            Text('Thank you, $name!', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            const Text(
+              'Your registration has been sent to the CEO for approval.\n\nYou will NOT be able to log in until you are approved.\nPlease wait - you will be notified once approved.',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            Text('Submitted as: $email', style: const TextStyle(color: Colors.grey)),
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity, height: 52,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F)),
+                onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst),
+                child: const Text('BACK TO LOGIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
