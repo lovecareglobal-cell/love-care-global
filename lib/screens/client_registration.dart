@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class ClientRegistrationPage extends StatefulWidget {
   const ClientRegistrationPage({super.key});
@@ -24,11 +26,19 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   final _picker = ImagePicker();
 
   // ---- OTP (Firebase Phone Auth) ----
+  // Set when Google refuses SMS: missing app identifier / Play Integrity / reCAPTCHA
+  bool _otpAppIdentifierFailed = false;
   String? _verificationId;
   int? _resendToken;
   bool _otpSending = false;
   bool _phoneVerified = false;
   PhoneAuthCredential? _pendingPhoneCredential;
+
+  // ---- LIVE GPS + PLACE NAME ----
+  final _location = TextEditingController();
+  double? _gpsLat;
+  double? _gpsLng;
+  bool _locating = false;
 
   // ---- COUNTRY CODE (WORLD) ----
   // Full world list. Value is "Name|+code" so countries sharing a code
@@ -265,11 +275,23 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
     return await ref.getDownloadURL();
   }
 
+  @override
+  void dispose() {
+    _location.dispose();
+    _name.dispose();
+    _username.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _pass.dispose();
+    _otp.dispose();
+    super.dispose();
+  }
+
   // ---- OTP: send + verify ----
   // OTP is verified BEFORE any email account is created.
   // If OTP fails / is cancelled, NO account exists, so NO login is possible.
   Future<bool> _sendOtp(String phone) async {
-    setState(() { _otpSending = true; _otp.clear(); });
+    setState(() { _otpSending = true; _otp.clear(); _otpAppIdentifierFailed = false; });
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: phone,
@@ -280,6 +302,17 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
           _pendingPhoneCredential = cred;
         },
         verificationFailed: (FirebaseAuthException e) {
+          // This is the error in your screenshot. It is NOT a wrong number.
+          // Google could not prove this APK is your app, so it refused to send SMS.
+          final msg = (e.message ?? '').toLowerCase();
+          if (e.code == 'missing-client-identifier' ||
+              e.code == 'app-not-authorized' ||
+              e.code == 'invalid-app-credential' ||
+              msg.contains('app identifier') ||
+              msg.contains('play integrity') ||
+              msg.contains('recaptcha')) {
+            _otpAppIdentifierFailed = true;
+          }
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Could not send OTP: ${e.message ?? e.code}'), backgroundColor: Colors.red));
         },
@@ -348,6 +381,167 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
     return null;
   }
 
+
+  // ---- LIVE GPS + PLACE NAME (auto-filled) ----
+  // Tap Pick Live GPS -> phone GPS gives lat/lng -> geocoding turns it into
+  // a place name like "Osu, Accra, Greater Accra Region, Ghana" and fills the field.
+  // User never types the place name.
+  String _placeNameFromPlacemark(Placemark p) {
+    final parts = <String>[];
+    void add(String? v) {
+      final s = (v ?? '').trim();
+      if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
+    }
+    add(p.subLocality);
+    add(p.locality);
+    add(p.subAdministrativeArea);
+    add(p.administrativeArea);
+    add(p.country);
+    return parts.join(', ');
+  }
+
+  Future<void> _pickLiveGps() async {
+    if (_locating) return;
+    setState(() { _locating = true; });
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Turn on Location / GPS on this phone first, then tap Pick Live GPS again.'), backgroundColor: Colors.red));
+        await Geolocator.openLocationSettings();
+        return;
+      }
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.deniedForever) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location permission is blocked. Open App info > Permissions > Location > Allow.'), backgroundColor: Colors.red));
+        await Geolocator.openAppSettings();
+        return;
+      }
+      if (perm == LocationPermission.denied) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location permission denied. Tap Pick Live GPS and Allow.'), backgroundColor: Colors.red));
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 20),
+      );
+      _gpsLat = pos.latitude;
+      _gpsLng = pos.longitude;
+      String place = '';
+      try {
+        final marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+        if (marks.isNotEmpty) place = _placeNameFromPlacemark(marks.first);
+      } catch (_) {
+        // No internet for reverse-geocoding - fall back to coordinates below
+      }
+      if (place.isEmpty) {
+        place = 'Lat ${pos.latitude.toStringAsFixed(5)}, Lng ${pos.longitude.toStringAsFixed(5)}';
+      }
+      if (!mounted) return;
+      setState(() { _location.text = place; });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Location picked: $place')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not get GPS: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
+  // ---- FALLBACK when Google refuses SMS OTP (app-identifier / Play Integrity) ----
+  // Proves the person owns the EMAIL instead of the phone, so they are not stuck
+  // while you fix SHA / Play Integrity in the console. Phone number is still saved.
+  Future<bool> _registerWithEmailFallback(String phone) async {
+    final useEmail = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('SMS OTP is blocked by Google'),
+        content: const Text(
+          'Google could not prove this app is yours, so it will not send SMS codes.\n\n'
+          'This is fixed in Firebase Console (SHA fingerprints + Play Integrity).\n\n'
+          'For now, verify by EMAIL instead? We will send a link to your email. Tap it, come back here, tap I verified.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Verify by Email')),
+        ],
+      ),
+    );
+    if (useEmail != true) return false;
+    try {
+      await FirebaseAuth.instance.signOut();
+      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _email.text.trim(), password: _pass.text.trim());
+      await cred.user!.sendEmailVerification();
+    } on FirebaseAuthException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Could not create account: ${e.message ?? e.code}'), backgroundColor: Colors.red));
+      return false;
+    }
+    for (int i = 0; i < 3; i++) {
+      final done = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Check your email'),
+          content: Text('We sent a verification link to ${_email.text.trim()}.\n\n1. Open your email\n2. Tap the link\n3. Come back here and tap I verified.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            TextButton(onPressed: () async {
+              try { await FirebaseAuth.instance.currentUser!.sendEmailVerification(); } catch (_) {}
+              if (ctx.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Link re-sent. Check email again.')));
+            }, child: const Text('Resend link')),
+            ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('I verified')),
+          ],
+        ),
+      );
+      if (done != true) { await FirebaseAuth.instance.signOut(); return false; }
+      await FirebaseAuth.instance.currentUser!.reload();
+      if (FirebaseAuth.instance.currentUser!.emailVerified) break;
+      if (i == 2) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Email not verified yet. Tap the link in your email, then try again.'), backgroundColor: Colors.red));
+        await FirebaseAuth.instance.signOut();
+        return false;
+      }
+    }
+    setState(() => _loading = true);
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      String? photoUrl;
+      if (_photo != null) photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg');
+      final data = <String, Object?>{
+        'uid': uid, 'id': uid,
+        'name': _name.text.trim(), 'fullName': _name.text.trim(),
+        'username': _username.text.trim(), 'email': _email.text.trim(),
+        'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
+        'location': _location.text.trim(), 'placeName': _location.text.trim(), 'address': _location.text.trim(),
+        'latitude': _gpsLat, 'longitude': _gpsLng, 'gpsLat': _gpsLat, 'gpsLng': _gpsLng, 'locationLat': _gpsLat, 'locationLng': _gpsLng,
+        'role': 'client', 'type': 'client',
+        'status': 'approved', 'isApproved': true, 'approved': true, 'hasAll4': true,
+        'phoneVerified': false, 'otpVerified': false,
+        'emailVerified': true, 'verificationMethod': 'email',
+        'photo': photoUrl ?? '', 'photoUrl': photoUrl ?? '', 'photoURL': photoUrl ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+      await FirebaseFirestore.instance.collection('clients').doc(uid).set(data);
+      final rtdbData = Map<String, Object?>.from(data)..['createdAt'] = DateTime.now().millisecondsSinceEpoch;
+      await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
+      await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
+      await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
+      if (!mounted) return true;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Registered! Email verified. You can login now.')));
+      await FirebaseAuth.instance.signOut();
+      Navigator.pop(context);
+      return true;
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      return false;
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
   // ---- STRONG PASSWORD ----
   int get _passwordScore {
     final p = _pass.text;
@@ -413,7 +607,14 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
     // 1) OTP TO PHONE - must PASS before any account is created. No ID needed.
     _pendingPhoneCredential = null; _phoneVerified = false;
     await _sendOtp(phone);
-    if (_verificationId == null && _pendingPhoneCredential == null) return;
+    if (_verificationId == null && _pendingPhoneCredential == null) {
+      // If Google blocked SMS because it cannot prove this app is yours,
+      // let them verify by email instead of being stuck forever.
+      if (_otpAppIdentifierFailed) {
+        await _registerWithEmailFallback(phone);
+      }
+      return;
+    }
     final phoneCred = await _askAndVerifyOtp(phone);
     if (phoneCred == null || !_phoneVerified) {
       await FirebaseAuth.instance.signOut();
@@ -444,6 +645,8 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
         'name': _name.text.trim(), 'fullName': _name.text.trim(),
         'username': _username.text.trim(), 'email': _email.text.trim(),
         'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
+        'location': _location.text.trim(), 'placeName': _location.text.trim(), 'address': _location.text.trim(),
+        'latitude': _gpsLat, 'longitude': _gpsLng, 'gpsLat': _gpsLat, 'gpsLng': _gpsLng, 'locationLat': _gpsLat, 'locationLng': _gpsLng,
         'role': 'client', 'type': 'client',
         'status': 'approved', 'isApproved': true, 'approved': true, 'hasAll4': true,
         'phoneVerified': true, 'otpVerified': true,
@@ -550,6 +753,36 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
               leading: const Icon(Icons.photo),
               title: Text(_photo == null ? 'Upload Photo (optional)' : 'Photo Selected: ${_photo!.name}'),
               trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo')),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _location,
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'Location - Live GPS',
+                hintText: 'Tap Pick Live GPS - place name fills itself',
+                prefixIcon: Icon(Icons.location_on),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _locating ? null : _pickLiveGps,
+                icon: const Icon(Icons.my_location),
+                label: Text(_locating ? 'Getting GPS...' : 'Pick Live GPS'),
+              ),
+            ),
+            if (_gpsLat != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('GPS: ${_gpsLat!.toStringAsFixed(5)}, ${_gpsLng!.toStringAsFixed(5)} - tap again to re-pick',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              ),
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text('Turn on GPS first. Place name is filled automatically - you do not type it.',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
             ),
             const SizedBox(height: 20),
             _loading || _otpSending
