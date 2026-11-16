@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -40,6 +42,7 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
   void initState() {
     super.initState();
     _loadAll();
+    _loadHistory();
     _startSound();
   }
 
@@ -53,12 +56,45 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
       if (kl.contains('email')) myEmails.add(v.toLowerCase().trim());
       if (kl.contains('uid') || k == 'id') myUids.add(v);
     }
+    // Auth is truth - login saves NO prefs, so prefs-only = NONE / 'Login again'.
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        if (user.uid.isNotEmpty) myUids.add(user.uid);
+        if (user.email != null && user.email!.isNotEmpty) myEmails.add(_normEmail(user.email!));
+        try {
+          final doc = await FirebaseFirestore.instance.collection('nurses').doc(user.uid).get();
+          if (doc.exists && doc.data() != null) {
+            final d = doc.data()!;
+            if (d['phone'] != null) { final p = _normPhone(d['phone'].toString()); if (p.isNotEmpty) myPhones.add(p); }
+            if (d['email'] != null) myEmails.add(_normEmail(d['email'].toString()));
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
     // Dedupe
     myPhones = myPhones.toSet().toList(); myEmails = myEmails.toSet().toList(); myUids = myUids.toSet().toList();
   }
 
   String _normPhone(String s) { final p = s.replaceAll(RegExp(r'[^0-9]'), ''); return p.length >= 9 ? p.substring(p.length - 9) : p; }
   String _normEmail(String s) => s.toLowerCase().trim();
+
+  // Time may be num (ms) or String (ISO / digits) - 'as num' crashes on String.
+  int _toMillis(dynamic v) {
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? DateTime.tryParse(v)?.millisecondsSinceEpoch ?? 0;
+    return 0;
+  }
+
+  String _formatTime(dynamic v) {
+    final ms = _toMillis(v);
+    if (ms <= 0) return '';
+    return DateTime.fromMillisecondsSinceEpoch(ms).toString();
+  }
+
+  // RTDB KEY, not bookingId. bookingId != key in _loadAll, so updating
+  // bookings/<bookingId> created a duplicate node and the real booking never changed.
+  String _rtKey(Map b) => (b['id'] ?? b['bookingId'] ?? '').toString();
 
   bool _matchesBooking(Map v) {
     if (myPhones.isEmpty && myEmails.isEmpty && myUids.isEmpty) return true;
@@ -81,15 +117,15 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
   List<Map> get filtered {
     var arr = List<Map>.from(all);
     if (showMode == 'recent') {
-      arr.sort((a, b) => ((b['time'] ?? b['createdAt'] ?? 0) as num).compareTo((a['time'] ?? a['createdAt'] ?? 0) as num));
+      arr.sort((a, b) => _toMillis(b['time'] ?? b['createdAt']).compareTo(_toMillis(a['time'] ?? a['createdAt'])));
       return arr.where((v) => !_isTerminal(v) && !_isHistory(v)).take(10).toList();
     }
     var f = arr.where((v) => !_isTerminal(v) && !_isHistory(v) && _matchesBooking(v)).toList();
     if (f.isEmpty && arr.isNotEmpty) {
-      arr.sort((a, b) => ((b['time'] ?? b['createdAt'] ?? 0) as num).compareTo((a['time'] ?? a['createdAt'] ?? 0) as num));
+      arr.sort((a, b) => _toMillis(b['time'] ?? b['createdAt']).compareTo(_toMillis(a['time'] ?? a['createdAt'])));
       f = arr.where((v) => !_isTerminal(v) && !_isHistory(v)).take(5).toList();
     }
-    f.sort((a, b) => ((b['time'] ?? b['createdAt'] ?? 0) as num).compareTo((a['time'] ?? a['createdAt'] ?? 0) as num));
+    f.sort((a, b) => _toMillis(b['time'] ?? b['createdAt']).compareTo(_toMillis(a['time'] ?? a['createdAt'])));
     return f;
   }
 
@@ -132,7 +168,7 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
   }
 
   Future<void> _updateBooking(String id, Map data, String? triggerTitle, String? triggerStatus) async {
-    final b = all.firstWhere((x) => x['bookingId'] == id, orElse: () => {});
+    final b = all.firstWhere((x) => x['id'] == id || x['bookingId'] == id, orElse: () => {});
     await FirebaseDatabase.instance.ref('bookings/$id').update(Map<String, Object?>.from(data));
     if (triggerTitle != null) {
       await _sendSoundTrigger('client', {'bookingId': id, 'status': triggerStatus ?? data['status'], 'title': triggerTitle, 'toPhone': b['clientPhone'], 'toUid': b['clientUid'] ?? b['clientId'], 'toEmail': b['clientEmail']});
@@ -149,7 +185,7 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
   Future<void> _rejectOffer(String id) async {
     final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Reject $id?'), content: const Text('Client will be told to book another nurse or increase via Paystack.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Reject'))]));
     if (confirm != true) return;
-    final b = all.firstWhere((x) => x['bookingId'] == id, orElse: () => {});
+    final b = all.firstWhere((x) => x['id'] == id || x['bookingId'] == id, orElse: () => {});
     final now = DateTime.now().millisecondsSinceEpoch;
     await _updateBooking(id, {'status': 'rejected_by_nurse', 'lastChangedBy': 'nurse', 'lastChangedAt': now, 'rejectedAt': now, 'rejectedByNurseName': b['nurseName']}, 'Nurse rejected your offer', 'rejected_by_nurse');
     _toast('Rejected - Client will hear HIS song');
@@ -179,7 +215,7 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
     if (confirm != true) return;
     final now = DateTime.now().millisecondsSinceEpoch;
     final key = myUids.isNotEmpty ? myUids[0] : (myPhones.isNotEmpty ? myPhones[0] : (myEmails.isNotEmpty ? myEmails[0] : 'unknown'));
-    final b = all.firstWhere((x) => x['bookingId'] == id, orElse: () => {});
+    final b = all.firstWhere((x) => x['id'] == id || x['bookingId'] == id, orElse: () => {});
     await FirebaseDatabase.instance.ref('nurseBookingHistory/$key/$id').set({...b, 'status': 'client_confirmed_finished', 'clientConfirmed': true, 'clientConfirmedAt': now, 'clientConfirmedAtStr': DateTime.now().toString()});
     await FirebaseDatabase.instance.ref('bookings/$id').update({'status': 'client_confirmed_finished', 'clientConfirmed': true, 'clientConfirmedAt': now});
     Future.delayed(const Duration(milliseconds: 800), () async { await FirebaseDatabase.instance.ref('bookings/$id').remove().catchError((_) {}); _toast('Confirmed - Moved to history'); _loadHistory(); _loadAll(); });
@@ -213,11 +249,12 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
         if (s.exists) (s.value as Map).forEach((key, v) { final val = Map<String, dynamic>.from(v as Map); arr.add({...val, 'id': key, 'bookingId': val['bookingId'] ?? key}); });
       } catch (_) {}
     }
-    arr.sort((a, b) => ((b['clientConfirmedAt'] ?? 0) as num).compareTo((a['clientConfirmedAt'] ?? 0) as num));
+    arr.sort((a, b) => _toMillis(b['clientConfirmedAt']).compareTo(_toMillis(a['clientConfirmedAt'])));
     setState(() => historyData = arr);
   }
 
   Future<void> _deleteHistory(String id) async {
+    if (myUids.isEmpty && myPhones.isEmpty && myEmails.isEmpty) { _toast('Login again - no identity'); return; }
     final key = myUids.isNotEmpty ? myUids[0] : (myPhones.isNotEmpty ? myPhones[0] : myEmails[0]);
     await FirebaseDatabase.instance.ref('nurseBookingHistory/$key/$id').remove().catchError((_) {});
     _loadHistory();
@@ -236,7 +273,7 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
       final v = Map<String, dynamic>.from(e.snapshot.value as Map);
       if (v['lastChangedBy'] == 'nurse') return;
       if (!_matchesBooking(v)) return;
-      final t = (v['lastChangedAt'] ?? v['time'] ?? v['createdAt'] ?? 0) as num;
+      final t = _toMillis(v['lastChangedAt'] ?? v['time'] ?? v['createdAt']);
       if (DateTime.now().millisecondsSinceEpoch - t > 120000) return;
       _playCustomSound();
       _toast('🔔 New reply - ${v['status'] ?? ''}');
@@ -255,8 +292,8 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
   void _showDetails(Map b) {
     showDialog(context: context, builder: (_) => AlertDialog(
       title: Text('Booking ID ${b['bookingId']}'),
-      content: SingleChildScrollView(child: Text('ID: ${b['bookingId']}\nStatus: ${b['status'] ?? 'pending'}\nClient: ${b['clientName'] ?? ''} - ${b['clientPhone'] ?? ''}\nNurse: ${b['nurseName'] ?? ''} - ${b['nursePhone'] ?? ''}\nAmount: ${b['currency'] ?? 'GHS'} ${b['amount'] ?? ''}\nService: ${b['serviceType'] ?? b['service'] ?? ''}\nLocation: ${b['location'] ?? ''}\nTime: ${b['time'] != null ? DateTime.fromMillisecondsSinceEpoch((b['time'] as num).toInt()) : ''}')),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')), ElevatedButton(onPressed: () { Navigator.pop(context); _claimBooking(b['bookingId']); }, child: const Text('Claim This Booking'))],
+      content: SingleChildScrollView(child: Text('ID: ${b['bookingId']}\nStatus: ${b['status'] ?? 'pending'}\nClient: ${b['clientName'] ?? ''} - ${b['clientPhone'] ?? ''}\nNurse: ${b['nurseName'] ?? ''} - ${b['nursePhone'] ?? ''}\nAmount: ${b['currency'] ?? 'GHS'} ${b['amount'] ?? ''}\nService: ${b['serviceType'] ?? b['service'] ?? ''}\nLocation: ${b['location'] ?? ''}\nTime: ${_formatTime(b['time'])}')),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')), ElevatedButton(onPressed: () { Navigator.pop(context); _claimBooking(_rtKey(b)); }, child: const Text('Claim This Booking'))],
     ));
   }
 
@@ -325,7 +362,7 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
                         ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red, size: 18),
-                        onPressed: () => _deleteHistory(b['bookingId']),
+                        onPressed: () => _deleteHistory(_rtKey(b)),
                       ),
                     ],
                   ),
@@ -344,25 +381,25 @@ class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
               Text('Client: ${b['clientName'] ?? ''} - ${b['clientPhone'] ?? ''}', style: const TextStyle(fontSize: 12)),
               Text('Service: ${b['serviceType'] ?? b['service'] ?? ''} • Amount: ${b['currency'] ?? 'GHS'} ${b['amount'] ?? ''}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
               Text('Location: ${b['location'] ?? ''}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
-              Text('Time: ${b['time'] != null ? DateTime.fromMillisecondsSinceEpoch((b['time'] as num).toInt()) : ''}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+              Text('Time: ${_formatTime(b['time'])}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
               const SizedBox(height: 10),
               Wrap(spacing: 6, runSpacing: 6, children: [
                 if (s == 'pending' || s == 'new') ...[
-                  ElevatedButton(onPressed: () => _acceptOffer(b['bookingId']), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('✅ Accept', style: TextStyle(fontSize: 11))),
-                  ElevatedButton(onPressed: () => _rejectOffer(b['bookingId']), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('❌ Reject', style: TextStyle(fontSize: 11))),
+                  ElevatedButton(onPressed: () => _acceptOffer(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('✅ Accept', style: TextStyle(fontSize: 11))),
+                  ElevatedButton(onPressed: () => _rejectOffer(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('❌ Reject', style: TextStyle(fontSize: 11))),
                 ],
                 if (s == 'accepted') ...[
-                  ElevatedButton(onPressed: () => _markOnWay(b['bookingId']), child: const Text('🚗 On Way', style: TextStyle(fontSize: 11))),
-                  ElevatedButton(onPressed: () => _markClose(b['bookingId']), child: const Text('📍 Close', style: TextStyle(fontSize: 11))),
-                  ElevatedButton(onPressed: () => _markCompleted(b['bookingId']), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text('🎉 Completed', style: TextStyle(fontSize: 11))),
+                  ElevatedButton(onPressed: () => _markOnWay(_rtKey(b)), child: const Text('🚗 On Way', style: TextStyle(fontSize: 11))),
+                  ElevatedButton(onPressed: () => _markClose(_rtKey(b)), child: const Text('📍 Close', style: TextStyle(fontSize: 11))),
+                  ElevatedButton(onPressed: () => _markCompleted(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text('🎉 Completed', style: TextStyle(fontSize: 11))),
                 ],
-                if (s == 'on_the_way') ElevatedButton(onPressed: () => _markClose(b['bookingId']), child: const Text('📍 Close', style: TextStyle(fontSize: 11))),
-                if (s == 'close' || s == 'completed') ElevatedButton(onPressed: () => _markCompleted(b['bookingId']), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text('🎉 Completed', style: TextStyle(fontSize: 11))),
-                ElevatedButton(onPressed: () => _confirmDone(b['bookingId']), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: const Text('✅ Confirm Done', style: TextStyle(fontSize: 11))),
+                if (s == 'on_the_way') ElevatedButton(onPressed: () => _markClose(_rtKey(b)), child: const Text('📍 Close', style: TextStyle(fontSize: 11))),
+                if (s == 'close' || s == 'completed') ElevatedButton(onPressed: () => _markCompleted(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text('🎉 Completed', style: TextStyle(fontSize: 11))),
+                ElevatedButton(onPressed: () => _confirmDone(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: const Text('✅ Confirm Done', style: TextStyle(fontSize: 11))),
                 OutlinedButton(onPressed: () => _showDetails(b), child: const Text('Details', style: TextStyle(fontSize: 11))),
-                OutlinedButton(onPressed: () => _claimBooking(b['bookingId']), child: const Text('Claim', style: TextStyle(fontSize: 11))),
-                OutlinedButton(onPressed: () => _cancelBooking(b['bookingId']), style: OutlinedButton.styleFrom(foregroundColor: Colors.red), child: const Text('Cancel', style: TextStyle(fontSize: 11))),
-                OutlinedButton(onPressed: () => Navigator.pushNamed(context, '/nurse-complaint', arguments: {'bookingId': b['bookingId'], 'clientName': b['clientName'], 'clientId': b['clientUid'] ?? b['clientId'], 'nurseName': b['nurseName'], 'nurseId': b['nurseId'], 'service': b['serviceType'] ?? b['service'], 'amount': b['amount']}), child: const Text('😡 Complaint', style: TextStyle(fontSize: 11))),
+                OutlinedButton(onPressed: () => _claimBooking(_rtKey(b)), child: const Text('Claim', style: TextStyle(fontSize: 11))),
+                OutlinedButton(onPressed: () => _cancelBooking(_rtKey(b)), style: OutlinedButton.styleFrom(foregroundColor: Colors.red), child: const Text('Cancel', style: TextStyle(fontSize: 11))),
+                OutlinedButton(onPressed: () => Navigator.pushNamed(context, '/nurse-complaint', arguments: {'bookingId': b['bookingId'], 'id': _rtKey(b), 'clientName': b['clientName'], 'clientId': b['clientUid'] ?? b['clientId'], 'nurseName': b['nurseName'], 'nurseId': b['nurseId'], 'service': b['serviceType'] ?? b['service'], 'amount': b['amount']}), child: const Text('😡 Complaint', style: TextStyle(fontSize: 11))),
               ]),
             ]));
           }),
