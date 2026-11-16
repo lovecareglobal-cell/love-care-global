@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'client_dashboard.dart';
 
 class ClientLoginPage extends StatefulWidget {
   const ClientLoginPage({super.key});
@@ -155,10 +154,15 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
         await prefs.setString('clientEmail', loginEmail);
       } catch (_) {}
       setState(() { _loading = false; _msg = '✅ Welcome Client!'; });
-      // 1. CLIENT LOGIN OPENS CLIENT DASHBOARD FILE (ClientDashboardScreen) - not Home.
+      // 1. CLIENT LOGIN OPENS CLIENT DASHBOARD - not Home.
+      // Use NAMED ROUTE '/client-dashboard' (already in main.dart) instead of
+      // direct import. Direct import fails if dashboard is in a different folder,
+      // and then the old file with popUntil(Home) keeps being used.
+      // pushNamedAndRemoveUntil clears Home/Login from the stack, so Back cannot go to Home.
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const ClientDashboardScreen()),
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/client-dashboard',
+        (route) => false,
       );
     } on FirebaseAuthException catch (e) {
       String m;
