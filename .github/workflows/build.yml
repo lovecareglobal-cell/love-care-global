@@ -158,14 +158,17 @@ jobs:
 
       - name: Create Debug Keystore if missing
         run: |
-          mkdir -p ~/.android
-          if [ ! -f ~/.android/debug.keystore ]; then
-            keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-            echo "✅ Created debug.keystore"
-          else
-            echo "✅ debug.keystore already exists"
-          fi
-          ls -lh ~/.android/debug.keystore
+          mkdir -p ~/.android ~/.config/.android
+          for D in ~/.android ~/.config/.android; do
+            if [ ! -f $D/debug.keystore ]; then
+              keytool -genkey -v -keystore $D/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+              echo "✅ Created $D/debug.keystore"
+            else
+              echo "✅ exists $D/debug.keystore"
+            fi
+          done
+          cp ~/.android/debug.keystore ~/.config/.android/debug.keystore || true
+          ls -lh ~/.android/debug.keystore ~/.config/.android/debug.keystore
 
       - name: Show SHA fingerprints
         run: |
