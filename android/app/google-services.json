@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1062578660694-o7p4tt15as2dsfa3ln45m8jtp649k011.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ecareglobal.love_care_global",
+            "certificate_hash": "b0065782748953e7644c352ad7bc708e2414e950"
+          }
+        },
+        {
           "client_id": "1062578660694-0hsgkhhrpgiqlnb2s5s6o088d2241qba.apps.googleusercontent.com",
           "client_type": 3
         }
