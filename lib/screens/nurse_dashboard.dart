@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:convert';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
 
 /// Nurse Dashboard - Flutter version of nurse-dashboard.html
 /// - loadNurse: SharedPreferences + RTDB nurses/{uid} (HTML also used Firestore — RTDB is source of truth in Flutter)
@@ -23,6 +28,8 @@ class NurseDashboardScreen extends StatefulWidget {
 
 class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
   String currentNurseId = 'demo-nurse';
+  String _gpsPlaceName = '';
+  double? _gpsLat, _gpsLng;
   String nurseName = 'Nurse', nurseEmail = '', nursePhone = '', nurseSpecialty = 'General Nursing', photoUrl = '';
   bool isOnline = false;
   String saveStatus = '';
@@ -37,30 +44,76 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
     _startSoundListener();
   }
 
+  String _firstString(Map d, List<String> keys) {
+    for (final k in keys) {
+      final v = d[k];
+      if (v != null && v.toString().trim().isNotEmpty) return v.toString().trim();
+    }
+    return '';
+  }
+
   Future<void> _loadNurse() async {
     final prefs = await SharedPreferences.getInstance();
-    final uid = prefs.getString('lcg_nurse_uid') ?? prefs.getString('uid') ?? '';
+    final authUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final uid = authUid.isNotEmpty
+        ? authUid
+        : (prefs.getString('lcg_nurse_uid') ?? prefs.getString('uid') ?? prefs.getString('nurseUid') ?? '');
     if (uid.isEmpty) { setState(() => currentNurseId = 'demo-nurse'); return; }
     setState(() => currentNurseId = uid);
-    var photo = prefs.getString('nursePhotoURL') ?? prefs.getString('nursePhoto') ?? prefs.getString('photoUrl') ?? '';
+    var photo = prefs.getString('nursePhotoURL') ?? prefs.getString('nursePhoto') ?? prefs.getString('photoUrl') ?? prefs.getString('photoURL') ?? '';
     var name = prefs.getString('nurseName') ?? prefs.getString('fullName') ?? prefs.getString('displayName') ?? '';
-    var email = prefs.getString('nurseEmail') ?? prefs.getString('email') ?? prefs.getString('currentNurseEmail') ?? '';
+    var email = prefs.getString('nurseEmail') ?? prefs.getString('email') ?? prefs.getString('currentNurseEmail') ?? FirebaseAuth.instance.currentUser?.email ?? '';
     var phone = prefs.getString('nursePhone') ?? prefs.getString('phone') ?? '';
-    var spec = prefs.getString('nurseSpecialty') ?? '';
+    var spec = prefs.getString('nurseSpecialty') ?? prefs.getString('specialty') ?? '';
+    var place = prefs.getString('nursePlaceName') ?? prefs.getString('placeName') ?? prefs.getString('location') ?? '';
+    try {
+      var doc = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
+      if (!doc.exists) doc = await FirebaseFirestore.instance.collection('nurse_registrations').doc(uid).get();
+      if (doc.exists && doc.data() != null) {
+        final dd = doc.data()!;
+        final p = _firstString(dd, ['photoUrl', 'photoURL', 'photo', 'profilePhoto', 'imageUrl']);
+        if (p.isNotEmpty) photo = p;
+        final n = _firstString(dd, ['fullName', 'name', 'displayName']);
+        if (n.isNotEmpty) name = n;
+        if (dd['email'] != null) email = dd['email'].toString();
+        if (dd['phone'] != null) phone = dd['phone'].toString();
+        final s = _firstString(dd, ['specialty', 'specialtyType']);
+        if (s.isNotEmpty) spec = s;
+        final pl = _firstString(dd, ['placeName', 'location', 'address', 'gpsActualName']);
+        if (pl.isNotEmpty) place = pl;
+        if (dd['latitude'] is num) _gpsLat = (dd['latitude'] as num).toDouble();
+        if (dd['longitude'] is num) _gpsLng = (dd['longitude'] as num).toDouble();
+      }
+    } catch (_) {}
     try {
       final snap = await FirebaseDatabase.instance.ref('nurses/$uid').get();
       if (snap.exists) {
-        final d = Map<String, dynamic>.from(snap.value as Map);
-        if (d['photoURL'] != null || d['photo'] != null) photo = d['photoURL'] ?? d['photo'] ?? photo;
-        if (d['fullName'] != null || d['name'] != null) name = d['fullName'] ?? d['name'] ?? name;
-        if (d['email'] != null) email = d['email'] ?? email;
-        if (d['phone'] != null) phone = d['phone'] ?? phone;
-        if (d['specialty'] != null) spec = d['specialty'] ?? spec;
+        final dd = Map<String, dynamic>.from(snap.value as Map);
+        final p = _firstString(dd, ['photoUrl', 'photoURL', 'photo', 'profilePhoto']);
+        if (p.isNotEmpty) photo = p;
+        final n = _firstString(dd, ['fullName', 'name', 'displayName']);
+        if (n.isNotEmpty) name = n;
+        if (dd['email'] != null) email = dd['email'].toString();
+        if (dd['phone'] != null) phone = dd['phone'].toString();
+        final s = _firstString(dd, ['specialty']);
+        if (s.isNotEmpty) spec = s;
+        final pl = _firstString(dd, ['placeName', 'location', 'address', 'gpsActualName']);
+        if (pl.isNotEmpty) place = pl;
       }
     } catch (_) {}
+    try {
+      await prefs.setString('lcg_nurse_uid', uid);
+      if (name.isNotEmpty) await prefs.setString('nurseName', name);
+      if (photo.isNotEmpty) await prefs.setString('nursePhotoURL', photo);
+      if (email.isNotEmpty) await prefs.setString('nurseEmail', email);
+      if (phone.isNotEmpty) await prefs.setString('nursePhone', phone);
+      if (place.isNotEmpty) await prefs.setString('nursePlaceName', place);
+    } catch (_) {}
+    if (!mounted) return;
     setState(() {
       nurseName = name.isEmpty ? 'Nurse' : name;
       nurseEmail = email; nursePhone = phone; nurseSpecialty = spec.isEmpty ? 'General Nursing' : spec; photoUrl = photo;
+      _gpsPlaceName = place;
     });
     await _checkOnlineStatus(uid);
     _loadMyBookings();
@@ -75,13 +128,75 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
     } catch (_) {}
   }
 
-  Future<Map<String, double>> _getLocationFast() async {
+  String _placeNameFromPlacemark(Placemark p) {
+    final parts = <String>[];
+    void add(String? v) {
+      final s = (v ?? '').trim();
+      if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
+    }
+    add(p.subLocality);
+    add(p.locality);
+    add(p.subAdministrativeArea);
+    add(p.administrativeArea);
+    add(p.country);
+    return parts.join(', ');
+  }
+
+  Future<String> _placeNameFromWeb(double lat, double lng) async {
+    String joinParts(List<String?> values) {
+      final parts = <String>[];
+      for (final v in values) {
+        final s = (v ?? '').trim();
+        if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
+      }
+      return parts.join(', ');
+    }
     try {
-      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 3));
-      return {'lat': pos.latitude, 'lng': pos.longitude};
+      final uri = Uri.parse('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$lat&longitude=$lng&localityLanguage=en');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final j = jsonDecode(res.body) as Map<String, dynamic>;
+        final name = joinParts([j['locality']?.toString(), j['city']?.toString(), j['principalSubdivision']?.toString(), j['countryName']?.toString()]);
+        if (name.isNotEmpty) return name;
+      }
+    } catch (_) {}
+    try {
+      final uri = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1');
+      final res = await http.get(uri, headers: {'Accept': 'application/json'}).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final j = jsonDecode(res.body) as Map<String, dynamic>;
+        final addr = (j['address'] as Map<String, dynamic>?) ?? {};
+        final name = joinParts([addr['suburb']?.toString() ?? addr['neighbourhood']?.toString(), addr['city']?.toString() ?? addr['town']?.toString() ?? addr['village']?.toString(), addr['state']?.toString(), addr['country']?.toString()]);
+        if (name.isNotEmpty) return name;
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  Future<Map<String, dynamic>> _getLocationFast() async {
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) throw Exception('GPS permission denied');
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 10));
+      String place = '';
+      try {
+        final marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+        if (marks.isNotEmpty) place = _placeNameFromPlacemark(marks.first);
+      } catch (_) {}
+      if (place.isEmpty) place = await _placeNameFromWeb(pos.latitude, pos.longitude);
+      _gpsLat = pos.latitude; _gpsLng = pos.longitude; _gpsPlaceName = place;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('nurseLat', pos.latitude);
+      await prefs.setDouble('nurseLng', pos.longitude);
+      if (place.isNotEmpty) await prefs.setString('nursePlaceName', place);
+      return {'lat': pos.latitude, 'lng': pos.longitude, 'place': place};
     } catch (_) {
       final prefs = await SharedPreferences.getInstance();
-      return {'lat': prefs.getDouble('nurseLat') ?? 0, 'lng': prefs.getDouble('nurseLng') ?? 0};
+      final lat = prefs.getDouble('nurseLat') ?? _gpsLat ?? 0;
+      final lng = prefs.getDouble('nurseLng') ?? _gpsLng ?? 0;
+      final place = prefs.getString('nursePlaceName') ?? _gpsPlaceName;
+      return {'lat': lat, 'lng': lng, 'place': place};
     }
   }
 
@@ -94,8 +209,11 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
     final payload = {
       'isOnline': true, 'online': true, 'isAvailable': true, 'available': true, 'status': 'online', 'presence': 'online',
       'lastSeen': now, 'lastActive': now, 'lastOnline': now, 'onlineAt': now, 'updatedAt': now, 'lastUpdate': now, 'timeStr': timeStr,
-      'fullName': nurseName, 'name': nurseName, 'photoURL': photoUrl, 'photo': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty,
+      'fullName': nurseName, 'name': nurseName, 'photoURL': photoUrl, 'photo': photoUrl, 'photoUrl': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty,
       'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'],
+      'gpsLat': loc['lat'], 'gpsLng': loc['lng'], 'locationLat': loc['lat'], 'locationLng': loc['lng'],
+      'location': loc['place'], 'placeName': loc['place'], 'address': loc['place'], 'gpsActualName': loc['place'], 'gpsPlaceName': loc['place'],
+      'lastGpsAt': now, 'gpsUpdatedAt': now,
       'uid': uid, 'id': uid, 'isApproved': true, 'instantOnline': true, 'broadcastAt': now,
     };
     final db = FirebaseDatabase.instance;
@@ -107,14 +225,14 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
         db.ref('liveNurses/$uid').set(payload),
         db.ref('liveTracking/$uid').set(payload),
         db.ref('nurseLocations/$uid').update({'isLive': true, 'isOnline': true, 'status': 'online', 'lat': loc['lat'], 'lng': loc['lng'], 'lastSeen': now, 'updatedAt': now}),
-        db.ref('nurses/$uid').update({'isOnline': true, 'online': true, 'isAvailable': true, 'status': 'online', 'lastSeen': now, 'lastOnline': now, 'onlineAt': now, 'timeStr': timeStr}),
-        db.ref('allNurses/$uid').update({'isOnline': true, 'status': 'online', 'lastSeen': now, 'onlineAt': now}),
+        db.ref('nurses/$uid').update({'isOnline': true, 'online': true, 'isAvailable': true, 'status': 'online', 'lastSeen': now, 'lastOnline': now, 'onlineAt': now, 'timeStr': timeStr, 'fullName': nurseName, 'name': nurseName, 'photoUrl': photoUrl, 'photoURL': photoUrl, 'photo': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty, 'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'], 'gpsLat': loc['lat'], 'gpsLng': loc['lng'], 'location': loc['place'], 'placeName': loc['place'], 'address': loc['place'], 'gpsActualName': loc['place'], 'lastGpsAt': now}),
+        db.ref('allNurses/$uid').update({'isOnline': true, 'status': 'online', 'lastSeen': now, 'onlineAt': now, 'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'], 'location': loc['place'], 'placeName': loc['place']}),
         db.ref('pending_nurses/$uid').update({'isOnline': true, 'status': 'online'}),
         db.ref('pendingNurses/$uid').update({'isOnline': true, 'status': 'online'}),
       ]);
       db.ref('onlineNurses/$uid').onDisconnect().remove();
       db.ref('nursePresence/$uid').onDisconnect().set({'status': 'offline', 'isOnline': false, 'lastSeen': now});
-      setState(() => saveStatus = '🟢 ONLINE NOW — Visible to clients — Clients can see you in book-nurse');
+      if (mounted) setState(() { _gpsPlaceName = (loc['place'] ?? '').toString(); saveStatus = '🟢 ONLINE NOW — Visible to clients — 📍 ${_gpsPlaceName.isNotEmpty ? _gpsPlaceName : 'GPS saved'}'; });
     } catch (e) { setState(() => saveStatus = 'Online failed: $e'); }
   }
 
@@ -280,12 +398,12 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
       appBar: AppBar(title: const Text('Nurse Dashboard', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.pushNamed(context, '/nurse-settings')), IconButton(icon: const Icon(Icons.notifications), onPressed: () => Navigator.pushNamed(context, '/sound-settings'))]),
       drawer: Drawer(child: Container(color: const Color(0xFF120E26), child: ListView(padding: EdgeInsets.zero, children: [
         DrawerHeader(decoration: const BoxDecoration(color: Color(0xFF1C1238)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [CircleAvatar(radius: 28, backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null, child: photoUrl.isEmpty ? Text(nurseName.isNotEmpty ? nurseName[0] : 'N') : null), const SizedBox(height: 8), Text(nurseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text(nurseEmail, style: const TextStyle(color: Colors.white60, fontSize: 11))])),
-        ListTile(title: const Text('My Job Offers', style: TextStyle(color: Colors.white)), onTap: () => Navigator.pushNamed(context, '/my-job-offers')),
-        ListTile(title: const Text('Withdraw Earnings', style: TextStyle(color: Color(0xFFFACC15))), onTap: () => Navigator.pushNamed(context, '/nurse-withdrawal')),
-        ListTile(title: const Text('Nurse Group Chat', style: TextStyle(color: Colors.white)), onTap: () => Navigator.pushNamed(context, '/nurse-group-chat')),
-        ListTile(title: const Text('Sound Settings', style: TextStyle(color: Colors.white)), onTap: () => Navigator.pushNamed(context, '/sound-settings')),
-        ListTile(title: const Text('Nurse Settings', style: TextStyle(color: Colors.white)), onTap: () => Navigator.pushNamed(context, '/nurse-settings')),
-        ListTile(title: const Text('🚨 SOS', style: TextStyle(color: Colors.red)), onTap: () => Navigator.pushNamed(context, '/sos')),
+        ListTile(title: const Text('My Job Offers', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/my-job-offers'); }),
+        ListTile(title: const Text('Withdraw Earnings', style: TextStyle(color: Color(0xFFFACC15))), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/nurse-withdrawal'); }),
+        ListTile(title: const Text('Nurse Group Chat', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/nurse-group-chat'); }),
+        ListTile(title: const Text('Sound Settings', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/sound-settings'); }),
+        ListTile(title: const Text('Nurse Settings', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/nurse-settings'); }),
+        ListTile(title: const Text('🚨 SOS', style: TextStyle(color: Colors.red)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/sos'); }),
       ]))),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
@@ -294,7 +412,7 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
           Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20)), child: Row(children: [
             Stack(children: [CircleAvatar(radius: 32, backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null, child: photoUrl.isEmpty ? Text(nurseName.isNotEmpty ? nurseName[0] : 'N', style: const TextStyle(fontSize: 24)) : null), Positioned(right: 0, bottom: 0, child: Container(width: 14, height: 14, decoration: BoxDecoration(color: isOnline ? Colors.green : Colors.red, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2))))]),
             const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Welcome, $nurseName', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), const Text('Welcome back', style: TextStyle(color: Color(0xFFC4B5FD), fontSize: 13)), Text(nurseEmail, style: const TextStyle(color: Colors.white60, fontSize: 11)), Text(nursePhone, style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11)), Text(nurseSpecialty, style: const TextStyle(color: Colors.white60, fontSize: 11))])),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Welcome, $nurseName', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), const Text('Welcome back', style: TextStyle(color: Color(0xFFC4B5FD), fontSize: 13)), Text(nurseEmail, style: const TextStyle(color: Colors.white60, fontSize: 11)), Text(nursePhone, style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11)), Text(nurseSpecialty, style: const TextStyle(color: Colors.white60, fontSize: 11)), if (_gpsPlaceName.isNotEmpty) Text('📍 $_gpsPlaceName', style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11))])),
             Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.green.withOpacity(0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.green.withOpacity(0.2))), child: const Text('♾️ Long session', style: TextStyle(color: Color(0xFF86EFAC), fontSize: 10))),
           ])),
           const SizedBox(height: 12),
