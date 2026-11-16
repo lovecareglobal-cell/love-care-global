@@ -55,73 +55,21 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   }
 
   String _sanitizeEmail(String e) => e.toLowerCase().replaceAll(RegExp(r'[.#\$@\[\]]'), '_');
-  void _log(String m) => setState(() { showLog = true; logLines.add(m); });
-
-  // ---------- COMPLETE DELETE: Firestore + RTDB + Storage ----------
-  // Delete must wipe ALL 3, otherwise _loadAll migrates Firestore -> RTDB
-  // and the person reloads back. Auth account itself cannot be deleted
-  // from another user's phone - delete that one in Firebase Console > Authentication.
-  Future<void> _deletePersonCompletely({required String uid, required String email, required String type}) async {
-    final eLower = email.toLowerCase().trim();
-    final emailKey = _sanitizeEmail(email);
-    final isNurse = type == 'nurse';
-    // 1) FIRESTORE - by doc id (uid) + by email query (in case doc id != uid)
-    final fsColls = isNurse
-        ? ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications', 'allNurses', 'nurseUsers', 'ceoNurseUpdates', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid']
-        : ['clients', 'client_registrations', 'pending_clients', 'clientApplications', 'allClients', 'clientUsers', 'ceoClientUpdates', 'verified_clients', 'allowedClients', 'allowedClientsByUid'];
-    for (final coll in fsColls) {
-      try { await FirebaseFirestore.instance.collection(coll).doc(uid).delete(); _log('✅ Firestore deleted $coll/$uid'); } catch (_) {}
-      try { await FirebaseFirestore.instance.collection(coll).doc(emailKey).delete(); } catch (_) {}
-      if (eLower.isNotEmpty) {
-        try {
-          final q = await FirebaseFirestore.instance.collection(coll).where('email', isEqualTo: eLower).get();
-          for (final d in q.docs) { await d.reference.delete(); _log('✅ Firestore deleted $coll/${d.id} (by email)'); }
-        } catch (_) {}
-      }
-    }
-    // ceoRegistrationCenter is a Firestore doc-style path in some setups: try it too
-    try { await FirebaseFirestore.instance.collection('ceoRegistrationCenter').doc(uid).delete(); } catch (_) {}
-    // 2) RTDB - all bases, by uid + emailKey + email
-    final db = FirebaseDatabase.instance;
-    final rtdbBases = isNurse
-        ? ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence', 'ceo_registration']
-        : ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients', 'allowedClients', 'allowedClientsByUid', 'pendingClientRegistrations', 'verified_clients', 'onlineClients', 'clientPresence', 'clientsByEmail', 'clientBookings', 'bookings'];
-    // Also find any other UIDs with same email in RTDB
-    final allUids = <String>{uid, emailKey};
-    for (final base in ['nurses', 'pending_nurses', 'nurse_registrations', 'ceoRegistrationCenter/nurses', 'clients', 'client_registrations']) {
+  // FIX: RTDB cannot save Firestore Timestamp objects - it throws
+  // "Invalid argument: Instance of 'Timestamp'" and Approve fails halfway.
+  // Convert any Timestamp (has millisecondsSinceEpoch) to an int ms.
+  dynamic _sanitizeForRtdb(dynamic v) {
+    if (v is Map) return v.map((k, val) => MapEntry(k.toString(), _sanitizeForRtdb(val)));
+    if (v is List) return v.map(_sanitizeForRtdb).toList();
+    if (v != null) {
       try {
-        final s = await db.ref(base).get();
-        if (s.exists && s.value is Map) {
-          (s.value as Map).forEach((k, v) { if (v is Map && (v['email'] ?? '').toString().toLowerCase() == eLower) allUids.add(k.toString()); });
-        }
+        final ms = (v as dynamic).millisecondsSinceEpoch;
+        if (ms is num && v.runtimeType.toString().contains('Timestamp')) return ms.toInt();
       } catch (_) {}
     }
-    for (final base in rtdbBases) {
-      for (final id in allUids) {
-        if (id.length < 2) continue;
-        try { await db.ref('$base/$id').remove(); } catch (_) {}
-      }
-    }
-    for (final path in ['allowedNurses/$emailKey', 'allowedClients/$emailKey', 'nursesByEmail/$emailKey', 'allowedNurses/$uid', 'allowedNursesByUid/$uid', 'allowedClients/$uid', 'allowedClientsByUid/$uid', 'clientsByEmail/$emailKey']) {
-      try { await db.ref(path).remove(); } catch (_) {}
-    }
-    _log('✅ RTDB deleted all paths for $email');
-    // 3) STORAGE - delete every file under nurses/{uid} + clients/{uid} + ceo_registration/{uid}
-    for (final folder in ['nurses/$uid', 'clients/$uid', 'ceo_registration/$uid']) {
-      try { await _deleteStorageFolder(folder); _log('✅ Storage deleted $folder/'); } catch (e) { _log('⚠️ Storage $folder: $e'); }
-    }
-    _log('⚠️ Auth account: delete in Firebase Console > Authentication > $email (app cannot delete another user)');
+    return v;
   }
-
-  Future<void> _deleteStorageFolder(String folderPath) async {
-    try {
-      final ref = FirebaseStorage.instance.ref(folderPath);
-      final list = await ref.listAll();
-      for (final item in list.items) { try { await item.delete(); } catch (_) {} }
-      for (final prefix in list.prefixes) { await _deleteStorageFolder(prefix.fullPath); }
-    } catch (_) {}
-  }
-
+  void _log(String m) => setState(() { showLog = true; logLines.add(m); });
   void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   // Firestore Timestamp has .millisecondsSinceEpoch, RTDB stores int ms, old docs may store String.
@@ -140,8 +88,15 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   Map _normalize(String id, Map raw, String type) {
     final v = raw['profile'] is Map ? Map<String, dynamic>.from(raw['profile']) : raw['data'] is Map ? Map<String, dynamic>.from(raw['data']) : raw;
     final email = ((v['email'] ?? v['clientEmail'] ?? '') as String).toLowerCase();
-    final username = v['username'] ?? v['userName'] ?? id;
-    var fullName = (v['fullName'] ?? v['name'] ?? v['displayName'] ?? v['clientName'] ?? username ?? (email.isNotEmpty ? email.split('@')[0] : 'Unnamed')).toString();
+    // NEVER use UID / doc id as username - that is the gibberish like 0DhJwm...
+    String _cleanUsername(Object? raw) {
+      final s = (raw ?? '').toString().trim();
+      if (s.isEmpty || s == id) return '';
+      final looksLikeUid = s.length >= 20 && !s.contains(' ') && !s.contains('@') && RegExp(r'[A-Z]').hasMatch(s) && RegExp(r'[a-z]').hasMatch(s) && RegExp(r'[0-9]').hasMatch(s);
+      return looksLikeUid ? '' : s;
+    }
+    final username = _cleanUsername(v['username'] ?? v['userName']);
+    var fullName = (v['fullName'] ?? v['name'] ?? v['displayName'] ?? v['clientName'] ?? (username.isNotEmpty ? username : null) ?? (email.isNotEmpty ? email.split('@')[0] : 'Unnamed')).toString();
     if (fullName.length > 50) fullName = fullName.substring(0, 50);
     final photo = v['photoURL'] ?? v['photo'] ?? v['photoUrl'] ?? v['avatar'] ?? v['avatarUrl'] ?? '';
     // NEW nurse_registration.dart fields: photoUrl, idFrontUrl, idBackUrl, pinCardUrl/pinUrl, cvUrl, certificateUrl
@@ -220,7 +175,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           // Migrate Firestore-only -> RTDB (only if RTDB did not have this uid)
           if (!rtdbNurseUids.contains(key)) {
             try {
-              final toRtdb = Map<String, Object?>.from(data);
+              final toRtdb = _sanitizeForRtdb(Map<String, Object?>.from(data)) as Map<String, Object?>;
               toRtdb['createdAt'] = (rec['createdAt'] as num).toInt();
               toRtdb['uid'] = key;
               await FirebaseDatabase.instance.ref('ceoRegistrationCenter/nurses/$key').set(toRtdb);
@@ -241,7 +196,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           if (!clientsMap.containsKey(key)) clientsMap[key] = rec;
           if (!rtdbClientUids.contains(key)) {
             try {
-              final toRtdb = Map<String, Object?>.from(data);
+              final toRtdb = _sanitizeForRtdb(Map<String, Object?>.from(data)) as Map<String, Object?>;
               toRtdb['createdAt'] = (rec['createdAt'] as num).toInt();
               toRtdb['uid'] = key;
               await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$key').set(toRtdb);
@@ -308,7 +263,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       for (final p in paths) {
         try { final s = await db.ref(p).get(); if (s.exists) { await db.ref(p).update(payload); _log('✅ Updated $p → approved'); } } catch (e) { _log('⚠️ $p not exist or err: $e'); }
       }
-      final whitelist = {...Map<String, dynamic>.from(rec['raw'] as Map), 'uid': uid, 'email': email.toLowerCase(), ...payload};
+      final whitelist = _sanitizeForRtdb({...Map<String, dynamic>.from(rec['raw'] as Map), 'uid': uid, 'email': email.toLowerCase(), ...payload}) as Map<String, dynamic>;
       if (type == 'nurse') {
         await db.ref('allowedNurses/$emailKey').set(whitelist); _log('✅ Created allowedNurses/$emailKey');
         await db.ref('allowedNursesByUid/$uid').set(whitelist); _log('✅ Created allowedNursesByUid/$uid');
@@ -378,6 +333,40 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     } catch (e) { _toast('Fix failed: $e'); _log('Fix failed: $e'); }
   }
 
+  // Complete-delete helper: wipes Firestore + Storage.
+  // _deleteAccount already wipes RTDB. Calling this too means the person
+  // cannot reload back via the Firestore -> RTDB migration in _loadAll.
+  Future<void> _deleteFirestoreAndStorage({required String uid, required String email, required String type}) async {
+    final eLower = email.toLowerCase().trim();
+    final emailKey = _sanitizeEmail(email);
+    final isNurse = type == 'nurse';
+    final fsColls = isNurse
+        ? ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications', 'allNurses', 'nurseUsers', 'ceoNurseUpdates', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid']
+        : ['clients', 'client_registrations', 'pending_clients', 'clientApplications', 'allClients', 'clientUsers', 'ceoClientUpdates', 'verified_clients', 'allowedClients', 'allowedClientsByUid'];
+    for (final coll in fsColls) {
+      try { await FirebaseFirestore.instance.collection(coll).doc(uid).delete(); } catch (_) {}
+      try { await FirebaseFirestore.instance.collection(coll).doc(emailKey).delete(); } catch (_) {}
+      if (eLower.isNotEmpty) {
+        try {
+          final q = await FirebaseFirestore.instance.collection(coll).where('email', isEqualTo: eLower).get();
+          for (final d in q.docs) { await d.reference.delete(); }
+        } catch (_) {}
+      }
+    }
+    for (final folder in ['nurses/$uid', 'clients/$uid', 'ceo_registration/$uid']) {
+      try { await _deleteStorageFolder(folder); } catch (_) {}
+    }
+  }
+
+  Future<void> _deleteStorageFolder(String folderPath) async {
+    try {
+      final ref = FirebaseStorage.instance.ref(folderPath);
+      final list = await ref.listAll();
+      for (final item in list.items) { try { await item.delete(); } catch (_) {} }
+      for (final prefix in list.prefixes) { await _deleteStorageFolder(prefix.fullPath); }
+    } catch (_) {}
+  }
+
   Future<void> _deleteAccount(Map rec) async {
     final uid = rec['uid'].toString(); final email = rec['email'].toString(); final type = rec['type'].toString();
     final displayName = rec['fullName'] ?? email;
@@ -393,9 +382,44 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     final emailKey = _sanitizeEmail(email); final eLower = email.toLowerCase().trim();
     _log('EmailKey: $emailKey');
     try {
-      await _deletePersonCompletely(uid: uid, email: email, type: type);
-      _log('✅ DONE - Deleted Firestore + RTDB + Storage for $email');
-      _toast('Deleted $email completely - Firestore + RTDB + Storage');
+      final db = FirebaseDatabase.instance;
+      Set<String> allUids = {uid, emailKey};
+      for (final p in ['nurses', 'pending_nurses', 'nurse_registrations', 'ceoRegistrationCenter/nurses']) {
+        try { final s = await db.ref(p).get(); if (s.exists) (s.value as Map).forEach((k, v) { if (v is Map && (v['email'] ?? '').toString().toLowerCase() == eLower) { allUids.add(k.toString()); _log('Found RTDB $p/$k with email $email'); } }); } catch (_) {}
+      }
+      List<String> rtdbBases = []; List<String> mappingPaths = [];
+      if (type == 'nurse' || eLower.contains('@')) {
+        rtdbBases = ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence'];
+        mappingPaths = ['allowedNurses/$emailKey', 'allowedClients/$emailKey', 'nursesByEmail/$emailKey', 'allowedNurses/$uid', 'allowedNursesByUid/$uid'];
+      } else {
+        final raw = Map<String, dynamic>.from(rec['raw'] as Map);
+        final username = ((raw['username'] ?? raw['userName'] ?? '') as String).toLowerCase();
+        final phoneRaw = (raw['phone'] ?? raw['phoneNumber'] ?? '').toString();
+        final phoneDigits = phoneRaw.replaceAll(RegExp(r'[^0-9]'), '');
+        rtdbBases = ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients', 'allowedClients', 'allowedClientsByUid', 'pendingClientRegistrations', 'verified_clients', 'onlineClients', 'clientPresence', 'clientsByEmail', 'clientBookings', 'bookings'];
+        mappingPaths = ['allowedClients/$emailKey', 'allowedClients/$uid', 'allowedClientsByUid/$uid', 'clientUsernames/$username', 'clientPhones/$phoneRaw', 'clientPhones/$phoneDigits', 'clientsByEmail/$emailKey', 'allowedClients/${raw['username'] ?? ''}', 'clients/${raw['username'] ?? ''}'];
+        if (phoneDigits.isNotEmpty) { allUids.add(phoneDigits); allUids.add(phoneRaw); }
+        if (username.isNotEmpty) { allUids.add(username); allUids.add(username.toLowerCase()); }
+        try { final s = await db.ref('clientUsernames').get(); if (s.exists) (s.value as Map).forEach((k, val) { if (val == uid || k.toString().toLowerCase() == username) { allUids.add(k.toString()); allUids.add(val.toString()); _log('Found via clientUsernames/$k -> $val'); } }); } catch (_) {}
+        try { final s = await db.ref('clientPhones').get(); if (s.exists) (s.value as Map).forEach((k, val) { if (val == uid || k == phoneDigits || k == phoneRaw) { allUids.add(k.toString()); allUids.add(val.toString()); _log('Found via clientPhones/$k -> $val'); } }); } catch (_) {}
+      }
+      _log('All UIDs to delete: ${allUids.join(', ')}');
+      int deleted = 0;
+      for (final base in rtdbBases) for (final id in allUids) {
+        if (id.length < 2) continue;
+        try { await db.ref('$base/$id').remove(); _log('✅ Deleted: $base/$id'); deleted++; } catch (_) {}
+      }
+      for (final path in mappingPaths) {
+        final key = path.split('/').length > 1 ? path.split('/')[1] : '';
+        if (key.length < 2) continue;
+        try { await db.ref(path).remove(); _log('✅ Deleted: $path'); deleted++; } catch (_) {}
+      }
+      if (type != 'nurse') {
+        try { final s = await db.ref('clientUsernames').get(); if (s.exists) (s.value as Map).forEach((k, val) { if (val == uid) db.ref('clientUsernames/$k').remove(); }); } catch (_) {}
+      }
+      await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
+      _log('✅ Firestore + Storage deleted for $email');
+      _toast('Deleted $deleted paths for $email');
       _loadAll();
     } catch (e) { _log('Delete failed: $e'); _toast('Delete failed: $e'); }
   }
@@ -483,11 +507,18 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       for (final rec in list) {
         final uid = (rec['uid'] ?? rec['id'] ?? '').toString();
         final email = (rec['email'] ?? '').toString().toLowerCase();
+        final emailKey = _sanitizeEmail(email);
         final type = rec['type']?.toString() ?? 'nurse';
-        await _deletePersonCompletely(uid: uid, email: email, type: type);
+        final bases = type == 'nurse'
+            ? ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence']
+            : ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients', 'allowedClients', 'allowedClientsByUid', 'pendingClientRegistrations', 'verified_clients', 'onlineClients', 'clientPresence', 'clientsByEmail'];
+        for (final base in bases) {
+          if (uid.length >= 2) { try { await db.ref('$base/$uid').remove(); } catch (_) {} }
+          if (emailKey.length >= 2) { try { await db.ref('$base/$emailKey').remove(); } catch (_) {} }
+        }
+        await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
         done++;
         _log('Deleted: $type ${rec['fullName']} ($email) - Firestore + RTDB + Storage');
-      }
       }
       _log('DONE - Deleted $done records');
       _toast('Deleted $done records');
@@ -519,7 +550,12 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           final rec = list[i];
           final displayName = rec['fullName'] ?? rec['name'];
           return Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: rec['isApproved'] == true ? Colors.green.withOpacity(0.08) : const Color(0xFF1C1238), borderRadius: BorderRadius.circular(18), border: Border.all(color: rec['isApproved'] == true ? Colors.green.withOpacity(0.4) : Colors.purple.withOpacity(0.2))), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [CircleAvatar(radius: 22, backgroundImage: rec['photo'].toString().isNotEmpty ? NetworkImage(rec['photo']) : null, child: rec['photo'].toString().isEmpty ? Text(displayName.toString().isNotEmpty ? displayName[0].toUpperCase() : '?') : null), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('$displayName ${rec['type'] == 'nurse' ? '👩‍⚕️' : '👤'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), Text('Username: ${rec['username'] ?? rec['email'] ?? rec['id']}', style: const TextStyle(color: Colors.purple, fontSize: 10))]))]),
+            Column(children: [
+              CircleAvatar(radius: 42, backgroundImage: rec['photo'].toString().isNotEmpty ? NetworkImage(rec['photo']) : null, child: rec['photo'].toString().isEmpty ? Text(displayName.toString().isNotEmpty ? displayName[0].toUpperCase() : '?', style: const TextStyle(fontSize: 28)) : null),
+              const SizedBox(height: 8),
+              Text('$displayName ${rec['type'] == 'nurse' ? '👩‍⚕️' : '👤'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white), textAlign: TextAlign.center),
+              if (rec['username'] != null && (rec['username'] as String).isNotEmpty) Text('@${rec['username']}', style: const TextStyle(color: Colors.purpleAccent, fontSize: 12)),
+            ]),
             const SizedBox(height: 8),
             Row(children: [Chip(label: Text(rec['isApproved'] == true ? '✅ APPROVED' : '⏳ PENDING', style: const TextStyle(fontSize: 10)), backgroundColor: rec['isApproved'] == true ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2)), const SizedBox(width: 6), Chip(label: Text((rec['hasAll5'] == true || rec['hasAll4'] == true) ? '✅ ALL 4' : '❌ Missing', style: const TextStyle(fontSize: 10)), backgroundColor: (rec['hasAll5'] == true || rec['hasAll4'] == true) ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2))]),
             const SizedBox(height: 6),
@@ -527,7 +563,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
             Text('📞 ${rec['phone'].toString().isEmpty ? 'no phone' : rec['phone']}', style: const TextStyle(fontSize: 11)),
             if (rec['type'] == 'nurse') Text('🎓 ${rec['qualification'] ?? ''} • ${rec['services'] ?? ''}\n👤 Ref: ${rec['referenceName'] ?? ''} ${rec['referencePhone'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
             Text('📍 ${rec['gpsName'] ?? ''} ${rec['lat'] != null ? '(${(rec['lat'] as num).toStringAsFixed(4)}, ${(rec['lng'] as num).toStringAsFixed(4)})' : ''}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
-            Text('UID: ${rec['uid']} • ${rec['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((rec['createdAt'] as num).toInt()) : ''}', style: const TextStyle(fontSize: 10, color: Colors.white60)),
+            Text(rec['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((rec['createdAt'] as num).toInt()).toString() : '', style: const TextStyle(fontSize: 10, color: Colors.white60)), // UID hidden - it is gibberish, not a name
             const SizedBox(height: 10),
             GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), childAspectRatio: 1.2, crossAxisSpacing: 8, mainAxisSpacing: 8, children: [
               _docBox(rec['photo'], 'Photo', rec['hasPhoto'] == true, 'image'),
