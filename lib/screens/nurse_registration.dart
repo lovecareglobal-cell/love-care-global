@@ -448,11 +448,44 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
     }
   }
 
+  // ---- ONE EMAIL = ONE ROLE + BYPASS FIX ----
+  // If this email is already a CLIENT, it can never register as a NURSE.
+  Future<String?> _checkEmailNotUsedAsClient(String email) async {
+    final lower = email.trim().toLowerCase();
+    try {
+      final q = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: lower).limit(1).get();
+      if (q.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a CLIENT. One email cannot be both Client and Nurse. Use a different email or login as Client.';
+      // Also cover clients saved with original case
+      final q2 = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: email.trim()).limit(1).get();
+      if (q2.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a CLIENT. One email cannot be both Client and Nurse.';
+    } catch (_) {}
+    return null;
+  }
+
+  // If registration fails AFTER Auth is created, delete the Auth account.
+  // Otherwise email stays in Auth with no profile, and 2nd login slips through.
+  Future<void> _deleteLeftoverAuthIfNoProfile() async {
+    try {
+      final u = FirebaseAuth.instance.currentUser;
+      if (u == null) return;
+      final uid = u.uid;
+      final inNurses = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
+      final inPending = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
+      final inClients = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
+      if (!inNurses.exists && !inPending.exists && !inClients.exists) {
+        await u.delete().catchError((_) async { await FirebaseAuth.instance.signOut(); });
+      }
+    } catch (_) {}
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       _showError('Please fill all required fields - scroll up to see the red error.');
       return;
     }
+    // ONE EMAIL = ONE ROLE: block Client email BEFORE creating any Auth account.
+    final roleBlock = await _checkEmailNotUsedAsClient(_emailController.text.trim());
+    if (roleBlock != null) { _showError(roleBlock); return; }
     if (!_idCheckPassed) {
       _showError('Please tap CHECK MY ID AGAIN and make sure it says ID verified first.');
       return;
@@ -476,12 +509,44 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       // after a failed upload), otherwise create the account. Storage
       // rules use request.auth.uid, so this MUST happen before upload.
       User? user = FirebaseAuth.instance.currentUser;
-      if (user == null || user.email?.toLowerCase() != _emailController.text.trim().toLowerCase()) {
-        final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
-        user = cred.user;
+      final lowerEmail = _emailController.text.trim().toLowerCase();
+      if (user == null || user.email?.toLowerCase() != lowerEmail) {
+        try {
+          final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: lowerEmail,
+            password: _passwordController.text,
+          );
+          user = cred.user;
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'email-already-in-use') {
+            // Leftover from a failed / bypassed registration: that Auth account
+            // has no Firestore profile. Sign in with the same password the user
+            // just typed, delete it if it has no profile, then create fresh.
+            // If password does not match, it is a real account - do NOT delete, just block.
+            try {
+              final signIn = await FirebaseAuth.instance.signInWithEmailAndPassword(email: lowerEmail, password: _passwordController.text);
+              final uid2 = signIn.user!.uid;
+              final inN = await FirebaseFirestore.instance.collection('nurses').doc(uid2).get();
+              final inP = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid2).get();
+              final inC = await FirebaseFirestore.instance.collection('clients').doc(uid2).get();
+              if (!inN.exists && !inP.exists && !inC.exists) {
+                await signIn.user!.delete();
+                final cred2 = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: lowerEmail, password: _passwordController.text);
+                user = cred2.user;
+              } else {
+                await FirebaseAuth.instance.signOut();
+                _showError('This email is already registered. Login instead - or use a different email.');
+                return;
+              }
+            } catch (_) {
+              await FirebaseAuth.instance.signOut();
+              _showError('This email is already registered. Login instead - or use a different email.');
+              return;
+            }
+          } else {
+            rethrow;
+          }
+        }
       }
       final uid = user!.uid;
 
@@ -505,7 +570,7 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         'uid': uid,
         'fullName': _fullNameController.text.trim(),
         'name': _fullNameController.text.trim(),
-        'email': _emailController.text.trim(),
+        'email': _emailController.text.trim().toLowerCase(),
         'phone': _phoneController.text.trim(),
         'location': _locationController.text.trim(), 'placeName': _locationController.text.trim(), 'address': _locationController.text.trim(),
         'latitude': _gpsLat, 'longitude': _gpsLng, 'gpsLat': _gpsLat, 'gpsLng': _gpsLng, 'locationLat': _gpsLat, 'locationLng': _gpsLng,
@@ -523,13 +588,30 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         'idBackUrl': idBackUrl,
         'certificateUrl': certUrl,
         'idCheckPassed': _idCheckPassed,
-        // Pending gate - CEO must approve before login works
+        // Pending gate - CEO must approve before login works.
+        // Nurse Login checks isComplete + hasPhoto + hasVideo + hasPhone,
+        // so we MUST save them here or even an approved nurse will be blocked.
         'role': 'nurse',
+        'type': 'nurse',
         'status': 'pending',
         'approvalStatus': 'pending',
         'approved': false,
         'isApproved': false,
         'canLogin': false,
+        'isComplete': true,
+        'hasAll4': true,
+        'hasPhoto': true,
+        'hasVideo': _videoBytes != null,
+        'hasPhone': true,
+        'hasCv': true,
+        'hasPinCard': true,
+        'hasId': true,
+        'hasCertificate': true,
+        'photo': photoUrl,
+        'photoURL': photoUrl,
+        'video': videoUrl,
+        'cv': cvUrl,
+        'certificate': certUrl,
         'createdAt': FieldValue.serverTimestamp(),
       };
       // Write to EVERY place the CEO screen might read from, so it cannot miss it:
@@ -539,6 +621,8 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
       await db.collection('nurses').doc(uid).set(data, SetOptions(merge: true));
       await db.collection('nurse_registrations').doc(uid).set(data, SetOptions(merge: true));
       await db.collection('ceo_registration').doc(uid).set(data, SetOptions(merge: true));
+      // CEO Pending list reads pending_nurses - without this CEO never sees her.
+      await db.collection('pending_nurses').doc(uid).set(data, SetOptions(merge: true));
 
       if (!mounted) return;
       setState(() => _uploadStatus = null);
@@ -555,13 +639,16 @@ class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
         ),
       );
     } on FirebaseAuthException catch (e) {
+      await _deleteLeftoverAuthIfNoProfile();
       _showError(e.message ?? 'Sign-up failed (${e.code})');
     } on FirebaseException catch (e) {
       // Storage errors land here: permission-denied = Storage Rules,
       // unauthenticated = user was not created/signed in first.
+      await _deleteLeftoverAuthIfNoProfile();
       _showError('Upload failed (${e.code}): ${e.message}');
       if (kIsWeb) debugPrint('Firebase upload error: $e');
     } catch (e) {
+      await _deleteLeftoverAuthIfNoProfile();
       _showError('Upload failed: $e');
     } finally {
       if (mounted) setState(() { _isSubmitting = false; _uploadStatus = null; });
