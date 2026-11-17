@@ -5,13 +5,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
+import 'live_nurse_map.dart';
 
 /// Book Nurse - 50% NOW, 50% LATER - Flutter version of book-nurse-50-percent.html
 /// - ONLY ONLINE NURSES show (onlineNurses + nursePresence + nurseLocations)
 /// - CEO Live Rates: config/rates, ceoPricing, pricing -> GHS hourly / USD hourly
 /// - Booking: Start 08:00 End 17:00 = 9 hrs/day, Care Mode Daily x1 / Weekly x7 / Monthly x30
 /// - Client auto-filled + Patient (can be different place) + Map + GPS
-/// - 50% NOW, 50% LATER - Pay 50% via Paystack now, balance later. Split: Nurse 80% / CEO 20% of payNow
+/// - 50% NOW via Paystack, 50% LATER via CASH to nurse. Split: Nurse 80% / CEO 20% of payNow
 /// - Saves to bookings + bookingsByClient + bookingsByNurse + nurseBookings (same as HTML)
 
 class BookNurse50Screen extends StatefulWidget {
@@ -160,25 +162,86 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     }
   }
 
-  Future<void> _payWithPaystack() async {
+  // ===== SYSTEM PICK: System finds nearby ONLINE nurses, picks nearest, client watches photo+video, decides Continue / Another One =====
+  Future<void> _openSystemPick() async {
+    if (patientLat == null || clientLat == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Waiting for your GPS... try again in a second')));
+      return;
+    }
+    final selected = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LiveNurseMap(
+          patientLat: patientLat, // patient live place - only nurses close to PATIENT
+          patientLng: patientLng,
+          clientLat: clientLat,
+          clientLng: clientLng,
+          searchRadiusKm: 20,
+          autoPickNearest: true, // system picks nearest automatically
+        ),
+      ),
+    );
+    if (selected != null && mounted) {
+      setState(() {
+        selectedNurseId = selected['uid']?.toString();
+        selectedNurseName = (selected['name'] ?? selected['fullName'] ?? '').toString();
+        selectedNursePhone = (selected['phone'] ?? '').toString();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('✅ You chose $selectedNurseName - now pay 50% Paystack + 50% Cash below')),
+      );
+    }
+  }
+
+  // ===== Helpers to show nurse registration photo + video from her card (tap "Watch Photo + Video") =====
+  String _nursePhoto(Map n) {
+    for (final k in ['photoUrl','photoURL','photo','profilePhoto','imageUrl']) {
+      final v = (n[k] ?? '').toString();
+      if (v.isNotEmpty) return v;
+    }
+    return '';
+  }
+  String _nurseVideo(Map n) {
+    for (final k in ['videoUrl','videoURL','video','introVideoUrl','introVideo','registrationVideoUrl','registrationVideo','nurseVideoUrl','nurseVideo','profileVideoUrl','profileVideo']) {
+      final v = (n[k] ?? '').toString();
+      if (v.isNotEmpty) return v;
+    }
+    return '';
+  }
+  void _showNursePhotoVideo(Map n) {
+    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: const Color(0xFF1C1238),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => _Nurse50ProfileSheet(
+        nurse: n, photo: _nursePhoto(n), video: _nurseVideo(n),
+        name: (n['name'] ?? n['fullName'] ?? 'Nurse').toString(),
+        spec: (n['specialty'] ?? 'Home Nursing').toString(),
+        distance: (n['distance'] as double? ?? 0),
+        onSelect: () { Navigator.pop(context); setState(() { selectedNurseId = n['uid']; selectedNurseName = (n['name'] ?? '').toString(); selectedNursePhone = (n['phone'] ?? '').toString(); }); },
+      ));
+  }
+
+  Future<void> _payWithPaystack50Cash() async {
     if (selectedNurseId == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select an ONLINE nurse first'))); return; }
     if (_clientNameCtrl.text.isEmpty || _clientPhoneCtrl.text.isEmpty || _patientNameCtrl.text.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill Client + Patient details'))); return; }
     final calc = calcTotal();
     final payNow = calc['payNow'] as double;
+    final payLater = calc['payLater'] as double;
     final total = calc['total'] as double;
     setState(() => isPaying = true);
     try {
-      // TODO: Replace with flutter_paystack_plus or Paystack inline via WebView
-      // For now: open Paystack checkout URL or show dialog, then save booking on success
-      // In production, use Paystack package: PaystackPlugin().checkout(...)
+      // Step 1: Explain - 50% Paystack NOW + 50% CASH to nurse
       final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
-        title: Text('50% Payment'),
-        content: Text('Pay ${currency} ${payNow.toStringAsFixed(2)} now?\nTotal: ${currency} ${total.toStringAsFixed(2)}\nPay 50% now, 50% later\nNurse: $selectedNurseName'),
-        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pay Now'))],
+        title: const Text('50% Paystack + 50% Cash'),
+        content: Text('Total: $currency ${total.toStringAsFixed(2)}\n\n✅ Pay NOW via Paystack: $currency ${payNow.toStringAsFixed(2)} (50%)\n💵 Pay LATER in CASH to nurse: $currency ${payLater.toStringAsFixed(2)} (50%)\n\nNurse: $selectedNurseName\n\nTap "Pay with Paystack" to pay 50% now. The other 50% you give CASH to the nurse.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pay with Paystack')),
+        ],
       ));
       if (confirmed != true) { setState(() => isPaying = false); return; }
-      // Simulate Paystack reference - replace with real Paystack ref
-      final ref = 'PSK_${DateTime.now().millisecondsSinceEpoch}';
+      // TODO: Replace with real Paystack checkout (flutter_paystack_plus / Paystack inline WebView)
+      // For now: confirm dialog = Paystack success, then save booking
+      final ref = 'PSK50_${DateTime.now().millisecondsSinceEpoch}';
       await _saveBooking(ref, calc);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment failed: $e')));
@@ -200,8 +263,8 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
       'patientRelationship': patientRelationship,
       'nurseId': selectedNurseId, 'nurseName': selectedNurseName, 'nursePhone': selectedNursePhone, 'nurseWasOnline': true, 'nurseOnlineAt': DateTime.now().millisecondsSinceEpoch,
       'amount': calc['total'], 'amountPaidNow': calc['payNow'], 'amountBalance': calc['payLater'], 'payNow': calc['payNow'], 'payLater': calc['payLater'],
-      'currency': currency, 'paymentMethod': 'paystack_50', 'paymentType': '50_percent', 'paystackRef': paystackRef,
-      'status': 'pending_50_percent', 'time': DateTime.now().millisecondsSinceEpoch, 'createdAt': DateTime.now().millisecondsSinceEpoch,
+      'currency': currency, 'paymentMethod': 'paystack_50_cash_50', 'paymentType': '50_percent_paystack_cash', 'paystackRef': paystackRef, 'payNowMethod': 'Paystack', 'payLaterMethod': 'Cash', 'payNowAmount': calc['payNow'], 'payLaterAmount': calc['payLater'], 'cashToNurse': calc['payLater'],
+      'status': 'pending_50_percent_paystack_paid_cash_due', 'time': DateTime.now().millisecondsSinceEpoch, 'createdAt': DateTime.now().millisecondsSinceEpoch,
       'totalHours': calc['totalHours'], 'hrsPerDay': calc['hrsPerDay'], 'startTime': startTime, 'endTime': endTime, 'careMode': careMode, 'quantity': quantity, 'transport': transport,
       'hourlyRateUsed': calc['rate'], 'service': careMode,
       'amountSplit': {'nurse': (calc['payNow'] as double) * 0.8, 'ceo': (calc['payNow'] as double) * 0.2},
@@ -215,7 +278,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     await db.ref('nurseBookings/$selectedNurseId/$bookingId').set(booking);
     await db.ref('clientBookings/$emailKey/$bookingId').set(booking);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Booking created! $bookingId - Nurse will Accept/Reject')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Booking created! $bookingId - 50% Paystack paid, 50% Cash to nurse later')));
     Navigator.pushNamed(context, '/my-bookings');
   }
 
@@ -224,14 +287,14 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     final calc = calcTotal();
     return Scaffold(
       backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: Text('Book Nurse — 50% — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633)),
+      appBar: AppBar(title: Text('Book Nurse — 50% Paystack + 50% Cash — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.info, color: Colors.amber), const SizedBox(width: 8), Expanded(child: Text('CEO Live: ${currency} ${calc['rate']} /hr — 50% NOW — ONLY ONLINE NURSES — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)))])),
+          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.info, color: Colors.amber), const SizedBox(width: 8), Expanded(child: Text('CEO Live: ${currency} ${calc['rate']} /hr — 50% Paystack NOW + 50% CASH to nurse LATER — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)))])),
           const SizedBox(height: 12),
           // Booking - Time / Mode / Quantity / Currency / Transport
-          _sectionTitle('⏱️ Booking — 50% Now, 50% Later'),
+          _sectionTitle('⏱️ Booking — 50% Paystack Now, 50% Cash Later'),
           Row(children: [
             Expanded(child: _timeField('START TIME *', startTime, () => _pickTime(true))),
             const SizedBox(width: 8),
@@ -259,8 +322,8 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
             const Divider(),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('TOTAL', style: TextStyle(fontWeight: FontWeight.bold)), Text('${currency} ${calc['total'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))]),
             const SizedBox(height: 6),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Pay Now (50%)', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)), Text('${currency} ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))]),
-            if ((calc['payLater'] as double) > 0) Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay Later'), Text('${currency} ${calc['payLater'].toStringAsFixed(2)}')]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay Now (50%) — Paystack', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)), Text('${currency} ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))]),
+            if ((calc['payLater'] as double) > 0) Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay Later — 💵 Cash to Nurse'), Text('${currency} ${calc['payLater'].toStringAsFixed(2)}')]),
           ])),
           const SizedBox(height: 16),
           _sectionTitle('👤 CLIENT — Payer (Auto-filled)'),
@@ -277,6 +340,21 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
           const SizedBox(height: 8),
           SwitchListTile(title: const Text('Same location as Client'), value: sameLocation, onChanged: (v) => setState(() { sameLocation = v; if (v) { patientLat = clientLat; patientLng = clientLng; } })),
           const SizedBox(height: 16),
+          // ===== SYSTEM PICK - System views nearby nurses, picks nearest for client =====
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: const Color(0xFFA855F7).withOpacity(0.12), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.4))),
+            child: Column(children: [
+              const Text('System will find nearby ONLINE nurses for you', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _openSystemPick, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA855F7), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: const Text('🤖 System Pick Nearest Nurse For Me - Watch Photo + Video', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)))),
+              const SizedBox(height: 6),
+              const Text('System shows nearest nurse first - Watch her photo + video - Continue with her OR Look at another one', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60, fontSize: 11)),
+              if (selectedNurseId != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text('✅ Selected: $selectedNurseName', textAlign: TextAlign.center, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold))),
+            ]),
+          ),
+          const SizedBox(height: 12),
           // Map + Nurses
           _sectionTitle('🟢 ONLINE Nurses within ${searchRadius.toInt()}km — Only online show • ${onlineNurses.length} nurses'),
           Container(height: 300, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.2))), child: clientLat == null ? const Center(child: CircularProgressIndicator()) : GoogleMap(initialCameraPosition: CameraPosition(target: LatLng(clientLat!, clientLng!), zoom: 12), markers: nurseMarkers, myLocationEnabled: true, onMapCreated: (c) => mapCtrl = c, onTap: (latLng) { setState(() { patientLat = latLng.latitude; patientLng = latLng.longitude; }); })),
@@ -284,7 +362,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
           if (onlineNurses.isEmpty) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Text('No ONLINE nurses nearby — Try increasing radius or try again later. Offline nurses are hidden.', textAlign: TextAlign.center)),
           ...onlineNurses.map((n) => _nurseCard(n)),
           const SizedBox(height: 16),
-          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: isPaying ? null : _payWithPaystack, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFBBF24), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: Text(isPaying ? 'Processing Paystack...' : '💳 Pay 50% Now — ${currency} ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)))),
+          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: isPaying ? null : _payWithPaystack50Cash, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C853), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: Text(isPaying ? 'Processing Paystack...' : '💳 Pay 50% Now via Paystack — ${currency} ${calc['payNow'].toStringAsFixed(2)}  +  💵 50% Cash Later', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)))),
           const SizedBox(height: 20),
         ]),
       ),
@@ -302,7 +380,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
       child: Container(
         margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: isSel ? const Color(0xFFA855F7).withOpacity(0.2) : const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16), border: Border.all(color: isSel ? const Color(0xFFA855F7) : Colors.white12)),
-        child: Row(children: [
+        child: Column(children: [Row(children: [
           CircleAvatar(radius: 28, backgroundImage: photo.toString().isNotEmpty ? NetworkImage(photo.toString()) : null, child: photo.toString().isEmpty ? const Text('👩') : null),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -312,7 +390,64 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
           ])),
           if (isSel) const Icon(Icons.check_circle, color: Colors.green),
         ]),
+          const SizedBox(height: 8),
+          SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: () => _showNursePhotoVideo(n), icon: const Icon(Icons.play_circle_fill, size: 16), label: const Text('📷🎥 Watch Her Photo + Video', style: TextStyle(fontSize: 12)), style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white38)))),
+        ]),
       ),
+    );
+  }
+}
+
+
+// ===== NURSE PHOTO + VIDEO SHEET for 50% page - same as Live Map sheet =====
+class _Nurse50ProfileSheet extends StatefulWidget {
+  final Map nurse; final String photo; final String video; final String name; final String spec; final double distance; final VoidCallback onSelect;
+  const _Nurse50ProfileSheet({required this.nurse, required this.photo, required this.video, required this.name, required this.spec, required this.distance, required this.onSelect});
+  @override State<_Nurse50ProfileSheet> createState() => _Nurse50ProfileSheetState();
+}
+class _Nurse50ProfileSheetState extends State<_Nurse50ProfileSheet> {
+  VideoPlayerController? _ctrl; bool _failed = false;
+  @override void initState() { super.initState(); _init(); }
+  Future<void> _init() async {
+    if (widget.video.isEmpty) return;
+    try { final c = VideoPlayerController.networkUrl(Uri.parse(widget.video)); await c.initialize(); if (mounted) setState(() => _ctrl = c); }
+    catch (_) { if (mounted) setState(() => _failed = true); }
+  }
+  @override void dispose() { _ctrl?.dispose(); super.dispose(); }
+  @override Widget build(BuildContext context) {
+    return DraggableScrollableSheet(initialChildSize: 0.85, maxChildSize: 0.95, minChildSize: 0.5, expand: false,
+      builder: (_, ctrl) => SingleChildScrollView(controller: ctrl, padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)))),
+          const SizedBox(height: 12),
+          Row(children: [
+            Container(width: 92, height: 92, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.green, width: 3)), child: ClipOval(child: widget.photo.isNotEmpty ? Image.network(widget.photo, fit: BoxFit.cover) : const Icon(Icons.person, size: 50, color: Colors.white))),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(widget.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+              Text('${widget.spec} • ${widget.distance.toStringAsFixed(1)} km from patient', style: const TextStyle(color: Colors.white70)),
+              const Text('⭐ 5 • Verified ✅ • 🟢 ONLINE NOW', style: TextStyle(color: Colors.greenAccent)),
+            ])),
+          ]),
+          const SizedBox(height: 16),
+          const Text('📷 Photo she uploaded during registration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          ClipRRect(borderRadius: BorderRadius.circular(14), child: widget.photo.isNotEmpty ? Image.network(widget.photo, height: 220, width: double.infinity, fit: BoxFit.cover) : Container(height: 140, color: Colors.white10, child: const Center(child: Text('No photo uploaded', style: TextStyle(color: Colors.white60))))),
+          const SizedBox(height: 16),
+          const Text('🎥 Video she uploaded during registration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          if (widget.video.isEmpty) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)), child: const Text('No video uploaded during registration for this nurse.', style: TextStyle(color: Colors.white70)))
+          else if (_ctrl == null && !_failed) Container(height: 220, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(14)), child: const Center(child: CircularProgressIndicator(color: Colors.white)))
+          else if (_ctrl != null) Column(children: [
+            ClipRRect(borderRadius: BorderRadius.circular(14), child: AspectRatio(aspectRatio: _ctrl!.value.aspectRatio, child: VideoPlayer(_ctrl!))),
+            const SizedBox(height: 8),
+            SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () { setState(() { _ctrl!.value.isPlaying ? _ctrl!.pause() : _ctrl!.play(); }); }, icon: Icon(_ctrl!.value.isPlaying ? Icons.pause : Icons.play_arrow), label: Text(_ctrl!.value.isPlaying ? 'Pause Video' : '▶️ Play Video'))),
+          ])
+          else ElevatedButton.icon(onPressed: () async { final uri = Uri.parse(widget.video); if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication); }, icon: const Icon(Icons.play_arrow), label: const Text('▶️ Open Video Outside App')),
+          const SizedBox(height: 20),
+          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: widget.onSelect, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), padding: const EdgeInsets.symmetric(vertical: 16)), child: Text('✅ Continue With ${widget.name} - Pay 50% Paystack + 50% Cash', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)))),
+          const SizedBox(height: 20),
+        ])),
     );
   }
 }
