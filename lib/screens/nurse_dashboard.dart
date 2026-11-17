@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -36,12 +37,87 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
   List<Map> myBookings = [];
   final AudioPlayer _player = AudioPlayer();
   final Set<String> _seenRing = {};
+  // LIVE GPS - makes nurse photo blink + move on Client Live Map
+  StreamSubscription<Position>? _liveGpsSub;
+  Timer? _liveGpsTimer;
+  bool _liveGpsActive = false;
 
   @override
   void initState() {
     super.initState();
     _loadNurse();
     _startSoundListener();
+  }
+
+  @override
+  void dispose() {
+    _stopLiveGps();
+    _player.dispose();
+    super.dispose();
+  }
+
+  // ===== LIVE GPS - PHOTO BLINKING + MOVING ON CLIENT MAP =====
+  // WHY dot did NOT move before: _setOnlineNow saved GPS ONCE, then never again.
+  // Now: while ONLINE, send GPS every 10s + on every 10m move, to BOTH:
+  //  - RTDB liveNurseLocations / liveNurses / liveTracking (your existing source)
+  //  - Firestore nurses/{uid} (Live Map reads this - without it, dot never appears)
+  Future<void> _startLiveGps() async {
+    if (_liveGpsActive) return;
+    _liveGpsActive = true;
+    final uid = currentNurseId;
+    if (uid.isEmpty || uid == 'demo-nurse') return;
+    // 10s timer as backup (works even if phone is still)
+    _liveGpsTimer = Timer.periodic(const Duration(seconds: 10), (_) => _pushLiveGps());
+    // Movement stream - fires when nurse actually moves 10m+
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) return;
+      _liveGpsSub = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10),
+      ).listen((pos) => _pushLiveGps(pos: pos), onError: (_) {});
+    } catch (_) {}
+  }
+
+  Future<void> _pushLiveGps({Position? pos}) async {
+    if (!_liveGpsActive) return;
+    final uid = currentNurseId;
+    if (uid.isEmpty || uid == 'demo-nurse') return;
+    try {
+      pos ??= await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 8));
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final lat = pos.latitude, lng = pos.longitude;
+      if (mounted) setState(() { _gpsLat = lat; _gpsLng = lng; });
+      // RTDB - your existing live nodes
+      final db = FirebaseDatabase.instance;
+      final rtdbUpdate = {'lat': lat, 'lng': lng, 'latitude': lat, 'longitude': lng, 'gpsLat': lat, 'gpsLng': lng, 'lastSeen': now, 'lastGpsAt': now, 'gpsUpdatedAt': now, 'updatedAt': now, 'isOnline': true, 'status': 'online'};
+      await Future.wait([
+        db.ref('liveNurseLocations/$uid').update(rtdbUpdate),
+        db.ref('liveNurses/$uid').update(rtdbUpdate),
+        db.ref('liveTracking/$uid').update(rtdbUpdate),
+        db.ref('onlineNurses/$uid').update(rtdbUpdate),
+        db.ref('nurses/$uid').update(rtdbUpdate),
+      ]).catchError((_) {});
+      // FIRESTORE - Live Map (live_nurse_map.dart) reads nurses/{uid} where isOnline==true
+      // Without this, client Live Map sees NOTHING even though RTDB has the nurse.
+      await FirebaseFirestore.instance.collection('nurses').doc(uid).set({
+        'lat': lat, 'lng': lng, 'latitude': lat, 'longitude': lng,
+        'isOnline': true, 'status': 'online',
+        'name': nurseName, 'fullName': nurseName,
+        'photoUrl': photoUrl, 'photo': photoUrl, 'photoURL': photoUrl,
+        'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty,
+        'location': _gpsPlaceName, 'placeName': _gpsPlaceName,
+        'lastSeen': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp(),
+        'uid': uid,
+      }, SetOptions(merge: true)).catchError((_) {});
+    } catch (_) {}
+  }
+
+  Future<void> _stopLiveGps() async {
+    _liveGpsActive = false;
+    _liveGpsTimer?.cancel(); _liveGpsTimer = null;
+    try { await _liveGpsSub?.cancel(); } catch (_) {}
+    _liveGpsSub = null;
   }
 
   String _firstString(Map d, List<String> keys) {
@@ -125,6 +201,8 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
       final snap2 = await FirebaseDatabase.instance.ref('nursePresence/$uid').get();
       final online = (snap.exists && (snap.value as Map)['isOnline'] == true) || (snap2.exists && (snap2.value as Map)['isOnline'] == true);
       setState(() => isOnline = online);
+      // RESUME LIVE GPS if already online (app was closed + reopened while online)
+      if (online) _startLiveGps();
     } catch (_) {}
   }
 
@@ -232,11 +310,18 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
       ]);
       db.ref('onlineNurses/$uid').onDisconnect().remove();
       db.ref('nursePresence/$uid').onDisconnect().set({'status': 'offline', 'isOnline': false, 'lastSeen': now});
-      if (mounted) setState(() { _gpsPlaceName = (loc['place'] ?? '').toString(); saveStatus = '🟢 ONLINE NOW — Visible to clients — 📍 ${_gpsPlaceName.isNotEmpty ? _gpsPlaceName : 'GPS saved'}'; });
+      // START LIVE GPS - photo now blinks + moves on Client Live Map
+      _startLiveGps();
+      // Also push this first location to Firestore at once (Live Map needs Firestore, not only RTDB)
+      try { await FirebaseFirestore.instance.collection('nurses').doc(uid).set({'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'], 'isOnline': true, 'status': 'online', 'name': nurseName, 'fullName': nurseName, 'photoUrl': photoUrl, 'photo': photoUrl, 'photoURL': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty, 'location': loc['place'], 'placeName': loc['place'], 'lastSeen': FieldValue.serverTimestamp(), 'uid': uid}, SetOptions(merge: true)); } catch (_) {}
+      if (mounted) setState(() { _gpsPlaceName = (loc['place'] ?? '').toString(); saveStatus = '🟢 ONLINE NOW — Visible to clients — 📍 ${_gpsPlaceName.isNotEmpty ? _gpsPlaceName : 'GPS saved'} — 🟢 LIVE GPS ON: your photo will blink + move on client map'; });
     } catch (e) { setState(() => saveStatus = 'Online failed: $e'); }
   }
 
   Future<void> _setOfflineNow() async {
+    // STOP LIVE GPS - dot disappears from Client Live Map
+    await _stopLiveGps();
+    try { await FirebaseFirestore.instance.collection('nurses').doc(currentNurseId).set({'isOnline': false, 'status': 'offline', 'lastSeen': FieldValue.serverTimestamp()}, SetOptions(merge: true)); } catch (_) {}
     final uid = currentNurseId;
     final now = DateTime.now().millisecondsSinceEpoch;
     final timeStr = DateTime.now().toString();
