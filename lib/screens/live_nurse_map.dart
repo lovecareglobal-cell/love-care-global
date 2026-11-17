@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:video_player/video_player.dart';
 import 'dart:math' as math;
 
-// LIVE_NURSE_MAP - UBER STYLE - NAME FIX - BUILD FIXED
-// Button now says: Continue With Nurse KUSI PETER / OSEI YAW - no Him/Her/Them wahala
+// LIVE_NURSE_MAP - UBER STYLE - VIDEO POPUP - NAME FIX - BUILD FIXED
+// Tap Continue -> Nurse Intro Video pops up -> Client watches -> Then Continue To Book
+// Video fields checked in Firebase: introVideoUrl, videoUrl, video, introVideo, profileVideo
 // FIX: StrokePattern.dashed must NOT be const in flutter_map 8.3.2
 
 double _asDouble(dynamic v, [double fb = 0]) {
@@ -33,7 +35,14 @@ String _photoFrom(Map m) {
   return '';
 }
 
-// Avatar emoji still uses gender if we know am - just for the small icon, no pronoun text
+String _videoFrom(Map m) {
+  for (final k in ['introVideoUrl', 'introVideo', 'videoUrl', 'video', 'profileVideo', 'profileVideoUrl', 'intro_video']) {
+    final v = (m[k] ?? '').toString();
+    if (v.isNotEmpty && v.startsWith('http')) return v;
+  }
+  return '';
+}
+
 String _avatarEmoji(Map n) {
   final g = (n['gender'] ?? n['sex'] ?? '').toString().toLowerCase();
   if (g.contains('female') || g.contains('woman') || g.contains('she')) return '👩';
@@ -109,6 +118,36 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
     });
   }
 
+  // ===== VIDEO POPUP - Called when client taps Continue =====
+  Future<void> _showNurseVideo(Map n) async {
+    final nurseName = (n['name'] ?? 'Nurse').toString().trim();
+    final photo = _photoFrom(n);
+    final videoUrl = _videoFrom(n);
+    final bio = (n['bio'] ?? n['about'] ?? n['description'] ?? '').toString();
+    final exp = (n['experience'] ?? n['years'] ?? '').toString();
+    final rating = _asDouble(n['rating'] ?? n['stars'] ?? 4.8, 4.8);
+
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _NurseVideoDialog(
+        nurseName: nurseName,
+        photo: photo,
+        videoUrl: videoUrl,
+        bio: bio,
+        experience: exp,
+        rating: rating,
+        distance: _asDouble(n['distance']),
+        onContinue: () {
+          Navigator.pop(ctx); // close video popup
+          Navigator.pop(context, Map<String, dynamic>.from(n)); // go to booking
+        },
+        onClose: () => Navigator.pop(ctx),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final plat = widget.patientLat ?? widget.clientLat ?? 5.6487;
@@ -158,15 +197,16 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
             if (_selectedUid != null)
               ..._nurses.where((x) => x['uid'].toString() == _selectedUid).map((n) {
                 final nurseName = (n['name'] ?? 'Nurse').toString().trim();
+                final hasVideo = _videoFrom(n).isNotEmpty;
                 return Row(children: [
                   CircleAvatar(radius: 24, backgroundImage: _photoFrom(n).isNotEmpty ? NetworkImage(_photoFrom(n)) : null, backgroundColor: Colors.purple, child: _photoFrom(n).isEmpty ? Text(_avatarEmoji(n)) : null),
                   const SizedBox(width: 10),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(nurseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text('${_asDouble(n['distance']).toStringAsFixed(1)} km away • 🟢 ONLINE', style: const TextStyle(color: Colors.greenAccent, fontSize: 12))])),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(nurseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text('${_asDouble(n['distance']).toStringAsFixed(1)} km away • 🟢 ONLINE ${hasVideo ? '• 🎬 Video' : ''}', style: const TextStyle(color: Colors.greenAccent, fontSize: 12))])),
                   const SizedBox(width: 8),
-                  // FIXED: NOW SHOWS NAME - Continue With Nurse KUSI PETER / OSEI YAW
                   Flexible(
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, Map<String, dynamic>.from(n)),
+                      // CHANGED: Now opens VIDEO popup first, not direct booking
+                      onPressed: () => _showNurseVideo(n),
                       style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
                       child: Text('Continue With Nurse $nurseName', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                     ),
@@ -178,6 +218,125 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
           ]),
         ),
       ]),
+    );
+  }
+}
+
+// ============ VIDEO POPUP DIALOG ============
+class _NurseVideoDialog extends StatefulWidget {
+  final String nurseName;
+  final String photo;
+  final String videoUrl;
+  final String bio;
+  final String experience;
+  final double rating;
+  final double distance;
+  final VoidCallback onContinue;
+  final VoidCallback onClose;
+  const _NurseVideoDialog({required this.nurseName, required this.photo, required this.videoUrl, required this.bio, required this.experience, required this.rating, required this.distance, required this.onContinue, required this.onClose});
+  @override
+  State<_NurseVideoDialog> createState() => _NurseVideoDialogState();
+}
+
+class _NurseVideoDialogState extends State<_NurseVideoDialog> {
+  VideoPlayerController? _ctrl;
+  bool _isPlaying = false;
+  bool _loadFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.videoUrl.isNotEmpty) {
+      _ctrl = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
+        ..initialize().then((_) {
+          if (!mounted) return;
+          setState(() {});
+          _ctrl?.play();
+          setState(() => _isPlaying = true);
+        }).catchError((_) {
+          if (mounted) setState(() => _loadFailed = true);
+        });
+    }
+  }
+
+  @override
+  void dispose() { _ctrl?.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasVideo = widget.videoUrl.isNotEmpty && !_loadFailed;
+    return Dialog(
+      backgroundColor: const Color(0xFF1A1633),
+      insetPadding: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 8, 0),
+            child: Row(children: [
+              CircleAvatar(radius: 22, backgroundImage: widget.photo.isNotEmpty ? NetworkImage(widget.photo) : null, backgroundColor: Colors.purple, child: widget.photo.isEmpty ? const Text('👩‍⚕️') : null),
+              const SizedBox(width: 10),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Meet Nurse ${widget.nurseName}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)), Text('⭐ ${widget.rating.toStringAsFixed(1)} • ${widget.distance.toStringAsFixed(1)} km away • 🟢 ONLINE', style: const TextStyle(color: Colors.greenAccent, fontSize: 12))])),
+              IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close, color: Colors.white)),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          // VIDEO AREA
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            height: 280,
+            decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(14)),
+            clipBehavior: Clip.antiAlias,
+            child: hasVideo
+                ? Stack(children: [
+                    Center(child: _ctrl != null && _ctrl!.value.isInitialized ? AspectRatio(aspectRatio: _ctrl!.value.aspectRatio, child: VideoPlayer(_ctrl!)) : const CircularProgressIndicator(color: Colors.purple)),
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (_ctrl == null) return;
+                          if (_ctrl!.value.isPlaying) { _ctrl!.pause(); setState(() => _isPlaying = false); } else { _ctrl!.play(); setState(() => _isPlaying = true); }
+                        },
+                        child: Center(child: !_isPlaying ? Container(padding: const EdgeInsets.all(14), decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle), child: const Icon(Icons.play_arrow, color: Colors.white, size: 42)) : const SizedBox()),
+                      ),
+                    ),
+                    Positioned(bottom: 8, left: 8, child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)), child: const Row(children: [Icon(Icons.videocam, color: Colors.red, size: 14), SizedBox(width: 4), Text('INTRO VIDEO', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))]))),
+                  ])
+                : Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(image: widget.photo.isNotEmpty ? DecorationImage(image: NetworkImage(widget.photo), fit: BoxFit.cover) : null),
+                    child: Stack(children: [
+                      if (widget.photo.isEmpty) const Center(child: Text('👩‍⚕️', style: TextStyle(fontSize: 80))),
+                      Positioned(bottom: 10, left: 0, right: 0, child: Center(child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(20)), child: Text(widget.videoUrl.isEmpty ? '🎬 No video yet from Nurse ${widget.nurseName}' : '⚠️ Video no load - check internet', style: const TextStyle(color: Colors.white, fontSize: 11))))),
+                    ]),
+                  ),
+          ),
+          // Bio
+          if (widget.bio.isNotEmpty || widget.experience.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                if (widget.experience.isNotEmpty) Text('Experience: ${widget.experience}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                if (widget.bio.isNotEmpty) ...[const SizedBox(height: 4), Text(widget.bio, style: const TextStyle(color: Colors.white70, fontSize: 13))],
+              ]),
+            ),
+          const SizedBox(height: 16),
+          // Buttons
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: widget.onContinue,
+                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: Text('Continue To Book Nurse ${widget.nurseName} ➜', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              ),
+            ),
+          ),
+          TextButton(onPressed: widget.onClose, child: const Text('Look At Another Nurse', style: TextStyle(color: Colors.white70))),
+          const SizedBox(height: 6),
+        ]),
+      ),
     );
   }
 }
