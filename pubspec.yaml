@@ -22,8 +22,8 @@ dependencies:
   just_audio: ^0.9.42
   audioplayers: ^6.4.0
   google_maps_flutter: ^2.10.0
-  flutter_map: ^8.2.1
-  latlong2: ^0.9.1
+  flutter_map: ^8.2.1 # LIVE BLINKING NURSES MAP - OpenStreetMap, no Google SDK, no crash
+  latlong2: ^0.9.1 # for Live Nurse Map LatLng
   share_plus: ^10.1.2
   video_player: ^2.9.5
   url_launcher: ^6.3.1
