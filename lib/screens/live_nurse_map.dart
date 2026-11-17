@@ -5,11 +5,10 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math' as math;
 
-// LIVE_NURSE_MAP - UBER STYLE - NO API KEY - NO CRASH
-// 1. LiveNurseMap = your OLD System Pick screen - SAME constructor, SAME return
-//    But now: nurse = blinking photo on map, moves live as she walks/drives
+// LIVE_NURSE_MAP - UBER STYLE - NO API KEY - NO CRASH - BUILD FIXED
+// 1. LiveNurseMap = System Pick screen - picks nearest ONLINE nurse
 // 2. UberLiveMap = small embedded map for book_nurse.dart / book_nurse_50.dart
-//    Shows ONLY the selected nurse photo moving + YOU/Patient pin + dotted line
+// FIX: StrokePattern.dashed must NOT be const in flutter_map 8.3.2 - else build fails
 
 double _asDouble(dynamic v, [double fb = 0]) {
   if (v == null) return fb;
@@ -35,7 +34,7 @@ String _photoFrom(Map m) {
   return '';
 }
 
-// ============ 1. SYSTEM PICK SCREEN - SAME AS BEFORE ============
+// ============ 1. SYSTEM PICK SCREEN ============
 class LiveNurseMap extends StatefulWidget {
   final double? patientLat;
   final double? patientLng;
@@ -67,11 +66,9 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
   void dispose() { _sub?.cancel(); _blinkTimer?.cancel(); _ctrl.dispose(); super.dispose(); }
 
   void _listenLive() {
-    // Listen to nurseLocations - THIS is what makes photos MOVE like Uber
     _sub = FirebaseDatabase.instance.ref('nurseLocations').onValue.listen((e) async {
       try {
         final locMap = e.snapshot.value is Map ? Map.from(e.snapshot.value as Map) : {};
-        // Also need nurse names/photos - fetch once from nurses node
         final ns = await FirebaseDatabase.instance.ref('nurses').get();
         final nursesMap = ns.value is Map ? Map.from(ns.value as Map) : {};
         final onSnap = await FirebaseDatabase.instance.ref('onlineNurses').get();
@@ -147,7 +144,6 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
             ],
           ),
         ),
-        // Bottom list - same behaviour as before: Continue / Another One
         Container(
           padding: const EdgeInsets.all(12),
           color: const Color(0xFF1C1238),
@@ -168,7 +164,7 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
   }
 }
 
-// ============ 2. EMBEDDED UBER MAP - for inside book_nurse.dart ============
+// ============ 2. EMBEDDED UBER MAP - for inside book_nurse.dart / book_nurse_50.dart / client_home.dart ============
 class UberLiveMap extends StatefulWidget {
   final String nurseId;
   final String nurseName;
@@ -219,7 +215,8 @@ class _UberLiveMapState extends State<UberLiveMap> {
           options: MapOptions(initialCenter: nursePos, initialZoom: 14),
           children: [
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.lovecare.global'),
-            PolylineLayer(polylines: [Polyline(points: [nursePos, patientPos], color: const Color(0xFFA855F7), strokeWidth: 4, pattern: const StrokePattern.dashed(segments: [10, 8]))]),
+            // FIXED LINE - NO const before StrokePattern.dashed - this was causing build fail
+            PolylineLayer(polylines: [Polyline(points: [nursePos, patientPos], color: const Color(0xFFA855F7), strokeWidth: 4, pattern: StrokePattern.dashed(segments: [10, 8]))]),
             MarkerLayer(markers: [
               Marker(point: patientPos, width: 50, height: 50, child: const Column(children: [Icon(Icons.location_pin, color: Colors.blue, size: 42), Text('PATIENT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue))])),
               Marker(point: nursePos, width: 72, height: 82, child: Column(children: [
