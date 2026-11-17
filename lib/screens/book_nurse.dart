@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -50,6 +51,11 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
   GoogleMapController? mapCtrl;
   Set<Marker> nurseMarkers = {};
   bool isPaying = false;
+  // CRASH FIX: listeners + disposed guard
+  final List<StreamSubscription<DatabaseEvent>> _rateSubs = [];
+  bool _disposed = false;
+  bool _mapFailed = false;
+  String _loadError = '';
 
   @override
   void initState() {
@@ -59,8 +65,40 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
     _autoCaptureLocation();
   }
 
+  @override
+  void dispose() {
+    _disposed = true;
+    for (final sub in _rateSubs) { sub.cancel(); }
+    _clientNameCtrl.dispose();
+    _clientPhoneCtrl.dispose();
+    _clientEmailCtrl.dispose();
+    _patientNameCtrl.dispose();
+    _patientPhoneCtrl.dispose();
+    _patientLocCtrl.dispose();
+    mapCtrl?.dispose();
+    super.dispose();
+  }
+
+  void _safeSet(void Function() fn) { if (!_disposed && mounted) setState(fn); }
+
+  // CRASH FIX: Firebase can return null / List / String, not always Map.
+  Map<String, dynamic> _asMap(dynamic v) {
+    if (v == null) return {};
+    if (v is Map) return Map<String, dynamic>.from(v);
+    return {};
+  }
+
+  double _asDouble(dynamic v, [double fallback = 0]) {
+    if (v == null) return fallback;
+    if (v is double) return v;
+    if (v is int) return v.toDouble();
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? fallback;
+  }
+
   Future<void> _loadClientData() async {
     final prefs = await SharedPreferences.getInstance();
+    if (_disposed || !mounted) return;
     setState(() {
       _clientNameCtrl.text = prefs.getString('clientName') ?? prefs.getString('fullName') ?? '';
       _clientPhoneCtrl.text = prefs.getString('clientPhone') ?? prefs.getString('phone') ?? '';
@@ -69,19 +107,29 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
   }
 
   void _loadCEORates() {
+    // CRASH FIX: old code did `value as Map?` - if rates node is a List/number/String,
+    // it threw and killed the app. Now safe + listeners cancelled in dispose + no setState after dispose.
     for (final path in ['config/rates', 'ceoPricing', 'pricing']) {
-      FirebaseDatabase.instance.ref(path).onValue.listen((e) {
-        final v = e.snapshot.value as Map?;
-        if (v == null) return;
-        double ghs = 0, usd = 0;
-        if (v['GHS'] is Map && v['GHS']['hourly'] != null) ghs = double.tryParse(v['GHS']['hourly'].toString()) ?? 0;
-        if (v['USD'] is Map && v['USD']['hourly'] != null) usd = double.tryParse(v['USD']['hourly'].toString()) ?? 0;
-        if (ghs == 0) ghs = double.tryParse((v['cedis'] ?? v['ghs'] ?? v['GHS'] ?? 0).toString()) ?? 0;
-        if (usd == 0) usd = double.tryParse((v['dollars'] ?? v['usd'] ?? 0).toString()) ?? 0;
-        if (ghs > 0) ceoRateGHS = ghs;
-        if (usd > 0) ceoRateUSD = usd;
-        setState(() {});
-      });
+      final sub = FirebaseDatabase.instance.ref(path).onValue.listen((e) {
+        try {
+          if (_disposed || !mounted) return;
+          if (e.snapshot.value == null) return;
+          final v = _asMap(e.snapshot.value);
+          if (v.isEmpty) return;
+          double ghs = 0, usd = 0;
+          // GHS can be {hourly: 50} OR a plain number 50 - handle both, never index a number.
+          if (v['GHS'] is Map) { ghs = _asDouble((v['GHS'] as Map)['hourly']); }
+          else { ghs = _asDouble(v['GHS']); }
+          if (v['USD'] is Map) { usd = _asDouble((v['USD'] as Map)['hourly']); }
+          else { usd = _asDouble(v['USD']); }
+          if (ghs == 0) ghs = _asDouble(v['cedis'] ?? v['ghs']);
+          if (usd == 0) usd = _asDouble(v['dollars'] ?? v['usd']);
+          if (ghs > 0) ceoRateGHS = ghs;
+          if (usd > 0) ceoRateUSD = usd;
+          _safeSet(() {});
+        } catch (_) {}
+      }, onError: (_) {});
+      _rateSubs.add(sub);
     }
   }
 
@@ -90,6 +138,7 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
       final perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) return;
       final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      if (_disposed || !mounted) return;
       setState(() { clientLat = pos.latitude; clientLng = pos.longitude; patientLat = pos.latitude; patientLng = pos.longitude; });
       _searchNearbyNurses();
     } catch (_) {}
@@ -104,32 +153,52 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
   }
 
   Future<void> _searchNearbyNurses() async {
-    if (clientLat == null) return;
-    // Online nurses only - same as HTML: onlineNurses + nursePresence
-    final snap = await FirebaseDatabase.instance.ref('onlineNurses').get();
-    final nurseSnap = await FirebaseDatabase.instance.ref('nurses').get();
-    final locSnap = await FirebaseDatabase.instance.ref('nurseLocations').get();
-    final onlineMap = snap.exists ? Map<String, dynamic>.from(snap.value as Map) : {};
-    final nursesMap = nurseSnap.exists ? Map<String, dynamic>.from(nurseSnap.value as Map) : {};
-    final locMap = locSnap.exists ? Map<String, dynamic>.from(locSnap.value as Map) : {};
-    List<Map> list = [];
-    for (final entry in nursesMap.entries) {
-      final uid = entry.key;
-      if (!onlineMap.containsKey(uid)) continue; // HIDE OFFLINE - same as HTML .offline{display:none}
-      final n = Map<String, dynamic>.from(entry.value as Map);
-      final loc = locMap[uid] as Map?;
-      final lat = double.tryParse((loc?['lat'] ?? n['lat'] ?? 0).toString()) ?? 0;
-      final lng = double.tryParse((loc?['lng'] ?? n['lng'] ?? 0).toString()) ?? 0;
-      if (lat == 0) continue;
-      final dist = _haversine(clientLat!, clientLng!, lat, lng);
-      if (dist > searchRadius) continue;
-      list.add({'uid': uid, ...n, 'lat': lat, 'lng': lng, 'distance': dist, 'isOnline': true});
+    if (clientLat == null || clientLng == null) return;
+    try {
+      // CRASH FIX: any of these 3 nodes can be null / List / String. Old code did
+      // `value as Map` on all 3 - one bad node closed the whole app in seconds.
+      final snap = await FirebaseDatabase.instance.ref('onlineNurses').get();
+      final nurseSnap = await FirebaseDatabase.instance.ref('nurses').get();
+      final locSnap = await FirebaseDatabase.instance.ref('nurseLocations').get();
+      if (_disposed || !mounted) return;
+      // onlineNurses can be Map {uid: true} OR List [uid,...] - handle both.
+      final Set<String> onlineIds = {};
+      if (snap.exists && snap.value != null) {
+        if (snap.value is Map) { onlineIds.addAll((snap.value as Map).keys.map((k) => k.toString())); }
+        else if (snap.value is List) { for (final x in (snap.value as List)) { if (x != null) onlineIds.add(x.toString()); } }
+      }
+      final nursesMap = _asMap(nurseSnap.exists ? nurseSnap.value : null);
+      final locMap = _asMap(locSnap.exists ? locSnap.value : null);
+      List<Map> list = [];
+      for (final entry in nursesMap.entries) {
+        try {
+          final uid = entry.key.toString();
+          if (!onlineIds.contains(uid)) continue; // HIDE OFFLINE
+          if (entry.value is! Map) continue; // skip bad nurse entry, don't crash
+          final n = Map<String, dynamic>.from(entry.value as Map);
+          final locRaw = locMap[uid];
+          final loc = locRaw is Map ? Map<String, dynamic>.from(locRaw) : <String, dynamic>{};
+          // lat/lng can be in loc, in nurse, or in gpsLat/gpsLng / latitude / longitude
+          final lat = _asDouble(loc['lat'] ?? loc['latitude'] ?? loc['gpsLat'] ?? n['lat'] ?? n['latitude'] ?? n['gpsLat'] ?? n['locationLat']);
+          final lng = _asDouble(loc['lng'] ?? loc['longitude'] ?? loc['gpsLng'] ?? n['lng'] ?? n['longitude'] ?? n['gpsLng'] ?? n['locationLng']);
+          if (lat == 0 && lng == 0) continue;
+          final dist = _haversine(clientLat!, clientLng!, lat, lng);
+          if (dist > searchRadius) continue;
+          list.add({'uid': uid, ...n, 'lat': lat, 'lng': lng, 'distance': dist, 'isOnline': true});
+        } catch (_) { continue; }
+      }
+      list.sort((a, b) => _asDouble(a['distance']).compareTo(_asDouble(b['distance'])));
+      if (_disposed || !mounted) return;
+      setState(() {
+        onlineNurses = List<Map>.from(list);
+        _loadError = '';
+        try {
+          nurseMarkers = list.map((n) => Marker(markerId: MarkerId(n['uid'].toString()), position: LatLng(_asDouble(n['lat']), _asDouble(n['lng'])), infoWindow: InfoWindow(title: (n['name'] ?? 'Nurse').toString(), snippet: '${_asDouble(n['distance']).toStringAsFixed(1)} km away - ONLINE'), icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet))).toSet();
+        } catch (_) { nurseMarkers = {}; }
+      });
+    } catch (e) {
+      if (!_disposed && mounted) setState(() => _loadError = 'Could not load nurses: $e. Pull to try again - offline nurses are hidden.');
     }
-    list.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
-    setState(() {
-      onlineNurses = List<Map>.from(list);
-      nurseMarkers = list.map((n) => Marker(markerId: MarkerId(n['uid']), position: LatLng(n['lat'], n['lng']), infoWindow: InfoWindow(title: n['name'] ?? 'Nurse', snippet: '${n['distance'].toStringAsFixed(1)} km away - ONLINE'), icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet))).toSet();
-    });
   }
 
   double calcHours(String s, String e) {
@@ -153,7 +222,8 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
   }
 
   Future<void> _pickTime(bool isStart) async {
-    final init = TimeOfDay(hour: int.parse((isStart ? startTime : endTime).split(':')[0]), minute: int.parse((isStart ? startTime : endTime).split(':')[1]));
+    final parts = (isStart ? startTime : endTime).split(':');
+    final init = TimeOfDay(hour: int.tryParse(parts.isNotEmpty ? parts[0] : '8') ?? 8, minute: int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0);
     final picked = await showTimePicker(context: context, initialTime: init);
     if (picked != null) {
       setState(() { final v = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}'; if (isStart) startTime = v; else endTime = v; });
@@ -279,7 +349,8 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
           const SizedBox(height: 16),
           // Map + Nurses
           _sectionTitle('🟢 ONLINE Nurses within ${searchRadius.toInt()}km — Only online show • ${onlineNurses.length} nurses'),
-          Container(height: 300, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.2))), child: clientLat == null ? const Center(child: CircularProgressIndicator()) : GoogleMap(initialCameraPosition: CameraPosition(target: LatLng(clientLat!, clientLng!), zoom: 12), markers: nurseMarkers, myLocationEnabled: true, onMapCreated: (c) => mapCtrl = c, onTap: (latLng) { setState(() { patientLat = latLng.latitude; patientLng = latLng.longitude; }); })),
+          if (_loadError.isNotEmpty) Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Text(_loadError, textAlign: TextAlign.center)),
+          Container(height: 300, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.2))), child: clientLat == null ? const Center(child: CircularProgressIndicator()) : _mapFailed ? const Center(child: Text('Map unavailable on this phone - you can still pick a nurse below', textAlign: TextAlign.center)) : GoogleMap(initialCameraPosition: CameraPosition(target: LatLng(clientLat!, clientLng!), zoom: 12), markers: nurseMarkers, myLocationEnabled: false, myLocationButtonEnabled: false, onMapCreated: (c) { mapCtrl = c; }, onTap: (latLng) { if (!_disposed && mounted) setState(() { patientLat = latLng.latitude; patientLng = latLng.longitude; }); })),
           const SizedBox(height: 12),
           if (onlineNurses.isEmpty) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Text('No ONLINE nurses nearby — Try increasing radius or try again later. Offline nurses are hidden.', textAlign: TextAlign.center)),
           ...onlineNurses.map((n) => _nurseCard(n)),
@@ -303,11 +374,11 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
         margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(color: isSel ? const Color(0xFFA855F7).withOpacity(0.2) : const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16), border: Border.all(color: isSel ? const Color(0xFFA855F7) : Colors.white12)),
         child: Row(children: [
-          CircleAvatar(radius: 28, backgroundImage: photo.toString().isNotEmpty ? NetworkImage(photo.toString()) : null, child: photo.toString().isEmpty ? const Text('👩') : null),
+          CircleAvatar(radius: 28, backgroundImage: (photo.toString().isNotEmpty && (photo.toString().startsWith('http://') || photo.toString().startsWith('https://'))) ? NetworkImage(photo.toString()) : null, onBackgroundImageError: (_, __) {}, child: photo.toString().isEmpty ? const Text('👩') : null),
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [Text(n['name']?.toString() ?? 'Nurse', style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 6), Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle))]),
-            Text('${n['specialty'] ?? 'Home Nursing'} • ${(n['distance'] as double).toStringAsFixed(1)} km away', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+            Text('${n['specialty'] ?? 'Home Nursing'} • ${_asDouble(n['distance']).toStringAsFixed(1)} km away', style: const TextStyle(color: Colors.white60, fontSize: 11)),
             Text('⭐ ${n['rating'] ?? 5} • Verified ✅ • ONLINE', style: const TextStyle(color: Colors.white70, fontSize: 11)),
           ])),
           if (isSel) const Icon(Icons.check_circle, color: Colors.green),
