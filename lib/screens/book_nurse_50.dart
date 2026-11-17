@@ -370,37 +370,65 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
           const SizedBox(height: 8),
           SwitchListTile(title: const Text('Same location as Client'), value: sameLocation, onChanged: (v) => setState(() { sameLocation = v; if (v) { patientLat = clientLat; patientLng = clientLng; } })),
           const SizedBox(height: 16),
-          // NO GoogleMap here - safe box + external Maps button, same as FULL page
-          Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.2))), child: Column(children: [
-            Text(clientLat == null ? '📍 Getting your location...' : '📍 Your location: ${clientLat!.toStringAsFixed(4)}, ${clientLng!.toStringAsFixed(4)}\n🟢 ${onlineNurses.length} ONLINE nurse(s) near you', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-            const SizedBox(height: 10),
-            SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: _openMapExternal, icon: const Icon(Icons.map, size: 16), label: const Text('Open Map in Google Maps App', style: TextStyle(fontSize: 12)), style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white38)))),
-          ])),
-          const SizedBox(height: 12),
-          _sectionTitle('🟢 ONLINE Nurses within ${searchRadius.toInt()}km — ${onlineNurses.length} nurses'),
-          if (onlineNurses.isNotEmpty && _autoPickedNurse != null)
-            Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.12), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF22C55E).withOpacity(0.5))), child: Column(children: [
-              const Text('🤖 SYSTEM AUTO-PICKED NEAREST ONLINE NURSE FOR YOU', textAlign: TextAlign.center, style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+          // REPLACED: Whole circled block -> ONLY System Pick button (NO GoogleMap, NO LiveNurseMap, NO crash)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1238),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.3)),
+            ),
+            child: Column(children: [
+              const Text('System will find nearby ONLINE nurses for you', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 4),
+              Text(
+                clientLat == null
+                  ? '📍 Getting your location...'
+                  : '📍 Your location: ${clientLat!.toStringAsFixed(4)}, ${clientLng!.toStringAsFixed(4)}  •  🟢 ${onlineNurses.length} ONLINE nurse(s) within ${searchRadius.toInt()}km',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (onlineNurses.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No ONLINE nurse near you yet - make nurse go ONLINE first')));
+                      return;
+                    }
+                    final n = onlineNurses.first;
+                    setState(() {
+                      selectedNurseId = n['uid'];
+                      selectedNurseName = (n['name'] ?? '').toString();
+                      selectedNursePhone = (n['phone'] ?? '').toString();
+                    });
+                    _showNursePhotoVideoAuto(n);
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA855F7), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                  child: const Text('🤖 System Pick Nearest Nurse For Me - Watch Photo + Video', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
+                ),
+              ),
               const SizedBox(height: 8),
-              Row(children: [
-                CircleAvatar(radius: 30, backgroundImage: _mediaFromMap(_autoPickedNurse!, false).isNotEmpty ? NetworkImage(_mediaFromMap(_autoPickedNurse!, false)) : null, child: _mediaFromMap(_autoPickedNurse!, false).isEmpty ? const Text('👩') : null),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_autoPickedNurse!['name']?.toString() ?? 'Nurse', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                  Text('${_autoPickedNurse!['specialty'] ?? 'Home Nursing'} • ${_asDouble(_autoPickedNurse!['distance']).toStringAsFixed(1)} km • 🟢 ONLINE', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                ])),
-              ]),
+              const Text('System shows nearest nurse first - Watch her photo + video - Continue with her OR Look at another one', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60, fontSize: 11)),
+              if (selectedNurseId != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text('✅ Selected: $selectedNurseName', textAlign: TextAlign.center, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
               const SizedBox(height: 10),
-              SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () => _showNursePhotoVideoAuto(_autoPickedNurse!), icon: const Icon(Icons.play_circle_fill), label: const Text('📷🎥 Watch Her Photo + Video'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA855F7)))),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(child: ElevatedButton(onPressed: () { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Continue with $selectedNurseName - scroll down to pay'))); }, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: const Text('✅ Continue With Her', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-                const SizedBox(width: 8),
-                Expanded(child: OutlinedButton(onPressed: _pickAnotherOne, style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white38)), child: const Text('👀 Look At Another One'))),
-              ]),
-            ])),
-          if (onlineNurses.isEmpty)
-            Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)), child: const Text('🔍 System is searching for ONLINE nurses near the patient... Keep this page open - nearest nurse will be auto-picked as soon as she goes ONLINE.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12))),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _openMapExternal,
+                  icon: const Icon(Icons.map, size: 16),
+                  label: const Text('Open Map in Google Maps App', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white38)),
+                ),
+              ),
+            ]),
+          ),
           const SizedBox(height: 12),
           ...onlineNurses.map((n) => _nurseCard(n)),
           const SizedBox(height: 16),
