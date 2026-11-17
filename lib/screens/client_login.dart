@@ -77,14 +77,19 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
       }
       final cred = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: loginEmail, password: pass);
-      final uid = cred.user!.uid;
+      // FIX 2ND PHONE: reload - without this, 2nd phone sees cached emailVerified=false
+      // and gets BLOCKED + signed out -> looks like it "went back to Home".
+      // Reload forces Firebase to return the TRUE verified status from the server.
+      try { await cred.user!.reload(); } catch (_) {}
+      final freshUser = FirebaseAuth.instance.currentUser ?? cred.user!;
+      final uid = freshUser.uid;
 
       // CLIENT GATE: Email Verification is the ONLY gate (no CEO approval for clients).
       // If verification failed, that email CANNOT login - even if password is correct.
       // We check Auth first, then Firestore legacy (old OTP clients have phoneVerified=true).
       // New clients: Firestore doc only exists AFTER verification, so unverified = no doc = blocked anyway.
       // But we check Auth explicitly too, so an unverified Auth account with no doc can never slip through.
-      final authVerified = cred.user!.emailVerified;
+      final authVerified = freshUser.emailVerified;
       if (!authVerified) {
         final legacyDoc = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
         final legacyPhoneVerified = legacyDoc.exists && (legacyDoc.data()?['phoneVerified'] == true || legacyDoc.data()?['otpVerified'] == true);
@@ -115,7 +120,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
         // It is a leftover from a failed / bypassed registration. Sign-out alone
         // leaves it in Auth, so the 2nd login slips through. DELETE it.
         // (We already checked nurses/pending above - if it were a Nurse, we returned earlier and did NOT delete.)
-        try { await cred.user!.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); }
+        try { await freshUser.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); }
         setState(() {
           _loading = false;
           _msg = 'BLOCKED: NOT A REGISTERED CLIENT. Go Register first. Leftover account deleted.';
@@ -155,10 +160,11 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
       } catch (_) {}
       setState(() { _loading = false; _msg = '✅ Welcome Client!'; });
       // 1. CLIENT LOGIN OPENS CLIENT DASHBOARD - not Home.
-      // Use NAMED ROUTE '/client-dashboard' (already in main.dart) instead of
-      // direct import. Direct import fails if dashboard is in a different folder,
-      // and then the old file with popUntil(Home) keeps being used.
       // pushNamedAndRemoveUntil clears Home/Login from the stack, so Back cannot go to Home.
+      // FIX 2ND PHONE: wait one frame so SharedPreferences flush completes before Dashboard reads them.
+      // On Phone 1 prefs were already warm, on Phone 2 Dashboard read prefs too early -> thought "not logged in" -> bounced to Home.
+      if (!mounted) return;
+      await Future.delayed(const Duration(milliseconds: 250));
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil(
         '/client-dashboard',
@@ -187,7 +193,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.of(context).pushNamedAndRemoveUntil('/home', (r) => false),
         ),
         title: const Text('Client Login', style: TextStyle(color: Colors.white)),
       ),
