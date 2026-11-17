@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+// NO EMBEDDED GoogleMap widget - it crashes on some phones even with key.
+// Map now opens in Google Maps app / browser via url_launcher - can NEVER crash the app.
 import 'package:url_launcher/url_launcher.dart';
 
 /// Book Nurse - FULL PAYMENT - Flutter version of book-nurse.html
@@ -48,8 +49,7 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
   String selectedNursePhone = '';
   double? clientLat, clientLng, patientLat, patientLng;
   double searchRadius = 20;
-  GoogleMapController? mapCtrl;
-  Set<Marker> nurseMarkers = {};
+  // nurseMarkers removed - no embedded map
   bool isPaying = false;
   // CRASH FIX: listeners + disposed guard
   final List<StreamSubscription<DatabaseEvent>> _rateSubs = [];
@@ -76,7 +76,6 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
     _patientNameCtrl.dispose();
     _patientPhoneCtrl.dispose();
     _patientLocCtrl.dispose();
-    mapCtrl?.dispose();
     super.dispose();
   }
 
@@ -153,11 +152,33 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
   }
 
-  void _enableMap() {
-    // User tapped Show Map - only NOW create GoogleMap.
-    // If Maps key/setup is missing, this shows the fallback instead of killing the app on open.
-    if (_disposed || !mounted) return;
-    setState(() { _showMap = true; });
+  Future<void> _enableMap() async {
+    // CRASH-PROOF MAP: never build embedded GoogleMap widget - it is what closed the app.
+    // Open location in Google Maps app / browser instead - can NEVER crash Love Care.
+    if (clientLat == null || clientLng == null) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Waiting for your GPS location...')));
+      return;
+    }
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$clientLat,$clientLng');
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Your location: $clientLat, $clientLng')));
+      }
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Your location: $clientLat, $clientLng')));
+    }
+  }
+
+  Future<void> _openNurseOnMap(Map n) async {
+    final lat = _asDouble(n['lat']);
+    final lng = _asDouble(n['lng']);
+    if (lat == 0 && lng == 0) return;
+    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    try {
+      if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
+    } catch (_) {}
   }
 
   Future<void> _searchNearbyNurses() async {
@@ -200,9 +221,7 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
       setState(() {
         onlineNurses = List<Map>.from(list);
         _loadError = '';
-        try {
-          nurseMarkers = list.map((n) => Marker(markerId: MarkerId(n['uid'].toString()), position: LatLng(_asDouble(n['lat']), _asDouble(n['lng'])), infoWindow: InfoWindow(title: (n['name'] ?? 'Nurse').toString(), snippet: '${_asDouble(n['distance']).toStringAsFixed(1)} km away - ONLINE'), icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet))).toSet();
-        } catch (_) { nurseMarkers = {}; }
+        // No embedded markers - list shows distance instead, never crashes.
       });
     } catch (e) {
       if (!_disposed && mounted) setState(() => _loadError = 'Could not load nurses: $e. Pull to try again - offline nurses are hidden.');
@@ -358,7 +377,7 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
           // Map + Nurses
           _sectionTitle('🟢 ONLINE Nurses within ${searchRadius.toInt()}km — Only online show • ${onlineNurses.length} nurses'),
           if (_loadError.isNotEmpty) Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Text(_loadError, textAlign: TextAlign.center)),
-          Container(height: 300, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.2))), child: clientLat == null ? const Center(child: CircularProgressIndicator()) : _mapFailed ? const Center(child: Text('Map unavailable on this phone - you can still pick a nurse below', textAlign: TextAlign.center)) : !_showMap ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.map, size: 48, color: Colors.white38), const SizedBox(height: 8), const Text('Map is OFF - tap to load it', style: TextStyle(color: Colors.white70)), const SizedBox(height: 10), ElevatedButton(onPressed: _enableMap, child: const Text('🗺️ Show Map')), const SizedBox(height: 6), const Text('If map stays blank, Google Maps key is missing.\nYou can still book without map.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11))])) : GoogleMap(initialCameraPosition: CameraPosition(target: LatLng(clientLat!, clientLng!), zoom: 12), markers: nurseMarkers, myLocationEnabled: false, myLocationButtonEnabled: false, onMapCreated: (c) { mapCtrl = c; }, onTap: (latLng) { if (!_disposed && mounted) setState(() { patientLat = latLng.latitude; patientLng = latLng.longitude; }); })),
+          Container(height: 170, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.2))), child: Center(child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.map, size: 48, color: Colors.white38), const SizedBox(height: 8), Text(clientLat == null ? 'Waiting for your GPS...' : 'Your location: ${clientLat!.toStringAsFixed(5)}, ${clientLng!.toStringAsFixed(5)}', style: const TextStyle(color: Colors.white70)), const SizedBox(height: 10), ElevatedButton(onPressed: _enableMap, child: const Text('🗺️ Open Map in Google Maps')), const SizedBox(height: 6), const Text('Opens Google Maps app - never crashes Love Care', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11))]))),
           const SizedBox(height: 12),
           if (onlineNurses.isEmpty) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Text('No ONLINE nurses nearby — Try increasing radius or try again later. Offline nurses are hidden.', textAlign: TextAlign.center)),
           ...onlineNurses.map((n) => _nurseCard(n)),
@@ -389,6 +408,7 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
             Text('${n['specialty'] ?? 'Home Nursing'} • ${_asDouble(n['distance']).toStringAsFixed(1)} km away', style: const TextStyle(color: Colors.white60, fontSize: 11)),
             Text('⭐ ${n['rating'] ?? 5} • Verified ✅ • ONLINE', style: const TextStyle(color: Colors.white70, fontSize: 11)),
           ])),
+          IconButton(icon: const Icon(Icons.map, color: Colors.white70), onPressed: () => _openNurseOnMap(n)),
           if (isSel) const Icon(Icons.check_circle, color: Colors.green),
         ]),
       ),
