@@ -27,6 +27,15 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   int myBookingsCount = 0;
   int liveNursesCount = 0;
   DateTime ghanaNow = DateTime.now();
+
+  // FIX: every dashboard button goes through here. If route is missing, show message instead of doing nothing / crashing.
+  void _go(String route) {
+    try {
+      Navigator.pushNamed(context, route);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opening $route failed: $e')));
+    }
+  }
   StreamSubscription<DatabaseEvent>? _liveSub;
   Timer? _clockTimer;
   bool _disposed = false;
@@ -160,13 +169,13 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         actions: [
           Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: liveNursesCount > 0 ? Colors.green : Colors.red, borderRadius: BorderRadius.circular(20)), child: Text('🟢 $liveNursesCount ONLINE', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
           const SizedBox(width: 8),
-          IconButton(icon: const Icon(Icons.emergency, color: Colors.red), onPressed: () => Navigator.pushNamed(context, '/sos')),
+          IconButton(icon: const Icon(Icons.emergency, color: Colors.red), onPressed: () => _go('/sos')),
         ],
       ),
       body: SingleChildScrollView(
         child: Column(children: [
           // Sound Settings - same as HTML top button
-          Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 0), child: SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () {}, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))), child: const Text('🔔 Sound Settings', style: TextStyle(fontWeight: FontWeight.bold))))),
+          Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 0), child: SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => _go('/sound-settings'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))), child: const Text('🔔 Sound Settings', style: TextStyle(fontWeight: FontWeight.bold))))),
           // Profile Card
           Container(
             margin: const EdgeInsets.all(12), padding: const EdgeInsets.all(16),
@@ -181,7 +190,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 const SizedBox(height: 4),
                 Text('📅 $ghanaDate • $ghanaTime', style: const TextStyle(color: Colors.white60, fontSize: 10)),
               ])),
-              IconButton(icon: const Icon(Icons.settings, color: Colors.white70), onPressed: () {}),
+              IconButton(icon: const Icon(Icons.settings, color: Colors.white70), onPressed: () => _go('/client-settings')),
             ]),
           ),
           // Grid - same as HTML gcard
@@ -190,12 +199,12 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             child: GridView.count(
               shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.1,
               children: [
-                _gridCard('🩺', 'Book Nurse', '🟢 LIVE • No shake • Fast online', const Color(0xFFA855F7), () => Navigator.pushNamed(context, '/book-nurse')),
-                _gridCard('📅', 'My Bookings', '$myBookingsCount Bookings\n$ghanaDate', const Color(0xFF38BDF8), () => Navigator.pushNamed(context, '/my-bookings'), isBookings: true),
-                _gridCard('⚙️', 'Client Settings', '', const Color(0xFF1E1B3A), () {}),
-                _gridCard('📝', 'Complaint', '', const Color(0xFF1E1B3A), () {}),
-                _gridCard('💰', 'Refund Query', 'Photo + Time Saved', const Color(0xFFFB923C), () {}),
-                _gridCard('⭐', 'Rating', '', const Color(0xFFFACC15), () {}),
+                _gridCard('🩺', 'Book Nurse', '🟢 LIVE • No shake • Fast online', const Color(0xFFA855F7), () => _go('/book-nurse')),
+                _gridCard('📅', 'My Bookings', '$myBookingsCount Bookings\n$ghanaDate', const Color(0xFF38BDF8), () => _go('/my-bookings'), isBookings: true),
+                _gridCard('⚙️', 'Client Settings', 'Profile • Photo • Phone', const Color(0xFF1E1B3A), () => _go('/client-settings')),
+                _gridCard('📝', 'Complaint', 'Report a problem', const Color(0xFF1E1B3A), () => _go('/client-complaint')),
+                _gridCard('💰', 'Refund Query', 'Photo + Time Saved', const Color(0xFFFB923C), () => _go('/refund-query')),
+                _gridCard('⭐', 'Rating', 'Rate your nurse', const Color(0xFFFACC15), () => _go('/rating')),
               ],
             ),
           ),
@@ -205,7 +214,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             child: SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => _go('/sos'),
                 icon: const Icon(Icons.emergency),
                 label: const Text(
                   '🚨 Emergency SOS',
