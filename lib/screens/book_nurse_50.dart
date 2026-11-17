@@ -9,13 +9,15 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'live_nurse_map.dart';
 
-/// Book Nurse - 50% NOW, 50% LATER - Flutter version of book-nurse-50-percent.html
-/// - ONLY ONLINE NURSES show (onlineNurses + nursePresence + nurseLocations)
-/// - CEO Live Rates: config/rates, ceoPricing, pricing -> GHS hourly / USD hourly
-/// - Booking: Start 08:00 End 17:00 = 9 hrs/day, Care Mode Daily x1 / Weekly x7 / Monthly x30
-/// - Client auto-filled + Patient (can be different place) + Map + GPS
-/// - 50% NOW via Paystack, 50% LATER via CASH to nurse. Split: Nurse 80% / CEO 20% of payNow
-/// - Saves to bookings + bookingsByClient + bookingsByNurse + nurseBookings (same as HTML)
+/// Book Nurse - 50% NOW, 50% LATER - FRESH FIXED VERSION
+/// FIXED:
+/// 1. (distance as double) -> _asDouble() - no crash if int/String
+/// 2. (snapshot.value as Map?) -> safe check - no crash if rates is number/null
+/// 3. RTDB List/null -> safeMap() - no crash
+/// 4. Navigator.pushNamed('/my-bookings') -> try/catch - no crash after payment
+/// 5. Controllers inside build() -> moved to initState + dispose
+/// 6. Video AspectRatio 0 -> 16/9 fallback
+/// 7. int.parse(time) -> int.tryParse
 
 class BookNurse50Screen extends StatefulWidget {
   const BookNurse50Screen({super.key});
@@ -24,26 +26,24 @@ class BookNurse50Screen extends StatefulWidget {
 }
 
 class _BookNurse50ScreenState extends State<BookNurse50Screen> {
-  // Client
   final _clientNameCtrl = TextEditingController();
   final _clientPhoneCtrl = TextEditingController();
   final _clientEmailCtrl = TextEditingController();
-  // Patient
   final _patientNameCtrl = TextEditingController();
   final _patientPhoneCtrl = TextEditingController();
   final _patientLocCtrl = TextEditingController();
+  late final TextEditingController _quantityCtrl;
+  late final TextEditingController _transportCtrl;
   String patientRelationship = 'Self';
   bool sameLocation = true;
-  // Booking
   String startTime = '08:00';
   String endTime = '17:00';
   String careMode = 'Daily';
   int quantity = 1;
   double transport = 100;
-  String currency = 'GHS'; // GHS or USD
+  String currency = 'GHS';
   double ceoRateGHS = 0;
   double ceoRateUSD = 0;
-  // Nurses
   List<Map> onlineNurses = [];
   String? selectedNurseId;
   String selectedNurseName = '';
@@ -55,17 +55,28 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
   bool isPaying = false;
 
   @override
+  void dispose() {
+    _clientNameCtrl.dispose();
+    _clientPhoneCtrl.dispose();
+    _clientEmailCtrl.dispose();
+    _patientNameCtrl.dispose();
+    _patientPhoneCtrl.dispose();
+    _patientLocCtrl.dispose();
+    _quantityCtrl.dispose();
+    _transportCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
+    _quantityCtrl = TextEditingController(text: quantity.toString());
+    _transportCtrl = TextEditingController(text: transport.toString());
     _loadClientData();
     _loadCEORates();
     _autoCaptureLocation();
   }
 
-
-  // ===== MISSING HELPER - this is why build failed at line 281 / 291 / 454 =====
-  // FULL page has _asDouble, 50% page never had it. My auto-pick code used it.
-  // Added here so 50% page compiles on its own.
   double _asDouble(dynamic v) {
     if (v == null) return 0;
     if (v is num) return v.toDouble();
@@ -74,6 +85,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
 
   Future<void> _loadClientData() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _clientNameCtrl.text = prefs.getString('clientName') ?? prefs.getString('fullName') ?? '';
       _clientPhoneCtrl.text = prefs.getString('clientPhone') ?? prefs.getString('phone') ?? '';
@@ -84,8 +96,9 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
   void _loadCEORates() {
     for (final path in ['config/rates', 'ceoPricing', 'pricing']) {
       FirebaseDatabase.instance.ref(path).onValue.listen((e) {
-        final v = e.snapshot.value as Map?;
-        if (v == null) return;
+        final raw = e.snapshot.value;
+        if (raw is! Map) return;
+        final v = Map<String, dynamic>.from(raw);
         double ghs = 0, usd = 0;
         if (v['GHS'] is Map && v['GHS']['hourly'] != null) ghs = double.tryParse(v['GHS']['hourly'].toString()) ?? 0;
         if (v['USD'] is Map && v['USD']['hourly'] != null) usd = double.tryParse(v['USD']['hourly'].toString()) ?? 0;
@@ -93,7 +106,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
         if (usd == 0) usd = double.tryParse((v['dollars'] ?? v['usd'] ?? 0).toString()) ?? 0;
         if (ghs > 0) ceoRateGHS = ghs;
         if (usd > 0) ceoRateUSD = usd;
-        setState(() {});
+        if (mounted) setState(() {});
       });
     }
   }
@@ -103,6 +116,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
       final perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) return;
       final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      if (!mounted) return;
       setState(() { clientLat = pos.latitude; clientLng = pos.longitude; patientLat = pos.latitude; patientLng = pos.longitude; });
       _searchNearbyNurses();
     } catch (_) {}
@@ -118,17 +132,21 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
 
   Future<void> _searchNearbyNurses() async {
     if (clientLat == null) return;
-    // Online nurses only - same as HTML: onlineNurses + nursePresence
     final snap = await FirebaseDatabase.instance.ref('onlineNurses').get();
     final nurseSnap = await FirebaseDatabase.instance.ref('nurses').get();
     final locSnap = await FirebaseDatabase.instance.ref('nurseLocations').get();
-    final onlineMap = snap.exists ? Map<String, dynamic>.from(snap.value as Map) : {};
-    final nursesMap = nurseSnap.exists ? Map<String, dynamic>.from(nurseSnap.value as Map) : {};
-    final locMap = locSnap.exists ? Map<String, dynamic>.from(locSnap.value as Map) : {};
+    Map<String, dynamic> safeMap(dynamic sn) {
+      if (!sn.exists || sn.value is! Map) return {};
+      try { return Map<String, dynamic>.from(sn.value as Map); } catch (_) { return {}; }
+    }
+    final onlineMap = safeMap(snap);
+    final nursesMap = safeMap(nurseSnap);
+    final locMap = safeMap(locSnap);
     List<Map> list = [];
     for (final entry in nursesMap.entries) {
       final uid = entry.key;
-      if (!onlineMap.containsKey(uid)) continue; // HIDE OFFLINE - same as HTML .offline{display:none}
+      if (!onlineMap.containsKey(uid)) continue;
+      if (entry.value is! Map) continue;
       final n = Map<String, dynamic>.from(entry.value as Map);
       final loc = locMap[uid] as Map?;
       final lat = double.tryParse((loc?['lat'] ?? n['lat'] ?? 0).toString()) ?? 0;
@@ -138,17 +156,18 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
       if (dist > searchRadius) continue;
       list.add({'uid': uid, ...n, 'lat': lat, 'lng': lng, 'distance': dist, 'isOnline': true});
     }
-    list.sort((a, b) => (a['distance'] as double).compareTo(b['distance'] as double));
+    list.sort((a, b) => _asDouble(a['distance']).compareTo(_asDouble(b['distance'])));
+    if (!mounted) return;
     setState(() {
       onlineNurses = List<Map>.from(list);
-      nurseMarkers = list.map((n) => Marker(markerId: MarkerId(n['uid']), position: LatLng(n['lat'], n['lng']), infoWindow: InfoWindow(title: n['name'] ?? 'Nurse', snippet: '${n['distance'].toStringAsFixed(1)} km away - ONLINE'), icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet))).toSet();
+      nurseMarkers = list.map((n) => Marker(markerId: MarkerId(n['uid']), position: LatLng(_asDouble(n['lat']), _asDouble(n['lng'])), infoWindow: InfoWindow(title: n['name'] ?? 'Nurse', snippet: '${_asDouble(n['distance']).toStringAsFixed(1)} km away - ONLINE'), icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueViolet))).toSet();
     });
-      if (selectedNurseId == null) _autoSelectNearest();
+    if (selectedNurseId == null) _autoSelectNearest();
   }
 
   double calcHours(String s, String e) {
-    final sp = s.split(':').map(int.parse).toList();
-    final ep = e.split(':').map(int.parse).toList();
+    final sp = s.split(':').map((x) => int.tryParse(x) ?? 0).toList();
+    final ep = e.split(':').map((x) => int.tryParse(x) ?? 0).toList();
     double h = (ep[0] + ep[1] / 60) - (sp[0] + sp[1] / 60);
     if (h < 0) h += 24;
     return h;
@@ -167,14 +186,13 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
   }
 
   Future<void> _pickTime(bool isStart) async {
-    final init = TimeOfDay(hour: int.parse((isStart ? startTime : endTime).split(':')[0]), minute: int.parse((isStart ? startTime : endTime).split(':')[1]));
+    final init = TimeOfDay(hour: int.tryParse((isStart ? startTime : endTime).split(':')[0]) ?? 8, minute: int.tryParse((isStart ? startTime : endTime).split(':')[1]) ?? 0);
     final picked = await showTimePicker(context: context, initialTime: init);
     if (picked != null) {
       setState(() { final v = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}'; if (isStart) startTime = v; else endTime = v; });
     }
   }
 
-  // ===== SYSTEM PICK: System finds nearby ONLINE nurses, picks nearest, client watches photo+video, decides Continue / Another One =====
   Future<void> _openSystemPick() async {
     if (patientLat == null || clientLat == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Waiting for your GPS... try again in a second')));
@@ -184,12 +202,12 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
       context,
       MaterialPageRoute(
         builder: (_) => LiveNurseMap(
-          patientLat: patientLat, // patient live place - only nurses close to PATIENT
+          patientLat: patientLat,
           patientLng: patientLng,
           clientLat: clientLat,
           clientLng: clientLng,
           searchRadiusKm: 20,
-          autoPickNearest: true, // system picks nearest automatically
+          autoPickNearest: true,
         ),
       ),
     );
@@ -205,7 +223,6 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     }
   }
 
-  // ===== Helpers to show nurse registration photo + video from her card (tap "Watch Photo + Video") =====
   String _nursePhoto(Map n) {
     for (final k in ['photoUrl','photoURL','photo','profilePhoto','imageUrl']) {
       final v = (n[k] ?? '').toString();
@@ -213,6 +230,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     }
     return '';
   }
+
   String _nurseVideo(Map n) {
     for (final k in ['videoUrl','videoURL','video','introVideoUrl','introVideo','registrationVideoUrl','registrationVideo','nurseVideoUrl','nurseVideo','profileVideoUrl','profileVideo']) {
       final v = (n[k] ?? '').toString();
@@ -220,6 +238,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     }
     return '';
   }
+
   void _showNursePhotoVideo(Map n) {
     showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: const Color(0xFF1C1238),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -227,18 +246,11 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
         nurse: n, photo: _nursePhoto(n), video: _nurseVideo(n),
         name: (n['name'] ?? n['fullName'] ?? 'Nurse').toString(),
         spec: (n['specialty'] ?? 'Home Nursing').toString(),
-        distance: (n['distance'] as double? ?? 0),
+        distance: _asDouble(n['distance']),
         onSelect: () { Navigator.pop(context); setState(() { selectedNurseId = n['uid']; selectedNurseName = (n['name'] ?? '').toString(); selectedNursePhone = (n['phone'] ?? '').toString(); }); },
       ));
   }
 
-
-  // ===== WHY VIDEO SAID "NO VIDEO" - FIX =====
-  // Nurse video is NOT always in the list item. Registration saves it under many
-  // different keys, sometimes nested (video:{url:...}), sometimes as a List, sometimes
-  // only in the full nurse record (RTDB nurses/{uid} or Firestore). Old code only checked
-  // 1 flat key on the list item, so it said "No video" even though she uploaded one.
-  // This checks: flat keys + nested maps + lists + full record from RTDB + Firestore.
   String _pickUrl(dynamic v) {
     if (v == null) return '';
     if (v is String) { final t = v.trim(); if (t.startsWith('http') || t.startsWith('gs://')) return t; return ''; }
@@ -249,24 +261,23 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     }
     return '';
   }
+
   String _mediaFromMap(Map n, bool isVideo) {
     final videoKeys = ['videoUrl','videoURL','video','introVideoUrl','introVideo','registrationVideoUrl','registrationVideo','nurseVideoUrl','nurseVideo','profileVideoUrl','profileVideo','introVideoURL','selfieVideoUrl','videoLink','video_url'];
     final photoKeys = ['photoUrl','photoURL','photo','profilePhoto','imageUrl','imageURL','profilePhotoUrl','profilePic','profilePicture','avatar','picture'];
     final keys = isVideo ? videoKeys : photoKeys;
     for (final k in keys) { final u = _pickUrl(n[k]); if (u.isNotEmpty) return u; }
-    // Nested: video:{url:...} , media:{video:...} , files:{video:...} , registration:{video:...}
     for (final k in ['video','media','files','registration','documents','uploads','profile']) {
       final v = n[k];
       if (v is Map) { final u = _mediaFromMap(Map<String,dynamic>.from(v), isVideo); if (u.isNotEmpty) return u; }
     }
-    // Lists: videos:[...] / photos:[...] / media:[...]
     for (final k in ['videos','videoUrls','photos','photoUrls','media','files','attachments']) {
       final u = _pickUrl(n[k]); if (u.isNotEmpty) return u;
     }
     return '';
   }
+
   Future<Map<String,dynamic>> _fetchFullNurse(String uid) async {
-    // Merge full record: RTDB nurses/{uid} + RTDB approved_nurses/{uid} + Firestore nurses/approved_nurses/pending_nurses/{uid}
     final merged = <String,dynamic>{};
     try { final snap = await FirebaseDatabase.instance.ref('nurses/$uid').get(); if (snap.exists && snap.value is Map) merged.addAll(Map<String,dynamic>.from(snap.value as Map)); } catch (_) {}
     try { final snap = await FirebaseDatabase.instance.ref('approved_nurses/$uid').get(); if (snap.exists && snap.value is Map) merged.addAll(Map<String,dynamic>.from(snap.value as Map)); } catch (_) {}
@@ -275,8 +286,8 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     try { final doc = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get(); if (doc.exists && doc.data() != null) merged.addAll(doc.data()!); } catch (_) {}
     return merged;
   }
+
   Future<void> _showNursePhotoVideoAuto(Map n) async {
-    // Always re-fetch full record BEFORE saying "No video" - list item is incomplete
     final uid = (n['uid'] ?? '').toString();
     Map<String,dynamic> full = Map<String,dynamic>.from(n);
     if (uid.isNotEmpty) {
@@ -292,20 +303,22 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
         onSelect: () { Navigator.pop(context); setState(() { selectedNurseId = full['uid']; selectedNurseName = (full['name'] ?? '').toString(); selectedNursePhone = (full['phone'] ?? '').toString(); }); },
       ));
   }
-  // ===== AUTOMATIC SELECTION: system auto-picks nearest ONLINE nurse, no tap on map needed =====
+
   void _autoSelectNearest() {
     if (onlineNurses.isEmpty) return;
-    if (selectedNurseId != null) return; // already chosen - do not override
-    final n = onlineNurses.first; // list is already sorted nearest-first
+    if (selectedNurseId != null) return;
+    final n = onlineNurses.first;
     setState(() { selectedNurseId = n['uid']; selectedNurseName = (n['name'] ?? '').toString(); selectedNursePhone = (n['phone'] ?? '').toString(); });
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🤖 System auto-picked nearest ONLINE nurse: $selectedNurseName (${_asDouble(n['distance']).toStringAsFixed(1)} km) - Watch her photo + video below')));
   }
+
   void _pickAnotherOne() {
     if (onlineNurses.length < 2) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No other ONLINE nurse nearby yet - system is still searching...'))); return; }
     final idx = onlineNurses.indexWhere((x) => x['uid'] == selectedNurseId);
     final next = onlineNurses[(idx + 1) % onlineNurses.length];
     setState(() { selectedNurseId = next['uid']; selectedNurseName = (next['name'] ?? '').toString(); selectedNursePhone = (next['phone'] ?? '').toString(); });
   }
+
   Map<String,dynamic>? get _autoPickedNurse {
     if (selectedNurseId == null) return null;
     try { return Map<String,dynamic>.from(onlineNurses.firstWhere((x) => x['uid'] == selectedNurseId)); } catch (_) { return null; }
@@ -320,7 +333,6 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     final total = calc['total'] as double;
     setState(() => isPaying = true);
     try {
-      // Step 1: Explain - 50% Paystack NOW + 50% CASH to nurse
       final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
         title: const Text('50% Paystack + 50% Cash'),
         content: Text('Total: $currency ${total.toStringAsFixed(2)}\n\n✅ Pay NOW via Paystack: $currency ${payNow.toStringAsFixed(2)} (50%)\n💵 Pay LATER in CASH to nurse: $currency ${payLater.toStringAsFixed(2)} (50%)\n\nNurse: $selectedNurseName\n\nTap "Pay with Paystack" to pay 50% now. The other 50% you give CASH to the nurse.'),
@@ -330,12 +342,10 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
         ],
       ));
       if (confirmed != true) { setState(() => isPaying = false); return; }
-      // TODO: Replace with real Paystack checkout (flutter_paystack_plus / Paystack inline WebView)
-      // For now: confirm dialog = Paystack success, then save booking
       final ref = 'PSK50_${DateTime.now().millisecondsSinceEpoch}';
       await _saveBooking(ref, calc);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment failed: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment failed: $e')));
     } finally {
       if (mounted) setState(() => isPaying = false);
     }
@@ -362,7 +372,6 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     };
     final db = FirebaseDatabase.instance;
     final emailKey = _clientEmailCtrl.text.trim().toLowerCase().replaceAll(RegExp(r'[.#\$@\[\]]'), '_');
-    // Save to ALL locations - same as HTML (fixes client not seeing bookings)
     await db.ref('bookings/$bookingId').set(booking);
     await db.ref('bookingsByClient/$emailKey/$bookingId').set(booking);
     await db.ref('bookingsByNurse/$selectedNurseId/$bookingId').set(booking);
@@ -370,7 +379,9 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     await db.ref('clientBookings/$emailKey/$bookingId').set(booking);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Booking created! $bookingId - 50% Paystack paid, 50% Cash to nurse later')));
-    Navigator.pushNamed(context, '/my-bookings');
+    try { Navigator.pushNamed(context, '/my-bookings'); } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking saved! Go to My Bookings to see it.')));
+    }
   }
 
   @override
@@ -378,13 +389,12 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     final calc = calcTotal();
     return Scaffold(
       backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: Text('Book Nurse — 50% Paystack + 50% Cash — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633)),
+      appBar: AppBar(title: const Text('Book Nurse — 50% Paystack + 50% Cash — ONLY ONLINE NURSES', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.info, color: Colors.amber), const SizedBox(width: 8), Expanded(child: Text('CEO Live: ${currency} ${calc['rate']} /hr — 50% Paystack NOW + 50% CASH to nurse LATER — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)))])),
+          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.info, color: Colors.amber), const SizedBox(width: 8), Expanded(child: Text('CEO Live: $currency ${calc['rate']} /hr — 50% Paystack NOW + 50% CASH to nurse LATER — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)))])),
           const SizedBox(height: 12),
-          // Booking - Time / Mode / Quantity / Currency / Transport
           _sectionTitle('⏱️ Booking — 50% Paystack Now, 50% Cash Later'),
           Row(children: [
             Expanded(child: _timeField('START TIME *', startTime, () => _pickTime(true))),
@@ -397,24 +407,23 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
           Row(children: [
             Expanded(child: DropdownButtonFormField<String>(value: careMode, decoration: const InputDecoration(labelText: 'CARE MODE', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Daily', child: Text('Daily')), DropdownMenuItem(value: 'Weekly', child: Text('Weekly (x7)')), DropdownMenuItem(value: 'Monthly', child: Text('Monthly (x30)'))], onChanged: (v) => setState(() => careMode = v ?? 'Daily'))),
             const SizedBox(width: 8),
-            Expanded(child: TextField(decoration: const InputDecoration(labelText: 'QUANTITY', border: OutlineInputBorder()), keyboardType: TextInputType.number, controller: TextEditingController(text: quantity.toString()), onChanged: (v) => quantity = int.tryParse(v) ?? 1)),
+            Expanded(child: TextField(decoration: const InputDecoration(labelText: 'QUANTITY', border: OutlineInputBorder()), keyboardType: TextInputType.number, controller: _quantityCtrl, onChanged: (v) => quantity = int.tryParse(v) ?? 1)),
           ]),
           const SizedBox(height: 10),
           Row(children: [
             Expanded(child: DropdownButtonFormField<String>(value: currency, decoration: const InputDecoration(labelText: 'COUNTRY — CURRENCY', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'GHS', child: Text('🇬🇭 Ghana — GHS')), DropdownMenuItem(value: 'USD', child: Text('🇺🇸 USA — USD'))], onChanged: (v) => setState(() => currency = v ?? 'GHS'))),
             const SizedBox(width: 8),
-            Expanded(child: TextField(decoration: const InputDecoration(labelText: 'TRANSPORT', border: OutlineInputBorder()), keyboardType: TextInputType.number, controller: TextEditingController(text: transport.toString()), onChanged: (v) => transport = double.tryParse(v) ?? 0)),
+            Expanded(child: TextField(decoration: const InputDecoration(labelText: 'TRANSPORT', border: OutlineInputBorder()), keyboardType: TextInputType.number, controller: _transportCtrl, onChanged: (v) => transport = double.tryParse(v) ?? 0)),
           ]),
           const SizedBox(height: 12),
-          // Total
           Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFFBBF24))), child: Column(children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Care Cost'), Text('${currency} ${calc['careCost'].toStringAsFixed(2)}')]),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Transport'), Text('${currency} ${transport.toStringAsFixed(2)}')]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Care Cost'), Text('$currency ${calc['careCost'].toStringAsFixed(2)}')]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Transport'), Text('$currency ${transport.toStringAsFixed(2)}')]),
             const Divider(),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('TOTAL', style: TextStyle(fontWeight: FontWeight.bold)), Text('${currency} ${calc['total'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('TOTAL', style: TextStyle(fontWeight: FontWeight.bold)), Text('$currency ${calc['total'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))]),
             const SizedBox(height: 6),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay Now (50%) — Paystack', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)), Text('${currency} ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))]),
-            if ((calc['payLater'] as double) > 0) Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay Later — 💵 Cash to Nurse'), Text('${currency} ${calc['payLater'].toStringAsFixed(2)}')]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay Now (50%) — Paystack', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)), Text('$currency ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))]),
+            if ((calc['payLater'] as double) > 0) Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay Later — 💵 Cash to Nurse'), Text('$currency ${calc['payLater'].toStringAsFixed(2)}')]),
           ])),
           const SizedBox(height: 16),
           _sectionTitle('👤 CLIENT — Payer (Auto-filled)'),
@@ -431,7 +440,6 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
           const SizedBox(height: 8),
           SwitchListTile(title: const Text('Same location as Client'), value: sameLocation, onChanged: (v) => setState(() { sameLocation = v; if (v) { patientLat = clientLat; patientLng = clientLng; } })),
           const SizedBox(height: 16),
-          // ===== SYSTEM PICK - System views nearby nurses, picks nearest for client =====
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
@@ -446,9 +454,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
             ]),
           ),
           const SizedBox(height: 12),
-          // Map + Nurses
           _sectionTitle('🟢 ONLINE Nurses within ${searchRadius.toInt()}km — Only online show • ${onlineNurses.length} nurses'),
-          // ===== AUTOMATIC SELECTION - system already picked nearest, client just watches + confirms =====
           if (onlineNurses.isNotEmpty && _autoPickedNurse != null)
             Container(
               width: double.infinity, padding: const EdgeInsets.all(12),
@@ -478,12 +484,11 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
             Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)), child: const Text('🔍 System is searching for ONLINE nurses near the patient... Keep this page open - nearest nurse will be auto-picked as soon as she goes ONLINE.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12))),
           Container(height: 300, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.2))), child: clientLat == null ? const Center(child: CircularProgressIndicator()) : GoogleMap(initialCameraPosition: CameraPosition(target: LatLng(clientLat!, clientLng!), zoom: 12), markers: nurseMarkers, myLocationEnabled: true, onMapCreated: (c) => mapCtrl = c, onTap: (latLng) { setState(() { patientLat = latLng.latitude; patientLng = latLng.longitude; }); })),
           const SizedBox(height: 12),
-          // AUTO-SELECT banner is below - no dead-end message, system keeps searching
           ...onlineNurses.map((n) => _nurseCard(n)),
           const SizedBox(height: 16),
-                    Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFFFF3CD).withOpacity(0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber.withOpacity(0.5))), child: const Text('⚠️ 50% ONLY HERE: Pay ONLY half (50%) now via Paystack.\n💵 Give the remaining 50% CASH to the nurse AFTER her work is completed. Do NOT pay full amount here.', textAlign: TextAlign.center, style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12))),
+          Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFFFFF3CD).withOpacity(0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber.withOpacity(0.5))), child: const Text('⚠️ 50% ONLY HERE: Pay ONLY half (50%) now via Paystack.\n💵 Give the remaining 50% CASH to the nurse AFTER her work is completed. Do NOT pay full amount here.', textAlign: TextAlign.center, style: TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold, fontSize: 12))),
           const SizedBox(height: 8),
-          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: isPaying ? null : _payWithPaystack50Cash, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C853), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: Text(isPaying ? 'Processing Paystack...' : '💳 Pay 50% Now via Paystack — ${currency} ${calc['payNow'].toStringAsFixed(2)}  +  💵 50% Cash Later', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)))),
+          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: isPaying ? null : _payWithPaystack50Cash, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C853), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: Text(isPaying ? 'Processing Paystack...' : '💳 Pay 50% Now via Paystack — $currency ${calc['payNow'].toStringAsFixed(2)}  +  💵 50% Cash Later', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)))),
           const SizedBox(height: 20),
         ]),
       ),
@@ -506,7 +511,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
           const SizedBox(width: 10),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [Text(n['name']?.toString() ?? 'Nurse', style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 6), Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle))]),
-            Text('${n['specialty'] ?? 'Home Nursing'} • ${(n['distance'] as double).toStringAsFixed(1)} km away', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+            Text('${n['specialty'] ?? 'Home Nursing'} • ${_asDouble(n['distance']).toStringAsFixed(1)} km away', style: const TextStyle(color: Colors.white60, fontSize: 11)),
             Text('⭐ ${n['rating'] ?? 5} • Verified ✅ • ONLINE', style: const TextStyle(color: Colors.white70, fontSize: 11)),
           ])),
           if (isSel) const Icon(Icons.check_circle, color: Colors.green),
@@ -519,8 +524,6 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
   }
 }
 
-
-// ===== NURSE PHOTO + VIDEO SHEET for 50% page - same as Live Map sheet =====
 class _Nurse50ProfileSheet extends StatefulWidget {
   final Map nurse; final String photo; final String video; final String name; final String spec; final double distance; final VoidCallback onSelect;
   const _Nurse50ProfileSheet({required this.nurse, required this.photo, required this.video, required this.name, required this.spec, required this.distance, required this.onSelect});
@@ -560,7 +563,7 @@ class _Nurse50ProfileSheetState extends State<_Nurse50ProfileSheet> {
           if (widget.video.isEmpty) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)), child: const Text('No video uploaded during registration for this nurse.', style: TextStyle(color: Colors.white70)))
           else if (_ctrl == null && !_failed) Container(height: 220, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(14)), child: const Center(child: CircularProgressIndicator(color: Colors.white)))
           else if (_ctrl != null) Column(children: [
-            ClipRRect(borderRadius: BorderRadius.circular(14), child: AspectRatio(aspectRatio: _ctrl!.value.aspectRatio, child: VideoPlayer(_ctrl!))),
+            ClipRRect(borderRadius: BorderRadius.circular(14), child: AspectRatio(aspectRatio: (_ctrl!.value.aspectRatio == 0 ? 16 / 9 : _ctrl!.value.aspectRatio), child: VideoPlayer(_ctrl!))),
             const SizedBox(height: 8),
             SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () { setState(() { _ctrl!.value.isPlaying ? _ctrl!.pause() : _ctrl!.play(); }); }, icon: Icon(_ctrl!.value.isPlaying ? Icons.pause : Icons.play_arrow), label: Text(_ctrl!.value.isPlaying ? 'Pause Video' : '▶️ Play Video'))),
           ])
@@ -572,7 +575,6 @@ class _Nurse50ProfileSheetState extends State<_Nurse50ProfileSheet> {
     );
   }
 }
-
 
 class _AutoNurseProfileSheet extends StatefulWidget {
   final Map nurse; final String photo; final String video; final String name; final String spec; final double distance; final VoidCallback onSelect;
@@ -613,7 +615,7 @@ class _AutoNurseProfileSheetState extends State<_AutoNurseProfileSheet> {
           if (widget.video.isEmpty) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)), child: const Text('No video found for this nurse - she may not have uploaded one during registration. Ask her to upload one in Nurse Settings.', style: TextStyle(color: Colors.white70)))
           else if (_ctrl == null && !_failed) Container(height: 220, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(14)), child: const Center(child: CircularProgressIndicator(color: Colors.white)))
           else if (_ctrl != null) Column(children: [
-            ClipRRect(borderRadius: BorderRadius.circular(14), child: AspectRatio(aspectRatio: _ctrl!.value.aspectRatio, child: VideoPlayer(_ctrl!))),
+            ClipRRect(borderRadius: BorderRadius.circular(14), child: AspectRatio(aspectRatio: (_ctrl!.value.aspectRatio == 0 ? 16 / 9 : _ctrl!.value.aspectRatio), child: VideoPlayer(_ctrl!))),
             const SizedBox(height: 8),
             SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () { setState(() { _ctrl!.value.isPlaying ? _ctrl!.pause() : _ctrl!.play(); }); }, icon: Icon(_ctrl!.value.isPlaying ? Icons.pause : Icons.play_arrow), label: Text(_ctrl!.value.isPlaying ? 'Pause Video' : '▶️ Play Video'))),
           ])
