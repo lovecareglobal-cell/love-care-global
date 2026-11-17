@@ -21,8 +21,8 @@ dependencies:
   web: ^1.1.0
   just_audio: ^0.9.42
   audioplayers: ^6.4.0
-  google_maps_flutter: ^2.10.0 # kept - 50% page map, Full page uses external Google Maps app
-  flutter_map: ^8.2.1 # LIVE MAP - blinking nurse photo, moves live, OpenStreetMap, no crash
+  google_maps_flutter: ^2.10.0 # kept - but we NO go use am for live map, to avoid crash. Live map uses flutter_map below
+  flutter_map: ^8.2.1 # LIVE MAP - blinking nurse photo, moves live, OpenStreetMap, NO API key, NO crash
   latlong2: ^0.9.1 # for Live Nurse Map LatLng
   share_plus: ^10.1.2
   video_player: ^2.9.5 # watch nurse registration VIDEO in Live Map + 50% page
