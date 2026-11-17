@@ -62,6 +62,16 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
     _autoCaptureLocation();
   }
 
+
+  // ===== MISSING HELPER - this is why build failed at line 281 / 291 / 454 =====
+  // FULL page has _asDouble, 50% page never had it. My auto-pick code used it.
+  // Added here so 50% page compiles on its own.
+  double _asDouble(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
   Future<void> _loadClientData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -313,7 +323,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
       // Step 1: Explain - 50% Paystack NOW + 50% CASH to nurse
       final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
         title: const Text('50% Paystack + 50% Cash'),
-        content: Text('Total: $currency ${total.toStringAsFixed(2)}\n\n✅ Pay NOW via Paystack: $currency ${payNow.toStringAsFixed(2)} (50%)\n💵 Pay LATER in CASH to nurse: $currency ${payLater.toStringAsFixed(2)} (50%)\n\nNurse: $selectedNurseName\n\n⚠️ ONLY 50% is paid here. Give the remaining 50% CASH to the nurse AFTER her work is completed. Do NOT pay full amount here.'),
+        content: Text('Total: $currency ${total.toStringAsFixed(2)}\n\n✅ Pay NOW via Paystack: $currency ${payNow.toStringAsFixed(2)} (50%)\n💵 Pay LATER in CASH to nurse: $currency ${payLater.toStringAsFixed(2)} (50%)\n\nNurse: $selectedNurseName\n\nTap "Pay with Paystack" to pay 50% now. The other 50% you give CASH to the nurse.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pay with Paystack')),
@@ -344,7 +354,7 @@ class _BookNurse50ScreenState extends State<BookNurse50Screen> {
       'patientRelationship': patientRelationship,
       'nurseId': selectedNurseId, 'nurseName': selectedNurseName, 'nursePhone': selectedNursePhone, 'nurseWasOnline': true, 'nurseOnlineAt': DateTime.now().millisecondsSinceEpoch,
       'amount': calc['total'], 'amountPaidNow': calc['payNow'], 'amountBalance': calc['payLater'], 'payNow': calc['payNow'], 'payLater': calc['payLater'],
-      'currency': currency, 'paymentMethod': 'paystack_50_cash_50', 'paymentType': '50_percent_paystack_cash', 'paystackRef': paystackRef, 'payNowMethod': 'Paystack', 'payLaterMethod': 'Cash', 'payNowAmount': calc['payNow'], 'payLaterAmount': calc['payLater'], 'cashToNurse': calc['payLater'], 'payLaterNote': 'Give remaining 50% CASH to nurse AFTER work completed',
+      'currency': currency, 'paymentMethod': 'paystack_50_cash_50', 'paymentType': '50_percent_paystack_cash', 'paystackRef': paystackRef, 'payNowMethod': 'Paystack', 'payLaterMethod': 'Cash', 'payNowAmount': calc['payNow'], 'payLaterAmount': calc['payLater'], 'cashToNurse': calc['payLater'],
       'status': 'pending_50_percent_paystack_paid_cash_due', 'time': DateTime.now().millisecondsSinceEpoch, 'createdAt': DateTime.now().millisecondsSinceEpoch,
       'totalHours': calc['totalHours'], 'hrsPerDay': calc['hrsPerDay'], 'startTime': startTime, 'endTime': endTime, 'careMode': careMode, 'quantity': quantity, 'transport': transport,
       'hourlyRateUsed': calc['rate'], 'service': careMode,
