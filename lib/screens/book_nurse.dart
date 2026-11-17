@@ -7,6 +7,8 @@ import 'package:geolocator/geolocator.dart';
 // NO EMBEDDED GoogleMap widget - it crashes on some phones even with key.
 // Map now opens in Google Maps app / browser via url_launcher - can NEVER crash the app.
 import 'package:url_launcher/url_launcher.dart';
+import 'book_nurse_50.dart';
+import 'live_nurse_map.dart';
 
 /// Book Nurse - FULL PAYMENT - Flutter version of book-nurse.html
 /// - ONLY ONLINE NURSES show (onlineNurses + nursePresence + nurseLocations)
@@ -316,6 +318,37 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
     Navigator.pushNamed(context, '/my-bookings');
   }
 
+  // ===== SYSTEM PICK: System finds nearby ONLINE nurses, picks nearest, client watches photo+video, decides Continue / Another One =====
+  Future<void> _openSystemPick() async {
+    if (patientLat == null || clientLat == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Waiting for your GPS... try again in a second')));
+      return;
+    }
+    final selected = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LiveNurseMap(
+          patientLat: patientLat, // patient live place - only nurses close to PATIENT
+          patientLng: patientLng,
+          clientLat: clientLat,
+          clientLng: clientLng,
+          searchRadiusKm: 20,
+          autoPickNearest: true, // system picks nearest automatically
+        ),
+      ),
+    );
+    if (selected != null && mounted) {
+      setState(() {
+        selectedNurseId = selected['uid']?.toString();
+        selectedNurseName = (selected['name'] ?? selected['fullName'] ?? '').toString();
+        selectedNursePhone = (selected['phone'] ?? '').toString();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('✅ You chose $selectedNurseName - now choose 50% Paystack + Cash OR Full Payment below')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final calc = calcTotal();
@@ -382,6 +415,102 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
           if (onlineNurses.isEmpty) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Text('No ONLINE nurses nearby — Try increasing radius or try again later. Offline nurses are hidden.', textAlign: TextAlign.center)),
           ...onlineNurses.map((n) => _nurseCard(n)),
           const SizedBox(height: 16),
+          // === SYSTEM PICK - System views nearby nurses, picks nearest for client ===
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFA855F7).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.4)),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'System will find nearby ONLINE nurses for you',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _openSystemPick,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFA855F7),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text(
+                      '🤖 System Pick Nearest Nurse For Me - Watch Photo + Video',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'System shows nearest nurse first - Watch her photo + video - Continue with her OR Look at another one',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+                if (selectedNurseId != null) Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text('✅ Selected: $selectedNurseName', textAlign: TextAlign.center, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // === 50% OPTION - ON TOP OF FULL PAYMENT - Opens book_nurse_50.dart ===
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF00C853).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF00C853).withOpacity(0.4)),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Not all clients have full money before nurse starts work',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const BookNurse50Screen()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00C853),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: const Text(
+                      '💳 Pay 50% via Paystack + 💵 50% Cash to Nurse',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Pay 50% now in Paystack • Give 50% cash to nurse later',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          // === END 50% BUTTON - FULL PAYMENT BUTTON BELOW ===
           SizedBox(width: double.infinity, child: ElevatedButton(onPressed: isPaying ? null : _payWithPaystack, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA855F7), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: Text(isPaying ? 'Processing Paystack...' : '💳 Pay Full Amount — ${currency} ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)))),
           const SizedBox(height: 20),
         ]),
