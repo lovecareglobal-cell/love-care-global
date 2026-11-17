@@ -204,18 +204,49 @@ class _LiveNurseMapState extends State<LiveNurseMap> with SingleTickerProviderSt
             ? Text('No ONLINE nurse within ${widget.searchRadiusKm.toInt()}km of patient yet. ${_allOnline.length} online far away - hidden. Try again in a minute or increase radius.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12))
             : Text('Showing ${_closeNurses.length} ONLINE nurse(s) CLOSE to patient. Nearest: ${_nameOf(_closeNurses.first)} - ${_d(_closeNurses.first['distance']).toStringAsFixed(1)} km away. Tap photo to watch video.', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12))),
         // Quick list - also tap to watch video + select
-        if (_closeNurses.isNotEmpty) Container(height: 92, padding: const EdgeInsets.only(bottom: 8),
-          child: ListView(scrollDirection: Axis.horizontal, children: _closeNurses.map((n) => GestureDetector(onTap: () { _currentIndex = _closeNurses.indexWhere((x) => _s(x['uid']) == _s(n['uid'])); if (_currentIndex < 0) _currentIndex = 0; _showNurseSheet(n); },
-            child: Container(width: 210, margin: const EdgeInsets.only(left: 10), padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(14)),
-              child: Row(children: [
-                ClipOval(child: _photoOf(n).isNotEmpty ? Image.network(_photoOf(n), width: 48, height: 48, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.person)) : const Icon(Icons.person))),
-                const SizedBox(width: 8),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_nameOf(n), overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                  Text('${_specOf(n)} • ${_d(n['distance']).toStringAsFixed(1)} km', style: const TextStyle(color: Colors.white60, fontSize: 11)),
-                  Text(_videoOf(n).isNotEmpty ? '▶️ Tap to watch video + photo' : '📷 Tap to see photo', style: const TextStyle(color: Colors.yellow, fontSize: 11)),
-                ])),
-              ])))).toList())),
+        if (_closeNurses.isNotEmpty)
+          Container(
+            height: 92,
+            padding: const EdgeInsets.only(bottom: 8),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _closeNurses.map((n) {
+                return GestureDetector(
+                  onTap: () {
+                    _currentIndex = _closeNurses.indexWhere((x) => _s(x['uid']) == _s(n['uid']));
+                    if (_currentIndex < 0) _currentIndex = 0;
+                    _showNurseSheet(n);
+                  },
+                  child: Container(
+                    width: 210,
+                    margin: const EdgeInsets.only(left: 10),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(14)),
+                    child: Row(
+                      children: [
+                        ClipOval(
+                          child: _photoOf(n).isNotEmpty
+                              ? Image.network(_photoOf(n), width: 48, height: 48, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.person))
+                              : const Icon(Icons.person),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(_nameOf(n), overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                              Text('${_specOf(n)} • ${_d(n['distance']).toStringAsFixed(1)} km', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                              Text(_videoOf(n).isNotEmpty ? '▶️ Tap to watch video + photo' : '📷 Tap to see photo', style: const TextStyle(color: Colors.yellow, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
       ]),
     );
   }
