@@ -5,10 +5,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math' as math;
 
-// LIVE_NURSE_MAP - UBER STYLE - NO API KEY - NO CRASH - BUILD FIXED
-// 1. LiveNurseMap = System Pick screen - picks nearest ONLINE nurse
-// 2. UberLiveMap = small embedded map for book_nurse.dart / book_nurse_50.dart
-// FIX: StrokePattern.dashed must NOT be const in flutter_map 8.3.2 - else build fails
+// LIVE_NURSE_MAP - UBER STYLE - NO API KEY - GENDER FIX - BUILD FIXED
+// - Male nurse = Him / 👨, Female nurse = Her / 👩, Unknown = Them
+// - FIX: StrokePattern.dashed must NOT be const in flutter_map 8.3.2
 
 double _asDouble(dynamic v, [double fb = 0]) {
   if (v == null) return fb;
@@ -32,6 +31,35 @@ String _photoFrom(Map m) {
     if (v.isNotEmpty && v.startsWith('http')) return v;
   }
   return '';
+}
+
+// ===== GENDER FIX - KUSI PETER = HIM, JOYCE = HER =====
+String _pronoun(Map n) {
+  final g = (n['gender'] ?? n['sex'] ?? '').toString().toLowerCase();
+  if (g.contains('female') || g.contains('woman') || g.contains('she')) return 'Her';
+  if (g.contains('male') || g.contains('man') || g.contains('he')) return 'Him';
+  return 'Them';
+}
+
+String _pronounLower(Map n) {
+  final g = (n['gender'] ?? n['sex'] ?? '').toString().toLowerCase();
+  if (g.contains('female') || g.contains('woman') || g.contains('she')) return 'her';
+  if (g.contains('male') || g.contains('man') || g.contains('he')) return 'him';
+  return 'them';
+}
+
+String _avatarEmoji(Map n) {
+  final g = (n['gender'] ?? n['sex'] ?? '').toString().toLowerCase();
+  if (g.contains('female') || g.contains('woman') || g.contains('she')) return '👩';
+  if (g.contains('male') || g.contains('man') || g.contains('he')) return '👨';
+  return '👩‍⚕️';
+}
+
+String _nurseWord(Map n) {
+  final g = (n['gender'] ?? n['sex'] ?? '').toString().toLowerCase();
+  if (g.contains('female') || g.contains('woman')) return 'Nurse';
+  if (g.contains('male') || g.contains('man')) return 'Nurse';
+  return 'Nurse';
 }
 
 // ============ 1. SYSTEM PICK SCREEN ============
@@ -111,7 +139,8 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
       backgroundColor: const Color(0xFF0E0A1C),
       appBar: AppBar(title: const Text('System Pick - Watch Nurses Moving LIVE', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633)),
       body: Column(children: [
-        Container(width: double.infinity, padding: const EdgeInsets.all(10), color: const Color(0xFF1C1238), child: Text('🟢 ${_nurses.length} ONLINE nurses moving LIVE • Tap a photo to pick her', textAlign: TextAlign.center, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12))),
+        // FIXED: No more "pick her" - neutral for all genders
+        Container(width: double.infinity, padding: const EdgeInsets.all(10), color: const Color(0xFF1C1238), child: Text('🟢 ${_nurses.length} ONLINE nurses moving LIVE • Tap a photo to pick a nurse', textAlign: TextAlign.center, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12))),
         Expanded(
           child: FlutterMap(
             mapController: _ctrl,
@@ -133,7 +162,7 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
                           duration: const Duration(milliseconds: 700),
                           padding: const EdgeInsets.all(3),
                           decoration: BoxDecoration(shape: BoxShape.circle, color: _blink ? Colors.red : Colors.transparent, border: Border.all(color: isSel ? Colors.greenAccent : (_blink ? Colors.white : Colors.red), width: 3)),
-                          child: CircleAvatar(radius: 24, backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null, backgroundColor: Colors.purple, child: photo.isEmpty ? const Text('👩', style: TextStyle(fontSize: 20)) : null),
+                          child: CircleAvatar(radius: 24, backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null, backgroundColor: Colors.purple, child: photo.isEmpty ? Text(_avatarEmoji(n), style: const TextStyle(fontSize: 20)) : null),
                         ),
                         Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(10)), child: Text('${(n['name'] ?? 'Nurse').toString().split(' ').first} • ${_asDouble(n['distance']).toStringAsFixed(1)}km', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
                       ]),
@@ -150,10 +179,11 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
           child: Column(children: [
             if (_selectedUid != null)
               ..._nurses.where((x) => x['uid'].toString() == _selectedUid).map((n) => Row(children: [
-                CircleAvatar(radius: 24, backgroundImage: _photoFrom(n).isNotEmpty ? NetworkImage(_photoFrom(n)) : null, backgroundColor: Colors.purple, child: _photoFrom(n).isEmpty ? const Text('👩') : null),
+                CircleAvatar(radius: 24, backgroundImage: _photoFrom(n).isNotEmpty ? NetworkImage(_photoFrom(n)) : null, backgroundColor: Colors.purple, child: _photoFrom(n).isEmpty ? Text(_avatarEmoji(n)) : null),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text((n['name'] ?? 'Nurse').toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text('${_asDouble(n['distance']).toStringAsFixed(1)} km away • 🟢 ONLINE', style: const TextStyle(color: Colors.greenAccent, fontSize: 12))])),
-                ElevatedButton(onPressed: () => Navigator.pop(context, Map<String, dynamic>.from(n)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: const Text('Continue With Her', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                // FIXED: KUSI = Continue With Him, JOYCE = Continue With Her
+                ElevatedButton(onPressed: () => Navigator.pop(context, Map<String, dynamic>.from(n)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: Text('Continue With ${_pronoun(n)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
               ])),
             const SizedBox(height: 8),
             SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () { if (_nurses.length > 1) { final idx = _nurses.indexWhere((x) => x['uid'].toString() == _selectedUid); setState(() => _selectedUid = _nurses[(idx + 1) % _nurses.length]['uid'].toString()); } }, child: const Text('👀 Look At Another One', style: TextStyle(color: Colors.white)))),
@@ -164,14 +194,15 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
   }
 }
 
-// ============ 2. EMBEDDED UBER MAP - for inside book_nurse.dart / book_nurse_50.dart / client_home.dart ============
+// ============ 2. EMBEDDED UBER MAP ============
 class UberLiveMap extends StatefulWidget {
   final String nurseId;
   final String nurseName;
   final String nursePhoto;
   final double patientLat;
   final double patientLng;
-  const UberLiveMap({super.key, required this.nurseId, required this.nurseName, required this.nursePhoto, required this.patientLat, required this.patientLng});
+  final String nurseGender;
+  const UberLiveMap({super.key, required this.nurseId, required this.nurseName, required this.nursePhoto, required this.patientLat, required this.patientLng, this.nurseGender = ''});
   @override
   State<UberLiveMap> createState() => _UberLiveMapState();
 }
@@ -205,6 +236,7 @@ class _UberLiveMapState extends State<UberLiveMap> {
     if (_nLat == 0) return Container(height: 120, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: const Center(child: Text('Waiting for nurse GPS... Make nurse GO ONLINE + Location = Always', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12))));
     final nursePos = LatLng(_nLat, _nLng);
     final patientPos = LatLng(widget.patientLat, widget.patientLng);
+    final genderMap = {'gender': widget.nurseGender};
     return Container(
       height: 300,
       decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.5))),
@@ -215,18 +247,18 @@ class _UberLiveMapState extends State<UberLiveMap> {
           options: MapOptions(initialCenter: nursePos, initialZoom: 14),
           children: [
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.lovecare.global'),
-            // FIXED LINE - NO const before StrokePattern.dashed - this was causing build fail
+            // FIXED - NO const before StrokePattern.dashed
             PolylineLayer(polylines: [Polyline(points: [nursePos, patientPos], color: const Color(0xFFA855F7), strokeWidth: 4, pattern: StrokePattern.dashed(segments: [10, 8]))]),
             MarkerLayer(markers: [
               Marker(point: patientPos, width: 50, height: 50, child: const Column(children: [Icon(Icons.location_pin, color: Colors.blue, size: 42), Text('PATIENT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue))])),
               Marker(point: nursePos, width: 72, height: 82, child: Column(children: [
-                AnimatedContainer(duration: const Duration(milliseconds: 700), padding: const EdgeInsets.all(3), decoration: BoxDecoration(shape: BoxShape.circle, color: _blink ? Colors.red : Colors.transparent, border: Border.all(color: _blink ? Colors.white : Colors.red, width: 3)), child: CircleAvatar(radius: 24, backgroundImage: widget.nursePhoto.isNotEmpty ? NetworkImage(widget.nursePhoto) : null, backgroundColor: Colors.purple, child: widget.nursePhoto.isEmpty ? const Text('👩', style: TextStyle(fontSize: 20)) : null)),
+                AnimatedContainer(duration: const Duration(milliseconds: 700), padding: const EdgeInsets.all(3), decoration: BoxDecoration(shape: BoxShape.circle, color: _blink ? Colors.red : Colors.transparent, border: Border.all(color: _blink ? Colors.white : Colors.red, width: 3)), child: CircleAvatar(radius: 24, backgroundImage: widget.nursePhoto.isNotEmpty ? NetworkImage(widget.nursePhoto) : null, backgroundColor: Colors.purple, child: widget.nursePhoto.isEmpty ? Text(_avatarEmoji(genderMap), style: const TextStyle(fontSize: 20)) : null)),
                 Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(10)), child: Text(widget.nurseName.split(' ').first, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold))),
               ])),
             ]),
           ],
         ),
-        Positioned(top: 10, left: 10, right: 10, child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black.withOpacity(0.78), borderRadius: BorderRadius.circular(12)), child: Row(children: [CircleAvatar(radius: 18, backgroundImage: widget.nursePhoto.isNotEmpty ? NetworkImage(widget.nursePhoto) : null, backgroundColor: Colors.purple, child: widget.nursePhoto.isEmpty ? const Text('👩') : null), const SizedBox(width: 8), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${widget.nurseName} - 🟢 Coming', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)), Text('${_dist.toStringAsFixed(1)} km away • LIVE', style: const TextStyle(color: Colors.greenAccent, fontSize: 11))])), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)), child: const Text('LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)))]))),
+        Positioned(top: 10, left: 10, right: 10, child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black.withOpacity(0.78), borderRadius: BorderRadius.circular(12)), child: Row(children: [CircleAvatar(radius: 18, backgroundImage: widget.nursePhoto.isNotEmpty ? NetworkImage(widget.nursePhoto) : null, backgroundColor: Colors.purple, child: widget.nursePhoto.isEmpty ? Text(_avatarEmoji(genderMap)) : null), const SizedBox(width: 8), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${widget.nurseName} - 🟢 Coming', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)), Text('${_dist.toStringAsFixed(1)} km away • LIVE', style: const TextStyle(color: Colors.greenAccent, fontSize: 11))])), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(20)), child: const Text('LIVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)))]))),
       ]),
     );
   }
