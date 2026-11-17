@@ -55,6 +55,7 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
   final List<StreamSubscription<DatabaseEvent>> _rateSubs = [];
   bool _disposed = false;
   bool _mapFailed = false;
+  bool _showMap = false; // CRASH FIX: NEVER build GoogleMap on open. Only after user taps Show Map.
   String _loadError = '';
 
   @override
@@ -150,6 +151,13 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
     final dLon = (lon2 - lon1) * math.pi / 180;
     final a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.cos(lat1 * math.pi / 180) * math.cos(lat2 * math.pi / 180) * math.sin(dLon / 2) * math.sin(dLon / 2);
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  }
+
+  void _enableMap() {
+    // User tapped Show Map - only NOW create GoogleMap.
+    // If Maps key/setup is missing, this shows the fallback instead of killing the app on open.
+    if (_disposed || !mounted) return;
+    setState(() { _showMap = true; });
   }
 
   Future<void> _searchNearbyNurses() async {
@@ -350,7 +358,7 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
           // Map + Nurses
           _sectionTitle('🟢 ONLINE Nurses within ${searchRadius.toInt()}km — Only online show • ${onlineNurses.length} nurses'),
           if (_loadError.isNotEmpty) Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Text(_loadError, textAlign: TextAlign.center)),
-          Container(height: 300, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.2))), child: clientLat == null ? const Center(child: CircularProgressIndicator()) : _mapFailed ? const Center(child: Text('Map unavailable on this phone - you can still pick a nurse below', textAlign: TextAlign.center)) : GoogleMap(initialCameraPosition: CameraPosition(target: LatLng(clientLat!, clientLng!), zoom: 12), markers: nurseMarkers, myLocationEnabled: false, myLocationButtonEnabled: false, onMapCreated: (c) { mapCtrl = c; }, onTap: (latLng) { if (!_disposed && mounted) setState(() { patientLat = latLng.latitude; patientLng = latLng.longitude; }); })),
+          Container(height: 300, decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.2))), child: clientLat == null ? const Center(child: CircularProgressIndicator()) : _mapFailed ? const Center(child: Text('Map unavailable on this phone - you can still pick a nurse below', textAlign: TextAlign.center)) : !_showMap ? Center(child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.map, size: 48, color: Colors.white38), const SizedBox(height: 8), const Text('Map is OFF - tap to load it', style: TextStyle(color: Colors.white70)), const SizedBox(height: 10), ElevatedButton(onPressed: _enableMap, child: const Text('🗺️ Show Map')), const SizedBox(height: 6), const Text('If map stays blank, Google Maps key is missing.\nYou can still book without map.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white38, fontSize: 11))])) : GoogleMap(initialCameraPosition: CameraPosition(target: LatLng(clientLat!, clientLng!), zoom: 12), markers: nurseMarkers, myLocationEnabled: false, myLocationButtonEnabled: false, onMapCreated: (c) { mapCtrl = c; }, onTap: (latLng) { if (!_disposed && mounted) setState(() { patientLat = latLng.latitude; patientLng = latLng.longitude; }); })),
           const SizedBox(height: 12),
           if (onlineNurses.isEmpty) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: const Text('No ONLINE nurses nearby — Try increasing radius or try again later. Offline nurses are hidden.', textAlign: TextAlign.center)),
           ...onlineNurses.map((n) => _nurseCard(n)),
