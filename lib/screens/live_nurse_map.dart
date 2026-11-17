@@ -5,9 +5,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math' as math;
 
-// LIVE_NURSE_MAP - UBER STYLE - NO API KEY - GENDER FIX - BUILD FIXED
-// - Male nurse = Him / 👨, Female nurse = Her / 👩, Unknown = Them
-// - FIX: StrokePattern.dashed must NOT be const in flutter_map 8.3.2
+// LIVE_NURSE_MAP - UBER STYLE - NAME FIX - BUILD FIXED
+// Button now says: Continue With Nurse KUSI PETER / OSEI YAW - no Him/Her/Them wahala
+// FIX: StrokePattern.dashed must NOT be const in flutter_map 8.3.2
 
 double _asDouble(dynamic v, [double fb = 0]) {
   if (v == null) return fb;
@@ -33,33 +33,12 @@ String _photoFrom(Map m) {
   return '';
 }
 
-// ===== GENDER FIX - KUSI PETER = HIM, JOYCE = HER =====
-String _pronoun(Map n) {
-  final g = (n['gender'] ?? n['sex'] ?? '').toString().toLowerCase();
-  if (g.contains('female') || g.contains('woman') || g.contains('she')) return 'Her';
-  if (g.contains('male') || g.contains('man') || g.contains('he')) return 'Him';
-  return 'Them';
-}
-
-String _pronounLower(Map n) {
-  final g = (n['gender'] ?? n['sex'] ?? '').toString().toLowerCase();
-  if (g.contains('female') || g.contains('woman') || g.contains('she')) return 'her';
-  if (g.contains('male') || g.contains('man') || g.contains('he')) return 'him';
-  return 'them';
-}
-
+// Avatar emoji still uses gender if we know am - just for the small icon, no pronoun text
 String _avatarEmoji(Map n) {
   final g = (n['gender'] ?? n['sex'] ?? '').toString().toLowerCase();
   if (g.contains('female') || g.contains('woman') || g.contains('she')) return '👩';
   if (g.contains('male') || g.contains('man') || g.contains('he')) return '👨';
   return '👩‍⚕️';
-}
-
-String _nurseWord(Map n) {
-  final g = (n['gender'] ?? n['sex'] ?? '').toString().toLowerCase();
-  if (g.contains('female') || g.contains('woman')) return 'Nurse';
-  if (g.contains('male') || g.contains('man')) return 'Nurse';
-  return 'Nurse';
 }
 
 // ============ 1. SYSTEM PICK SCREEN ============
@@ -139,7 +118,6 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
       backgroundColor: const Color(0xFF0E0A1C),
       appBar: AppBar(title: const Text('System Pick - Watch Nurses Moving LIVE', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633)),
       body: Column(children: [
-        // FIXED: No more "pick her" - neutral for all genders
         Container(width: double.infinity, padding: const EdgeInsets.all(10), color: const Color(0xFF1C1238), child: Text('🟢 ${_nurses.length} ONLINE nurses moving LIVE • Tap a photo to pick a nurse', textAlign: TextAlign.center, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 12))),
         Expanded(
           child: FlutterMap(
@@ -178,13 +156,23 @@ class _LiveNurseMapState extends State<LiveNurseMap> {
           color: const Color(0xFF1C1238),
           child: Column(children: [
             if (_selectedUid != null)
-              ..._nurses.where((x) => x['uid'].toString() == _selectedUid).map((n) => Row(children: [
-                CircleAvatar(radius: 24, backgroundImage: _photoFrom(n).isNotEmpty ? NetworkImage(_photoFrom(n)) : null, backgroundColor: Colors.purple, child: _photoFrom(n).isEmpty ? Text(_avatarEmoji(n)) : null),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text((n['name'] ?? 'Nurse').toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text('${_asDouble(n['distance']).toStringAsFixed(1)} km away • 🟢 ONLINE', style: const TextStyle(color: Colors.greenAccent, fontSize: 12))])),
-                // FIXED: KUSI = Continue With Him, JOYCE = Continue With Her
-                ElevatedButton(onPressed: () => Navigator.pop(context, Map<String, dynamic>.from(n)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: Text('Continue With ${_pronoun(n)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-              ])),
+              ..._nurses.where((x) => x['uid'].toString() == _selectedUid).map((n) {
+                final nurseName = (n['name'] ?? 'Nurse').toString().trim();
+                return Row(children: [
+                  CircleAvatar(radius: 24, backgroundImage: _photoFrom(n).isNotEmpty ? NetworkImage(_photoFrom(n)) : null, backgroundColor: Colors.purple, child: _photoFrom(n).isEmpty ? Text(_avatarEmoji(n)) : null),
+                  const SizedBox(width: 10),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(nurseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text('${_asDouble(n['distance']).toStringAsFixed(1)} km away • 🟢 ONLINE', style: const TextStyle(color: Colors.greenAccent, fontSize: 12))])),
+                  const SizedBox(width: 8),
+                  // FIXED: NOW SHOWS NAME - Continue With Nurse KUSI PETER / OSEI YAW
+                  Flexible(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, Map<String, dynamic>.from(n)),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10)),
+                      child: Text('Continue With Nurse $nurseName', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ),
+                ]);
+              }),
             const SizedBox(height: 8),
             SizedBox(width: double.infinity, child: OutlinedButton(onPressed: () { if (_nurses.length > 1) { final idx = _nurses.indexWhere((x) => x['uid'].toString() == _selectedUid); setState(() => _selectedUid = _nurses[(idx + 1) % _nurses.length]['uid'].toString()); } }, child: const Text('👀 Look At Another One', style: TextStyle(color: Colors.white)))),
           ]),
@@ -247,7 +235,6 @@ class _UberLiveMapState extends State<UberLiveMap> {
           options: MapOptions(initialCenter: nursePos, initialZoom: 14),
           children: [
             TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.lovecare.global'),
-            // FIXED - NO const before StrokePattern.dashed
             PolylineLayer(polylines: [Polyline(points: [nursePos, patientPos], color: const Color(0xFFA855F7), strokeWidth: 4, pattern: StrokePattern.dashed(segments: [10, 8]))]),
             MarkerLayer(markers: [
               Marker(point: patientPos, width: 50, height: 50, child: const Column(children: [Icon(Icons.location_pin, color: Colors.blue, size: 42), Text('PATIENT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.blue))])),
