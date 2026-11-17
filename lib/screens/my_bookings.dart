@@ -3,11 +3,11 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// My Bookings - Flutter version of my-bookings.html (UNIFIED FINAL - Pending Shows)
-/// - Loads from: bookings, allBookings, ceoBookings, bookingsByFull + clientBookings/myBookings/bookingsByClient per UID/email + bookingsByPhone
-/// - Matches by phone last 9 + email + UID (same as HTML getAllIdentities + matchesBooking)
-/// - Terminal: ceoPaid+paid, client_confirmed_finished, cancelled, rejected_cleared -> hidden from active, in history
-/// - Actions: Confirm Done, Cancel, Details, Claim, Open Nav (Google Maps), Call Nurse
+/// My Bookings - FIXED VERSION
+/// FIXED CRASHES:
+/// 1. (b['time'] as num) / (as int) threw if time is String/double -> app closed on open
+/// 2. (s.value as Map) / (val as Map) threw if one booking is String/List -> hid all bookings
+/// 3. setState after dispose
 
 class MyBookingsScreen extends StatefulWidget {
   const MyBookingsScreen({super.key});
@@ -18,7 +18,7 @@ class MyBookingsScreen extends StatefulWidget {
 class _MyBookingsScreenState extends State<MyBookingsScreen> {
   List<Map> bookings = [];
   List<Map> history = [];
-  String showMode = 'all'; // all or recent
+  String showMode = 'all';
   String clientName = '', clientPhone = '', clientEmail = '', clientPhoto = '';
   Set<String> myPhones = {}, myEmails = {}, myUids = {};
   bool isLoading = true;
@@ -30,12 +30,40 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     _loadHistory();
   }
 
+  // ===== SAFE HELPERS - these stop all crashes =====
+  double _asNum(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
+  int _asInt(dynamic v, [int fallback = 0]) {
+    if (v == null) return fallback;
+    if (v is int) return v;
+    if (v is num) return v.toInt();
+    return int.tryParse(v.toString()) ?? fallback;
+  }
+
+  Map<String, dynamic>? _asMap(dynamic v) {
+    if (v is! Map) return null;
+    try { return Map<String, dynamic>.from(v); } catch (_) { return null; }
+  }
+
+  DateTime _safeDate(dynamic v) {
+    final ms = _asInt(v, 0);
+    if (ms <= 0) return DateTime.now();
+    // If time was saved as seconds (10 digits) not milliseconds (13 digits), fix it
+    if (ms < 100000000000) return DateTime.fromMillisecondsSinceEpoch(ms * 1000);
+    return DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
   String normPhone(String? v) {
     if (v == null) return '';
     final digits = v.replaceAll(RegExp(r'[^0-9]'), '');
     if (digits.length < 9) return '';
     return digits.substring(digits.length - 9);
   }
+
   String normEmail(String? v) => (v ?? '').trim().toLowerCase();
 
   Future<void> _collectIdentities() async {
@@ -72,63 +100,57 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     if (st.contains('rejected_cleared')) return true;
     return false;
   }
+
   bool isHistory(Map v) {
     final st = (v['status'] ?? '').toString().toLowerCase();
     return v['ceoPaid'] == true && st.contains('paid');
   }
 
+  // Read one RTDB node safely - skip bad children, don't kill whole list
+  void _addNodeToMap(Map<String, Map> map, DataSnapshot s) {
+    if (!s.exists) return;
+    final m = _asMap(s.value);
+    if (m == null) return;
+    m.forEach((k, val) {
+      final v = _asMap(val);
+      if (v == null) return; // skip String / number / List child, don't crash
+      final bid = v['bookingId'] ?? k;
+      if (!map.containsKey(bid)) map[bid] = {...v, 'id': k, 'bookingId': bid};
+    });
+  }
+
   Future<void> _loadAll() async {
-    setState(() => isLoading = true);
+    if (mounted) setState(() => isLoading = true);
     await _collectIdentities();
     final Map<String, Map> map = {};
     final db = FirebaseDatabase.instance;
     for (final p in ['bookings','allBookings','ceoBookings','bookingsByFull']) {
       try {
         final s = await db.ref(p).get();
-        if (s.exists) {
-          final m = s.value as Map;
-          m.forEach((k, val) {
-            final v = Map<String, dynamic>.from(val as Map);
-            final bid = v['bookingId'] ?? k;
-            if (!map.containsKey(bid)) map[bid] = {...v, 'id': k, 'bookingId': bid};
-          });
-        }
+        _addNodeToMap(map, s);
       } catch (_) {}
     }
-    // Per-user keys
     final userKeys = [...myUids, ...myEmails.map((e) => e.replaceAll(RegExp(r'[.@]'), '_'))];
     for (final uk in userKeys) {
       for (final base in ['clientBookings','myBookings','bookingsByClient']) {
         try {
           final s = await db.ref('$base/$uk').get();
-          if (s.exists) {
-            final m = s.value as Map;
-            m.forEach((k, val) {
-              final v = Map<String, dynamic>.from(val as Map);
-              final bid = v['bookingId'] ?? k;
-              if (!map.containsKey(bid)) map[bid] = {...v, 'id': k, 'bookingId': bid};
-            });
-          }
+          _addNodeToMap(map, s);
         } catch (_) {}
       }
     }
     for (final ph in myPhones) {
       try {
         final s = await db.ref('bookingsByPhone/$ph').get();
-        if (s.exists) {
-          final m = s.value as Map;
-          m.forEach((k, val) {
-            final v = Map<String, dynamic>.from(val as Map);
-            final bid = v['bookingId'] ?? k;
-            if (!map.containsKey(bid)) map[bid] = {...v, 'id': k, 'bookingId': bid};
-          });
-        }
+        _addNodeToMap(map, s);
       } catch (_) {}
     }
     var arr = map.values.toList();
+    // FIX: use _asNum, never (as num) - String/double time no longer crashes sort
+    int byTime(Map a, Map b) => _asNum(b['time'] ?? b['createdAt'] ?? 0).compareTo(_asNum(a['time'] ?? a['createdAt'] ?? 0));
     List<Map> filtered;
     if (showMode == 'recent') {
-      arr.sort((a, b) => ((b['time'] ?? b['createdAt'] ?? 0) as num).compareTo((a['time'] ?? a['createdAt'] ?? 0) as num));
+      arr.sort(byTime);
       filtered = arr.where((v) => !isTerminal(v) && !isHistory(v)).take(10).toList();
     } else {
       filtered = arr.where((v) {
@@ -138,11 +160,12 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
         return matchesBooking(v);
       }).toList();
       if (filtered.isEmpty && arr.isNotEmpty) {
-        arr.sort((a, b) => ((b['time'] ?? b['createdAt'] ?? 0) as num).compareTo((a['time'] ?? a['createdAt'] ?? 0) as num));
+        arr.sort(byTime);
         filtered = arr.where((v) => !isTerminal(v) && !isHistory(v)).take(5).toList();
       }
     }
-    filtered.sort((a, b) => ((b['time'] ?? b['createdAt'] ?? 0) as num).compareTo((a['time'] ?? a['createdAt'] ?? 0) as num));
+    filtered.sort(byTime);
+    if (!mounted) return;
     setState(() { bookings = filtered; isLoading = false; });
   }
 
@@ -154,15 +177,18 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
       try {
         final s = await FirebaseDatabase.instance.ref('clientBookingHistory/$k').get();
         if (s.exists) {
-          final m = s.value as Map;
+          final m = _asMap(s.value);
+          if (m == null) continue;
           m.forEach((ck, val) {
-            final v = Map<String, dynamic>.from(val as Map);
+            final v = _asMap(val);
+            if (v == null) return;
             arr.add({...v, 'id': ck, 'bookingId': v['bookingId'] ?? ck});
           });
         }
       } catch (_) {}
     }
-    arr.sort((a, b) => ((b['clientConfirmedAt'] ?? 0) as num).compareTo((a['clientConfirmedAt'] ?? 0) as num));
+    arr.sort((a, b) => _asNum(b['clientConfirmedAt'] ?? 0).compareTo(_asNum(a['clientConfirmedAt'] ?? 0)));
+    if (!mounted) return;
     setState(() => history = arr);
   }
 
@@ -178,16 +204,16 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
     await FirebaseDatabase.instance.ref('bookings/$id').update({'status': 'client_confirmed_finished', 'lastChangedBy': 'client', 'lastChangedAt': now, 'clientConfirmed': true, 'clientConfirmedAt': now});
     Future.delayed(const Duration(milliseconds: 800), () async {
       await FirebaseDatabase.instance.ref('bookings/$id').remove().catchError((_) {});
-      _loadAll(); _loadHistory();
+      if (mounted) { _loadAll(); _loadHistory(); }
     });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Confirmed - Nurse will hear HIS song')));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Confirmed - Nurse will hear HIS song')));
   }
 
   Future<void> _cancelBooking(String id) async {
     final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Cancel $id?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Cancel'))]));
     if (confirm != true) return;
     await FirebaseDatabase.instance.ref('bookings/$id').update({'status': 'cancelled_by_client', 'lastChangedBy': 'client', 'lastChangedAt': DateTime.now().millisecondsSinceEpoch, 'cancelledAt': DateTime.now().millisecondsSinceEpoch});
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cancelled - Nurse will hear HIS song')));
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cancelled - Nurse will hear HIS song')));
     _loadAll();
   }
 
@@ -202,7 +228,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
   void _showDetails(Map b) {
     showDialog(context: context, builder: (_) => AlertDialog(
       title: Text('Booking ID ${b['bookingId']}'),
-      content: SingleChildScrollView(child: Text('ID: ${b['bookingId']}\nStatus: ${b['status'] ?? 'pending'}\nClient: ${b['clientName'] ?? ''} - ${b['clientPhone'] ?? ''}\nNurse: ${b['nurseName'] ?? ''} - ${b['nursePhone'] ?? ''}\nAmount: ${b['currency'] ?? 'GHS'} ${b['amount'] ?? ''}\nService: ${b['serviceType'] ?? b['service'] ?? ''}\nLocation: ${b['location'] ?? b['patientLocation'] ?? ''}\nTime: ${DateTime.fromMillisecondsSinceEpoch((b['time'] ?? b['createdAt'] ?? DateTime.now().millisecondsSinceEpoch) as int)}')),
+      content: SingleChildScrollView(child: Text('ID: ${b['bookingId']}\nStatus: ${b['status'] ?? 'pending'}\nClient: ${b['clientName'] ?? ''} - ${b['clientPhone'] ?? ''}\nNurse: ${b['nurseName'] ?? ''} - ${b['nursePhone'] ?? ''}\nAmount: ${b['currency'] ?? 'GHS'} ${b['amount'] ?? ''}\nService: ${b['serviceType'] ?? b['service'] ?? ''}\nLocation: ${b['location'] ?? b['patientLocation'] ?? ''}\nTime: ${_safeDate(b['time'] ?? b['createdAt'])}')),
       actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
     ));
   }
@@ -234,7 +260,7 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
           const Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Align(alignment: Alignment.centerLeft, child: Text('📜 History — Confirmed / Paid', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)))),
           ...history.map((h) => ListTile(
             title: Text('Booking ID ${h['bookingId']}'),
-            subtitle: Text('${h['status']} • ${DateTime.fromMillisecondsSinceEpoch((h['clientConfirmedAt'] ?? 0) as int)}'),
+            subtitle: Text('${h['status']} • ${_safeDate(h['clientConfirmedAt'])}'),
             trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async {
               for (final k in [...myUids, ...myPhones, ...myEmails]) {
                 await FirebaseDatabase.instance.ref('clientBookingHistory/$k/${h['bookingId']}').remove().catchError((_) {});
@@ -263,16 +289,16 @@ class _MyBookingsScreenState extends State<MyBookingsScreen> {
         Text('👩‍⚕️ Nurse: ${b['nurseName'] ?? ''} - ${b['nursePhone'] ?? ''}'),
         Text('🏥 Patient: ${b['patientName'] ?? b['clientName'] ?? ''}'),
         Text('💰 Amount: ${b['currency'] ?? 'GHS'} ${b['amount'] ?? ''} • Pay Now: ${b['payNow'] ?? b['amountPaidNow'] ?? ''}'),
-        Text('🕒 ${DateTime.fromMillisecondsSinceEpoch((b['time'] ?? b['createdAt'] ?? DateTime.now().millisecondsSinceEpoch) as int)}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+        Text('🕒 ${_safeDate(b['time'] ?? b['createdAt'])}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
         const SizedBox(height: 10),
         Row(children: [
-          Expanded(child: ElevatedButton(onPressed: () => _confirmDone(id), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('✅ Confirm Done', style: TextStyle(fontSize: 11)))),
+          Expanded(child: ElevatedButton(onPressed: () => _confirmDone(id.toString()), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('✅ Confirm Done', style: TextStyle(fontSize: 11)))),
           const SizedBox(width: 6),
           Expanded(child: ElevatedButton(onPressed: () => _openNav(b), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text('🗺️ Nav', style: TextStyle(fontSize: 11)))),
           const SizedBox(width: 6),
           Expanded(child: ElevatedButton(onPressed: () => _showDetails(b), style: ElevatedButton.styleFrom(backgroundColor: Colors.grey[800]), child: const Text('Details', style: TextStyle(fontSize: 11)))),
           const SizedBox(width: 6),
-          Expanded(child: ElevatedButton(onPressed: () => _cancelBooking(id), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Cancel', style: TextStyle(fontSize: 11)))),
+          Expanded(child: ElevatedButton(onPressed: () => _cancelBooking(id.toString()), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Cancel', style: TextStyle(fontSize: 11)))),
         ]),
       ]),
     );
