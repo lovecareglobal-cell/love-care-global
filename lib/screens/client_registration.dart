@@ -23,11 +23,9 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
   final _otp = TextEditingController();
   XFile? _photo;
 
-  // CLIENT RULE - NEW:
+  // CLIENT RULE:
   // Pending = NOT verified email ONLY. CEO does NOT approve Client.
-  // Immediately emailVerified == true -> isApproved = true, canLogin = true, status = approved -> Login works straight.
-  // OLD BUG: save AFTER verify -> app killed in Gmail = Auth exists, DB missing, CEO (0), Login says "not registered"
-  // NEW: save IMMEDIATELY after createUser as Pending, on verify only UPDATE to Approved.
+  // Immediately emailVerified == true -> isApproved = true, canLogin = true, status = approved -> Login straight.
   bool _waitingVerification = false;
   String _verifyStatus = '';
   Timer? _verifyTimer;
@@ -133,37 +131,75 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
     final inClients = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: e).limit(1).get();
     if (inClients.docs.isNotEmpty) {
       final d = inClients.docs.first.data();
-      // If already verified + approved, block re-register - tell am to Login
       if (d['emailVerified'] == true && d['isApproved'] == true) {
         return 'BLOCKED: This email is already registered as a CLIENT. Login as Client instead.';
       }
-      // Else pending / not verified - allow RESUME, do not block
       return null;
     }
     return null;
   }
 
-  // ===== SAVE PROFILE IMMEDIATELY - BEFORE VERIFICATION =====
-  // Called right after createUser. CEO sees Pending instantly (Pending = Not verified).
-  // If app is killed in Gmail, profile still dey. No more Auth exists, DB missing.
+  // SAVE PROFILE IMMEDIATELY - BEFORE VERIFICATION
+  // FIXED: Firestore gets FieldValue, RTDB gets int timestamp ONLY. Never send FieldValue to RTDB.
   Future<void> _saveProfileImmediately({required String uid, required String email, required String name, required String username, required String phone, String photoUrl = '', bool emailVerified = false}) async {
-    final data = <String, Object?>{
-      'uid': uid, 'id': uid,
-      'name': name, 'fullName': name,
-      'username': username, 'email': email.toLowerCase(),
-      'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
-      'role': 'client', 'type': 'client',
-      // PENDING HERE MEANS NOT VERIFIED YET - NOT CEO APPROVAL
-      'status': 'pending', 'isApproved': false, 'approved': false,
-      'approvalStatus': 'pending', 'canLogin': false,
-      'phoneVerified': false, 'otpVerified': false,
-      'emailVerified': emailVerified, 'verifiedByEmail': emailVerified,
-      'isComplete': false, 'hasAll4': false,
-      'photo': photoUrl, 'photoUrl': photoUrl, 'photoURL': photoUrl,
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final firestoreData = <String, Object?>{
+      'uid': uid,
+      'id': uid,
+      'name': name,
+      'fullName': name,
+      'username': username,
+      'email': email.toLowerCase(),
+      'phone': phone,
+      'countryCode': _selectedDialCode,
+      'country': _selectedCountryName,
+      'role': 'client',
+      'type': 'client',
+      'status': 'pending',
+      'isApproved': false,
+      'approved': false,
+      'approvalStatus': 'pending',
+      'canLogin': false,
+      'phoneVerified': false,
+      'otpVerified': false,
+      'emailVerified': emailVerified,
+      'verifiedByEmail': emailVerified,
+      'isComplete': false,
+      'hasAll4': false,
+      'photo': photoUrl,
+      'photoUrl': photoUrl,
+      'photoURL': photoUrl,
       'createdAt': FieldValue.serverTimestamp(),
     };
-    await FirebaseFirestore.instance.collection('clients').doc(uid).set(data, SetOptions(merge: true));
-    final rtdbData = Map<String, Object?>.from(data)..['createdAt'] = DateTime.now().millisecondsSinceEpoch;
+    final rtdbData = <String, Object?>{
+      'uid': uid,
+      'id': uid,
+      'name': name,
+      'fullName': name,
+      'username': username,
+      'email': email.toLowerCase(),
+      'phone': phone,
+      'countryCode': _selectedDialCode,
+      'country': _selectedCountryName,
+      'role': 'client',
+      'type': 'client',
+      'status': 'pending',
+      'isApproved': false,
+      'approved': false,
+      'approvalStatus': 'pending',
+      'canLogin': false,
+      'phoneVerified': false,
+      'otpVerified': false,
+      'emailVerified': emailVerified,
+      'verifiedByEmail': emailVerified,
+      'isComplete': false,
+      'hasAll4': false,
+      'photo': photoUrl,
+      'photoUrl': photoUrl,
+      'photoURL': photoUrl,
+      'createdAt': nowMs,
+    };
+    await FirebaseFirestore.instance.collection('clients').doc(uid).set(firestoreData, SetOptions(merge: true));
     await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
     await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
     await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
@@ -180,7 +216,12 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _verifyTimer?.cancel();
-    _name.dispose(); _username.dispose(); _email.dispose(); _phone.dispose(); _pass.dispose(); _otp.dispose();
+    _name.dispose();
+    _username.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _pass.dispose();
+    _otp.dispose();
     super.dispose();
   }
 
@@ -222,15 +263,19 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       final prefs = await SharedPreferences.getInstance();
       if (prefs.getBool('client_pending_verification') != true) return;
       final u = FirebaseAuth.instance.currentUser;
-      if (u == null) { await _clearPending(); return; }
+      if (u == null) {
+        await _clearPending();
+        return;
+      }
       if (_name.text.isEmpty) _name.text = prefs.getString('client_pending_name') ?? '';
       if (_username.text.isEmpty) _username.text = prefs.getString('client_pending_username') ?? '';
       if (_email.text.isEmpty) _email.text = prefs.getString('client_pending_email') ?? '';
       final photoPath = prefs.getString('client_pending_photo_path');
       if (_photo == null && photoPath != null && photoPath.isNotEmpty) {
-        try { _photo = XFile(photoPath); } catch (_) {}
+        try {
+          _photo = XFile(photoPath);
+        } catch (_) {}
       }
-      // If DB missing (old bug), re-save immediately from prefs - no fresh start
       try {
         final snap = await FirebaseDatabase.instance.ref('clients/${u.uid}').get();
         if (!snap.exists) {
@@ -245,7 +290,10 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
         }
       } catch (_) {}
       if (!mounted) return;
-      setState(() { _waitingVerification = true; _verifyStatus = 'Welcome back! Still waiting for you to tap the link in Gmail...'; });
+      setState(() {
+        _waitingVerification = true;
+        _verifyStatus = 'Welcome back! Still waiting for you to tap the link in Gmail...';
+      });
       _startVerifyPolling();
       _checkVerificationOnce();
     } catch (_) {}
@@ -269,51 +317,93 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
     } catch (_) {}
   }
 
-  // Called AUTOMATICALLY when reload() says emailVerified == true.
-  // NEW RULE: Verified = APPROVED immediately. NO CEO. Can login straight.
+  // FIXED: Firestore gets FieldValue, RTDB gets int ONLY. This was the crash: Instance of FieldValue
   Future<void> _finishAfterVerified() async {
     if (_finishingVerification) return;
     _finishingVerification = true;
     _verifyTimer?.cancel();
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null || !user.emailVerified) { _finishingVerification = false; return; }
+      if (user == null || !user.emailVerified) {
+        _finishingVerification = false;
+        return;
+      }
       final uid = user.uid;
       String? photoUrl;
       if (_photo != null) {
-        try { photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg'); } catch (_) {}
+        try {
+          photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg');
+        } catch (_) {}
       }
       final prefs = await SharedPreferences.getInstance();
       final name = _name.text.trim().isNotEmpty ? _name.text.trim() : (prefs.getString('client_pending_name') ?? '');
       final username = _username.text.trim().isNotEmpty ? _username.text.trim() : (prefs.getString('client_pending_username') ?? '');
       final email = _email.text.trim().isNotEmpty ? _email.text.trim().toLowerCase() : (prefs.getString('client_pending_email') ?? user.email?.toLowerCase() ?? '');
       final phone = _fullPhone.isNotEmpty ? _fullPhone : (prefs.getString('client_pending_phone') ?? '');
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
 
-      // CLIENT AUTO-APPROVED ON VERIFY - NO CEO APPROVAL
-      final update = <String, Object?>{
-        'uid': uid, 'fullName': name, 'name': name, 'username': username, 'email': email, 'phone': phone,
-        'emailVerified': true, 'verifiedByEmail': true,
-        'status': 'approved', 'isApproved': true, 'approved': true, 'approvalStatus': 'approved',
-        'canLogin': true, 'isVerified': true,
-        'isComplete': true, 'hasAll4': true,
+      final firestoreUpdate = <String, Object?>{
+        'uid': uid,
+        'fullName': name,
+        'name': name,
+        'username': username,
+        'email': email,
+        'phone': phone,
+        'emailVerified': true,
+        'verifiedByEmail': true,
+        'status': 'approved',
+        'isApproved': true,
+        'approved': true,
+        'approvalStatus': 'approved',
+        'canLogin': true,
+        'isVerified': true,
+        'isComplete': true,
+        'hasAll4': true,
         'approvedAt': FieldValue.serverTimestamp(),
         if (photoUrl != null && photoUrl.isNotEmpty) 'photo': photoUrl,
         if (photoUrl != null && photoUrl.isNotEmpty) 'photoUrl': photoUrl,
         if (photoUrl != null && photoUrl.isNotEmpty) 'photoURL': photoUrl,
       };
-      await FirebaseFirestore.instance.collection('clients').doc(uid).set(update, SetOptions(merge: true));
-      final rtdbUpdate = Map<String, Object?>.from(update)..['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
+
+      final rtdbUpdate = <String, Object?>{
+        'uid': uid,
+        'fullName': name,
+        'name': name,
+        'username': username,
+        'email': email,
+        'phone': phone,
+        'emailVerified': true,
+        'verifiedByEmail': true,
+        'status': 'approved',
+        'isApproved': true,
+        'approved': true,
+        'approvalStatus': 'approved',
+        'canLogin': true,
+        'isVerified': true,
+        'isComplete': true,
+        'hasAll4': true,
+        'approvedAt': nowMs,
+        'updatedAt': nowMs,
+        if (photoUrl != null && photoUrl.isNotEmpty) 'photo': photoUrl,
+        if (photoUrl != null && photoUrl.isNotEmpty) 'photoUrl': photoUrl,
+        if (photoUrl != null && photoUrl.isNotEmpty) 'photoURL': photoUrl,
+      };
+
+      await FirebaseFirestore.instance.collection('clients').doc(uid).set(firestoreUpdate, SetOptions(merge: true));
       await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').update(rtdbUpdate);
       await FirebaseDatabase.instance.ref('clients/$uid').update(rtdbUpdate);
       await FirebaseDatabase.instance.ref('client_registrations/$uid').update(rtdbUpdate);
-      // Allowed index - so login finds am fast
       await FirebaseDatabase.instance.ref('allowedClients/${email.replaceAll(RegExp(r'[.#\$@\[\]]'), '_')}').set({...rtdbUpdate, 'uid': uid});
       await FirebaseDatabase.instance.ref('allowedClientsByUid/$uid').set({...rtdbUpdate, 'uid': uid});
 
       await _clearPending();
       if (!mounted) return;
-      setState(() { _waitingVerification = false; _verifyStatus = ''; _loading = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Email verified! You are approved. Login now - no CEO approval needed.')));
+      setState(() {
+        _waitingVerification = false;
+        _verifyStatus = '';
+        _loading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email verified! You are approved. Login now - no CEO approval needed.')));
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ClientLoginPage()));
@@ -327,7 +417,10 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
   Future<void> _registerWithEmailVerification() async {
     final email = _email.text.trim().toLowerCase();
     final blockedFb = await _checkEmailNotUsedAsNurse(email);
-    if (blockedFb != null) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(blockedFb), backgroundColor: Colors.red)); return; }
+    if (blockedFb != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(blockedFb), backgroundColor: Colors.red));
+      return;
+    }
     final pass = _pass.text.trim();
     final phone = _fullPhone;
     final name = _name.text.trim();
@@ -338,14 +431,12 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       try {
         cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pass);
       } on FirebaseAuthException catch (e) {
-        // FIX FOR MICHAEL CASE: email-already-in-use -> RESUME, do NOT delete
         if (e.code == 'email-already-in-use') {
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This email already has an account. We will resume verification - check Gmail, no need to register again.'), backgroundColor: Colors.orange));
           try {
             cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pass);
             final uid = cred.user!.uid;
             await _saveProfileImmediately(uid: uid, email: email, name: name, username: username, phone: phone, emailVerified: cred.user!.emailVerified);
-            // If already verified, finish immediately - approve am now
             if (cred.user!.emailVerified) {
               await _finishAfterVerified();
               return;
@@ -353,7 +444,11 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
             await cred.user!.sendEmailVerification().catchError((_) {});
             await _savePending();
             if (!mounted) return;
-            setState(() { _loading = false; _waitingVerification = true; _verifyStatus = 'We resumed your account. Open Gmail and tap the link - this page will auto-confirm. Your account is already saved as Pending (Not verified yet).'; });
+            setState(() {
+              _loading = false;
+              _waitingVerification = true;
+              _verifyStatus = 'We resumed your account. Open Gmail and tap the link - this page will auto-confirm. Your account is already saved as Pending (Not verified yet).';
+            });
             _startVerifyPolling();
             return;
           } catch (_) {
@@ -368,14 +463,16 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       }
 
       final uid = cred.user!.uid;
-      // CRITICAL: SAVE IMMEDIATELY, BEFORE verification - Pending = Not verified
       await _saveProfileImmediately(uid: uid, email: email, name: name, username: username, phone: phone, emailVerified: false);
-
       await cred.user!.sendEmailVerification();
       if (!mounted) return;
       await _savePending();
       if (!mounted) return;
-      setState(() { _loading = false; _waitingVerification = true; _verifyStatus = 'We sent a link to $email. Open Gmail and tap it - this page will auto-confirm. Your account is saved as Pending (Not verified). Once you verify, you are approved and can login - no CEO needed.'; });
+      setState(() {
+        _loading = false;
+        _waitingVerification = true;
+        _verifyStatus = 'We sent a link to $email. Open Gmail and tap it - this page will auto-confirm. Your account is saved as Pending (Not verified). Once you verify, you are approved and can login - no CEO needed.';
+      });
       _startVerifyPolling();
       return;
     } catch (e) {
@@ -396,15 +493,22 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
         await FirebaseFirestore.instance.collection('clients').doc(u.uid).delete().catchError((_) {});
         await u.delete();
       }
-    } catch (_) { await FirebaseAuth.instance.signOut(); }
+    } catch (_) {
+      await FirebaseAuth.instance.signOut();
+    }
     await _clearPending();
     if (!mounted) return;
-    setState(() { _waitingVerification = false; _verifyStatus = ''; _loading = false; });
+    setState(() {
+      _waitingVerification = false;
+      _verifyStatus = '';
+      _loading = false;
+    });
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verification cancelled. That email cannot login. Register again.'), backgroundColor: Colors.red));
   }
 
   int get _passwordScore {
-    final p = _pass.text; var score = 0;
+    final p = _pass.text;
+    var score = 0;
     if (p.length >= 8) score++;
     if (p.length >= 12) score++;
     if (RegExp(r'[A-Z]').hasMatch(p)) score++;
@@ -434,7 +538,8 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
     return Colors.green;
   }
   List<String> get _passwordMissing {
-    final p = _pass.text; final missing = <String>[];
+    final p = _pass.text;
+    final missing = <String>[];
     if (p.length < 8) missing.add('At least 8 characters');
     if (!RegExp(r'[A-Z]').hasMatch(p)) missing.add('One UPPERCASE letter (A-Z)');
     if (!RegExp(r'[a-z]').hasMatch(p)) missing.add('One lowercase letter (a-z)');
@@ -473,10 +578,24 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
             Text(_verifyStatus, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 20),
             const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _checkVerificationOnce,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
+              child: const Text('I HAVE VERIFIED - CHECK NOW', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
             const SizedBox(height: 8),
-            const Text('Waiting... This page will auto-confirm when you tap the link. Do not press back.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+            const Text('Waiting... This page will auto-confirm when you tap the link. If auto-confirm no work, tap button above. Do not press back.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 24),
-            OutlinedButton(onPressed: () async { try { await FirebaseAuth.instance.currentUser?.sendEmailVerification(); if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verification email resent'))); } catch (_) {} }, child: const Text('Resend Email')),
+            OutlinedButton(
+              onPressed: () async {
+                try {
+                  await FirebaseAuth.instance.currentUser?.sendEmailVerification();
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verification email resent')));
+                } catch (_) {}
+              },
+              child: const Text('Resend Email'),
+            ),
             const SizedBox(height: 8),
             TextButton(onPressed: _cancelVerification, child: const Text('Cancel Registration', style: TextStyle(color: Colors.red))),
           ]),
@@ -492,20 +611,48 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
           TextField(controller: _username, decoration: const InputDecoration(labelText: 'Username')),
           TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email')),
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(flex: 2, child: DropdownButtonFormField<String>(value: _selectedCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'Country Code'), items: [..._countries.map((c) => DropdownMenuItem<String>(value: '${c['name']}|${c['code']}', child: Text('${c['name']} (${c['code']})', overflow: TextOverflow.ellipsis))), const DropdownMenuItem<String>(value: 'Other|', child: Text('Other (type code)'))], onChanged: (v) { if (v != null) setState(() => _selectedCountry = v); })),
+            Expanded(
+              flex: 2,
+              child: DropdownButtonFormField<String>(
+                value: _selectedCountry,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Country Code'),
+                items: [
+                  ..._countries.map((c) => DropdownMenuItem<String>(value: '${c['name']}|${c['code']}', child: Text('${c['name']} (${c['code']})', overflow: TextOverflow.ellipsis))),
+                  const DropdownMenuItem<String>(value: 'Other|', child: Text('Other (type code)')),
+                ],
+                onChanged: (v) {
+                  if (v != null) setState(() => _selectedCountry = v);
+                },
+              ),
+            ),
             const SizedBox(width: 10),
             Expanded(flex: 3, child: TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Phone Number', hintText: _isOtherCountry ? 'Number without code' : 'e.g. 241234567 (no 0, no code)'))),
           ]),
-          if (_isOtherCountry) Padding(padding: const EdgeInsets.only(top: 8), child: TextField(controller: _otherCode, keyboardType: TextInputType.phone, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Your Country Code', hintText: 'e.g. +999'))),
+          if (_isOtherCountry)
+            Padding(padding: const EdgeInsets.only(top: 8), child: TextField(controller: _otherCode, keyboardType: TextInputType.phone, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Your Country Code', hintText: 'e.g. +999'))),
           const SizedBox(height: 4),
           Align(alignment: Alignment.centerLeft, child: Text('Full number: ${_phone.text.trim().isEmpty ? '...' : _fullPhone}', style: const TextStyle(fontSize: 12, color: Colors.grey))),
-          TextField(controller: _pass, obscureText: _obscurePassword, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: 'Password', hintText: 'Min 8 chars, upper + lower + number + symbol', suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)))),
+          TextField(
+            controller: _pass,
+            obscureText: _obscurePassword,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'Password',
+              hintText: 'Min 8 chars, upper + lower + number + symbol',
+              suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)),
+            ),
+          ),
           const SizedBox(height: 8),
           if (_pass.text.isNotEmpty) ...[
-            Row(children: [Expanded(child: LinearProgressIndicator(value: _passwordScore / 6, backgroundColor: Colors.grey.shade300, color: _passwordStrengthColor, minHeight: 6)), const SizedBox(width: 8), Text(_passwordStrengthLabel, style: TextStyle(color: _passwordStrengthColor, fontWeight: FontWeight.bold))]),
+            Row(children: [
+              Expanded(child: LinearProgressIndicator(value: _passwordScore / 6, backgroundColor: Colors.grey.shade300, color: _passwordStrengthColor, minHeight: 6)),
+              const SizedBox(width: 8),
+              Text(_passwordStrengthLabel, style: TextStyle(color: _passwordStrengthColor, fontWeight: FontWeight.bold)),
+            ]),
             const SizedBox(height: 6),
             ..._passwordMissing.map((m) => Row(children: [const Icon(Icons.close, size: 14, color: Colors.red), const SizedBox(width: 4), Expanded(child: Text(m, style: const TextStyle(fontSize: 12, color: Colors.red)))])),
-            if (_isStrongPassword) const Row(children: [Icon(Icons.check_circle, size: 14, color: Colors.green), SizedBox(width: 4), Text('Strong password ✓', style: TextStyle(fontSize: 12, color: Colors.green))]),
+            if (_isStrongPassword) const Row(children: [Icon(Icons.check_circle, size: 14, color: Colors.green), SizedBox(width: 4), Text('Strong password', style: TextStyle(fontSize: 12, color: Colors.green))]),
           ],
           const SizedBox(height: 16),
           ListTile(leading: const Icon(Icons.photo), title: Text(_photo == null ? 'Upload Photo (optional)' : 'Photo Selected: ${_photo!.name}'), trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo'))),
