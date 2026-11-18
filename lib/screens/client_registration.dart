@@ -23,10 +23,11 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
   final _otp = TextEditingController();
   XFile? _photo;
 
-  // AUTO VERIFY - SAVE BEFORE VERIFICATION (FIX FOR MICHAEL CASE)
-  // OLD: save AFTER verify -> app kill = Auth exists, DB missing, CEO (0)
-  // NEW: save IMMEDIATELY after createUser -> CEO sees Pending even before verify
-  // On verify, we only UPDATE emailVerified:true, we no create again.
+  // CLIENT RULE - NEW:
+  // Pending = NOT verified email ONLY. CEO does NOT approve Client.
+  // Immediately emailVerified == true -> isApproved = true, canLogin = true, status = approved -> Login works straight.
+  // OLD BUG: save AFTER verify -> app killed in Gmail = Auth exists, DB missing, CEO (0), Login says "not registered"
+  // NEW: save IMMEDIATELY after createUser as Pending, on verify only UPDATE to Approved.
   bool _waitingVerification = false;
   String _verifyStatus = '';
   Timer? _verifyTimer;
@@ -41,8 +42,6 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
   bool _phoneVerified = false;
   PhoneAuthCredential? _pendingPhoneCredential;
 
-  // Country list - keep your full list if you get am, this short list still works
-  // Default Ghana. Other lets anyone type code.
   static const List<Map<String, String>> _countries = [
     {"name": "Ghana", "code": "+233"},
     {"name": "Nigeria", "code": "+234"},
@@ -125,30 +124,28 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
     return await ref.getDownloadURL();
   }
 
-  // ONE EMAIL = ONE ROLE - but allow RESUME if same email already has pending client profile
   Future<String?> _checkEmailNotUsedAsNurse(String email) async {
     final e = email.trim().toLowerCase();
     final inNurses = await FirebaseFirestore.instance.collection('nurses').where('email', isEqualTo: e).limit(1).get();
     if (inNurses.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a NURSE. Use Nurse Login.';
     final inPending = await FirebaseFirestore.instance.collection('pending_nurses').where('email', isEqualTo: e).limit(1).get();
     if (inPending.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a NURSE (waiting approval).';
-    // For clients: if Firestore client exists AND emailVerified == true + approved, block re-register.
-    // If pending / not verified, allow RESUME - do not block.
     final inClients = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: e).limit(1).get();
     if (inClients.docs.isNotEmpty) {
       final d = inClients.docs.first.data();
+      // If already verified + approved, block re-register - tell am to Login
       if (d['emailVerified'] == true && d['isApproved'] == true) {
         return 'BLOCKED: This email is already registered as a CLIENT. Login as Client instead.';
       }
-      // Else: pending orphan - allow resume, _register will handle it
+      // Else pending / not verified - allow RESUME, do not block
       return null;
     }
     return null;
   }
 
-  // ===== NEW: SAVE PROFILE IMMEDIATELY - BEFORE VERIFICATION =====
-  // Called right after createUser. CEO sees Pending instantly.
-  // If called again (resume), it uses SetOptions(merge:true) so it no overwrite.
+  // ===== SAVE PROFILE IMMEDIATELY - BEFORE VERIFICATION =====
+  // Called right after createUser. CEO sees Pending instantly (Pending = Not verified).
+  // If app is killed in Gmail, profile still dey. No more Auth exists, DB missing.
   Future<void> _saveProfileImmediately({required String uid, required String email, required String name, required String username, required String phone, String photoUrl = '', bool emailVerified = false}) async {
     final data = <String, Object?>{
       'uid': uid, 'id': uid,
@@ -156,22 +153,20 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       'username': username, 'email': email.toLowerCase(),
       'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
       'role': 'client', 'type': 'client',
-      // CLIENTS ARE PENDING - CEO must Approve. Do NOT set approved:true here.
+      // PENDING HERE MEANS NOT VERIFIED YET - NOT CEO APPROVAL
       'status': 'pending', 'isApproved': false, 'approved': false,
       'approvalStatus': 'pending', 'canLogin': false,
       'phoneVerified': false, 'otpVerified': false,
       'emailVerified': emailVerified, 'verifiedByEmail': emailVerified,
+      'isComplete': false, 'hasAll4': false,
       'photo': photoUrl, 'photoUrl': photoUrl, 'photoURL': photoUrl,
       'createdAt': FieldValue.serverTimestamp(),
     };
-    // Firestore
     await FirebaseFirestore.instance.collection('clients').doc(uid).set(data, SetOptions(merge: true));
-    // RTDB - CEO reads from here
     final rtdbData = Map<String, Object?>.from(data)..['createdAt'] = DateTime.now().millisecondsSinceEpoch;
     await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
     await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
     await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
-    // Also save to allowed index? NO - only after CEO approves. Keep pending only.
   }
 
   @override
@@ -235,7 +230,7 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       if (_photo == null && photoPath != null && photoPath.isNotEmpty) {
         try { _photo = XFile(photoPath); } catch (_) {}
       }
-      // FIX: If DB missing (old bug), re-save immediately from prefs - no fresh start
+      // If DB missing (old bug), re-save immediately from prefs - no fresh start
       try {
         final snap = await FirebaseDatabase.instance.ref('clients/${u.uid}').get();
         if (!snap.exists) {
@@ -275,7 +270,7 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
   }
 
   // Called AUTOMATICALLY when reload() says emailVerified == true.
-  // NEW: Only UPDATE emailVerified, do NOT create profile again.
+  // NEW RULE: Verified = APPROVED immediately. NO CEO. Can login straight.
   Future<void> _finishAfterVerified() async {
     if (_finishingVerification) return;
     _finishingVerification = true;
@@ -284,7 +279,6 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       final user = FirebaseAuth.instance.currentUser;
       if (user == null || !user.emailVerified) { _finishingVerification = false; return; }
       final uid = user.uid;
-      // Upload photo if any - if upload fails, do NOT fail whole verification
       String? photoUrl;
       if (_photo != null) {
         try { photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg'); } catch (_) {}
@@ -295,12 +289,14 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       final email = _email.text.trim().isNotEmpty ? _email.text.trim().toLowerCase() : (prefs.getString('client_pending_email') ?? user.email?.toLowerCase() ?? '');
       final phone = _fullPhone.isNotEmpty ? _fullPhone : (prefs.getString('client_pending_phone') ?? '');
 
-      // If profile was already saved immediately, just update it
+      // CLIENT AUTO-APPROVED ON VERIFY - NO CEO APPROVAL
       final update = <String, Object?>{
         'uid': uid, 'fullName': name, 'name': name, 'username': username, 'email': email, 'phone': phone,
         'emailVerified': true, 'verifiedByEmail': true,
-        // Still PENDING for CEO - CEO must approve before canLogin
-        'status': 'pending', 'isApproved': false, 'approved': false, 'approvalStatus': 'pending',
+        'status': 'approved', 'isApproved': true, 'approved': true, 'approvalStatus': 'approved',
+        'canLogin': true, 'isVerified': true,
+        'isComplete': true, 'hasAll4': true,
+        'approvedAt': FieldValue.serverTimestamp(),
         if (photoUrl != null && photoUrl.isNotEmpty) 'photo': photoUrl,
         if (photoUrl != null && photoUrl.isNotEmpty) 'photoUrl': photoUrl,
         if (photoUrl != null && photoUrl.isNotEmpty) 'photoURL': photoUrl,
@@ -310,11 +306,14 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').update(rtdbUpdate);
       await FirebaseDatabase.instance.ref('clients/$uid').update(rtdbUpdate);
       await FirebaseDatabase.instance.ref('client_registrations/$uid').update(rtdbUpdate);
+      // Allowed index - so login finds am fast
+      await FirebaseDatabase.instance.ref('allowedClients/${email.replaceAll(RegExp(r'[.#\$@\[\]]'), '_')}').set({...rtdbUpdate, 'uid': uid});
+      await FirebaseDatabase.instance.ref('allowedClientsByUid/$uid').set({...rtdbUpdate, 'uid': uid});
 
       await _clearPending();
       if (!mounted) return;
       setState(() { _waitingVerification = false; _verifyStatus = ''; _loading = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email verified! Your account is now Pending for CEO approval. Login now.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Email verified! You are approved. Login now - no CEO approval needed.')));
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ClientLoginPage()));
@@ -325,7 +324,6 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
     }
   }
 
-  // Email Verification ONLY - FIXED FLOW
   Future<void> _registerWithEmailVerification() async {
     final email = _email.text.trim().toLowerCase();
     final blockedFb = await _checkEmailNotUsedAsNurse(email);
@@ -340,20 +338,22 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       try {
         cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pass);
       } on FirebaseAuthException catch (e) {
-        // ===== FIX FOR MICHAEL CASE: email-already-in-use =====
-        // Do NOT delete. User already has Auth. Resume verification + re-save DB if missing.
+        // FIX FOR MICHAEL CASE: email-already-in-use -> RESUME, do NOT delete
         if (e.code == 'email-already-in-use') {
           if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This email already has an account. We will resume verification - check Gmail, no need to register again.'), backgroundColor: Colors.orange));
-          // Try to sign in with same password to resume, else ask to login
           try {
             cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pass);
             final uid = cred.user!.uid;
-            // Re-save if DB missing - this is what fixes CEO (0)
             await _saveProfileImmediately(uid: uid, email: email, name: name, username: username, phone: phone, emailVerified: cred.user!.emailVerified);
+            // If already verified, finish immediately - approve am now
+            if (cred.user!.emailVerified) {
+              await _finishAfterVerified();
+              return;
+            }
             await cred.user!.sendEmailVerification().catchError((_) {});
             await _savePending();
             if (!mounted) return;
-            setState(() { _loading = false; _waitingVerification = true; _verifyStatus = 'We resumed your account. Open Gmail and tap the link - this page will auto-confirm.'; });
+            setState(() { _loading = false; _waitingVerification = true; _verifyStatus = 'We resumed your account. Open Gmail and tap the link - this page will auto-confirm. Your account is already saved as Pending (Not verified yet).'; });
             _startVerifyPolling();
             return;
           } catch (_) {
@@ -368,23 +368,17 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
       }
 
       final uid = cred.user!.uid;
-
-      // ===== CRITICAL FIX: SAVE IMMEDIATELY, BEFORE verification =====
-      // Even if app is killed in Gmail, CEO will see Pending, Login will find profile.
+      // CRITICAL: SAVE IMMEDIATELY, BEFORE verification - Pending = Not verified
       await _saveProfileImmediately(uid: uid, email: email, name: name, username: username, phone: phone, emailVerified: false);
 
       await cred.user!.sendEmailVerification();
       if (!mounted) return;
       await _savePending();
       if (!mounted) return;
-      setState(() { _loading = false; _waitingVerification = true; _verifyStatus = 'We sent a link to $email. Open Gmail and tap it - this page will auto-confirm, no button to tap. Your account is already saved as Pending for CEO.'; });
+      setState(() { _loading = false; _waitingVerification = true; _verifyStatus = 'We sent a link to $email. Open Gmail and tap it - this page will auto-confirm. Your account is saved as Pending (Not verified). Once you verify, you are approved and can login - no CEO needed.'; });
       _startVerifyPolling();
       return;
     } catch (e) {
-      if (!_waitingVerification) {
-        // Do NOT delete Auth here - DB already saved, deleting would create orphan again
-        // Only clear loading
-      }
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted && !_waitingVerification) setState(() => _loading = false);
@@ -393,8 +387,6 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> with Wi
 
   Future<void> _cancelVerification() async {
     _verifyTimer?.cancel();
-    // FIX: Do NOT delete Auth + DB on Cancel if user already verified? 
-    // Cancel means user wants to start over - delete both Auth + DB so email is free
     try {
       final u = FirebaseAuth.instance.currentUser;
       if (u != null) {
