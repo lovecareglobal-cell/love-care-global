@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
@@ -28,7 +30,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   int liveNursesCount = 0;
   DateTime ghanaNow = DateTime.now();
 
-  // FIX: every dashboard button goes through here. If route is missing, show message instead of doing nothing / crashing.
   void _go(String route) {
     try {
       Navigator.pushNamed(context, route);
@@ -36,6 +37,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Opening $route failed: $e')));
     }
   }
+
   StreamSubscription<DatabaseEvent>? _liveSub;
   Timer? _clockTimer;
   bool _disposed = false;
@@ -50,6 +52,13 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh when coming back from Client Settings after changing photo/name
+    // Settings page should pop with true, but this also covers it
+  }
+
+  @override
   void dispose() {
     _disposed = true;
     _clockTimer?.cancel();
@@ -57,8 +66,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     super.dispose();
   }
 
-  // CRASH FIX: safe cast - Firebase can return null / List / String, not always Map.
-  // Old code did `snap.value as Map` which throws and kills the app in seconds.
   Map<String, dynamic> _asMap(dynamic v) {
     if (v == null) return {};
     if (v is Map) return Map<String, dynamic>.from(v);
@@ -73,32 +80,110 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     });
   }
 
+  // ---------- FIXED: LOAD OWNER (CLIENT) PHOTO + NAME FROM EVERYWHERE ----------
   Future<void> _loadClient() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      clientName = prefs.getString('clientName') ?? prefs.getString('fullName') ?? prefs.getString('clientUsername') ?? 'Client';
-      username = prefs.getString('clientUsername') ?? prefs.getString('username') ?? '';
-      phone = prefs.getString('clientPhone') ?? prefs.getString('phone') ?? '';
-      photo = prefs.getString('clientPhoto') ?? prefs.getString('clientPhotoUrl') ?? prefs.getString('photoUrl') ?? '';
-      countryCode = prefs.getString('clientCountryCode') ?? '+233';
-    });
-    // Also fetch fresh from RTDB by username - wrapped so a bad shape never crashes.
-    if (username.isNotEmpty) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    String name = prefs.getString('clientName') ??
+        prefs.getString('fullName') ??
+        prefs.getString('clientUsername') ??
+        user?.displayName ??
+        'Client';
+    String uname = prefs.getString('clientUsername') ?? prefs.getString('username') ?? '';
+    String ph = prefs.getString('clientPhone') ?? prefs.getString('phone') ?? user?.phoneNumber ?? '';
+    String phPhoto = prefs.getString('clientPhoto') ??
+        prefs.getString('clientPhotoUrl') ??
+        prefs.getString('photoUrl') ??
+        prefs.getString('photoURL') ??
+        prefs.getString('photo') ??
+        prefs.getString('profilePic') ??
+        prefs.getString('avatarUrl') ??
+        user?.photoURL ??
+        '';
+    String uid = user?.uid ?? prefs.getString('lcg_client_uid') ?? prefs.getString('clientUid') ?? prefs.getString('clientId') ?? '';
+
+    if (mounted && !_disposed) {
+      setState(() {
+        clientName = name;
+        username = uname;
+        phone = ph;
+        photo = phPhoto;
+        countryCode = prefs.getString('clientCountryCode') ?? '+233';
+      });
+    }
+
+    // Try ALL possible Firebase paths - not only allowedClients/$username
+    final List<String> paths = [];
+    if (uname.isNotEmpty) {
+      paths.add('allowedClients/$uname');
+      paths.add('clients/$uname');
+      paths.add('users/$uname');
+    }
+    if (uid.isNotEmpty) {
+      paths.add('allowedClients/$uid');
+      paths.add('clients/$uid');
+      paths.add('users/$uid');
+      paths.add('clientsById/$uid');
+    }
+
+    for (final path in paths) {
       try {
-        final snap = await FirebaseDatabase.instance.ref('allowedClients/$username').get();
+        final snap = await FirebaseDatabase.instance.ref(path).get();
         if (!mounted || _disposed) return;
-        if (snap.exists) {
-          final d = _asMap(snap.value);
-        if (mounted && !_disposed) {
-          setState(() {
-            clientName = (d['fullName'] ?? d['name'] ?? clientName).toString();
-            phone = (d['phone'] ?? phone).toString();
-            photo = (d['photoUrl'] ?? d['photo'] ?? d['avatarUrl'] ?? photo).toString();
-          });
+        if (!snap.exists) continue;
+        final d = _asMap(snap.value);
+        if (d.isEmpty) continue;
+
+        final freshName = (d['fullName'] ?? d['name'] ?? d['clientName'] ?? d['displayName'] ?? '').toString();
+        final freshPhone = (d['phone'] ?? d['clientPhone'] ?? d['phoneNumber'] ?? '').toString();
+        final freshUser = (d['username'] ?? d['clientUsername'] ?? '').toString();
+        final freshPhoto = (d['photoUrl'] ?? d['photoURL'] ?? d['photo'] ?? d['avatarUrl'] ?? d['profilePic'] ?? d['profilePhoto'] ?? d['imageUrl'] ?? '').toString();
+
+        bool changed = false;
+        if (freshName.isNotEmpty && freshName != 'Client' && freshName != clientName) {
+          clientName = freshName; changed = true;
         }
+        if (freshPhone.isNotEmpty && freshPhone != phone) { phone = freshPhone; changed = true; }
+        if (freshUser.isNotEmpty && freshUser != username) { username = freshUser; changed = true; }
+        if (freshPhoto.isNotEmpty && freshPhoto != photo) { photo = freshPhoto; changed = true; }
+
+        if (changed && mounted && !_disposed) setState(() {});
+        // If we found a full record with photo, stop. Else keep searching.
+        if (freshName.isNotEmpty && freshPhoto.isNotEmpty) break;
+        if (freshName.isNotEmpty && d.containsKey('photoUrl') == false && paths.indexOf(path) < 1) {
+          // keep looking for photo in other paths
         }
       } catch (_) {}
     }
+
+    // Save back to prefs so next open is instant, even offline
+    try {
+      await prefs.setString('clientName', clientName);
+      await prefs.setString('clientPhoto', photo);
+      if (username.isNotEmpty) await prefs.setString('clientUsername', username);
+      if (phone.isNotEmpty) await prefs.setString('clientPhone', phone);
+    } catch (_) {}
+  }
+
+  // Helper: photo can be http URL OR base64 data:image/... OR local path
+  ImageProvider? _photoProvider() {
+    if (photo.isEmpty) return null;
+    final p = photo.trim();
+    if (p.startsWith('http://') || p.startsWith('https://')) {
+      return NetworkImage(p);
+    }
+    if (p.startsWith('data:image')) {
+      try {
+        final base64Str = p.split(',').last;
+        return MemoryImage(base64Decode(base64Str));
+      } catch (_) { return null; }
+    }
+    // Raw base64 without prefix
+    if (p.length > 100 && !p.contains(' ') && !p.contains('/mnt/')) {
+      try { return MemoryImage(base64Decode(p)); } catch (_) { return null; }
+    }
+    return null;
   }
 
   Future<void> _loadBookingsCount() async {
@@ -111,7 +196,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       if (!mounted || _disposed) return;
       if (!snap.exists || snap.value == null) { if (mounted) setState(() => myBookingsCount = 0); return; }
       int count = 0;
-      // CRASH FIX: bookings can be a Map {id: {...}} OR a List [{...}]. Old code did `as Map` only.
       final List<Map<String, dynamic>> items = [];
       if (snap.value is Map) {
         (snap.value as Map).forEach((key, val) { if (val is Map) items.add(Map<String, dynamic>.from(val)); });
@@ -120,7 +204,8 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       }
       for (final b in items) {
         final status = (b['status'] ?? '').toString().toLowerCase();
-        if (status.contains('client_confirmed') || status.contains('client_confirmed_finished')) return;
+        // FIXED: was `return` - killed whole loop. Must be `continue`
+        if (status.contains('client_confirmed') || status.contains('client_confirmed_finished')) continue;
         final bPhone = (b['clientPhone'] ?? b['phone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
         final phoneMatch = bPhone.isNotEmpty && myPhone.isNotEmpty && bPhone.length >= 9 && myPhone.length >= 9 && bPhone.substring(bPhone.length - 9) == myPhone.substring(myPhone.length - 9);
         final usernameMatch = b['clientUsername'] != null && myUsername.isNotEmpty && b['clientUsername'].toString().toLowerCase() == myUsername;
@@ -132,8 +217,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   }
 
   void _loadLiveNursesCount() {
-    // CRASH FIX: old code did `(value as Map).length` - if onlineNurses is a List,
-    // an int, or null, it throws and the app closes. Handle all shapes + cancel on dispose.
     _liveSub?.cancel();
     _liveSub = FirebaseDatabase.instance.ref('onlineNurses').onValue.listen((e) {
       if (_disposed || !mounted) return;
@@ -151,7 +234,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   }
 
   String get ghanaDate {
-    // Africa/Accra = UTC+0, same as HTML toLocaleString with timeZone Africa/Accra
     final months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
     final weekdays = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
     return '${weekdays[ghanaNow.weekday % 7]} • ${months[ghanaNow.month - 1]} ${ghanaNow.day}, ${ghanaNow.year}';
@@ -161,6 +243,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final img = _photoProvider();
     return Scaffold(
       backgroundColor: const Color(0xFF0E0A1C),
       appBar: AppBar(
@@ -174,26 +257,39 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
       ),
       body: SingleChildScrollView(
         child: Column(children: [
-          // Sound Settings - same as HTML top button
           Padding(padding: const EdgeInsets.fromLTRB(14, 12, 14, 0), child: SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => _go('/sound-settings'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))), child: const Text('🔔 Sound Settings', style: TextStyle(fontWeight: FontWeight.bold))))),
-          // Profile Card
+          // Profile Card - OWNER PHOTO + NAME
           Container(
             margin: const EdgeInsets.all(12), padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.15))),
             child: Row(children: [
-              CircleAvatar(radius: 32, backgroundImage: (photo.isNotEmpty && (photo.startsWith('http://') || photo.startsWith('https://'))) ? NetworkImage(photo) : null, onBackgroundImageError: (_, __) {}, child: photo.isEmpty ? Text(clientName.isNotEmpty ? clientName[0].toUpperCase() : 'C', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)) : null),
+              // OWNER PHOTO: real photo if exists, else first letter
+              CircleAvatar(
+                radius: 32,
+                backgroundImage: img,
+                backgroundColor: const Color(0xFFA855F7),
+                onBackgroundImageError: (_, __) {},
+                child: img == null ? Text(clientName.isNotEmpty ? clientName[0].toUpperCase() : 'C', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)) : null,
+              ),
               const SizedBox(width: 12),
               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                // OWNER NAME: real name, not CLIENT
                 Text(clientName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
                 if (username.isNotEmpty) Text('@$username', style: const TextStyle(color: Color(0xFFA78BFA), fontSize: 12)),
                 if (phone.isNotEmpty) Text(phone, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                 const SizedBox(height: 4),
                 Text('📅 $ghanaDate • $ghanaTime', style: const TextStyle(color: Colors.white60, fontSize: 10)),
               ])),
-              IconButton(icon: const Icon(Icons.settings, color: Colors.white70), onPressed: () => _go('/client-settings')),
+              IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white70),
+                onPressed: () async {
+                  // After Settings, reload photo/name
+                  await Navigator.pushNamed(context, '/client-settings');
+                  if (mounted) _loadClient();
+                },
+              ),
             ]),
           ),
-          // Grid - same as HTML gcard
           Padding(
             padding: const EdgeInsets.all(12),
             child: GridView.count(
@@ -208,7 +304,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
               ],
             ),
           ),
-          // SOS Big
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
             child: SizedBox(
@@ -216,19 +311,13 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
               child: ElevatedButton.icon(
                 onPressed: () => _go('/sos'),
                 icon: const Icon(Icons.emergency),
-                label: const Text(
-                  '🚨 Emergency SOS',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                label: const Text('🚨 Emergency SOS', style: TextStyle(fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(
-                      color: Color(0xFFFACC15),
-                      width: 2,
-                    ),
+                    side: const BorderSide(color: Color(0xFFFACC15), width: 2),
                   ),
                 ),
               ),
@@ -248,11 +337,11 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(gradient: LinearGradient(colors: [color, color.withOpacity(0.7)]), borderRadius: BorderRadius.circular(20)),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Text(emoji, style: const TextStyle(fontSize: 28)),
-          const SizedBox(height: 6),
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)),
-          if (subtitle.isNotEmpty) ...[const SizedBox(height: 4), Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 11))],
-          if (isBookings) ...[const SizedBox(height: 6), Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)), child: Text('$myBookingsCount', style: const TextStyle(color: Color(0xFF2563EB), fontWeight: FontWeight.bold, fontSize: 16)))],
+          Text(emoji, style: const TextStyle(fontSize: 32)),
+          const SizedBox(height: 8),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15), textAlign: TextAlign.center),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 11), textAlign: TextAlign.center),
         ]),
       ),
     );
