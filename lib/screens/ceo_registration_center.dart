@@ -5,12 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
-// CEO REGISTRATION CENTER - FULL FILE - COMPLETE DELETE FIX
-// - Approve / Reject / Delete / Delete All / Export / Fix All Approved
-// - Delete COMPLETELY: RTDB + Firestore + Storage + Email/Username/Phone/PIN indexes + Firebase Auth
+// CEO REGISTRATION CENTER - FULL FILE - COMPLETE DELETE + WIPE ALL FIX
+// - Approve / Reject / Delete / Delete All / Export / Fix All Approved / Wipe All Auth + Storage
+// - Delete COMPLETELY: RTDB + Firestore + Storage + Email/Username/Phone/PIN indexes + Firebase Auth + Orphan Storage
 // - After delete, same email fit re-register - no more "you have already registered"
-// NEED in pubspec: cloud_functions: ^4.6.0
-// NEED Cloud Function: deleteAuthUser (see bottom of this file for functions/index.js)
+// - Wipe All: Deletes ALL Auth + ALL Storage even if CEO list show (0) - for Console still showing emails/files
+// NEED in pubspec: cloud_functions: ^5.6.2 (NOT ^4.6.0 - that one na for firebase_core 2.x)
+// NEED Cloud Function: deleteAuthUser + wipeAllAuthAndStorage (functions/index.js)
 
 class CEORegistrationCenterScreen extends StatefulWidget {
   const CEORegistrationCenterScreen({super.key});
@@ -90,13 +91,11 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           for (final e in (val as Map).entries) {
             if (e.value is! Map) continue;
             final m = Map<String, dynamic>.from(e.value as Map);
-            // Skip index / whitelist nodes that are not full records
             if (m['email'] == null && m['clientEmail'] == null && m['emailAddress'] == null && m['fullName'] == null && m['name'] == null) continue;
             final email = (m['email'] ?? m['clientEmail'] ?? m['emailAddress'] ?? '').toString();
             final name = (m['fullName'] ?? m['name'] ?? m['username'] ?? '').toString();
             final uid = (m['uid'] ?? m['id'] ?? e.key).toString();
             final isApproved = m['isApproved'] == true || m['approved'] == true || m['status'] == 'approved' || m['approvalStatus'] == 'approved';
-            // Dedupe by uid+email
             final exists = out.any((x) => x['uid'].toString() == uid && x['email'].toString().toLowerCase() == email.toLowerCase());
             if (exists) continue;
             out.add({
@@ -151,7 +150,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       await scan('pendingClientRegistrations', 'client');
       await scan('ceoRegistrationCenter/clients', 'client');
 
-      // Also scan Firestore if RTDB empty for some (migration safety)
       if (out.isEmpty) {
         try {
           final qs = await FirebaseFirestore.instance.collection('nurses').get();
@@ -176,7 +174,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       if (v != null && v.toString().isNotEmpty && v.toString().startsWith('http')) return true;
       if (v is Map && v['url'] != null && v['url'].toString().startsWith('http')) return true;
     }
-    // Check nested documents/uploads
     for (final parent in ['documents', 'uploads', 'files', 'credentials']) {
       if (m[parent] is Map) {
         final sub = Map.from(m[parent] as Map);
@@ -307,8 +304,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     } catch (e) { _toast('Fix failed: $e'); _log('Fix failed: $e'); }
   }
 
-  // ============ COMPLETE DELETE - THE FIX ============
-  // Wipes Firestore + Storage. _deleteAccount wipes RTDB.
+  // ============ COMPLETE DELETE ============
   Future<void> _deleteFirestoreAndStorage({required String uid, required String email, required String type}) async {
     final eLower = email.toLowerCase().trim();
     final emailKey = _sanitizeEmail(email);
@@ -349,7 +345,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     } catch (_) {}
   }
 
-  // NEW: Delete ALL email/username/phone/PIN index nodes that block re-register
   Future<void> _deleteEmailIndexes({required String uid, required String email, required String type, required Map rec}) async {
     final db = FirebaseDatabase.instance;
     final eLower = email.toLowerCase().trim();
@@ -359,7 +354,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     final phoneRaw = (raw['phone'] ?? raw['phoneNumber'] ?? '').toString();
     final phoneDigits = phoneRaw.replaceAll(RegExp(r'[^0-9]'), '');
     final pin = (raw['nursingPin'] ?? raw['pin'] ?? '').toString();
-
     final indexPaths = [
       'registeredEmails/$emailKey', 'registeredEmails/$eLower',
       'usedEmails/$emailKey', 'usedEmails/$eLower',
@@ -410,17 +404,78 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     }
   }
 
-  // NEW: Delete Firebase Auth via Cloud Function - only Admin SDK can delete another user
   Future<void> _deleteAuthUser({required String uid, required String email}) async {
     try {
-      final res = await FirebaseFunctions.instance.httpsCallable('deleteAuthUser').call({
-        'uid': uid,
-        'email': email.toLowerCase().trim(),
-      });
+      final res = await FirebaseFunctions.instance.httpsCallable('deleteAuthUser').call({'uid': uid, 'email': email.toLowerCase().trim()});
       _log('✅ Auth deleted via Cloud Function: ${res.data}');
     } catch (e) {
       _log('⚠️ Auth NOT deleted via Function ($e) - Go Firebase Console > Authentication > Search $email > Delete manually, OR deploy deleteAuthUser function');
       _toast('⚠️ Delete Auth manually in Firebase Console for $email');
+    }
+  }
+
+  // NEW: Delete Storage files by UID even if dem no dey for nurses/{uid}/ folder
+  Future<void> _deleteStorageOrphansByUid({required String uid, required String email}) async {
+    final eLower = email.toLowerCase().trim();
+    try {
+      final root = FirebaseStorage.instance.ref();
+      final list = await root.listAll();
+      for (final prefix in list.prefixes) {
+        try {
+          final sub = await prefix.listAll();
+          for (final item in sub.items) {
+            final name = item.name.toLowerCase();
+            final path = item.fullPath.toLowerCase();
+            if (path.contains(uid.toLowerCase()) || path.contains(eLower) || name.contains(uid.toLowerCase())) {
+              try { await item.delete(); _log('✅ Deleted orphan storage: ${item.fullPath}'); } catch (_) {}
+            }
+          }
+          for (final p2 in sub.prefixes) {
+            try {
+              final sub2 = await p2.listAll();
+              for (final item in sub2.items) {
+                final path = item.fullPath.toLowerCase();
+                if (path.contains(uid.toLowerCase()) || path.contains(eLower)) {
+                  try { await item.delete(); _log('✅ Deleted orphan storage: ${item.fullPath}'); } catch (_) {}
+                }
+              }
+            } catch (_) {}
+          }
+        } catch (_) {}
+      }
+    } catch (e) {
+      _log('⚠️ Orphan storage scan failed: $e');
+    }
+  }
+
+  // ============ WIPE ALL - FIX FOR CONSOLE STILL SHOWING EMAILS / FILES ============
+  Future<void> _wipeAllAuthAndStorage() async {
+    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
+      title: const Text('WIPE EVERYTHING?'),
+      content: const Text('This will DELETE ALL Auth users + ALL Storage files + ALL Database, even those CEO list no see.\n\nKeep your CEO email? Type it below to KEEP it.'),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Continue'))],
+    ));
+    if (c1 != true) return;
+    final ctrl = TextEditingController(text: 'lovecareglobal@gmail.com');
+    final keep = await showDialog<String>(context: context, builder: (_) => AlertDialog(
+      title: const Text('CEO Email to KEEP (or empty for delete all)'),
+      content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'lovecareglobal@gmail.com')),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('WIPE ALL'))],
+    ));
+    if (keep == null) return;
+    final ctrl2 = TextEditingController();
+    final confirmText = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: const Text('Type WIPE to confirm wipe all'), content: TextField(controller: ctrl2), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl2.text), child: const Text('Confirm'))]));
+    if (confirmText != 'WIPE') { _toast('Cancelled - you must type WIPE'); return; }
+    setState(() { showLog = true; logLines = []; });
+    _log('WIPE ALL START - Keep: $keep');
+    try {
+      final res = await FirebaseFunctions.instance.httpsCallable('wipeAllAuthAndStorage').call({'keepEmail': keep.toLowerCase().trim()});
+      _log('✅ WIPE DONE: ${res.data}');
+      _toast('✅ Wipe done - Auth + Storage cleaned');
+      _loadAll();
+    } catch (e) {
+      _log('❌ Wipe failed: $e');
+      _toast('Wipe failed: $e - Did you deploy wipeAllAuthAndStorage?');
     }
   }
 
@@ -429,7 +484,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     final email = rec['email'].toString();
     final type = rec['type'].toString();
     final displayName = rec['fullName'] ?? email;
-    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('DELETE COMPLETELY?'), content: Text('DELETE $type $displayName ($email) COMPLETELY?\n\nThis will delete:\n- RTDB: all locations\n- Firestore: all collections\n- Storage: all files\n- Email / Username / Phone / PIN indexes\n- Firebase Auth account\n\nSo this email fit re-register again.\n\nThis cannot be undone!\n\nDelete $email?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('DELETE'))]));
+    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('DELETE COMPLETELY?'), content: Text('DELETE $type $displayName ($email) COMPLETELY?\n\nThis will delete:\n- RTDB: all locations\n- Firestore: all collections\n- Storage: all files + orphan files\n- Email / Username / Phone / PIN indexes\n- Firebase Auth account\n\nSo this email fit re-register again.\n\nThis cannot be undone!\n\nDelete $email?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('DELETE'))]));
     if (c1 != true) return;
     final c2 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('FINAL CONFIRM'), content: Text('Really delete $email from ALL database + Auth?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('YES DELETE'))]));
     if (c2 != true) return;
@@ -453,7 +508,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       List<String> rtdbBases = [];
       List<String> mappingPaths = [];
       if (type == 'nurse') {
-        rtdbBases = ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence', 'registrations', 'nurse_registrations', 'nurseLocations', 'nurseBookings'];
+        rtdbBases = ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence', 'registrations', 'nurseLocations', 'nurseBookings'];
         mappingPaths = ['allowedNurses/$emailKey', 'allowedClients/$emailKey', 'nursesByEmail/$emailKey', 'allowedNurses/$uid', 'allowedNursesByUid/$uid'];
       } else {
         final raw = Map<String, dynamic>.from(rec['raw'] as Map);
@@ -494,10 +549,10 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           }
         } catch (_) {}
       }
-      // NEW - Delete indexes + Auth + Firestore + Storage
       await _deleteEmailIndexes(uid: uid, email: email, type: type, rec: rec);
       await _deleteAuthUser(uid: uid, email: email);
       await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
+      await _deleteStorageOrphansByUid(uid: uid, email: email);
       _log('✅ Firestore + Storage + Auth + Indexes deleted for $email');
       _toast('Deleted $deleted paths for $email - Email fit re-register now');
       _loadAll();
@@ -556,10 +611,10 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           if (uid.length >= 2) { try { await db.ref('$base/$uid').remove(); } catch (_) {} }
           if (emailKey.length >= 2) { try { await db.ref('$base/$emailKey').remove(); } catch (_) {} }
         }
-        // NEW: indexes + Auth + Firestore for each
         await _deleteEmailIndexes(uid: uid, email: email, type: type, rec: rec);
         await _deleteAuthUser(uid: uid, email: email);
         await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
+        await _deleteStorageOrphansByUid(uid: uid, email: email);
         done++;
         _log('Deleted: $type ${rec['fullName']} ($email) - Firestore + RTDB + Storage + Auth');
       }
@@ -572,7 +627,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     }
   }
 
-  // ============ VIEW DOC ============
   void _viewDoc(String url, String label, String type) {
     if (url.isEmpty) { _toast('No $label'); return; }
     showDialog(context: context, builder: (_) => AlertDialog(title: Text(label), content: SingleChildScrollView(child: Column(children: [if (type == 'image') Image.network(url, errorBuilder: (_, __, ___) => const Text('Image no load')) else Text(url), const SizedBox(height: 10), SelectableText(url)])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')), ElevatedButton(onPressed: () { Clipboard.setData(ClipboardData(text: url)); Navigator.pop(context); _toast('Link copied'); }, child: const Text('Copy Link'))]));
@@ -591,7 +645,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         ),
       );
 
-  // ============ UI ============
   @override
   Widget build(BuildContext context) {
     final list = filtered;
@@ -603,6 +656,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         actions: [
           TextButton(onPressed: _export, child: const Text('Export', style: TextStyle(color: Colors.amber))),
           TextButton(onPressed: _deleteAllFiltered, child: const Text('Delete All', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: _wipeAllAuthAndStorage, child: const Text('Wipe All Auth + Storage', style: TextStyle(color: Colors.redAccent))),
           TextButton(onPressed: _fixAllApproved, child: const Text('Fix All Approved', style: TextStyle(color: Colors.greenAccent))),
           IconButton(onPressed: _loadAll, icon: const Icon(Icons.refresh, color: Colors.white)),
         ],
