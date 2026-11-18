@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'screens/auth_choice.dart';
@@ -39,9 +41,9 @@ import 'screens/staff_visits_monitor.dart';
 import 'screens/force_delete.dart';
 import 'screens/sound_settings.dart';
 import 'screens/dashboard_alerts.dart';
-import 'screens/apk_alerts.dart'; // ROAD B APK ONLY - custom sound when closed. Website ignores it. // Nurse + Client alerts - same as CEO, for their own info // SoundSettingsScreen + SoundService - for route + auto-ring
-import 'package:firebase_messaging/firebase_messaging.dart'; // FCM Push - phone alerts when app is closed
-import 'package:firebase_database/firebase_database.dart'; // Auto-ring listener
+import 'screens/apk_alerts.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 // ALL SCREENS
 import 'screens/alert_settings.dart';
@@ -64,19 +66,10 @@ import 'screens/sos.dart';
 // CEO DEFAULT PASSWORD - Change inside app anytime after first login
 const String DEFAULT_CEO_PASSWORD = 'Peterasa80@you!';
 
-// FCM background handler - MUST be top-level, not inside a class.
-// Runs when a push arrives while the app is in background (not fully closed on Web -
-// on Web, firebase-messaging-sw.js handles the fully-closed case).
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 }
 
-// ---------- CEO AUTO-RING (app OPEN) ----------
-// Watches ceoRegistrationCenter/nurses + clients. When a NEW one appears
-// (not the ones already there when the app opens), plays your chosen Love Care
-// sound 3x - so you hear it even if you are looking at another tab.
-// This works only while the tab is OPEN. For CLOSED app, FCM Push (above + sw.js)
-// sends the phone notification instead.
 int _ceoNurseCount = -1;
 int _ceoClientCount = -1;
 bool _ceoRingSetup = false;
@@ -87,7 +80,7 @@ void _setupCeoAutoRing() {
     final db = FirebaseDatabase.instance;
     db.ref('ceoRegistrationCenter/nurses').onValue.listen((e) {
       final count = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
-      if (_ceoNurseCount == -1) { _ceoNurseCount = count; return; } // first load - don't ring for old ones
+      if (_ceoNurseCount == -1) { _ceoNurseCount = count; return; }
       if (count > _ceoNurseCount) {
         _ceoNurseCount = count;
         SoundService.playCustomSound('new_nurse');
@@ -112,18 +105,12 @@ Future<void> _setupFCM() async {
   try {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
     final messaging = FirebaseMessaging.instance;
-    // Ask once: "Allow Notifications?" - if you tap Block, closed-app alerts will NOT work.
     final settings = await messaging.requestPermission(alert: true, badge: true, sound: true);
     debugPrint('FCM permission: ${settings.authorizationStatus}');
-    // CEO phone subscribes to 'ceo' topic - Cloud Function sends to this topic only.
-    // Nurses/clients do NOT subscribe - only CEO gets these pushes.
-    // Note: on Web, topic subscribe needs the sw.js registered - Firebase handles it.
     try { await messaging.subscribeToTopic('ceo'); } catch (_) {}
-    // Foreground: app OPEN - play Love Care sound too, not just show a banner.
     FirebaseMessaging.onMessage.listen((RemoteMessage msg) {
       SoundService.playCustomSound('push');
     });
-    // Get token for debugging - you can paste it in Firebase Console > Cloud Messaging > Send test message
     final token = await messaging.getToken(vapidKey: null);
     debugPrint('FCM TOKEN: $token');
   } catch (e) {
@@ -134,49 +121,28 @@ Future<void> _setupFCM() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    // App Check (Play Integrity) - required for SMS OTP to work.
-    // Without it Phone Auth falls back to dead SafetyNet and fails.
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     try {
-      await FirebaseAppCheck.instance.activate(
-        androidProvider: AndroidProvider.playIntegrity,
-      );
+      await FirebaseAppCheck.instance.activate(androidProvider: AndroidProvider.playIntegrity);
     } catch (e) {
       debugPrint('App Check activate failed: $e');
     }
   } catch (e) {
     debugPrint('Firebase init failed (web/demo mode): $e');
   }
-  _setupCeoAutoRing(); // auto-ring while app is OPEN
-  await _setupFCM(); // push when app is CLOSED
-  await ApkAlerts.init(); // APK ONLY - custom Love Care sound when closed
+  _setupCeoAutoRing();
+  await _setupFCM();
+  await ApkAlerts.init();
   runApp(const LoveCareApp());
 }
 
 class LoveCareApp extends StatelessWidget {
   const LoveCareApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Love Care Global',
       debugShowCheckedModeBanner: false,
-      // APP COLOUR: DARK PINK. Home page bg is dark pink 0xFF4A0A26.
-      // Other pages keep light bg so their black text stays readable - only Home is dark pink.
-      // Dark pink 0xFF880E4F = headers / main buttons. Pink 0xFFAD1457 = accents.
-      // Any page that sets its own AppBar/button colour overrides this theme,
-      // so also change those pages to 0xFF880E4F for a fully pink app.
-      // ONE FILE = ALL PAGES DARK PINK.
-      // scaffoldBackgroundColor here is the DEFAULT background for EVERY page
-      // that does NOT set its own Scaffold(backgroundColor: ...).
-      // That is most pages: Login, Registration, Auth Choice, Terms, Privacy, etc.
-      // Text is forced to WHITE by default, so black text does not disappear on dark pink.
-      // Pages that DO set their own Scaffold colour (Nurse Dashboard, My Job Offers,
-      // Nurse Settings, CEO Center = dark navy 0xFF0E0A1C) keep their own colour.
-      // They are already dark, so the app still looks dark everywhere.
-      // White cards (Nurse / Client cards on Home) stay white on purpose - they pop.
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
@@ -190,7 +156,6 @@ class LoveCareApp extends StatelessWidget {
           onSecondary: Colors.white,
           onSurface: Colors.white,
         ),
-        // Default text = white, so pages with no colour set stay readable on dark pink.
         textTheme: const TextTheme(
           bodyLarge: TextStyle(color: Colors.white),
           bodyMedium: TextStyle(color: Colors.white),
@@ -205,9 +170,7 @@ class LoveCareApp extends StatelessWidget {
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
         ),
-        // TextButtons on dark pink must be light pink, not dark pink (dark pink on dark pink = invisible).
         textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFFF8BBD0))),
-        // Inputs: dark pink fill, white text, light pink label.
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: const Color(0xFF5C1230),
@@ -216,14 +179,14 @@ class LoveCareApp extends StatelessWidget {
           enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF8BBD0)), borderRadius: BorderRadius.circular(8)),
           focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF8BBD0)), borderRadius: BorderRadius.circular(8)),
         ),
-        // Cards / dialogs on dark pink.
         cardTheme: const CardThemeData(color: Color(0xFF5C1230)),
         dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF4A0A26), titleTextStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18), contentTextStyle: TextStyle(color: Colors.white)),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF4A0A26), selectedItemColor: Color(0xFFF8BBD0), unselectedItemColor: Colors.white60),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      home: const LoveCareHomePage(),
+      // NEW: StartupGate decides where to go on app open - fixes "app went back to fresh"
+      home: const StartupGate(),
       routes: {
         '/auth-choice': (context) => const AuthChoicePage(),
         '/client-login': (context) => const ClientLoginPage(),
@@ -236,8 +199,6 @@ class LoveCareApp extends StatelessWidget {
         '/delete-account': (context) => const DeleteAccountPolicyPage(),
         '/terms': (context) => const TermsAndConditionsPage(),
         '/home': (context) => const LoveCareHomePage(),
-
-        // CEO - SECRET - NOW GOES TO PASSWORD GATE, NOT DIRECT DASHBOARD
         '/lc-ceo-9x7k2q-2026': (context) => const CEOPasswordGate(),
         '/ceo-control': (context) => const CeoControlPage(),
         '/ceo-bookings-progress': (context) => const CEOBookingProgressScreen(),
@@ -250,24 +211,18 @@ class LoveCareApp extends StatelessWidget {
         '/ceo-refund-management': (context) => const CEORefundManagementScreen(),
         '/ceo-registration-center': (context) => const CEORegistrationCenterScreen(),
         '/hr-page': (context) => const HRPageScreen(),
-        // STAFF SYSTEM - direct links, no const (see build #248 fix)
         '/staff-login': (context) => StaffLoginPage(),
-        '/ceo-login': (context) => StaffLoginPage(), // old name still works
+        '/ceo-login': (context) => StaffLoginPage(),
         '/create-access': (context) => CEOCreateAccessPage(),
         '/ceo-create-access': (context) => CEOCreateAccessPage(),
         '/staff-visits': (context) => StaffVisitsMonitorPage(),
         '/staff-visits-monitor': (context) => StaffVisitsMonitorPage(),
         '/ceo-notifications': (context) => StaffVisitsMonitorPage(),
         '/force-delete': (context) => CEOForceWipeEmailPage(),
-        // SOUND SETTINGS - was missing, so button went to Home. Confirmed class: SoundSettingsScreen
         '/sound-settings': (context) => SoundSettingsScreen(),
-        // CEO Dashboard link goes to PASSWORD GATE first, NOT straight to dashboard.
-        // This keeps your secret gate: /ceo-dashboard -> enter CEO password -> dashboard.
-        // Staff do NOT use this link - they use /staff-login, which goes to dashboard after staff password.
         '/ceo-dashboard': (context) => const CEOPasswordGate(),
         '/chat-room': (context) => const ChatRoomScreen(),
         '/nurse-group-chat': (context) => const NurseGroupChatScreen(),
-
         '/alert-settings': (context) => const AlertSettingsScreen(),
         '/book-nurse': (context) => const BookNurseScreen(),
         '/book-nurse-50': (context) => const BookNurse50Screen(),
@@ -275,8 +230,8 @@ class LoveCareApp extends StatelessWidget {
         '/client-settings': (context) => const ClientSettingsScreen(),
         '/my-bookings': (context) => const MyBookingsScreen(),
         '/my-job-offer': (context) => const MyJobOfferScreen(),
-        '/my-job-offers': (context) => const MyJobOfferScreen(), // drawer uses plural - was missing -> went Home
-        '/nurse-settings': (context) => const NurseSettingsScreen(), // was missing -> went Home
+        '/my-job-offers': (context) => const MyJobOfferScreen(),
+        '/nurse-settings': (context) => const NurseSettingsScreen(),
         '/nurse-dashboard': (context) => const NurseDashboardScreen(),
         '/nurse-withdrawal': (context) => const NurseWithdrawalScreen(),
         '/rating': (context) => const RatingScreen(),
@@ -285,13 +240,8 @@ class LoveCareApp extends StatelessWidget {
       },
       onGenerateRoute: (settings) {
         final args = settings.arguments;
-        // FIX: strip ?username=... / ?phone=... before matching.
-        // Without this, "/staff-login?username=kwaku.osei" matches NOTHING
-        // -> onUnknownRoute -> Home (looks like blank / wrong page).
-        // Uri.parse splits it: path = "/staff-login", query is read by the page itself.
         final routePath = Uri.tryParse(settings.name ?? '')?.path ?? settings.name;
         switch (routePath) {
-          // NEW ROUTES - handled here too, so ?query links work even if routes: misses them
           case '/staff-login':
           case '/ceo-login':
             return MaterialPageRoute(builder: (_) => StaffLoginPage(), settings: settings);
@@ -314,43 +264,127 @@ class LoveCareApp extends StatelessWidget {
           case '/ceo-dashboard':
             return MaterialPageRoute(builder: (_) => const CEOPasswordGate(), settings: settings);
           case '/ceo-live-tracking-map':
-            return MaterialPageRoute(
-              builder: (_) => CEOLiveTrackingMapScreen(
-                params: args is Map<String, dynamic> ? args : null,
-              ),
-            );
+            return MaterialPageRoute(builder: (_) => CEOLiveTrackingMapScreen(params: args is Map<String, dynamic> ? args : null));
           case '/client-complaint':
-            return MaterialPageRoute(
-              builder: (_) => ClientComplaintScreen(
-                params: args is Map<String, dynamic> ? args : null,
-              ),
-            );
+            return MaterialPageRoute(builder: (_) => ClientComplaintScreen(params: args is Map<String, dynamic> ? args : null));
           case '/nurse-complaint':
-            return MaterialPageRoute(
-              builder: (_) => NurseComplaintScreen(
-                params: args is Map<String, dynamic> ? args : null,
-              ),
-            );
+            return MaterialPageRoute(builder: (_) => NurseComplaintScreen(params: args is Map<String, dynamic> ? args : null));
           case '/increase-payment':
-            return MaterialPageRoute(
-              builder: (_) => IncreasePaymentScreen(
-                bookingKey: args is String ? args : null,
-              ),
-            );
+            return MaterialPageRoute(builder: (_) => IncreasePaymentScreen(bookingKey: args is String ? args : null));
           case '/alert-settings-role':
-            return MaterialPageRoute(
-              builder: (_) => AlertSettingsScreen(
-                role: args is String ? args : null,
-              ),
-            );
+            return MaterialPageRoute(builder: (_) => AlertSettingsScreen(role: args is String ? args : null));
           default:
             return null;
         }
       },
-      // FIXED: Wrong link goes to Home, NOT CEO Dashboard
-      onUnknownRoute: (settings) => MaterialPageRoute(
-        builder: (context) => const LoveCareHomePage(),
-      ),
+      onUnknownRoute: (settings) => MaterialPageRoute(builder: (context) => const LoveCareHomePage()),
+    );
+  }
+}
+
+// ================= STARTUP GATE - NEW FIX FOR "APP WENT BACK TO FRESH" =================
+// Rules:
+// CLIENT: Pending = NOT verified email ONLY. CEO does NOT approve Client.
+//   - If pending verification flag == true + user exists -> go back to ClientRegistrationPage (it will resume waiting page, NOT Home)
+//   - If user exists + emailVerified == true + clients doc exists -> go Client Dashboard straight, NO Home, NO re-login
+//   - If user exists + NOT verified -> go Client Login (it will show "I HAVE VERIFIED" help)
+// NURSE: CEO approval still required. Verified email alone NO fit login.
+//   - If nurse doc exists + isApproved == true -> Nurse Dashboard
+//   - Else -> Home (must login / wait approval)
+// NEVER signOut here - signing out on startup na wetin dey kill Michael's session when e come back from Gmail.
+class StartupGate extends StatelessWidget {
+  const StartupGate({super.key});
+
+  Future<Widget> _decide() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final prefs = await SharedPreferences.getInstance();
+      final clientPending = prefs.getBool('client_pending_verification') == true;
+      final nursePending = prefs.getBool('nurse_pending_verification') == true;
+
+      if (user == null) return const LoveCareHomePage();
+
+      // If user was in middle of client verification when app was killed, resume there
+      if (clientPending) return const ClientRegistrationPage();
+      if (nursePending) return const NurseRegistrationPage();
+
+      // Reload to get TRUE verified status from server, not cached false
+      try { await user.reload(); } catch (_) {}
+      final fresh = FirebaseAuth.instance.currentUser ?? user;
+      final uid = fresh.uid;
+      final email = (fresh.email ?? '').toLowerCase();
+
+      // Check role: clients first, then nurses
+      // 1. Is this a CLIENT?
+      try {
+        final cDoc = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
+        if (cDoc.exists) {
+          final d = cDoc.data() ?? {};
+          // CLIENT GATE: only emailVerified matters. If verified, auto-approve + go dashboard.
+          if (fresh.emailVerified) {
+            // Auto-fix: if old doc still says pending, update to approved so CEO list + login agree
+            if (d['isApproved'] != true) {
+              await FirebaseFirestore.instance.collection('clients').doc(uid).set({
+                'emailVerified': true, 'verifiedByEmail': true,
+                'isApproved': true, 'approved': true, 'status': 'approved',
+                'approvalStatus': 'approved', 'canLogin': true, 'isComplete': true, 'hasAll4': true,
+              }, SetOptions(merge: true));
+              try {
+                final now = DateTime.now().millisecondsSinceEpoch;
+                await FirebaseDatabase.instance.ref('clients/$uid').update({'emailVerified': true, 'isApproved': true, 'status': 'approved', 'canLogin': true, 'updatedAt': now});
+                await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').update({'emailVerified': true, 'isApproved': true, 'status': 'approved', 'canLogin': true, 'updatedAt': now});
+              } catch (_) {}
+            }
+            // Save prefs so Dashboard reads them instantly
+            await prefs.setString('clientEmail', email);
+            await prefs.setString('lcg_client_uid', uid);
+            await prefs.setString('clientUid', uid);
+            await prefs.setBool('client_pending_verification', false);
+            return const ClientDashboardScreen();
+          } else {
+            // Not verified yet -> Client Login will show "I HAVE VERIFIED" help. Do NOT go Home.
+            return const ClientLoginPage();
+          }
+        }
+      } catch (_) {}
+
+      // 2. Is this a NURSE? Nurse still needs CEO approval.
+      try {
+        final nDoc = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
+        final pDoc = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
+        if (nDoc.exists || pDoc.exists) {
+          final d = nDoc.exists ? (nDoc.data() ?? {}) : (pDoc.data() ?? {});
+          if (fresh.emailVerified && d['isApproved'] == true) {
+            return const NurseDashboardScreen();
+          }
+          // Nurse not approved yet -> go Nurse Login (it will show pending message)
+          return const NurseLoginPage();
+        }
+      } catch (_) {}
+
+      // 3. Auth exists but no doc in either collection = orphan (old bug).
+      // If verified, treat as Client (most orphans are clients) and let Client Login auto-recover + auto-approve.
+      // Do NOT delete, do NOT go Home and lose am.
+      if (fresh.emailVerified) return const ClientLoginPage();
+
+      // Not verified + no doc -> go Home, user can choose Register/Login
+      return const LoveCareHomePage();
+    } catch (_) {
+      return const LoveCareHomePage();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Widget>(
+      future: _decide(),
+      builder: (context, snap) {
+        if (snap.hasData) return snap.data!;
+        return const Scaffold(
+          backgroundColor: Color(0xFF4A0A26),
+          body: Center(child: CircularProgressIndicator(color: Colors.white)),
+        );
+      },
     );
   }
 }
@@ -381,10 +415,7 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
     final saved = await _getSavedPassword();
     if (_passController.text == saved) {
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const CEODashboardScreen()),
-      );
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CEODashboardScreen()));
     } else {
       setState(() => _error = 'Wrong password. Try again.');
     }
@@ -402,29 +433,16 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('ceo_password', _newController.text);
-    setState(() {
-      _error = '';
-      _showChange = false;
-      _passController.clear();
-      _oldController.clear();
-      _newController.clear();
-    });
+    setState(() { _error = ''; _showChange = false; _passController.clear(); _oldController.clear(); _newController.clear(); });
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('CEO Password changed! Use new password next time.')),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CEO Password changed! Use new password next time.')));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFCE4EC), // soft pink page background
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF880E4F),
-        foregroundColor: Colors.white,
-        title: const Text('CEO Access'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-      ),
+      backgroundColor: const Color(0xFFFCE4EC),
+      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, title: const Text('CEO Access'), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -442,83 +460,20 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
                 const Text('Enter your CEO password to continue', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
                 const SizedBox(height: 20),
                 if (!_showChange) ...[
-                  TextField(
-                    controller: _passController,
-                    obscureText: _obscure,
-                    decoration: InputDecoration(
-                      labelText: 'CEO Password',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscure = !_obscure),
-                      ),
-                    ),
-                    onSubmitted: (_) => _login(),
-                  ),
-                  if (_error.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Text(_error, style: const TextStyle(color: Colors.red)),
-                  ],
+                  TextField(controller: _passController, obscureText: _obscure, decoration: InputDecoration(labelText: 'CEO Password', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure))), onSubmitted: (_) => _login()),
+                  if (_error.isNotEmpty) ...[const SizedBox(height: 10), Text(_error, style: const TextStyle(color: Colors.red))],
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      onPressed: _login,
-                      child: const Text('Enter Dashboard'),
-                    ),
-                  ),
+                  SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _login, child: const Text('Enter Dashboard'))),
                   const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () => setState(() { _showChange = true; _error = ''; }),
-                    child: const Text('Change Password'),
-                  ),
+                  TextButton(onPressed: () => setState(() { _showChange = true; _error = ''; }), child: const Text('Change Password')),
                 ] else ...[
-                  TextField(
-                    controller: _oldController,
-                    obscureText: _obscureOld,
-                    decoration: InputDecoration(
-                      labelText: 'Old Password',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureOld ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscureOld = !_obscureOld),
-                      ),
-                    ),
-                  ),
+                  TextField(controller: _oldController, obscureText: _obscureOld, decoration: InputDecoration(labelText: 'Old Password', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.lock_outline), suffixIcon: IconButton(icon: Icon(_obscureOld ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureOld = !_obscureOld)))),
                   const SizedBox(height: 12),
-                  TextField(
-                    controller: _newController,
-                    obscureText: _obscureNew,
-                    decoration: InputDecoration(
-                      labelText: 'New Password',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscureNew = !_obscureNew),
-                      ),
-                    ),
-                  ),
-                  if (_error.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Text(_error, style: const TextStyle(color: Colors.red)),
-                  ],
+                  TextField(controller: _newController, obscureText: _obscureNew, decoration: InputDecoration(labelText: 'New Password', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureNew = !_obscureNew)))),
+                  if (_error.isNotEmpty) ...[const SizedBox(height: 10), Text(_error, style: const TextStyle(color: Colors.red))],
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
-                      onPressed: _changePassword,
-                      child: const Text('Save New Password'),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => setState(() { _showChange = false; _error = ''; }),
-                    child: const Text('Back to Login'),
-                  ),
+                  SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)), onPressed: _changePassword, child: const Text('Save New Password'))),
+                  TextButton(onPressed: () => setState(() { _showChange = false; _error = ''; }), child: const Text('Back to Login')),
                 ],
               ],
             ),
@@ -574,17 +529,12 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
           children: [
             Text('Trusted Care, With Love', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold)),
             SizedBox(height: 12),
-            Text('Nurses are verified by CEO before they can care for you.\nClients login with Username + Password ONLY.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
+            // FIXED TEXT - NEW CLIENT RULE
+            Text('Nurses are verified by CEO before they can care for you.\nClients verify email and login immediately - No CEO approval for Clients.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
           ],
         ),
         actions: [
-          Center(
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12)),
-              child: const Text('Start ❤️', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ),
+          Center(child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12)), child: const Text('Start ❤️', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
         ],
       ),
     );
@@ -605,19 +555,17 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
               Text('Registers with Photo + Video + Phone. Waits for CEO Approval. Cannot login until approved.'),
               SizedBox(height: 10),
               Text('2. CLIENT:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('Registers with Username + Phone + OTP. Login with Username + Password ONLY - No SMS on login.'),
+              Text('Registers with Name + Username + Email + Phone + Password. Verify email in Gmail. Once verified, you are approved and can login immediately - No CEO approval, No SMS.'),
               SizedBox(height: 10),
               Text('3. SECURITY:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('One account cannot be both Nurse + Client. Unregistered users cannot login. Failed registration is deleted completely.'),
+              Text('One account cannot be both Nurse + Client. Unverified Clients are Pending. Verified Clients can login. Failed registration is deleted completely.'),
               SizedBox(height: 10),
               Text('4. CEO:', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text('Reviews all Nurses in CEO Control Center and Approves / Rejects.'),
+              Text('Reviews all Nurses in CEO Control Center and Approves / Rejects. Clients do NOT need CEO approval.'),
             ],
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-        ],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
       ),
     );
   }
@@ -625,49 +573,27 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF4A0A26), // DARK PINK background - Boss asked for dark pink page
+      backgroundColor: const Color(0xFF4A0A26),
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0xFF880E4F), Color(0xFFC2185B)], begin: Alignment.topLeft, end: Alignment.bottomRight), // dark pink header - stands out on dark pink page
-                borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
-              ),
+              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF880E4F), Color(0xFFC2185B)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
               child: Column(
                 children: [
                   GestureDetector(
                     onTap: _handleSecretTap,
-                    child: const Column(
-                      children: [
-                        Text('💜', style: TextStyle(fontSize: 50)),
-                        Text('LOVE CARE GLOBAL', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
+                    child: const Column(children: [Text('💜', style: TextStyle(fontSize: 50)), Text('LOVE CARE GLOBAL', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))]),
                   ),
                   const SizedBox(height: 8),
                   const Text('Trusted Care, With Love', style: TextStyle(color: Colors.white70, fontSize: 16)),
                   const SizedBox(height: 20),
                   const Text('CEO-verified Nurses. Safe Clients. No Fake Accounts.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 13)),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pushNamed(context, '/auth-choice'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text('GET STARTED →', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)),
-                    ),
-                  ),
+                  SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/auth-choice'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('GET STARTED →', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)))),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _showAboutPopup,
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text('How It Works ❓', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
+                  SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _showAboutPopup, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('How It Works ❓', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
                 ],
               ),
             ),
@@ -678,7 +604,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                 children: [
                   _actionCard('🩺', 'I am a NURSE', 'Register / Login - CEO Approval Required', () => Navigator.pushNamed(context, '/nurse-registration')),
                   const SizedBox(height: 12),
-                  _actionCard('❤️', 'I am a CLIENT', 'Register / Login - Username + Password', () => Navigator.pushNamed(context, '/client-registration')),
+                  _actionCard('❤️', 'I am a CLIENT', 'Register / Login - Verify Email, Login Immediately', () => Navigator.pushNamed(context, '/client-registration')),
                   const SizedBox(height: 20),
                   Wrap(
                     alignment: WrapAlignment.center,
@@ -713,15 +639,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
           children: [
             Text(emoji, style: const TextStyle(fontSize: 30)),
             const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 15)),
-                  Text(subtitle, style: const TextStyle(color: Color(0xFF6D6D6D), fontSize: 12)),
-                ],
-              ),
-            ),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 15)), Text(subtitle, style: const TextStyle(color: Color(0xFF6D6D6D), fontSize: 12))])),
             const Icon(Icons.arrow_forward_ios, color: Color(0xFF880E4F), size: 16),
           ],
         ),
