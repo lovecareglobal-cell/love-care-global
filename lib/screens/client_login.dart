@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ClientLoginPage extends StatefulWidget {
@@ -15,6 +16,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
   String _msg = '';
   bool _loading = false;
   bool _showPass = false;
+  bool _showVerifyHelp = false;
 
   @override
   void dispose() {
@@ -23,17 +25,64 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
     super.dispose();
   }
 
+  // NEW RULE - CLIENT:
+  // Pending = NOT verified email ONLY. CEO does NOT approve Client.
+  // Immediately emailVerified == true -> isApproved = true, canLogin = true, status = approved
+  // We auto-fix Firestore + RTDB on login, so CEO Pending list go only show unverified clients.
+  Future<Map<String, dynamic>> _autoApproveVerifiedClient({
+    required String uid,
+    required String email,
+    required Map<String, dynamic>? existing,
+  }) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final data = <String, Object?>{
+      'uid': uid, 'id': uid,
+      'email': email.toLowerCase(),
+      'role': 'client', 'type': 'client',
+      'emailVerified': true, 'verifiedByEmail': true,
+      // CLIENT AUTO-APPROVED ON VERIFY - NO CEO APPROVAL
+      'isApproved': true, 'approved': true,
+      'status': 'approved', 'approvalStatus': 'approved',
+      'canLogin': true, 'isVerified': true,
+      'isComplete': true, 'hasAll4': true,
+      'approvedAt': now, 'updatedAt': now,
+    };
+    // Keep old name/username/phone if dem exist, no overwrite with empty
+    if (existing != null) {
+      if ((existing['fullName'] ?? existing['name'] ?? '').toString().isNotEmpty) {
+        data['fullName'] = existing['fullName'] ?? existing['name'];
+        data['name'] = existing['fullName'] ?? existing['name'];
+      }
+      if ((existing['username'] ?? '').toString().isNotEmpty) data['username'] = existing['username'];
+      if ((existing['phone'] ?? '').toString().isNotEmpty) data['phone'] = existing['phone'];
+      if ((existing['photo'] ?? existing['photoUrl'] ?? existing['photoURL'] ?? '').toString().isNotEmpty) {
+        data['photo'] = existing['photo'] ?? existing['photoUrl'] ?? existing['photoURL'];
+        data['photoUrl'] = existing['photo'] ?? existing['photoUrl'] ?? existing['photoURL'];
+        data['photoURL'] = existing['photo'] ?? existing['photoUrl'] ?? existing['photoURL'];
+      }
+    }
+    // Firestore - merge so we no delete name/phone
+    await FirebaseFirestore.instance.collection('clients').doc(uid).set(data, SetOptions(merge: true));
+    // RTDB - CEO reads from here. Approved clients go to Approved tab, Pending go empty if all verified.
+    final rtdb = Map<String, Object?>.from(data)..['createdAt'] = now;
+    await FirebaseDatabase.instance.ref('clients/$uid').update(rtdb);
+    await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').update(rtdb);
+    await FirebaseDatabase.instance.ref('client_registrations/$uid').update(rtdb);
+    await FirebaseDatabase.instance.ref('allowedClients/${email.toLowerCase().replaceAll(RegExp(r'[.#\$@\[\]]'), '_')}').set({...rtdb, 'uid': uid});
+    await FirebaseDatabase.instance.ref('allowedClientsByUid/$uid').set({...rtdb, 'uid': uid});
+    return {...?existing, ...data};
+  }
+
   Future<void> _login() async {
     final username = _userCtrl.text.trim().toLowerCase();
     final pass = _passCtrl.text;
     if (username.isEmpty || pass.isEmpty) {
-      setState(() => _msg = 'Enter username/email + password');
+      setState(() { _msg = 'Enter username/email + password'; _showVerifyHelp = false; });
       return;
     }
-    setState(() { _loading = true; _msg = 'Checking...'; });
+    setState(() { _loading = true; _msg = 'Checking...'; _showVerifyHelp = false; });
     try {
       // GUARD: ONE EMAIL = ONE ROLE - if user typed an email, block if it is a Nurse email.
-      // Also check pending_nurses, not just nurses.
       if (username.contains('@')) {
         final nurseCheckEmail = await FirebaseFirestore.instance.collection('nurses').where('email', isEqualTo: username).limit(1).get();
         final pendingCheckEmail = await FirebaseFirestore.instance.collection('pending_nurses').where('email', isEqualTo: username).limit(1).get();
@@ -42,66 +91,47 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
           return;
         }
       }
-      // GUARD: If username is a NURSE email/phone, BLOCK
-      final nurseCheck = await FirebaseFirestore.instance
-          .collection('nurses')
-          .where('email', isEqualTo: username)
-          .limit(1)
-          .get();
-      if (nurseCheck.docs.isNotEmpty) {
-        setState(() {
-          _loading = false;
-          _msg = 'BLOCKED: This is a NURSE account. Use Nurse Login.';
-        });
-        return;
-      }
-      // LOGIN WITH REAL EMAIL - registration now uses Email Verification, NOT OTP / fake email.
-      // User can type Email OR Username. If Username, look up the real email from Firestore first.
+
+      // LOGIN WITH REAL EMAIL - User can type Email OR Username
       String loginEmail = username;
       if (!username.contains('@')) {
-        // Username -> real email lookup (clients store username + real email)
+        // Username -> real email lookup. Try Firestore first, then RTDB (for orphans)
         var byUsername = await FirebaseFirestore.instance.collection('clients').where('username', isEqualTo: username).limit(1).get();
         if (byUsername.docs.isEmpty) {
-          // Try case-insensitive: username may have been typed with different case
           byUsername = await FirebaseFirestore.instance.collection('clients').where('username', isEqualTo: username.toLowerCase()).limit(1).get();
         }
         if (byUsername.docs.isEmpty) {
-          setState(() { _loading = false; _msg = 'Login failed: Username not found. Register first, or login with your Email.'; });
-          return;
+          // RTDB fallback - registration saves to RTDB immediately, so username fit dey there even if Firestore missing
+          try {
+            final snap = await FirebaseDatabase.instance.ref('clients').get();
+            if (snap.exists) {
+              for (final e in (snap.value as Map).entries) {
+                final v = e.value is Map ? Map<String, dynamic>.from(e.value as Map) : {};
+                if ((v['username'] ?? '').toString().toLowerCase() == username) {
+                  loginEmail = (v['email'] ?? '').toString().trim().toLowerCase();
+                  break;
+                }
+              }
+            }
+          } catch (_) {}
+        } else {
+          loginEmail = (byUsername.docs.first.data()['email'] as String?)?.trim().toLowerCase() ?? '';
         }
-        loginEmail = (byUsername.docs.first.data()['email'] as String?)?.trim().toLowerCase() ?? '';
-        if (loginEmail.isEmpty) {
-          setState(() { _loading = false; _msg = 'Login failed: This client has no email. Contact CEO.'; });
+        if (loginEmail.isEmpty || !loginEmail.contains('@')) {
+          // Username not found - maybe user never finished registration, or typed wrong username
+          // Tell am to try Email, NO delete anything
+          setState(() { _loading = false; _msg = 'Login failed: Username not found. Try login with your Email instead, or Register first.'; });
           return;
         }
       }
-      final cred = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(email: loginEmail, password: pass);
-      // FIX 2ND PHONE: reload - without this, 2nd phone sees cached emailVerified=false
-      // and gets BLOCKED + signed out -> looks like it "went back to Home".
-      // Reload forces Firebase to return the TRUE verified status from the server.
+
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: loginEmail, password: pass);
+      // FIX: reload - without this, phone sees cached emailVerified=false even after Gmail verify
       try { await cred.user!.reload(); } catch (_) {}
       final freshUser = FirebaseAuth.instance.currentUser ?? cred.user!;
       final uid = freshUser.uid;
 
-      // CLIENT GATE: Email Verification is the ONLY gate (no CEO approval for clients).
-      // If verification failed, that email CANNOT login - even if password is correct.
-      // We check Auth first, then Firestore legacy (old OTP clients have phoneVerified=true).
-      // New clients: Firestore doc only exists AFTER verification, so unverified = no doc = blocked anyway.
-      // But we check Auth explicitly too, so an unverified Auth account with no doc can never slip through.
-      final authVerified = freshUser.emailVerified;
-      if (!authVerified) {
-        final legacyDoc = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
-        final legacyPhoneVerified = legacyDoc.exists && (legacyDoc.data()?['phoneVerified'] == true || legacyDoc.data()?['otpVerified'] == true);
-        if (!legacyPhoneVerified) {
-          await FirebaseAuth.instance.signOut();
-          setState(() { _loading = false; _msg = 'BLOCKED: Email NOT verified. Open Gmail, tap the verification link, then login again. That email cannot login until verified.'; });
-          return;
-        }
-        // Legacy OTP client: allow, but still require a clients doc (checked below)
-      }
-
-      // GUARD 1b: Same Auth account cannot be a Nurse - check by UID (covers same email+password)
+      // GUARD: Same Auth account cannot be a Nurse
       final nurseByUid = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
       final pendingByUid = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
       if (nurseByUid.exists || pendingByUid.exists) {
@@ -110,38 +140,43 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
         return;
       }
 
-      // GUARD 2: Must exist in clients
-      final doc = await FirebaseFirestore.instance
-          .collection('clients')
-          .doc(uid)
-          .get();
-      if (!doc.exists) {
-        // BYPASS FIX: This Auth account has NO Firestore profile in ANY role.
-        // It is a leftover from a failed / bypassed registration. Sign-out alone
-        // leaves it in Auth, so the 2nd login slips through. DELETE it.
-        // (We already checked nurses/pending above - if it were a Nurse, we returned earlier and did NOT delete.)
-        try { await freshUser.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); }
-        setState(() {
-          _loading = false;
-          _msg = 'BLOCKED: NOT A REGISTERED CLIENT. Go Register first. Leftover account deleted.';
-        });
-        return;
+      // ===== CLIENT GATE - ONLY GATE NA EMAIL VERIFICATION =====
+      // Pending = NOT verified. Verified = login immediately, NO CEO.
+      final authVerified = freshUser.emailVerified;
+      if (!authVerified) {
+        // Check legacy OTP clients - dem no get email verify, but phoneVerified true
+        final legacyDoc = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
+        final legacyPhoneVerified = legacyDoc.exists && (legacyDoc.data()?['phoneVerified'] == true || legacyDoc.data()?['otpVerified'] == true);
+        if (!legacyPhoneVerified) {
+          // DO NOT signOut + delete. Keep user logged in so "I Have Verified" fit work without re-typing password.
+          // Just show verify help.
+          setState(() {
+            _loading = false;
+            _showVerifyHelp = true;
+            _msg = '⏳ PENDING: Email NOT verified yet. You are still Pending.\n\nOpen Gmail, tap the verification link, then press "I HAVE VERIFIED" below. No need to type password again.';
+          });
+          return;
+        }
+        // Legacy OTP - allow, treat as verified
       }
-      final data = doc.data()!;
-      // CLIENT GATE 2 (Firestore): doc must say verified. New flow saves emailVerified=true + hasAll4=true.
-      final firestoreVerified = data['emailVerified'] == true || data['verifiedByEmail'] == true || data['phoneVerified'] == true || data['otpVerified'] == true;
-      final complete = data['isComplete'] == true || data['hasAll4'] == true || firestoreVerified;
-      if (!firestoreVerified) {
-        await FirebaseAuth.instance.signOut();
-        setState(() { _loading = false; _msg = 'BLOCKED: Email NOT verified. Open Gmail, tap the verification link, then login again.'; });
-        return;
+
+      // Get existing doc - if missing (old bug: Auth exists, DB missing), DO NOT DELETE, DO NOT SAY "not registered"
+      // Auto-create + auto-approve. This fixes Michael case.
+      var doc = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
+      Map<String, dynamic>? existing = doc.exists ? doc.data() : null;
+
+      // If Firestore missing, try RTDB - registration saves there immediately
+      if (existing == null) {
+        try {
+          final rtdbSnap = await FirebaseDatabase.instance.ref('clients/$uid').get();
+          if (rtdbSnap.exists && rtdbSnap.value is Map) existing = Map<String, dynamic>.from(rtdbSnap.value as Map);
+        } catch (_) {}
       }
-      if (!complete) {
-        await FirebaseAuth.instance.signOut();
-        setState(() { _loading = false; _msg = 'BLOCKED: Registration incomplete. Register again.'; });
-        return;
-      }
-      // Save for ClientDashboardScreen - it reads these keys from SharedPreferences.
+
+      // AUTO-APPROVE: verified -> approved immediately
+      final data = await _autoApproveVerifiedClient(uid: uid, email: loginEmail, existing: existing);
+
+      // Save for ClientDashboardScreen
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('clientName', (data['fullName'] ?? data['name'] ?? '').toString());
@@ -157,30 +192,80 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
         await prefs.setString('lcg_client_uid', uid);
         await prefs.setString('clientUid', uid);
         await prefs.setString('clientEmail', loginEmail);
+        await prefs.setBool('client_pending_verification', false);
       } catch (_) {}
-      setState(() { _loading = false; _msg = '✅ Welcome Client!'; });
-      // 1. CLIENT LOGIN OPENS CLIENT DASHBOARD - not Home.
-      // pushNamedAndRemoveUntil clears Home/Login from the stack, so Back cannot go to Home.
-      // FIX 2ND PHONE: wait one frame so SharedPreferences flush completes before Dashboard reads them.
-      // On Phone 1 prefs were already warm, on Phone 2 Dashboard read prefs too early -> thought "not logged in" -> bounced to Home.
+
+      setState(() { _loading = false; _msg = '✅ Welcome Client!'; _showVerifyHelp = false; });
       if (!mounted) return;
       await Future.delayed(const Duration(milliseconds: 250));
       if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/client-dashboard',
-        (route) => false,
-      );
+      Navigator.of(context).pushNamedAndRemoveUntil('/client-dashboard', (route) => false);
     } on FirebaseAuthException catch (e) {
       String m;
       if (e.code == 'user-not-found' || e.code == 'invalid-credential' || e.code == 'wrong-password') {
-        m = 'Login failed: Wrong email/username or password. If you never finished email verification, register again.';
+        m = 'Login failed: Wrong email/username or password. If you never finished email verification, check Gmail and tap link, then try again.';
       } else if (e.code == 'invalid-email') { m = 'Login failed: Enter a valid email.'; }
       else if (e.code == 'too-many-requests') { m = 'Too many tries. Wait a few minutes and try again.'; }
       else if (e.code == 'user-disabled') { m = 'This account is disabled. Contact CEO.'; }
       else { m = 'Login failed: ${e.message ?? e.code}'; }
-      setState(() { _loading = false; _msg = m; });
+      setState(() { _loading = false; _msg = m; _showVerifyHelp = false; });
     } catch (e) {
       setState(() { _loading = false; _msg = 'Login failed: Wrong username/password or not registered.'; });
+    }
+  }
+
+  // I HAVE VERIFIED - user don tap Gmail link, we just reload and try login again, no need to re-type password
+  Future<void> _iHaveVerified() async {
+    setState(() { _loading = true; _msg = 'Checking Gmail verification...'; });
+    try {
+      final u = FirebaseAuth.instance.currentUser;
+      if (u == null) {
+        // User was signed out before - just try normal login with typed email/pass
+        setState(() { _loading = false; _msg = 'Type your email + password again and press Login.'; });
+        return;
+      }
+      await u.reload();
+      final fresh = FirebaseAuth.instance.currentUser;
+      if (fresh != null && fresh.emailVerified) {
+        // Verified now - auto-approve + go dashboard, no need password again
+        final data = await _autoApproveVerifiedClient(uid: fresh.uid, email: fresh.email ?? _userCtrl.text.trim(), existing: null);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('clientName', (data['fullName'] ?? data['name'] ?? '').toString());
+          await prefs.setString('fullName', (data['fullName'] ?? data['name'] ?? '').toString());
+          await prefs.setString('clientUsername', (data['username'] ?? '').toString());
+          await prefs.setString('username', (data['username'] ?? '').toString());
+          await prefs.setString('clientPhone', (data['phone'] ?? '').toString());
+          await prefs.setString('phone', (data['phone'] ?? '').toString());
+          await prefs.setString('lcg_client_uid', fresh.uid);
+          await prefs.setString('clientUid', fresh.uid);
+          await prefs.setString('clientEmail', fresh.email ?? '');
+          await prefs.setBool('client_pending_verification', false);
+        } catch (_) {}
+        setState(() { _loading = false; _msg = '✅ Email verified! Welcome Client!'; _showVerifyHelp = false; });
+        if (!mounted) return;
+        await Future.delayed(const Duration(milliseconds: 250));
+        if (!mounted) return;
+        Navigator.of(context).pushNamedAndRemoveUntil('/client-dashboard', (route) => false);
+      } else {
+        setState(() { _loading = false; _msg = 'Still NOT verified. Open Gmail, tap the link, wait 5 seconds, then press I HAVE VERIFIED again.'; });
+      }
+    } catch (e) {
+      setState(() { _loading = false; _msg = 'Check failed: $e'; });
+    }
+  }
+
+  Future<void> _resendVerification() async {
+    try {
+      final u = FirebaseAuth.instance.currentUser;
+      if (u != null) {
+        await u.sendEmailVerification();
+        setState(() => _msg = '✅ Verification email resent to ${u.email}. Check Gmail + Spam.');
+      } else {
+        setState(() => _msg = 'Login first with email + password, then press Resend.');
+      }
+    } catch (e) {
+      setState(() => _msg = 'Resend failed: $e');
     }
   }
 
@@ -204,72 +289,33 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
           children: [
             const Icon(Icons.favorite, color: Colors.white, size: 70),
             const SizedBox(height: 12),
-            const Text('Welcome Back',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
-            const Text('Username + Password ONLY - No SMS on login',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const Text('Welcome Back', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+            const Text('Verified = Login immediately. No CEO approval for Clients.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 28),
             Container(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextField(
-                    controller: _userCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Username or Email',
-                      prefixIcon: Icon(Icons.person),
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                  TextField(controller: _userCtrl, decoration: const InputDecoration(labelText: 'Username or Email', prefixIcon: Icon(Icons.person), border: OutlineInputBorder())),
                   const SizedBox(height: 14),
-                  // PASSWORD WITH EYE - ALREADY THERE, KEPT
-                  TextField(
-                    controller: _passCtrl,
-                    obscureText: !_showPass,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(_showPass ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _showPass = !_showPass),
-                      ),
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
+                  TextField(controller: _passCtrl, obscureText: !_showPass, decoration: InputDecoration(labelText: 'Password', prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_showPass ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _showPass = !_showPass)), border: const OutlineInputBorder())),
                   const SizedBox(height: 14),
-                  if (_msg.isNotEmpty)
-                    Text(_msg,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: _msg.startsWith('✅') ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.bold)),
+                  if (_msg.isNotEmpty) Text(_msg, textAlign: TextAlign.center, style: TextStyle(color: _msg.startsWith('✅') ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 14),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE91E63),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    onPressed: _loading ? null : _login,
-                    child: Text(_loading ? 'Checking...' : 'Login as Client',
-                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
+                  ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE91E63), padding: const EdgeInsets.symmetric(vertical: 16)), onPressed: _loading ? null : _login, child: Text(_loading ? 'Checking...' : 'Login as Client', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))),
+                  if (_showVerifyHelp) ...[
+                    const SizedBox(height: 12),
+                    ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 14)), onPressed: _loading ? null : _iHaveVerified, child: const Text('I HAVE VERIFIED - Tap After Gmail', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                    const SizedBox(height: 8),
+                    OutlinedButton(onPressed: _resendVerification, child: const Text('Resend Verification Email')),
+                  ],
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            TextButton(
-              // FIXED: Was /client-register (does NOT exist) -> now /client-registration
-              onPressed: () => Navigator.pushNamed(context, '/client-registration'),
-              child: const Text("Don't have account? Register as Client",
-                  style: TextStyle(color: Colors.white)),
-            ),
+            TextButton(onPressed: () => Navigator.pushNamed(context, '/client-registration'), child: const Text("Don't have account? Register as Client", style: TextStyle(color: Colors.white))),
           ],
         ),
       ),
