@@ -13,7 +13,9 @@ class ClientLoginPage extends StatefulWidget {
 class _ClientLoginPageState extends State<ClientLoginPage> {
   // CLIENT LOGIN: Phone Number + Password ONLY.
   // No Email box, No Username box, No SMS OTP, No Gmail link.
-  // App finds email by phone behind scene, then login with email + password.
+  // App finds hidden email by phone behind scene, then login with email + password.
+  // Hidden email = real email OR 233...@phone.lovecare (saved during registration)
+  // Auth user has phoneNumber saved (linked during OTP verify), so Console shows phone.
   final _phone = TextEditingController();
   final _pass = TextEditingController();
   bool _loading = false;
@@ -99,11 +101,11 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
     super.dispose();
   }
 
-  // Find email by phone - 4 places: phones index, clients RTDB, CEO RTDB, Firestore
+  // Find hidden email by phone - 4 places: phones index, clients RTDB, CEO RTDB, Firestore
   // phones/<digits> = email is fastest. Registration file now saves it.
   Future<String?> _findEmailByPhone(String fullPhone, String digits) async {
     final db = FirebaseDatabase.instance;
-    // 1. Fast index: phones/<digits> = email
+    // 1. Fast index: phones/<digits> = hidden email
     try {
       final s = await db.ref('phones/$digits').get();
       if (s.exists) {
@@ -118,7 +120,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
       if (s.exists && s.value is Map) {
         for (final e in (s.value as Map).values) {
           if (e is! Map) continue;
-          final p = (e['phone'] ?? e['phoneNumber'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
+          final p = (e['phone'] ?? e['phoneNumber'] ?? e['authPhone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
           final em = (e['email'] ?? e['clientEmail'] ?? '').toString().toLowerCase();
           if (p.isNotEmpty && (p == digits || p.endsWith(digits) || digits.endsWith(p)) && em.contains('@')) return em;
         }
@@ -130,7 +132,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
       if (s.exists && s.value is Map) {
         for (final e in (s.value as Map).values) {
           if (e is! Map) continue;
-          final p = (e['phone'] ?? e['phoneNumber'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
+          final p = (e['phone'] ?? e['phoneNumber'] ?? e['authPhone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
           final em = (e['email'] ?? e['clientEmail'] ?? '').toString().toLowerCase();
           if (p.isNotEmpty && (p == digits || p.endsWith(digits) || digits.endsWith(p)) && em.contains('@')) return em;
         }
@@ -141,7 +143,9 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
       final q = await FirebaseFirestore.instance.collection('clients').where('phone', isEqualTo: fullPhone).limit(1).get();
       if (q.docs.isNotEmpty) return (q.docs.first.data()['email'] ?? '').toString().toLowerCase();
     } catch (_) {}
-    return null;
+    // 5. Last fallback: hidden email pattern - if client registered with no real email
+    // This lets phone-only clients login even if phones/ index missing
+    return '$digits@phone.lovecare';
   }
 
   // CLIENT RULE: OTP verified = Approved. If DB still says pending but otpVerified true, auto-fix am here.
@@ -151,7 +155,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
       final s = await FirebaseDatabase.instance.ref('clients/$uid').get();
       if (s.exists) {
         final m = s.value as Map;
-        if (m['otpVerified'] == true || m['emailVerified'] == true) {
+        if (m['otpVerified'] == true || m['emailVerified'] == true || m['phoneVerified'] == true) {
           final nowMs = DateTime.now().millisecondsSinceEpoch;
           final fix = <String, Object?>{
             'isApproved': true, 'approved': true, 'status': 'approved', 'approvalStatus': 'approved',
@@ -182,8 +186,24 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
       final nurseCheck = await FirebaseFirestore.instance.collection('nurses').where('email', isEqualTo: email).limit(1).get();
       if (nurseCheck.docs.isNotEmpty) throw Exception('This phone belongs to a NURSE. Use Nurse Login.');
 
+      // Login with hidden email + password behind scene - Client only sees Phone + Password
       final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: _pass.text.trim());
       final uid = cred.user!.uid;
+
+      // AUTH SAVES PHONE CHECK - log if Auth phone missing (old accounts)
+      try {
+        final authPhone = cred.user?.phoneNumber;
+        final dbPhoneSnap = await FirebaseDatabase.instance.ref('clients/$uid/phone').get();
+        final dbPhone = dbPhoneSnap.exists ? dbPhoneSnap.value.toString() : '';
+        if ((authPhone == null || authPhone.isEmpty) && dbPhone.isNotEmpty) {
+          print('AUTH PHONE MISSING for $uid, DB phone = $dbPhone. Old account created before phone-link fix. New registers will have Auth phone.');
+          // Keep DB phone + Auth in sync for CEO view - save authPhone field
+          await FirebaseDatabase.instance.ref('clients/$uid').update({'authPhone': dbPhone}).catchError((_) {});
+        } else {
+          print('AUTH LOGIN OK: uid=$uid email=${cred.user?.email} phone=${authPhone ?? dbPhone}');
+        }
+      } catch (_) {}
+
       await _autoApproveIfOtpVerified(uid);
 
       // Check approved - OTP verified = approved
@@ -191,23 +211,28 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
       final snap = await FirebaseDatabase.instance.ref('clients/$uid').get();
       if (snap.exists) {
         final m = snap.value as Map;
-        approved = m['isApproved'] == true || m['status'] == 'approved' || m['otpVerified'] == true || m['emailVerified'] == true;
+        approved = m['isApproved'] == true || m['status'] == 'approved' || m['otpVerified'] == true || m['emailVerified'] == true || m['phoneVerified'] == true;
       }
       if (!approved) {
         final fs = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
         if (fs.exists) {
           final d = fs.data()!;
-          approved = d['isApproved'] == true || d['status'] == 'approved' || d['otpVerified'] == true || d['emailVerified'] == true;
+          approved = d['isApproved'] == true || d['status'] == 'approved' || d['otpVerified'] == true || d['emailVerified'] == true || d['phoneVerified'] == true;
         }
       }
       if (!approved) {
         await FirebaseAuth.instance.signOut();
-        throw Exception('Your account is still PENDING. Go to Register -> Enter OTP to verify first.');
+        throw Exception('Your account is still PENDING. Go to Register -> Enter SMS OTP to verify first.');
       }
 
-      // Save phone index so next login is faster
+      // Save phone index so next login is faster + Auth phone in sync
       try {
         await FirebaseDatabase.instance.ref('phones/$_phoneDigits').set(email);
+        await FirebaseDatabase.instance.ref('clientsByPhone/$_phoneDigits').set(uid);
+        // Also save phone for Auth user profile if missing - Firestore/RTDB already has it
+        if (cred.user?.phoneNumber != null && cred.user!.phoneNumber!.isNotEmpty) {
+          await FirebaseDatabase.instance.ref('clients/$uid').update({'authPhone': cred.user!.phoneNumber, 'phone': _fullPhone, 'phoneNumber': _fullPhone}).catchError((_) {});
+        }
       } catch (_) {}
 
       if (!mounted) return;
