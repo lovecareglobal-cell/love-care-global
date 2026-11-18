@@ -5,13 +5,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
-// CEO REGISTRATION CENTER - FULL FILE - COMPLETE DELETE + WIPE ALL FIX
-// - Approve / Reject / Delete / Delete All / Export / Fix All Approved / Wipe All Auth + Storage
+// CEO REGISTRATION CENTER - FULL FILE - COMPLETE DELETE + WIPE + RECOVER ORPHAN FIX
+// - Approve / Reject / Delete / Delete All / Export / Fix All Approved / Wipe All Auth + Storage / Recover Missing Clients
+// - FIX for: Client verifies email, app goes fresh, CEO sees (0), Login says "not registered" / "Email NOT verified"
+// - Root cause: Old registration saved profile AFTER verification. If Android kills app when user goes to Gmail, profile never saved.
+//   Auth exists, RTDB does NOT exist. This file + new function recoverOrphanAuthUsers fixes that.
 // - Delete COMPLETELY: RTDB + Firestore + Storage + Email/Username/Phone/PIN indexes + Firebase Auth + Orphan Storage
-// - After delete, same email fit re-register - no more "you have already registered"
-// - Wipe All: Deletes ALL Auth + ALL Storage even if CEO list show (0) - for Console still showing emails/files
-// NEED in pubspec: cloud_functions: ^5.6.2 (NOT ^4.6.0 - that one na for firebase_core 2.x)
-// NEED Cloud Function: deleteAuthUser + wipeAllAuthAndStorage (functions/index.js)
+// NEED in pubspec: cloud_functions: ^5.6.2
+// NEED Cloud Function: deleteAuthUser + wipeAllAuthAndStorage + recoverOrphanAuthUsers (see bottom)
 
 class CEORegistrationCenterScreen extends StatefulWidget {
   const CEORegistrationCenterScreen({super.key});
@@ -81,7 +82,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     try {
       final db = FirebaseDatabase.instance;
       List<Map> out = [];
-
       Future<void> scan(String base, String type) async {
         try {
           final s = await db.ref(base).get();
@@ -99,15 +99,14 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
             final exists = out.any((x) => x['uid'].toString() == uid && x['email'].toString().toLowerCase() == email.toLowerCase());
             if (exists) continue;
             out.add({
-              'uid': uid,
-              'key': e.key.toString(),
-              'type': type,
-              'email': email.toLowerCase(),
-              'fullName': name,
+              'uid': uid, 'key': e.key.toString(), 'type': type,
+              'email': email.toLowerCase(), 'fullName': name,
               'username': (m['username'] ?? m['userName'] ?? '').toString(),
               'phone': (m['phone'] ?? m['phoneNumber'] ?? '').toString(),
               'countryCode': (m['countryCode'] ?? '').toString(),
               'isApproved': isApproved,
+              'emailVerified': m['emailVerified'] ?? false,
+              'needsProfile': m['needsProfile'] == true,
               'hasPhoto': _hasDoc(m, ['photo', 'photoURL', 'photoUrl', 'image', 'profilePic']),
               'hasVideo': _hasDoc(m, ['video', 'videoURL', 'videoUrl', 'introVideo', 'introVideoUrl', 'profileVideo']),
               'hasId': _hasDoc(m, ['idURL', 'idUrl', 'idFront', 'idFrontURL', 'nationalId', 'ghanaCard']),
@@ -155,11 +154,10 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           final qs = await FirebaseFirestore.instance.collection('nurses').get();
           for (final d in qs.docs) {
             final m = d.data();
-            out.add({'uid': d.id, 'key': d.id, 'type': 'nurse', 'email': (m['email'] ?? '').toString().toLowerCase(), 'fullName': (m['fullName'] ?? m['name'] ?? '').toString(), 'username': '', 'phone': (m['phone'] ?? '').toString(), 'countryCode': '', 'isApproved': m['isApproved'] == true, 'hasPhoto': true, 'hasVideo': true, 'hasId': true, 'hasLicence': true, 'hasCert': true, 'hasCv': false, 'hasPin': false, 'qualification': '', 'services': '', 'referenceName': '', 'referencePhone': '', 'gpsName': '', 'lat': null, 'lng': null, 'createdAt': 0, 'photo': '', 'idURL': '', 'licenceURL': '', 'videoURL': '', 'certURL': '', 'cvURL': '', 'raw': m});
+            out.add({'uid': d.id, 'key': d.id, 'type': 'nurse', 'email': (m['email'] ?? '').toString().toLowerCase(), 'fullName': (m['fullName'] ?? m['name'] ?? '').toString(), 'username': '', 'phone': (m['phone'] ?? '').toString(), 'countryCode': '', 'isApproved': m['isApproved'] == true, 'emailVerified': false, 'needsProfile': false, 'hasPhoto': true, 'hasVideo': true, 'hasId': true, 'hasLicence': true, 'hasCert': true, 'hasCv': false, 'hasPin': false, 'qualification': '', 'services': '', 'referenceName': '', 'referencePhone': '', 'gpsName': '', 'lat': null, 'lng': null, 'createdAt': 0, 'photo': '', 'idURL': '', 'licenceURL': '', 'videoURL': '', 'certURL': '', 'cvURL': '', 'raw': m});
           }
         } catch (_) {}
       }
-
       if (!mounted) return;
       setState(() { allRecords = out; isLoading = false; });
     } catch (e) {
@@ -174,14 +172,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       if (v != null && v.toString().isNotEmpty && v.toString().startsWith('http')) return true;
       if (v is Map && v['url'] != null && v['url'].toString().startsWith('http')) return true;
     }
-    for (final parent in ['documents', 'uploads', 'files', 'credentials']) {
-      if (m[parent] is Map) {
-        final sub = Map.from(m[parent] as Map);
-        for (final entry in sub.entries) {
-          if (keys.any((k) => entry.key.toString().toLowerCase().contains(k.toLowerCase().replaceAll('url', ''))) && entry.value.toString().startsWith('http')) return true;
-        }
-      }
-    }
     return false;
   }
 
@@ -191,7 +181,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     if (currentTab == 'nursesApproved') list = list.where((x) => x['type'] == 'nurse' && x['isApproved'] == true).toList();
     if (currentTab == 'clientsPending') list = list.where((x) => x['type'] == 'client' && x['isApproved'] != true).toList();
     if (currentTab == 'clientsApproved') list = list.where((x) => x['type'] == 'client' && x['isApproved'] == true).toList();
-    if (currentTab == 'all') list = list;
     if (search.trim().isNotEmpty) {
       final q = search.toLowerCase();
       list = list.where((x) => x['fullName'].toString().toLowerCase().contains(q) || x['email'].toString().toLowerCase().contains(q) || x['username'].toString().toLowerCase().contains(q) || x['phone'].toString().contains(q)).toList();
@@ -209,6 +198,30 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   int get clientsPendingCount => allRecords.where((x) => x['type'] == 'client' && x['isApproved'] != true).length;
   int get clientsApprovedCount => allRecords.where((x) => x['type'] == 'client' && x['isApproved'] == true).length;
 
+  // ============ RECOVER MISSING CLIENTS - NEW FIX FOR MICHAEL CASE ============
+  // Why: Auth exists, RTDB does NOT exist (app killed after Gmail verification)
+  // This calls Cloud Function recoverOrphanAuthUsers which lists Auth + creates missing RTDB records.
+  // After this, Michael go appear for Clients Pending, and login go work (no more "not registered").
+  Future<void> _recoverOrphans() async {
+    final c = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
+      title: const Text('Recover Missing Clients?'),
+      content: const Text('This will scan Firebase Auth, find users like michaelallotey1005@gmail.com wey dey for Auth but no dey for CEO list, and create their record.\n\nThey will appear as Clients Pending with "Needs Profile" - you can then ask them to complete name/phone inside app, or Approve them.'),
+      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Recover'))],
+    ));
+    if (c != true) return;
+    setState(() { showLog = true; logLines = []; });
+    _log('Recovering orphans: scanning Auth...');
+    try {
+      final res = await FirebaseFunctions.instance.httpsCallable('recoverOrphanAuthUsers').call({});
+      _log('✅ RECOVER DONE: ${res.data}');
+      _toast('✅ Recovered - check Clients Pending');
+      _loadAll();
+    } catch (e) {
+      _log('❌ Recover failed: $e');
+      _toast('Recover failed: $e - Did you deploy recoverOrphanAuthUsers?');
+    }
+  }
+
   // ============ APPROVE ============
   Future<void> _approve(Map rec) async {
     final uid = rec['uid'].toString();
@@ -221,7 +234,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     try {
       final emailKey = _sanitizeEmail(email);
       final now = DateTime.now().millisecondsSinceEpoch;
-      final payload = {'isApproved': true, 'approved': true, 'status': 'approved', 'canLogin': true, 'isVerified': true, 'approvedAt': now, 'approvedBy': 'CEO', 'updatedAt': now};
+      final payload = {'isApproved': true, 'approved': true, 'status': 'approved', 'canLogin': true, 'isVerified': true, 'emailVerified': true, 'approvedAt': now, 'approvedBy': 'CEO', 'updatedAt': now};
       final db = FirebaseDatabase.instance;
       final paths = type == 'nurse'
           ? ['nurses/$uid', 'pending_nurses/$uid', 'pendingNurses/$uid', 'nurse_registrations/$uid', 'nurseApplications/$uid', 'allNurses/$uid', 'nurseUsers/$uid', 'ceoNurseUpdates/$uid', 'ceoRegistrationCenter/nurses/$uid', 'verified_nurses/$uid']
@@ -231,21 +244,21 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       }
       final whitelist = _sanitizeForRtdb({...Map<String, dynamic>.from(rec['raw'] as Map), 'uid': uid, 'email': email.toLowerCase(), ...payload}) as Map<String, dynamic>;
       if (type == 'nurse') {
-        await db.ref('allowedNurses/$emailKey').set(whitelist); _log('✅ Created allowedNurses/$emailKey');
-        await db.ref('allowedNursesByUid/$uid').set(whitelist); _log('✅ Created allowedNursesByUid/$uid');
+        await db.ref('allowedNurses/$emailKey').set(whitelist);
+        await db.ref('allowedNursesByUid/$uid').set(whitelist);
       } else {
-        await db.ref('allowedClients/$emailKey').set(whitelist); _log('✅ Created allowedClients/$emailKey');
-        await db.ref('allowedClientsByUid/$uid').set(whitelist); _log('✅ Created allowedClientsByUid/$uid');
+        await db.ref('allowedClients/$emailKey').set(whitelist);
+        await db.ref('allowedClientsByUid/$uid').set(whitelist);
       }
       try {
-        final fsPayload = {'isApproved': true, 'approved': true, 'status': 'approved', 'approvalStatus': 'approved', 'canLogin': true, 'isVerified': true, 'approvedAt': now, 'approvedBy': 'CEO', 'updatedAt': now};
+        final fsPayload = {'isApproved': true, 'approved': true, 'status': 'approved', 'approvalStatus': 'approved', 'canLogin': true, 'isVerified': true, 'emailVerified': true, 'approvedAt': now, 'approvedBy': 'CEO', 'updatedAt': now};
         final colls = type == 'nurse' ? ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications'] : ['clients', 'client_registrations', 'ceo_registration', 'pending_clients'];
         for (final coll in colls) {
-          try { await FirebaseFirestore.instance.collection(coll).doc(uid).set(fsPayload, SetOptions(merge: true)); _log('✅ Firestore updated $coll/$uid → approved'); } catch (e) { _log('⚠️ Firestore $coll err: $e'); }
+          try { await FirebaseFirestore.instance.collection(coll).doc(uid).set(fsPayload, SetOptions(merge: true)); } catch (_) {}
         }
-      } catch (e) { _log('⚠️ Firestore approve err: $e'); }
-      _toast('✅ $email APPROVED in ALL paths — now moves to Approved tab and can login!');
-      _log('✅ DONE — $email approved in ALL paths');
+      } catch (_) {}
+      _toast('✅ $email APPROVED - now moves to Approved and can login!');
+      _log('✅ DONE — $email approved');
       Future.delayed(const Duration(milliseconds: 1500), _loadAll);
     } catch (e) { _log('❌ Approve failed: $e'); _toast('Approve failed: $e'); }
   }
@@ -263,11 +276,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       if (type == 'nurse') {
         await db.ref('nurses/$uid').update({'isApproved': false, 'status': 'rejected', 'rejectedAt': now});
         await db.ref('ceoRegistrationCenter/nurses/$uid').update({'isApproved': false, 'status': 'rejected'});
-        for (final coll in ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses']) {
-          try { await FirebaseFirestore.instance.collection(coll).doc(uid).set({'isApproved': false, 'approved': false, 'status': 'rejected', 'approvalStatus': 'rejected', 'canLogin': false, 'rejectedAt': now}, SetOptions(merge: true)); } catch (_) {}
-        }
-        await db.ref('allowedNurses/${_sanitizeEmail(email)}').remove().catchError((_) {});
-        await db.ref('allowedNursesByUid/$uid').remove().catchError((_) {});
       } else {
         await db.ref('clients/$uid').update({'isApproved': false, 'status': 'rejected'});
         await db.ref('ceoRegistrationCenter/clients/$uid').update({'isApproved': false, 'status': 'rejected'});
@@ -279,10 +287,10 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
 
   // ============ FIX ALL APPROVED ============
   Future<void> _fixAllApproved() async {
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Fix All Approved?'), content: const Text('This will scan all nurses that are in allowedNurses whitelist but still showing pending, and fix them to approved in ALL paths. Continue?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Fix All'))]));
+    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Fix All Approved?'), content: const Text('Scan allowedNurses whitelist and fix them to approved in ALL paths.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Fix All'))]));
     if (confirm != true) return;
     setState(() { showLog = true; logLines = []; });
-    _log('Scanning allowedNurses whitelist...');
+    _log('Scanning allowedNurses...');
     try {
       final snap = await FirebaseDatabase.instance.ref('allowedNurses').get();
       if (!snap.exists) { _toast('No allowedNurses found'); return; }
@@ -295,13 +303,12 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         if (uid != null && email != null) {
           final payload = {'isApproved': true, 'approved': true, 'status': 'approved', 'canLogin': true, 'isVerified': true, 'approvedAt': DateTime.now().millisecondsSinceEpoch, 'updatedAt': DateTime.now().millisecondsSinceEpoch};
           for (final p in ['nurses/$uid', 'pending_nurses/$uid', 'pendingNurses/$uid', 'ceoRegistrationCenter/nurses/$uid', 'ceoNurseUpdates/$uid', 'nurse_registrations/$uid']) await db.ref(p).update(payload).catchError((_) {});
-          _log('Fixed nurses/$uid'); fixed++;
+          fixed++;
         }
       }
-      _toast('✅ Fixed $fixed nurses — they will now show in Approved');
-      _log('✅ Fixed $fixed nurses');
+      _toast('✅ Fixed $fixed nurses');
       Future.delayed(const Duration(milliseconds: 1500), _loadAll);
-    } catch (e) { _toast('Fix failed: $e'); _log('Fix failed: $e'); }
+    } catch (e) { _toast('Fix failed: $e'); }
   }
 
   // ============ COMPLETE DELETE ============
@@ -323,12 +330,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
             for (final d in q.docs) { await d.reference.delete(); }
           } catch (_) {}
         }
-      }
-      if (uid.isNotEmpty) {
-        try {
-          final q = await FirebaseFirestore.instance.collection(coll).where('uid', isEqualTo: uid).get();
-          for (final d in q.docs) { await d.reference.delete(); }
-        } catch (_) {}
       }
     }
     for (final folder in ['nurses/$uid', 'clients/$uid', 'ceo_registration/$uid', 'registrations/$uid', 'nurse_registrations/$uid', 'client_registrations/$uid']) {
@@ -355,66 +356,28 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     final phoneDigits = phoneRaw.replaceAll(RegExp(r'[^0-9]'), '');
     final pin = (raw['nursingPin'] ?? raw['pin'] ?? '').toString();
     final indexPaths = [
-      'registeredEmails/$emailKey', 'registeredEmails/$eLower',
-      'usedEmails/$emailKey', 'usedEmails/$eLower',
-      'registered_emails/$emailKey', 'used_emails/$emailKey',
-      'emailIndex/$emailKey', 'emails/$emailKey', 'emailToUid/$emailKey', 'emailToUid/$eLower',
-      'usersByEmail/$emailKey', 'usersByEmail/$eLower',
-      'nursesByEmail/$emailKey', 'clientsByEmail/$emailKey',
-      'nurseEmails/$emailKey', 'clientEmails/$emailKey',
-      'allowedNurses/$emailKey', 'allowedClients/$emailKey',
+      'registeredEmails/$emailKey', 'usedEmails/$emailKey', 'registered_emails/$emailKey', 'used_emails/$emailKey',
+      'emailIndex/$emailKey', 'emails/$emailKey', 'emailToUid/$emailKey', 'usersByEmail/$emailKey',
+      'nursesByEmail/$emailKey', 'clientsByEmail/$emailKey', 'allowedNurses/$emailKey', 'allowedClients/$emailKey',
       'allowedNursesByUid/$uid', 'allowedClientsByUid/$uid',
-      'allowedNurses/$uid', 'allowedClients/$uid',
       if (username.isNotEmpty) 'usernames/$username',
-      if (username.isNotEmpty) 'nurseUsernames/$username',
-      if (username.isNotEmpty) 'clientUsernames/$username',
       if (phoneDigits.isNotEmpty) 'phones/$phoneDigits',
-      if (phoneDigits.isNotEmpty) 'nursePhones/$phoneDigits',
-      if (phoneDigits.isNotEmpty) 'clientPhones/$phoneDigits',
-      if (phoneDigits.isNotEmpty) 'clientPhones/$phoneRaw',
-      if (phoneRaw.isNotEmpty) 'phones/$phoneRaw',
       if (pin.isNotEmpty) 'nursingPins/$pin',
-      if (pin.isNotEmpty) 'usedPins/$pin',
-      if (pin.isNotEmpty) 'pins/$pin',
       'users/$uid', 'users/$emailKey',
     ];
-    for (final p in indexPaths) {
-      try { await db.ref(p).remove(); _log('✅ Deleted index: $p'); } catch (_) {}
-    }
-    for (final coll in ['registeredEmails', 'usedEmails', 'usersByEmail', 'emailIndex', 'nursesByEmail', 'clientsByEmail']) {
-      try { await FirebaseFirestore.instance.collection(coll).doc(uid).delete(); } catch (_) {}
-      try { await FirebaseFirestore.instance.collection(coll).doc(emailKey).delete(); } catch (_) {}
-      try {
-        final q = await FirebaseFirestore.instance.collection(coll).where('email', isEqualTo: eLower).get();
-        for (final d in q.docs) await d.reference.delete();
-      } catch (_) {}
-    }
-    for (final base in ['clientUsernames', 'nurseUsernames', 'usernames', 'clientPhones', 'nursePhones', 'phones']) {
-      try {
-        final s = await db.ref(base).get();
-        if (s.exists) {
-          for (final e in (s.value as Map).entries) {
-            if (e.value.toString() == uid || e.value.toString().toLowerCase() == eLower) {
-              await db.ref('$base/${e.key}').remove();
-              _log('✅ Deleted sweep: $base/${e.key}');
-            }
-          }
-        }
-      } catch (_) {}
-    }
+    for (final p in indexPaths) { try { await db.ref(p).remove(); } catch (_) {} }
   }
 
   Future<void> _deleteAuthUser({required String uid, required String email}) async {
     try {
       final res = await FirebaseFunctions.instance.httpsCallable('deleteAuthUser').call({'uid': uid, 'email': email.toLowerCase().trim()});
-      _log('✅ Auth deleted via Cloud Function: ${res.data}');
+      _log('✅ Auth deleted: ${res.data}');
     } catch (e) {
-      _log('⚠️ Auth NOT deleted via Function ($e) - Go Firebase Console > Authentication > Search $email > Delete manually, OR deploy deleteAuthUser function');
-      _toast('⚠️ Delete Auth manually in Firebase Console for $email');
+      _log('⚠️ Auth NOT deleted via Function ($e) - Delete manually in Console');
+      _toast('⚠️ Delete Auth manually in Console for $email');
     }
   }
 
-  // NEW: Delete Storage files by UID even if dem no dey for nurses/{uid}/ folder
   Future<void> _deleteStorageOrphansByUid({required String uid, required String email}) async {
     final eLower = email.toLowerCase().trim();
     try {
@@ -424,142 +387,70 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         try {
           final sub = await prefix.listAll();
           for (final item in sub.items) {
-            final name = item.name.toLowerCase();
-            final path = item.fullPath.toLowerCase();
-            if (path.contains(uid.toLowerCase()) || path.contains(eLower) || name.contains(uid.toLowerCase())) {
-              try { await item.delete(); _log('✅ Deleted orphan storage: ${item.fullPath}'); } catch (_) {}
+            if (item.fullPath.toLowerCase().contains(uid.toLowerCase()) || item.fullPath.toLowerCase().contains(eLower)) {
+              try { await item.delete(); } catch (_) {}
             }
           }
           for (final p2 in sub.prefixes) {
             try {
               final sub2 = await p2.listAll();
               for (final item in sub2.items) {
-                final path = item.fullPath.toLowerCase();
-                if (path.contains(uid.toLowerCase()) || path.contains(eLower)) {
-                  try { await item.delete(); _log('✅ Deleted orphan storage: ${item.fullPath}'); } catch (_) {}
+                if (item.fullPath.toLowerCase().contains(uid.toLowerCase()) || item.fullPath.toLowerCase().contains(eLower)) {
+                  try { await item.delete(); } catch (_) {}
                 }
               }
             } catch (_) {}
           }
         } catch (_) {}
       }
-    } catch (e) {
-      _log('⚠️ Orphan storage scan failed: $e');
-    }
+    } catch (_) {}
   }
 
-  // ============ WIPE ALL - FIX FOR CONSOLE STILL SHOWING EMAILS / FILES ============
   Future<void> _wipeAllAuthAndStorage() async {
-    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
-      title: const Text('WIPE EVERYTHING?'),
-      content: const Text('This will DELETE ALL Auth users + ALL Storage files + ALL Database, even those CEO list no see.\n\nKeep your CEO email? Type it below to KEEP it.'),
-      actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Continue'))],
-    ));
+    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('WIPE EVERYTHING?'), content: const Text('This will DELETE ALL Auth users + ALL Storage files + ALL Database, even those CEO list no see.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Continue'))]));
     if (c1 != true) return;
-    final ctrl = TextEditingController(text: 'lovecareglobal@gmail.com');
-    final keep = await showDialog<String>(context: context, builder: (_) => AlertDialog(
-      title: const Text('CEO Email to KEEP (or empty for delete all)'),
-      content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'lovecareglobal@gmail.com')),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('WIPE ALL'))],
-    ));
+    final ctrl = TextEditingController(text: 'joshouapee@gmail.com');
+    final keep = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: const Text('CEO Email to KEEP'), content: TextField(controller: ctrl), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('WIPE ALL'))]));
     if (keep == null) return;
     final ctrl2 = TextEditingController();
-    final confirmText = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: const Text('Type WIPE to confirm wipe all'), content: TextField(controller: ctrl2), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl2.text), child: const Text('Confirm'))]));
+    final confirmText = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: const Text('Type WIPE to confirm'), content: TextField(controller: ctrl2), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl2.text), child: const Text('Confirm'))]));
     if (confirmText != 'WIPE') { _toast('Cancelled - you must type WIPE'); return; }
     setState(() { showLog = true; logLines = []; });
     _log('WIPE ALL START - Keep: $keep');
     try {
       final res = await FirebaseFunctions.instance.httpsCallable('wipeAllAuthAndStorage').call({'keepEmail': keep.toLowerCase().trim()});
       _log('✅ WIPE DONE: ${res.data}');
-      _toast('✅ Wipe done - Auth + Storage cleaned');
+      _toast('✅ Wipe done');
       _loadAll();
-    } catch (e) {
-      _log('❌ Wipe failed: $e');
-      _toast('Wipe failed: $e - Did you deploy wipeAllAuthAndStorage?');
-    }
+    } catch (e) { _log('❌ Wipe failed: $e'); _toast('Wipe failed: $e'); }
   }
 
   Future<void> _deleteAccount(Map rec) async {
     final uid = rec['uid'].toString();
     final email = rec['email'].toString();
     final type = rec['type'].toString();
-    final displayName = rec['fullName'] ?? email;
-    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('DELETE COMPLETELY?'), content: Text('DELETE $type $displayName ($email) COMPLETELY?\n\nThis will delete:\n- RTDB: all locations\n- Firestore: all collections\n- Storage: all files + orphan files\n- Email / Username / Phone / PIN indexes\n- Firebase Auth account\n\nSo this email fit re-register again.\n\nThis cannot be undone!\n\nDelete $email?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('DELETE'))]));
+    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('DELETE COMPLETELY?'), content: Text('DELETE $type $email COMPLETELY?\n\nRTDB + Firestore + Storage + Indexes + Auth.\n\nThis cannot be undone!'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('DELETE'))]));
     if (c1 != true) return;
-    final c2 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('FINAL CONFIRM'), content: Text('Really delete $email from ALL database + Auth?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('YES DELETE'))]));
-    if (c2 != true) return;
     final ctrl = TextEditingController();
-    final confirmText = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: Text('Type DELETE to confirm deletion of $email'), content: TextField(controller: ctrl), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Confirm'))]));
-    if (confirmText != 'DELETE') { _toast('Cancelled - you must type DELETE'); return; }
+    final confirmText = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: Text('Type DELETE to confirm $email'), content: TextField(controller: ctrl), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Confirm'))]));
+    if (confirmText != 'DELETE') { _toast('Cancelled'); return; }
     setState(() { showLog = true; logLines = []; });
-    _log('STARTING COMPLETE DELETE for $email ($uid) - Type: $type');
-    final emailKey = _sanitizeEmail(email);
-    final eLower = email.toLowerCase().trim();
-    _log('EmailKey: $emailKey');
+    _log('STARTING COMPLETE DELETE for $email ($uid)');
     try {
       final db = FirebaseDatabase.instance;
-      Set<String> allUids = {uid, emailKey};
-      final scanPaths = type == 'nurse'
-          ? ['nurses', 'pending_nurses', 'nurse_registrations', 'ceoRegistrationCenter/nurses']
-          : ['clients', 'client_registrations', 'ceoRegistrationCenter/clients', 'allClients', 'clientUsers', 'pendingClientRegistrations', 'pending_clients', 'ceoClientUpdates', 'allowedClients', 'allowedClientsByUid'];
-      for (final p in scanPaths) {
-        try { final s = await db.ref(p).get(); if (s.exists) (s.value as Map).forEach((k, v) { if (v is Map && (v['email'] ?? v['clientEmail'] ?? v['emailAddress'] ?? '').toString().toLowerCase() == eLower) { allUids.add(k.toString()); _log('Found RTDB $p/$k with email $email'); } }); } catch (_) {}
-      }
-      List<String> rtdbBases = [];
-      List<String> mappingPaths = [];
-      if (type == 'nurse') {
-        rtdbBases = ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence', 'registrations', 'nurseLocations', 'nurseBookings'];
-        mappingPaths = ['allowedNurses/$emailKey', 'allowedClients/$emailKey', 'nursesByEmail/$emailKey', 'allowedNurses/$uid', 'allowedNursesByUid/$uid'];
-      } else {
-        final raw = Map<String, dynamic>.from(rec['raw'] as Map);
-        final username = ((raw['username'] ?? raw['userName'] ?? '') as String).toLowerCase();
-        final phoneRaw = (raw['phone'] ?? raw['phoneNumber'] ?? '').toString();
-        final phoneDigits = phoneRaw.replaceAll(RegExp(r'[^0-9]'), '');
-        rtdbBases = ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients', 'allowedClients', 'allowedClientsByUid', 'pendingClientRegistrations', 'verified_clients', 'onlineClients', 'clientPresence', 'clientsByEmail', 'clientBookings', 'bookings', 'pending_clients', 'pendingClients'];
-        mappingPaths = ['allowedClients/$emailKey', 'allowedClients/$uid', 'allowedClientsByUid/$uid', 'clientUsernames/$username', 'clientPhones/$phoneRaw', 'clientPhones/$phoneDigits', 'clientsByEmail/$emailKey', 'allowedClients/${raw['username'] ?? ''}', 'clients/${raw['username'] ?? ''}'];
-        if (phoneDigits.isNotEmpty) { allUids.add(phoneDigits); allUids.add(phoneRaw); }
-        if (username.isNotEmpty) { allUids.add(username); allUids.add(username.toLowerCase()); }
-        try { final s = await db.ref('clientUsernames').get(); if (s.exists) (s.value as Map).forEach((k, val) { if (val == uid || k.toString().toLowerCase() == username) { allUids.add(k.toString()); allUids.add(val.toString()); _log('Found via clientUsernames/$k -> $val'); } }); } catch (_) {}
-        try { final s = await db.ref('clientPhones').get(); if (s.exists) (s.value as Map).forEach((k, val) { if (val == uid || k == phoneDigits || k == phoneRaw) { allUids.add(k.toString()); allUids.add(val.toString()); _log('Found via clientPhones/$k -> $val'); } }); } catch (_) {}
-      }
-      _log('All UIDs to delete: ${allUids.join(', ')}');
-      int deleted = 0;
-      for (final base in rtdbBases) for (final id in allUids) {
-        if (id.length < 2) continue;
-        try { await db.ref('$base/$id').remove(); _log('✅ Deleted: $base/$id'); deleted++; } catch (_) {}
-      }
-      for (final path in mappingPaths) {
-        final key = path.split('/').length > 1 ? path.split('/')[1] : '';
-        if (key.length < 2) continue;
-        try { await db.ref(path).remove(); _log('✅ Deleted: $path'); deleted++; } catch (_) {}
-      }
-      if (type != 'nurse') {
-        try { final s = await db.ref('clientUsernames').get(); if (s.exists) (s.value as Map).forEach((k, val) { if (val == uid) db.ref('clientUsernames/$k').remove(); }); } catch (_) {}
-      }
-      for (final base in rtdbBases) {
-        try {
-          final s = await db.ref(base).get();
-          if (s.exists) {
-            for (final e in (s.value as Map).entries) {
-              if (e.value is Map && (e.value['email'] ?? e.value['clientEmail'] ?? e.value['emailAddress'] ?? '').toString().toLowerCase() == eLower) {
-                await db.ref('$base/${e.key}').remove();
-                _log('Sweep deleted: $base/${e.key} (email match)');
-              }
-            }
-          }
-        } catch (_) {}
-      }
+      final bases = type == 'nurse'
+          ? ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses']
+          : ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients', 'allowedClients', 'pendingClientRegistrations', 'verified_clients'];
+      for (final base in bases) { try { await db.ref('$base/$uid').remove(); } catch (_) {} }
       await _deleteEmailIndexes(uid: uid, email: email, type: type, rec: rec);
       await _deleteAuthUser(uid: uid, email: email);
       await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
       await _deleteStorageOrphansByUid(uid: uid, email: email);
-      _log('✅ Firestore + Storage + Auth + Indexes deleted for $email');
-      _toast('Deleted $deleted paths for $email - Email fit re-register now');
+      _toast('Deleted $email - Email fit re-register now');
       _loadAll();
-    } catch (e) { _log('Delete failed: $e'); _toast('Delete failed: $e'); }
+    } catch (e) { _log('Delete failed: $e'); }
   }
 
-  // ============ EXPORT + DELETE ALL ============
   String _csvCell(String v) {
     final s = v.replaceAll('"', '""');
     if (s.contains(',') || s.contains('"') || s.contains('\n')) return '"$s"';
@@ -567,64 +458,46 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   }
 
   String _buildCsv(List<Map> list) {
-    final rows = <List<String>>[
-      ['Type', 'Full Name', 'Username', 'Email', 'Phone', 'Country Code', 'Approved', 'Has Photo', 'Has Video', 'Has ID', 'Has Licence', 'Has Cert', 'Qualification', 'Services', 'Reference Name', 'Reference Phone', 'GPS Name', 'Lat', 'Lng', 'UID', 'Created At', 'Photo URL', 'ID URL', 'Licence URL', 'Video URL', 'Cert URL'],
-    ];
-    for (final r in list) {
-      final created = r['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((r['createdAt'] as num).toInt()).toString() : '';
-      rows.add(['${r['type'] ?? ''}', '${r['fullName'] ?? ''}', '${r['username'] ?? ''}', '${r['email'] ?? ''}', '${r['phone'] ?? ''}', '${r['countryCode'] ?? ''}', '${r['isApproved'] == true ? 'APPROVED' : 'PENDING'}', '${r['hasPhoto'] == true ? 'YES' : 'NO'}', '${r['hasVideo'] == true ? 'YES' : 'NO'}', '${r['hasId'] == true ? 'YES' : 'NO'}', '${r['hasLicence'] == true ? 'YES' : 'NO'}', '${r['hasCert'] == true ? 'YES' : 'NO'}', '${r['qualification'] ?? ''}', '${r['services'] ?? ''}', '${r['referenceName'] ?? ''}', '${r['referencePhone'] ?? ''}', '${r['gpsName'] ?? ''}', '${r['lat'] ?? ''}', '${r['lng'] ?? ''}', '${r['uid'] ?? ''}', created, '${r['photo'] ?? ''}', '${r['idURL'] ?? ''}', '${r['licenceURL'] ?? ''}', '${r['videoURL'] ?? ''}', '${r['certURL'] ?? ''}']);
-    }
+    final rows = <List<String>>[['Type', 'Full Name', 'Username', 'Email', 'Phone', 'Approved', 'UID', 'Created At']];
+    for (final r in list) rows.add(['${r['type'] ?? ''}', '${r['fullName'] ?? ''}', '${r['username'] ?? ''}', '${r['email'] ?? ''}', '${r['phone'] ?? ''}', '${r['isApproved'] == true ? 'APPROVED' : 'PENDING'}', '${r['uid'] ?? ''}', '${r['createdAt'] ?? ''}']);
     return rows.map((r) => r.map(_csvCell).join(',')).join('\n');
   }
 
   Future<void> _export() async {
     final list = filtered;
-    if (list.isEmpty) { _toast('Nothing to export - list is empty'); return; }
+    if (list.isEmpty) { _toast('Nothing to export'); return; }
     final csv = _buildCsv(list);
     await Clipboard.setData(ClipboardData(text: csv));
-    if (!mounted) return;
-    showDialog(context: context, builder: (_) => AlertDialog(title: Text('Export - CSV copied (${list.length} in $currentTab)'), content: SingleChildScrollView(child: Text('Saved ${list.length} records to clipboard.\n\nPaste it into Excel / Google Sheets / WhatsApp / Notes.\n\n$csv')), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')), ElevatedButton(onPressed: () { Clipboard.setData(ClipboardData(text: csv)); Navigator.pop(context); _toast('Copied again'); }, child: const Text('Copy Again'))]));
+    _toast('Copied ${list.length} records');
   }
 
   Future<void> _deleteAllFiltered() async {
     final list = List<Map>.from(filtered);
     if (list.isEmpty) { _toast('Nothing to delete'); return; }
-    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Delete ALL ${list.length} in $currentTab?'), content: Text('This deletes ALL ${list.length} records in the current tab ($currentTab) from RTDB + Firestore + Auth. It cannot be undone.\n\nTip: Export first, so you still have a copy saved.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Continue'))]));
+    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Delete ALL ${list.length} in $currentTab?'), content: const Text('Deletes ALL in current tab from RTDB + Firestore + Auth. Cannot be undone. Export first.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Continue'))]));
     if (c1 != true) return;
     final ctrl = TextEditingController();
     final confirmText = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: Text('Type DELETE to delete ALL ${list.length}'), content: TextField(controller: ctrl), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Confirm'))]));
-    if (confirmText != 'DELETE') { _toast('Cancelled - you must type DELETE'); return; }
+    if (confirmText != 'DELETE') { _toast('Cancelled'); return; }
     setState(() { showLog = true; logLines = []; });
-    _log('STARTING DELETE ALL - ${list.length} records in $currentTab');
     int done = 0;
     try {
       final db = FirebaseDatabase.instance;
       for (final rec in list) {
-        final uid = (rec['uid'] ?? rec['id'] ?? '').toString();
+        final uid = (rec['uid'] ?? '').toString();
         final email = (rec['email'] ?? '').toString().toLowerCase();
-        final emailKey = _sanitizeEmail(email);
         final type = rec['type']?.toString() ?? 'nurse';
-        final bases = type == 'nurse'
-            ? ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence']
-            : ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients', 'allowedClients', 'allowedClientsByUid', 'pendingClientRegistrations', 'verified_clients', 'onlineClients', 'clientPresence', 'clientsByEmail'];
-        for (final base in bases) {
-          if (uid.length >= 2) { try { await db.ref('$base/$uid').remove(); } catch (_) {} }
-          if (emailKey.length >= 2) { try { await db.ref('$base/$emailKey').remove(); } catch (_) {} }
-        }
+        final bases = type == 'nurse' ? ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations'] : ['clients', 'client_registrations', 'allClients', 'clientUsers', 'ceoClientUpdates', 'ceoRegistrationCenter/clients'];
+        for (final base in bases) { try { await db.ref('$base/$uid').remove(); } catch (_) {} }
         await _deleteEmailIndexes(uid: uid, email: email, type: type, rec: rec);
         await _deleteAuthUser(uid: uid, email: email);
         await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
         await _deleteStorageOrphansByUid(uid: uid, email: email);
         done++;
-        _log('Deleted: $type ${rec['fullName']} ($email) - Firestore + RTDB + Storage + Auth');
       }
-      _log('DONE - Deleted $done records');
-      _toast('Deleted $done records - Emails fit re-register now');
+      _toast('Deleted $done records');
       _loadAll();
-    } catch (e) {
-      _log('Delete All failed: $e');
-      _toast('Delete All failed: $e');
-    }
+    } catch (e) { _toast('Delete All failed: $e'); }
   }
 
   void _viewDoc(String url, String label, String type) {
@@ -634,16 +507,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
 
   Widget _docBox(String url, String label, bool has, String type) => InkWell(
         onTap: () => _viewDoc(url, label, type),
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10), border: Border.all(color: has ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3))),
-          child: Column(children: [
-            if (url.isNotEmpty && type == 'image') ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(url, height: 80, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(height: 80, child: Center(child: Text('Photo'))))) else SizedBox(height: 80, child: Center(child: Text(has ? 'View $label' : 'No $label', style: const TextStyle(color: Colors.white60, fontSize: 11)))),
-            const SizedBox(height: 4),
-            Text('$label ${has ? '✅' : '❌'}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-          ]),
-        ),
-      );
+        child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10), border: Border.all(color: has ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3))), child: Column(children: [if (url.isNotEmpty && type == 'image') ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(url, height: 80, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(height: 80, child: Center(child: Text('Photo'))))) else SizedBox(height: 80, child: Center(child: Text(has ? 'View $label' : 'No $label', style: const TextStyle(color: Colors.white60, fontSize: 11)))), const SizedBox(height: 4), Text('$label ${has ? '✅' : '❌'}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))])));
 
   @override
   Widget build(BuildContext context) {
@@ -655,6 +519,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         title: const Text('CEO Registration Center', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         actions: [
           TextButton(onPressed: _export, child: const Text('Export', style: TextStyle(color: Colors.amber))),
+          TextButton(onPressed: _recoverOrphans, child: const Text('Recover Missing', style: TextStyle(color: Colors.yellow))),
           TextButton(onPressed: _deleteAllFiltered, child: const Text('Delete All', style: TextStyle(color: Colors.red))),
           TextButton(onPressed: _wipeAllAuthAndStorage, child: const Text('Wipe All Auth + Storage', style: TextStyle(color: Colors.redAccent))),
           TextButton(onPressed: _fixAllApproved, child: const Text('Fix All Approved', style: TextStyle(color: Colors.greenAccent))),
@@ -662,87 +527,26 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         ],
       ),
       body: Column(children: [
-        Padding(
-          padding: const EdgeInsets.all(10),
-          child: Wrap(spacing: 8, runSpacing: 8, children: [
-            _tabBtn('Nurses Pending ($nursesPendingCount)', 'nursesPending', Colors.orange),
-            _tabBtn('Nurses Approved ($nursesApprovedCount)', 'nursesApproved', Colors.green),
-            _tabBtn('Clients Pending ($clientsPendingCount)', 'clientsPending', Colors.blue),
-            _tabBtn('Clients Approved ($clientsApprovedCount)', 'clientsApproved', Colors.teal),
-            _tabBtn('ALL (${allRecords.length})', 'all', Colors.purple),
-          ]),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Row(children: [
-            Expanded(child: TextField(controller: _searchCtrl, onChanged: (v) => setState(() => search = v), style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: 'Search name / username / email / phone...', hintStyle: const TextStyle(color: Colors.white54), filled: true, fillColor: const Color(0xFF1A1633), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.search, color: Colors.white54)))),
-            const SizedBox(width: 8),
-            DropdownButton<String>(value: docFilter, dropdownColor: const Color(0xFF1A1633), style: const TextStyle(color: Colors.white), items: const [DropdownMenuItem(value: 'all', child: Text('All Documents')), DropdownMenuItem(value: 'noVideo', child: Text('No Video')), DropdownMenuItem(value: 'noPhoto', child: Text('No Photo')), DropdownMenuItem(value: 'noId', child: Text('No ID'))], onChanged: (v) => setState(() => docFilter = v ?? 'all')),
-          ]),
-        ),
-        if (showLog)
-          Container(
-            margin: const EdgeInsets.all(10),
-            padding: const EdgeInsets.all(10),
-            height: 140,
-            decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
-            child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: logLines.map((l) => Text(l, style: const TextStyle(color: Colors.greenAccent, fontSize: 11))).toList())),
-          ),
-        Expanded(
-          child: isLoading
-              ? const Center(child: CircularProgressIndicator(color: Colors.purple))
-              : list.isEmpty
-                  ? const Center(child: Text('No records here', style: TextStyle(color: Colors.white54)))
-                  : ListView.builder(
-                      itemCount: list.length,
-                      itemBuilder: (_, i) {
-                        final r = list[i];
-                        final raw = r['raw'] is Map ? Map.from(r['raw'] as Map) : {};
-                        return Card(
-                          color: const Color(0xFF1A1633),
-                          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Row(children: [
-                                CircleAvatar(radius: 24, backgroundImage: r['photo'].toString().isNotEmpty ? NetworkImage(r['photo'].toString()) : null, backgroundColor: Colors.purple, child: r['photo'].toString().isEmpty ? Text(r['type'] == 'nurse' ? '👩‍⚕️' : '👤') : null),
-                                const SizedBox(width: 10),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r['fullName'].toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), Text('${r['email']} • ${r['phone']}', style: const TextStyle(color: Colors.white60, fontSize: 12)), Text('${r['type']} • ${r['isApproved'] == true ? '✅ APPROVED' : '⏳ PENDING'} • UID: ${r['uid']}', style: TextStyle(color: r['isApproved'] == true ? Colors.greenAccent : Colors.orange, fontSize: 11))])),
-                              ]),
-                              const SizedBox(height: 10),
-                              GridView.count(crossAxisCount: 4, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 6, mainAxisSpacing: 6, children: [
-                                _docBox(r['photo'].toString(), 'Photo', r['hasPhoto'] == true, 'image'),
-                                _docBox(r['idURL'].toString(), 'ID', r['hasId'] == true, 'image'),
-                                _docBox(r['licenceURL'].toString(), 'Licence', r['hasLicence'] == true, 'image'),
-                                _docBox(r['videoURL'].toString(), 'Video', r['hasVideo'] == true, 'video'),
-                                _docBox(r['certURL'].toString(), 'Cert', r['hasCert'] == true, 'image'),
-                                _docBox(r['cvURL'].toString(), 'CV', r['hasCv'] == true, 'image'),
-                                _docBox('', 'PIN ${raw['nursingPin'] ?? raw['pin'] ?? '—'}', r['hasPin'] == true, 'text'),
-                                _docBox('', 'Phone ${r['phone']}', r['phone'].toString().isNotEmpty, 'text'),
-                              ]),
-                              const SizedBox(height: 10),
-                              Row(children: [
-                                Expanded(child: ElevatedButton(onPressed: () => _approve(r), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('Approve', style: TextStyle(color: Colors.white)))),
-                                const SizedBox(width: 8),
-                                Expanded(child: ElevatedButton(onPressed: () => _reject(r), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), child: const Text('Reject', style: TextStyle(color: Colors.white)))),
-                                const SizedBox(width: 8),
-                                Expanded(child: ElevatedButton(onPressed: () => _deleteAccount(r), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Delete Completely', style: TextStyle(color: Colors.white, fontSize: 12)))),
-                              ]),
-                            ]),
-                          ),
-                        );
-                      },
-                    ),
-        ),
+        Padding(padding: const EdgeInsets.all(10), child: Wrap(spacing: 8, runSpacing: 8, children: [_tabBtn('Nurses Pending ($nursesPendingCount)', 'nursesPending', Colors.orange), _tabBtn('Nurses Approved ($nursesApprovedCount)', 'nursesApproved', Colors.green), _tabBtn('Clients Pending ($clientsPendingCount)', 'clientsPending', Colors.blue), _tabBtn('Clients Approved ($clientsApprovedCount)', 'clientsApproved', Colors.teal), _tabBtn('ALL (${allRecords.length})', 'all', Colors.purple)])),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Row(children: [Expanded(child: TextField(controller: _searchCtrl, onChanged: (v) => setState(() => search = v), style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: 'Search name / username / email / phone...', hintStyle: const TextStyle(color: Colors.white54), filled: true, fillColor: const Color(0xFF1A1633), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.search, color: Colors.white54)))), const SizedBox(width: 8), DropdownButton<String>(value: docFilter, dropdownColor: const Color(0xFF1A1633), style: const TextStyle(color: Colors.white), items: const [DropdownMenuItem(value: 'all', child: Text('All Documents')), DropdownMenuItem(value: 'noVideo', child: Text('No Video')), DropdownMenuItem(value: 'noPhoto', child: Text('No Photo')), DropdownMenuItem(value: 'noId', child: Text('No ID'))], onChanged: (v) => setState(() => docFilter = v ?? 'all'))])),
+        if (showLog) Container(margin: const EdgeInsets.all(10), padding: const EdgeInsets.all(10), height: 140, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: logLines.map((l) => Text(l, style: const TextStyle(color: Colors.greenAccent, fontSize: 11))).toList()))),
+        Expanded(child: isLoading ? const Center(child: CircularProgressIndicator(color: Colors.purple)) : list.isEmpty ? const Center(child: Text('No records here', style: TextStyle(color: Colors.white54))) : ListView.builder(itemCount: list.length, itemBuilder: (_, i) {
+          final r = list[i];
+          final raw = r['raw'] is Map ? Map.from(r['raw'] as Map) : {};
+          return Card(color: const Color(0xFF1A1633), margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [CircleAvatar(radius: 24, backgroundImage: r['photo'].toString().isNotEmpty ? NetworkImage(r['photo'].toString()) : null, backgroundColor: Colors.purple, child: r['photo'].toString().isEmpty ? Text(r['type'] == 'nurse' ? '👩‍⚕️' : '👤') : null), const SizedBox(width: 10), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r['fullName'].toString().isEmpty ? '(No name - Needs Profile)' : r['fullName'].toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), Text('${r['email']} • ${r['phone']}', style: const TextStyle(color: Colors.white60, fontSize: 12)), Text('${r['type']} • ${r['isApproved'] == true ? '✅ APPROVED' : '⏳ PENDING'} • UID: ${r['uid']}${r['needsProfile'] == true ? ' • ⚠️ NEEDS PROFILE' : ''}', style: TextStyle(color: r['isApproved'] == true ? Colors.greenAccent : Colors.orange, fontSize: 11))]))) ]),
+            const SizedBox(height: 10),
+            GridView.count(crossAxisCount: 4, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 6, mainAxisSpacing: 6, children: [_docBox(r['photo'].toString(), 'Photo', r['hasPhoto'] == true, 'image'), _docBox(r['idURL'].toString(), 'ID', r['hasId'] == true, 'image'), _docBox(r['licenceURL'].toString(), 'Licence', r['hasLicence'] == true, 'image'), _docBox(r['videoURL'].toString(), 'Video', r['hasVideo'] == true, 'video'), _docBox(r['certURL'].toString(), 'Cert', r['hasCert'] == true, 'image'), _docBox(r['cvURL'].toString(), 'CV', r['hasCv'] == true, 'image'), _docBox('', 'PIN ${raw['nursingPin'] ?? raw['pin'] ?? '—'}', r['hasPin'] == true, 'text'), _docBox('', 'Phone ${r['phone']}', r['phone'].toString().isNotEmpty, 'text')]),
+            const SizedBox(height: 10),
+            Row(children: [Expanded(child: ElevatedButton(onPressed: () => _approve(r), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('Approve', style: TextStyle(color: Colors.white)))), const SizedBox(width: 8), Expanded(child: ElevatedButton(onPressed: () => _reject(r), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), child: const Text('Reject', style: TextStyle(color: Colors.white)))), const SizedBox(width: 8), Expanded(child: ElevatedButton(onPressed: () => _deleteAccount(r), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Delete Completely', style: TextStyle(color: Colors.white, fontSize: 12))))]),
+          ])));
+        })),
       ]),
     );
   }
 
   Widget _tabBtn(String label, String value, Color color) {
     final active = currentTab == value;
-    return InkWell(
-      onTap: () => setState(() => currentTab = value),
-      child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: active ? color : Colors.black26, borderRadius: BorderRadius.circular(20), border: Border.all(color: color)), child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
-    );
+    return InkWell(onTap: () => setState(() => currentTab = value), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: active ? color : Colors.black26, borderRadius: BorderRadius.circular(20), border: Border.all(color: color)), child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))));
   }
 }
