@@ -64,13 +64,7 @@ exports.onNewClient = onValueCreated(
 );
 
 // ---------- NURSE + CLIENT PUSH (same system, personal topics) ----------
-// Nurses/clients subscribe in main.dart to:
-//   topic 'user_{uid}'  - ONLY their own info
-//   topic 'nurses' / 'clients' - broadcast
-// So Ama (nurse) does NOT get Kofi's job offer.
-//
-// 1. New Booking / Job Offer -> Nurse gets "New Job Offer"
-//    Watches: bookings/{bookingId} created, with nurseId / nurseUid
+const { onValueWritten } = require('firebase-functions/v2/database');
 exports.onNewBookingForNurse = onValueCreated(
   { ref: 'bookings/{bookingId}', region: 'us-central1' },
   async (event) => {
@@ -91,10 +85,6 @@ exports.onNewBookingForNurse = onValueCreated(
   }
 );
 
-// 2. Booking status changes -> Client gets "Booking Accepted / Nurse Assigned"
-//    Watches: bookings/{bookingId} updated. Use onValueWritten and check status.
-//    We send only if status looks like accepted / assigned / confirmed / completed.
-const { onValueWritten } = require('firebase-functions/v2/database');
 exports.onBookingStatusForClient = onValueWritten(
   { ref: 'bookings/{bookingId}', region: 'us-central1' },
   async (event) => {
@@ -103,7 +93,7 @@ exports.onBookingStatusForClient = onValueWritten(
     if (!after) return;
     const oldStatus = before ? String(before.status || '') : '';
     const newStatus = String(after.status || '');
-    if (!newStatus || newStatus === oldStatus) return; // not a status change
+    if (!newStatus || newStatus === oldStatus) return;
     const clientId = after.clientId || after.clientUid || null;
     if (!clientId) return;
     const s = newStatus.toLowerCase();
@@ -130,7 +120,6 @@ exports.onBookingStatusForClient = onValueWritten(
   }
 );
 
-// 3. New Job Offer (separate node, if your app uses jobOffers / my_job_offer) -> Nurse
 exports.onNewJobOffer = onValueCreated(
   { ref: 'jobOffers/{offerId}', region: 'us-central1' },
   async (event) => {
@@ -145,8 +134,6 @@ exports.onNewJobOffer = onValueCreated(
   }
 );
 
-// 4. Chat message -> the RECEIVER (nurse OR client) gets "New Message"
-//    Watches: chatMessages/{msgId} created, with toId / receiverId
 exports.onNewChatMessage = onValueCreated(
   { ref: 'chatMessages/{msgId}', region: 'us-central1' },
   async (event) => {
@@ -166,19 +153,7 @@ exports.onNewChatMessage = onValueCreated(
   }
 );
 
-// ========== NEW: COMPLETE DELETE - CEO DELETE => EMAIL FIT RE-REGISTER ==========
-// Called from CEO app: FirebaseFunctions.instance.httpsCallable('deleteAuthUser').call({uid, email})
-// Why this exists: Flutter app CANNOT delete another user's Auth account.
-// Only Admin SDK (this function) can. Without this, delete in CEO app leaves
-// Auth behind, and re-register fails with "email-already-in-use / already registered".
-// This function uses v2 onCall to match the rest of this file - DO NOT use v1 syntax here.
-// It deletes:
-//   1. Firebase Auth user (by uid, or by email if uid empty)
-//   2. RTDB: nurses/clients + all registration + allowed + email indexes + bookings for that uid
-//   3. Firestore: same collections (best-effort, no crash if doc no dey)
-//   4. Storage: nurses/{uid} + clients/{uid} folders (best-effort)
-// CEO Flutter already deletes RTDB/Firestore/Storage too - this is backup so
-// even if Flutter delete fails halfway, Auth + indexes still go, and email is free.
+// ========== COMPLETE DELETE ==========
 const { onCall, HttpsError } = require('firebase-functions/v2/https');
 
 function sanitizeEmailKey(email) {
@@ -197,7 +172,6 @@ exports.deleteAuthUser = onCall(
       throw new HttpsError('invalid-argument', 'uid or email required');
     }
 
-    // --- 1. Find Auth uid ---
     let targetUid = uid;
     let targetEmail = email;
     try {
@@ -209,11 +183,9 @@ exports.deleteAuthUser = onCall(
         targetUid = u.uid;
       }
     } catch (e) {
-      // Auth user may already be gone - continue to clean DB anyway
       console.log('Auth lookup: user not found or already deleted:', e.message);
     }
 
-    // --- 2. Delete Auth user ---
     let authDeleted = false;
     if (targetUid) {
       try {
@@ -222,7 +194,7 @@ exports.deleteAuthUser = onCall(
         console.log('Auth deleted:', targetUid, targetEmail);
       } catch (e) {
         if (e.code === 'auth/user-not-found') {
-          authDeleted = true; // already gone = good, email is free
+          authDeleted = true;
         } else {
           console.error('Auth delete failed:', e);
           throw new HttpsError('internal', 'Auth delete failed: ' + e.message);
@@ -230,7 +202,6 @@ exports.deleteAuthUser = onCall(
       }
     }
 
-    // --- 3. RTDB cleanup (backup for Flutter delete) ---
     const db = admin.database();
     const rtdbBases = [
       'nurses', 'pending_nurses', 'pendingNurses', 'allNurses',
@@ -284,7 +255,6 @@ exports.deleteAuthUser = onCall(
         if (targetUid) await db.ref(base + '/' + targetUid).remove().catch(() => {});
         if (emailKey) await db.ref(base + '/' + emailKey).remove().catch(() => {});
       }
-      // ceoRegistrationCenter sub-nodes
       if (targetUid) {
         await db.ref('ceoRegistrationCenter/nurses/' + targetUid).remove().catch(() => {});
         await db.ref('ceoRegistrationCenter/clients/' + targetUid).remove().catch(() => {});
@@ -292,7 +262,6 @@ exports.deleteAuthUser = onCall(
       for (const p of indexPaths) {
         await db.ref(p).remove().catch(() => {});
       }
-      // Final sweep: any child in main bases whose email matches
       for (const base of ['nurses', 'pending_nurses', 'nurse_registrations', 'clients', 'client_registrations', 'ceoRegistrationCenter/nurses', 'ceoRegistrationCenter/clients']) {
         try {
           const snap = await db.ref(base).get();
@@ -312,7 +281,6 @@ exports.deleteAuthUser = onCall(
       console.error('RTDB cleanup failed (non-fatal):', e);
     }
 
-    // --- 4. Firestore cleanup (best-effort) ---
     try {
       const fs = admin.firestore();
       const colls = ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications', 'allNurses', 'nurseUsers', 'clients', 'client_registrations', 'pending_clients', 'clientApplications', 'allClients', 'clientUsers', 'users', 'registeredEmails', 'usedEmails', 'usersByEmail', 'emailIndex', 'nursesByEmail', 'clientsByEmail'];
@@ -325,15 +293,12 @@ exports.deleteAuthUser = onCall(
       console.error('Firestore cleanup failed (non-fatal):', e);
     }
 
-    // --- 5. Storage cleanup (best-effort) - NOW scans ALL prefixes, not only nurses/{uid} ---
     try {
       const bucket = admin.storage().bucket();
       if (targetUid) {
         await bucket.deleteFiles({ prefix: 'nurses/' + targetUid + '/' }).catch(() => {});
         await bucket.deleteFiles({ prefix: 'clients/' + targetUid + '/' }).catch(() => {});
         await bucket.deleteFiles({ prefix: 'ceo_registration/' + targetUid + '/' }).catch(() => {});
-        // Also try common upload folders with uid in name - registration dey use uploads/videos/images + random name
-        // We list and delete files whose name contains uid - best effort
         try {
           const [files] = await bucket.getFiles({ prefix: 'uploads/', maxResults: 1000 });
           for (const f of files) {
@@ -351,13 +316,9 @@ exports.deleteAuthUser = onCall(
   }
 );
 
-// ========== WIPE ALL - ONE TIME CLEANUP - FIX FOR CONSOLE STILL SHOWING EMAILS / FILES ==========
-// Why Console still show emails/files after CEO list show (0)?
-// 1. deleteAuthUser never deploy before, so Auth remain
-// 2. Storage files no dey for nurses/{uid}/ - dem dey for uploads/videos/images + random name
-// Called from CEO app: FirebaseFunctions.instance.httpsCallable('wipeAllAuthAndStorage').call({keepEmail: 'lovecareglobal@gmail.com'})
-// This deletes EVERY Auth user (except keepEmail) + EVERY Storage file + ALL RTDB + ALL Firestore
-// Use ONLY when you want empty system. CEO app go call am once, with Type WIPE confirm.
+// ========== WIPE ALL - ONE TIME CLEANUP ==========
+// Called from CEO app: FirebaseFunctions.instance.httpsCallable('wipeAllAuthAndStorage').call({keepEmail: 'joshouapee@gmail.com'})
+// Deletes EVERY Auth user (except keepEmail) + EVERY Storage file + ALL RTDB + ALL Firestore
 exports.wipeAllAuthAndStorage = onCall(
   { region: 'us-central1', timeoutSeconds: 540 },
   async (request) => {
