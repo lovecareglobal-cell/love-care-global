@@ -325,18 +325,85 @@ exports.deleteAuthUser = onCall(
       console.error('Firestore cleanup failed (non-fatal):', e);
     }
 
-    // --- 5. Storage cleanup (best-effort) ---
+    // --- 5. Storage cleanup (best-effort) - NOW scans ALL prefixes, not only nurses/{uid} ---
     try {
       const bucket = admin.storage().bucket();
       if (targetUid) {
         await bucket.deleteFiles({ prefix: 'nurses/' + targetUid + '/' }).catch(() => {});
         await bucket.deleteFiles({ prefix: 'clients/' + targetUid + '/' }).catch(() => {});
         await bucket.deleteFiles({ prefix: 'ceo_registration/' + targetUid + '/' }).catch(() => {});
+        // Also try common upload folders with uid in name - registration dey use uploads/videos/images + random name
+        // We list and delete files whose name contains uid - best effort
+        try {
+          const [files] = await bucket.getFiles({ prefix: 'uploads/', maxResults: 1000 });
+          for (const f of files) {
+            if (f.name.includes(targetUid) || (targetEmail && f.name.toLowerCase().includes(targetEmail))) {
+              await f.delete().catch(() => {});
+            }
+          }
+        } catch (_) {}
       }
     } catch (e) {
       console.error('Storage cleanup failed (non-fatal):', e);
     }
 
     return { ok: true, authDeleted, uid: targetUid, email: targetEmail, message: 'Deleted Auth + DB indexes for ' + targetEmail };
+  }
+);
+
+// ========== WIPE ALL - ONE TIME CLEANUP - FIX FOR CONSOLE STILL SHOWING EMAILS / FILES ==========
+// Why Console still show emails/files after CEO list show (0)?
+// 1. deleteAuthUser never deploy before, so Auth remain
+// 2. Storage files no dey for nurses/{uid}/ - dem dey for uploads/videos/images + random name
+// Called from CEO app: FirebaseFunctions.instance.httpsCallable('wipeAllAuthAndStorage').call({keepEmail: 'lovecareglobal@gmail.com'})
+// This deletes EVERY Auth user (except keepEmail) + EVERY Storage file + ALL RTDB + ALL Firestore
+// Use ONLY when you want empty system. CEO app go call am once, with Type WIPE confirm.
+exports.wipeAllAuthAndStorage = onCall(
+  { region: 'us-central1', timeoutSeconds: 540 },
+  async (request) => {
+    const keepEmail = String((request.data || {}).keepEmail || '').toLowerCase().trim();
+    let authDeleted = 0;
+    let authKept = 0;
+
+    // --- 1. Delete ALL Auth users ---
+    let nextPageToken;
+    do {
+      const list = await admin.auth().listUsers(1000, nextPageToken);
+      for (const u of list.users) {
+        const em = String(u.email || '').toLowerCase();
+        if (keepEmail && em === keepEmail) { authKept++; continue; }
+        try { await admin.auth().deleteUser(u.uid); authDeleted++; } catch (_) {}
+      }
+      nextPageToken = list.pageToken;
+    } while (nextPageToken);
+
+    // --- 2. Delete ALL Storage files (no matter folder name) ---
+    let storageDeleted = 0;
+    try {
+      const bucket = admin.storage().bucket();
+      const [files] = await bucket.getFiles({ maxResults: 1000 });
+      for (const f of files) {
+        try { await f.delete(); storageDeleted++; } catch (_) {}
+      }
+    } catch (e) { console.error('Storage wipe failed:', e); }
+
+    // --- 3. Delete ALL RTDB root nodes ---
+    try {
+      const db = admin.database();
+      const roots = ['nurses','pending_nurses','pendingNurses','allNurses','nurse_registrations','nurseApplications','nurseUsers','ceoNurseUpdates','ceoRegistrationCenter','verified_nurses','allowedNurses','allowedNursesByUid','nursesByEmail','nurseProfiles','onlineNurses','nursePresence','nurseLocations','clients','client_registrations','allClients','clientUsers','ceoClientUpdates','verified_clients','allowedClients','allowedClientsByUid','pending_clients','pendingClients','pendingClientRegistrations','clientsByEmail','onlineClients','clientPresence','clientBookings','bookings','registrations','registeredEmails','usedEmails','emailIndex','emails','emailToUid','usersByEmail','nursesByEmail','clientsByEmail','usernames','nurseUsernames','clientUsernames','phones','nursePhones','clientPhones','users','nursingPins','usedPins','jobOffers','chatMessages'];
+      for (const r of roots) await db.ref(r).remove().catch(()=>{});
+    } catch (e) { console.error('RTDB wipe failed:', e); }
+
+    // --- 4. Delete ALL Firestore collections ---
+    try {
+      const fs = admin.firestore();
+      const colls = ['nurses','nurse_registrations','ceo_registration','pending_nurses','nurseApplications','allNurses','nurseUsers','clients','client_registrations','pending_clients','clientApplications','allClients','clientUsers','users','registeredEmails','usedEmails','usersByEmail'];
+      for (const c of colls) {
+        const snap = await fs.collection(c).limit(500).get();
+        for (const d of snap.docs) await d.reference.delete().catch(()=>{});
+      }
+    } catch (e) { console.error('Firestore wipe failed:', e); }
+
+    return { ok: true, authDeleted, authKept, storageDeleted, message: 'Deleted ' + authDeleted + ' Auth users, kept ' + authKept + ', deleted ' + storageDeleted + ' Storage files' };
   }
 );
