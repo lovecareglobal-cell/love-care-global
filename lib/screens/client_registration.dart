@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,17 +18,18 @@ class ClientRegistrationPage extends StatefulWidget {
 class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   final _name = TextEditingController();
   final _username = TextEditingController();
-  final _email = TextEditingController();
+  final _email = TextEditingController(); // OPTIONAL - for recovery only, not for OTP
   final _phone = TextEditingController();
   final _pass = TextEditingController();
   final _otpControllers = List.generate(6, (_) => TextEditingController());
   final _otpFocus = List.generate(6, (_) => FocusNode());
   XFile? _photo;
 
-  // CLIENT OTP RULE:
-  // Pending = OTP NOT verified. CEO does NOT approve Client.
-  // OTP verified -> isApproved = true, canLogin = true, status = approved -> Login with Phone + Password straight.
-  // NO Gmail link. Client stays inside app, types 6-digit OTP from Gmail.
+  // CLIENT PHONE OTP RULE:
+  // Pending = SMS OTP NOT verified. CEO does NOT approve Client.
+  // SMS OTP verified -> isApproved = true, canLogin = true, status = approved -> Login with Phone + Password straight.
+  // NO Gmail link. NO Email OTP. OTP comes as SMS to Phone.
+  // AUTH SAVES PHONE: After OTP, we link Phone + Email/Password to SAME Auth user, so Firebase Console shows phone + email.
   bool _waitingOtp = false;
   bool _loading = false;
   bool _obscurePassword = true;
@@ -37,6 +37,8 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   int _resendSeconds = 0;
   Timer? _resendTimer;
   String _otpStatus = '';
+  String _verificationId = '';
+  int? _resendToken;
   final _picker = ImagePicker();
 
   static const List<Map<String, String>> _countries = [
@@ -110,6 +112,11 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   }
   String get _phoneDigits => _fullPhone.replaceAll(RegExp(r'[^0-9]'), '');
   String get _otpCode => _otpControllers.map((c) => c.text).join();
+  String get _hiddenEmail {
+    final real = _email.text.trim().toLowerCase();
+    if (real.isNotEmpty && real.contains('@')) return real;
+    return '${_phoneDigits}@phone.lovecare';
+  }
 
   @override
   void initState() {
@@ -143,66 +150,38 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
     return await ref.getDownloadURL();
   }
 
-  Future<String?> _checkEmailNotUsedAsNurse(String email) async {
-    final e = email.trim().toLowerCase();
-    final inNurses = await FirebaseFirestore.instance.collection('nurses').where('email', isEqualTo: e).limit(1).get();
-    if (inNurses.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a NURSE. Use Nurse Login.';
-    final inPending = await FirebaseFirestore.instance.collection('pending_nurses').where('email', isEqualTo: e).limit(1).get();
-    if (inPending.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a NURSE (waiting approval).';
-    final inClients = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: e).limit(1).get();
-    if (inClients.docs.isNotEmpty) {
-      final d = inClients.docs.first.data();
-      if ((d['otpVerified'] == true || d['emailVerified'] == true) && d['isApproved'] == true) {
-        return 'BLOCKED: This email is already registered as a CLIENT. Login with Phone + Password instead.';
+  Future<String?> _checkPhoneNotUsedAsNurse(String phone, String digits) async {
+    try {
+      final s = await FirebaseDatabase.instance.ref('nurses').get();
+      if (s.exists && s.value is Map) {
+        for (final e in (s.value as Map).values) {
+          if (e is! Map) continue;
+          final p = (e['phone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
+          if (p.isNotEmpty && (p == digits || p.endsWith(digits) || digits.endsWith(p))) {
+            return 'BLOCKED: This phone is already registered as a NURSE. Use Nurse Login.';
+          }
+        }
       }
-      return null;
-    }
+    } catch (_) {}
+    try {
+      final q = await FirebaseFirestore.instance.collection('nurses').where('phone', isEqualTo: phone).limit(1).get();
+      if (q.docs.isNotEmpty) return 'BLOCKED: This phone is already registered as a NURSE.';
+    } catch (_) {}
     return null;
-  }
-
-  // SAVE IMMEDIATELY + PHONE INDEX - so Phone Login can find this client later
-  // Firestore gets FieldValue, RTDB gets int ONLY. Never send FieldValue to RTDB.
-  Future<void> _saveProfileImmediately({required String uid, required String email, required String name, required String username, required String phone, String photoUrl = ''}) async {
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
-    final firestoreData = <String, Object?>{
-      'uid': uid, 'id': uid, 'name': name, 'fullName': name, 'username': username, 'email': email.toLowerCase(),
-      'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
-      'role': 'client', 'type': 'client', 'status': 'pending', 'isApproved': false, 'approved': false,
-      'approvalStatus': 'pending', 'canLogin': false, 'phoneVerified': false, 'otpVerified': false,
-      'emailVerified': false, 'verifiedByEmail': false, 'isComplete': false, 'hasAll4': false,
-      'photo': photoUrl, 'photoUrl': photoUrl, 'photoURL': photoUrl, 'createdAt': FieldValue.serverTimestamp(),
-    };
-    final rtdbData = <String, Object?>{
-      'uid': uid, 'id': uid, 'name': name, 'fullName': name, 'username': username, 'email': email.toLowerCase(),
-      'phone': phone, 'countryCode': _selectedDialCode, 'country': _selectedCountryName,
-      'role': 'client', 'type': 'client', 'status': 'pending', 'isApproved': false, 'approved': false,
-      'approvalStatus': 'pending', 'canLogin': false, 'phoneVerified': false, 'otpVerified': false,
-      'emailVerified': false, 'verifiedByEmail': false, 'isComplete': false, 'hasAll4': false,
-      'photo': photoUrl, 'photoUrl': photoUrl, 'photoURL': photoUrl, 'createdAt': nowMs,
-    };
-    await FirebaseFirestore.instance.collection('clients').doc(uid).set(firestoreData, SetOptions(merge: true));
-    await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
-    await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
-    await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
-    // PHONE INDEX - THIS MAKES PHONE + PASSWORD LOGIN WORK
-    if (digits.isNotEmpty) {
-      await FirebaseDatabase.instance.ref('phones/$digits').set(email.toLowerCase());
-      await FirebaseDatabase.instance.ref('clientsByPhone/$digits').set(uid);
-    }
   }
 
   Future<void> _savePendingOtp() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('client_pending_otp', true);
-      await prefs.setBool('client_pending_verification', true);
       await prefs.setString('client_pending_name', _name.text.trim());
       await prefs.setString('client_pending_username', _username.text.trim());
       await prefs.setString('client_pending_email', _email.text.trim().toLowerCase());
       await prefs.setString('client_pending_phone', _fullPhone);
       await prefs.setString('client_pending_countryCode', _selectedDialCode);
       await prefs.setString('client_pending_country', _selectedCountryName);
+      await prefs.setString('client_pending_password', _pass.text);
+      await prefs.setString('client_pending_verificationId', _verificationId);
       if (_photo != null) await prefs.setString('client_pending_photo_path', _photo!.path);
     } catch (_) {}
   }
@@ -218,23 +197,30 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
       await prefs.remove('client_pending_phone');
       await prefs.remove('client_pending_countryCode');
       await prefs.remove('client_pending_country');
+      await prefs.remove('client_pending_password');
+      await prefs.remove('client_pending_verificationId');
       await prefs.remove('client_pending_photo_path');
     } catch (_) {}
   }
 
-  // If app close for OTP screen, come back -> go straight to OTP screen, no disappear
   Future<void> _resumePendingOtp() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('client_pending_otp') != true && prefs.getBool('client_pending_verification') != true) return;
-      final u = FirebaseAuth.instance.currentUser;
-      if (u == null) {
-        await _clearPending();
-        return;
-      }
+      if (prefs.getBool('client_pending_otp') != true) return;
       if (_name.text.isEmpty) _name.text = prefs.getString('client_pending_name') ?? '';
       if (_username.text.isEmpty) _username.text = prefs.getString('client_pending_username') ?? '';
       if (_email.text.isEmpty) _email.text = prefs.getString('client_pending_email') ?? '';
+      if (_phone.text.isEmpty) {
+        final saved = prefs.getString('client_pending_phone') ?? '';
+        if (saved.isNotEmpty) {
+          var local = saved.replaceAll(RegExp(r'[^0-9]'), '');
+          if (local.startsWith(_selectedDialCode.replaceAll('+', ''))) local = local.substring(_selectedDialCode.replaceAll('+', '').length);
+          if (local.startsWith('0')) local = local.substring(1);
+          _phone.text = local;
+        }
+      }
+      if (_pass.text.isEmpty) _pass.text = prefs.getString('client_pending_password') ?? '';
+      _verificationId = prefs.getString('client_pending_verificationId') ?? '';
       final photoPath = prefs.getString('client_pending_photo_path');
       if (_photo == null && photoPath != null && photoPath.isNotEmpty) {
         try { _photo = XFile(photoPath); } catch (_) {}
@@ -242,7 +228,7 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
       if (!mounted) return;
       setState(() {
         _waitingOtp = true;
-        _otpStatus = 'Welcome back! Your OTP still dey. Check Gmail for 6-digit code.';
+        _otpStatus = 'Welcome back! Enter SMS OTP sent to $_fullPhone. If expired, tap Resend.';
       });
       _startResendCountdown();
     } catch (_) {}
@@ -258,123 +244,207 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   }
 
   Future<void> _sendOtp() async {
-    final email = _email.text.trim().toLowerCase();
-    if (email.isEmpty) return;
-    setState(() { _otpSending = true; _otpStatus = 'Sending OTP to $email...'; });
+    if (_fullPhone.isEmpty || _phone.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter Phone Number first')));
+      return;
+    }
+    setState(() { _otpSending = true; _otpStatus = 'Sending SMS OTP to $_fullPhone...'; });
     try {
-      await FirebaseFunctions.instance.httpsCallable('sendClientEmailOtp').call({'email': email});
-      if (mounted) setState(() { _otpStatus = 'OTP sent to $email. Check Gmail / Spam. Valid for 10 minutes.'; });
-      _startResendCountdown();
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: _fullPhone,
+        timeout: const Duration(seconds: 60),
+        forceResendingToken: _resendToken,
+        verificationCompleted: (PhoneAuthCredential cred) async {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SMS auto-detected! Verifying...')));
+          await _finishWithPhoneCredential(cred);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          if (!mounted) return;
+          setState(() { _otpSending = false; _otpStatus = 'Failed to send SMS: ${e.message}'; });
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('SMS failed: ${e.message}'), backgroundColor: Colors.red));
+        },
+        codeSent: (String verId, int? token) async {
+          _verificationId = verId;
+          _resendToken = token;
+          await _savePendingOtp();
+          if (!mounted) return;
+          setState(() { _otpSending = false; _waitingOtp = true; _otpStatus = 'SMS OTP sent to $_fullPhone. Enter 6-digit code.'; });
+          _startResendCountdown();
+        },
+        codeAutoRetrievalTimeout: (String verId) { _verificationId = verId; },
+      );
     } catch (e) {
-      if (mounted) setState(() => _otpStatus = 'Failed to send OTP: $e. Tap Resend.');
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send OTP: $e')));
-    } finally {
-      if (mounted) setState(() => _otpSending = false);
+      if (mounted) setState(() { _otpSending = false; _otpStatus = 'Failed: $e'; });
     }
   }
 
   Future<void> _verifyOtp() async {
     if (_otpCode.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter complete 6-digit OTP')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter complete 6-digit SMS code')));
+      return;
+    }
+    if (_verificationId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No OTP sent yet. Tap Resend OTP first.'), backgroundColor: Colors.red));
       return;
     }
     setState(() => _loading = true);
     try {
-      final email = _email.text.trim().toLowerCase();
-      final res = await FirebaseFunctions.instance.httpsCallable('verifyClientEmailOtp').call({'email': email, 'otp': _otpCode});
-      final ok = res.data is Map ? res.data['ok'] == true : true;
-      if (!ok) throw Exception(res.data is Map ? res.data['message'] ?? 'Wrong OTP' : 'Wrong OTP');
-      await _finishAfterOtpVerified();
+      final cred = PhoneAuthProvider.credential(verificationId: _verificationId, smsCode: _otpCode);
+      await _finishWithPhoneCredential(cred);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('OTP failed: $e'), backgroundColor: Colors.red));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Wrong OTP: $e'), backgroundColor: Colors.red));
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _finishAfterOtpVerified() async {
+  // After SMS OTP verified -> Auth user MUST have phoneNumber saved
+  // We link Phone + Email/Password to SAME Auth user, so Firebase Console shows phone + email
+  Future<void> _finishWithPhoneCredential(PhoneAuthCredential phoneCred) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('No user. Register again.');
+      final prefs = await SharedPreferences.getInstance();
+      final name = _name.text.trim().isNotEmpty ? _name.text.trim() : (prefs.getString('client_pending_name') ?? '');
+      final username = _username.text.trim().isNotEmpty ? _username.text.trim() : (prefs.getString('client_pending_username') ?? '');
+      final realEmail = _email.text.trim().isNotEmpty ? _email.text.trim().toLowerCase() : (prefs.getString('client_pending_email') ?? '');
+      final phone = _fullPhone.isNotEmpty && _phone.text.trim().isNotEmpty ? _fullPhone : (prefs.getString('client_pending_phone') ?? '');
+      final password = _pass.text.isNotEmpty ? _pass.text : (prefs.getString('client_pending_password') ?? '');
+      final emailForAuth = realEmail.isNotEmpty && realEmail.contains('@') ? realEmail : '${phone.replaceAll(RegExp(r'[^0-9]'), '')}@phone.lovecare';
+      final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
+
+      if (password.isEmpty) throw Exception('Password missing. Go back and enter password again.');
+
+      // 1. Sign in with Phone OTP first - this user ALREADY has phoneNumber in Auth
+      try {
+        await FirebaseAuth.instance.signInWithCredential(phoneCred);
+      } catch (e) {
+        final cur = FirebaseAuth.instance.currentUser;
+        if (cur == null) rethrow;
+      }
+
+      // 2. Try link Email/Password to this Phone user - BEST CASE: Same user gets phone + email
+      bool linked = false;
+      try {
+        final emailCred = EmailAuthProvider.credential(email: emailForAuth, password: password);
+        await FirebaseAuth.instance.currentUser!.linkWithCredential(emailCred);
+        linked = true;
+      } catch (linkErr) {
+        // Email already exists - sign in with Email, then LINK PHONE to Email user
+        try {
+          await FirebaseAuth.instance.signOut();
+          await FirebaseAuth.instance.signInWithEmailAndPassword(email: emailForAuth, password: password);
+          try {
+            await FirebaseAuth.instance.currentUser!.linkWithCredential(phoneCred);
+            linked = true;
+          } catch (phoneLinkErr) {
+            print('Phone link failed (already linked elsewhere): $phoneLinkErr');
+            linked = false;
+          }
+        } catch (_) {
+          try {
+            await FirebaseAuth.instance.signOut();
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(email: emailForAuth, password: password);
+            try {
+              await FirebaseAuth.instance.currentUser!.linkWithCredential(phoneCred);
+              linked = true;
+            } catch (_) {}
+          } catch (createErr) {
+            await FirebaseAuth.instance.signInWithCredential(phoneCred);
+          }
+        }
+      }
+
+      final user = FirebaseAuth.instance.currentUser!;
       final uid = user.uid;
+
+      // 3. FORCE Auth to save phone + name + photo - this is what shows for Firebase Console
+      try {
+        if ((user.phoneNumber == null || user.phoneNumber!.isEmpty) && linked == false) {
+          try {
+            await user.updatePhoneNumber(phoneCred);
+          } catch (_) {}
+        }
+      } catch (_) {}
+      try {
+        await user.updateDisplayName(name);
+      } catch (_) {}
+
       String? photoUrl;
       if (_photo != null) {
         try { photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg'); } catch (_) {}
       }
-      final prefs = await SharedPreferences.getInstance();
-      final name = _name.text.trim().isNotEmpty ? _name.text.trim() : (prefs.getString('client_pending_name') ?? '');
-      final username = _username.text.trim().isNotEmpty ? _username.text.trim() : (prefs.getString('client_pending_username') ?? '');
-      final email = _email.text.trim().isNotEmpty ? _email.text.trim().toLowerCase() : (prefs.getString('client_pending_email') ?? user.email?.toLowerCase() ?? '');
-      final phone = _fullPhone.isNotEmpty ? _fullPhone : (prefs.getString('client_pending_phone') ?? '');
+      if (photoUrl != null && photoUrl.isNotEmpty) {
+        try { await user.updatePhotoURL(photoUrl); } catch (_) {}
+      }
+      try { await user.reload(); } catch (_) {}
+
+      final finalUser = FirebaseAuth.instance.currentUser!;
+      print('AUTH SAVED: uid=$uid email=${finalUser.email} phone=${finalUser.phoneNumber} name=${finalUser.displayName}');
+
       final nowMs = DateTime.now().millisecondsSinceEpoch;
-      final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
 
-      final firestoreUpdate = <String, Object?>{
-        'uid': uid, 'fullName': name, 'name': name, 'username': username, 'email': email, 'phone': phone,
-        'emailVerified': true, 'verifiedByEmail': true, 'otpVerified': true,
-        'status': 'approved', 'isApproved': true, 'approved': true, 'approvalStatus': 'approved',
-        'canLogin': true, 'isVerified': true, 'isComplete': true, 'hasAll4': true,
-        'approvedAt': FieldValue.serverTimestamp(),
+      final firestoreData = <String, Object?>{
+        'uid': uid, 'id': uid, 'name': name, 'fullName': name, 'username': username,
+        'email': emailForAuth, 'realEmail': realEmail, 'phone': phone, 'phoneNumber': phone,
+        'authPhone': finalUser.phoneNumber ?? phone,
+        'countryCode': _selectedDialCode, 'country': _selectedCountryName,
+        'role': 'client', 'type': 'client', 'status': 'approved', 'isApproved': true, 'approved': true,
+        'approvalStatus': 'approved', 'canLogin': true, 'phoneVerified': true, 'otpVerified': true,
+        'emailVerified': true, 'verifiedByEmail': false, 'verifiedByPhone': true, 'isVerified': true,
+        'isComplete': true, 'hasAll4': true, 'approvedAt': FieldValue.serverTimestamp(),
         if (photoUrl != null && photoUrl.isNotEmpty) 'photo': photoUrl,
         if (photoUrl != null && photoUrl.isNotEmpty) 'photoUrl': photoUrl,
         if (photoUrl != null && photoUrl.isNotEmpty) 'photoURL': photoUrl,
       };
-      final rtdbUpdate = <String, Object?>{
-        'uid': uid, 'fullName': name, 'name': name, 'username': username, 'email': email, 'phone': phone,
-        'emailVerified': true, 'verifiedByEmail': true, 'otpVerified': true,
-        'status': 'approved', 'isApproved': true, 'approved': true, 'approvalStatus': 'approved',
-        'canLogin': true, 'isVerified': true, 'isComplete': true, 'hasAll4': true,
-        'approvedAt': nowMs, 'updatedAt': nowMs,
+      final rtdbData = <String, Object?>{
+        'uid': uid, 'id': uid, 'name': name, 'fullName': name, 'username': username,
+        'email': emailForAuth, 'realEmail': realEmail, 'phone': phone, 'phoneNumber': phone,
+        'authPhone': finalUser.phoneNumber ?? phone,
+        'countryCode': _selectedDialCode, 'country': _selectedCountryName,
+        'role': 'client', 'type': 'client', 'status': 'approved', 'isApproved': true, 'approved': true,
+        'approvalStatus': 'approved', 'canLogin': true, 'phoneVerified': true, 'otpVerified': true,
+        'emailVerified': true, 'verifiedByEmail': false, 'verifiedByPhone': true, 'isVerified': true,
+        'isComplete': true, 'hasAll4': true, 'approvedAt': nowMs, 'updatedAt': nowMs,
         if (photoUrl != null && photoUrl.isNotEmpty) 'photo': photoUrl,
         if (photoUrl != null && photoUrl.isNotEmpty) 'photoUrl': photoUrl,
         if (photoUrl != null && photoUrl.isNotEmpty) 'photoURL': photoUrl,
       };
 
-      await FirebaseFirestore.instance.collection('clients').doc(uid).set(firestoreUpdate, SetOptions(merge: true));
-      await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').update(rtdbUpdate);
-      await FirebaseDatabase.instance.ref('clients/$uid').update(rtdbUpdate);
-      await FirebaseDatabase.instance.ref('client_registrations/$uid').update(rtdbUpdate);
-      await FirebaseDatabase.instance.ref('allowedClients/${email.replaceAll(RegExp(r'[.#\$@\[\]]'), '_')}').set({...rtdbUpdate, 'uid': uid});
-      await FirebaseDatabase.instance.ref('allowedClientsByUid/$uid').set({...rtdbUpdate, 'uid': uid});
-      // PHONE INDEX - again after verify, so Phone Login must work
+      await FirebaseFirestore.instance.collection('clients').doc(uid).set(firestoreData, SetOptions(merge: true));
+      await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
+      await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
+      await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
+      await FirebaseDatabase.instance.ref('allowedClients/${emailForAuth.replaceAll(RegExp(r'[.#\$@\[\]]'), '_')}').set({...rtdbData, 'uid': uid});
+      await FirebaseDatabase.instance.ref('allowedClientsByUid/$uid').set({...rtdbData, 'uid': uid});
       if (digits.isNotEmpty) {
-        await FirebaseDatabase.instance.ref('phones/$digits').set(email);
+        await FirebaseDatabase.instance.ref('phones/$digits').set(emailForAuth);
         await FirebaseDatabase.instance.ref('clientsByPhone/$digits').set(uid);
       }
 
       await _clearPending();
       if (!mounted) return;
       setState(() { _waitingOtp = false; _loading = false; });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP verified! You are approved. Login with Phone + Password now - no CEO approval needed.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Phone OTP verified! Auth saved phone ${finalUser.phoneNumber ?? phone}. Login with Phone + Password now.')));
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ClientLoginPage()));
     } catch (e) {
       if (mounted) setState(() => _loading = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red));
     }
   }
 
   Future<void> _cancelOtp() async {
     _resendTimer?.cancel();
-    try {
-      final u = FirebaseAuth.instance.currentUser;
-      if (u != null) {
-        await FirebaseDatabase.instance.ref('clients/${u.uid}').remove().catchError((_) {});
-        await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/${u.uid}').remove().catchError((_) {});
-        await FirebaseDatabase.instance.ref('client_registrations/${u.uid}').remove().catchError((_) {});
-        await FirebaseFirestore.instance.collection('clients').doc(u.uid).delete().catchError((_) {});
-        await u.delete();
-      }
-    } catch (_) { await FirebaseAuth.instance.signOut(); }
+    try { await FirebaseAuth.instance.signOut(); } catch (_) {}
     await _clearPending();
     if (!mounted) return;
-    setState(() { _waitingOtp = false; _loading = false; });
+    setState(() { _waitingOtp = false; _loading = false; _otpSending = false; });
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP cancelled. Register again.'), backgroundColor: Colors.red));
   }
 
   Future<void> _register() async {
-    if (_name.text.trim().isEmpty || _username.text.trim().isEmpty || _email.text.trim().isEmpty || _phone.text.trim().isEmpty || _pass.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill all fields - name, username, email, phone and password')));
+    if (_name.text.trim().isEmpty || _username.text.trim().isEmpty || _phone.text.trim().isEmpty || _pass.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill Name, Username, Phone and Password. Email is optional.')));
       return;
     }
     if (!_isStrongPassword) {
@@ -385,51 +455,22 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid country code for Other, e.g. +999')));
       return;
     }
-    final email = _email.text.trim().toLowerCase();
-    final blocked = await _checkEmailNotUsedAsNurse(email);
+    try {
+      final s = await FirebaseDatabase.instance.ref('phones/$_phoneDigits').get();
+      if (s.exists) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This phone already has an account. Login with Phone + Password instead.'), backgroundColor: Colors.orange));
+        return;
+      }
+    } catch (_) {}
+    final blocked = await _checkPhoneNotUsedAsNurse(_fullPhone, _phoneDigits);
     if (blocked != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(blocked), backgroundColor: Colors.red));
       return;
     }
     setState(() => _loading = true);
-    try {
-      UserCredential cred;
-      try {
-        cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: _pass.text.trim());
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'email-already-in-use') {
-          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This email already has an account. We will resume OTP - check Gmail for code.'), backgroundColor: Colors.orange));
-          try {
-            cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: _pass.text.trim());
-            final uid = cred.user!.uid;
-            await _saveProfileImmediately(uid: uid, email: email, name: _name.text.trim(), username: _username.text.trim(), phone: _fullPhone);
-            await _savePendingOtp();
-            if (!mounted) return;
-            setState(() { _loading = false; _waitingOtp = true; _otpStatus = 'We resumed your account. Enter OTP sent to $email.'; });
-            await _sendOtp();
-            return;
-          } catch (_) {
-            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Email already exists. Go to Login with Phone + Password.'), backgroundColor: Colors.red));
-            if (mounted) setState(() => _loading = false);
-            return;
-          }
-        }
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not create account: ${e.message ?? e.code}'), backgroundColor: Colors.red));
-        if (mounted) setState(() => _loading = false);
-        return;
-      }
-      final uid = cred.user!.uid;
-      await _saveProfileImmediately(uid: uid, email: email, name: _name.text.trim(), username: _username.text.trim(), phone: _fullPhone);
-      await _savePendingOtp();
-      if (!mounted) return;
-      setState(() { _loading = false; _waitingOtp = true; _otpStatus = 'Sending OTP to $email...'; });
-      await _sendOtp();
-      return;
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted && !_waitingOtp) setState(() => _loading = false);
-    }
+    await _savePendingOtp();
+    await _sendOtp();
+    if (mounted) setState(() => _loading = false);
   }
 
   int get _passwordScore {
@@ -489,15 +530,15 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
   Widget build(BuildContext context) {
     if (_waitingOtp) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Enter OTP Code'), backgroundColor: Colors.purple, foregroundColor: Colors.white),
+        appBar: AppBar(title: const Text('Enter SMS OTP'), backgroundColor: Colors.purple, foregroundColor: Colors.white),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Icon(Icons.lock_outline, size: 70, color: Colors.purple),
+            const Icon(Icons.sms_outlined, size: 70, color: Colors.purple),
             const SizedBox(height: 16),
-            Text('We sent 6-digit code to\n${_email.text.trim().toLowerCase()}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('We sent 6-digit SMS code to\n$_fullPhone', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            const Text('Check Gmail / Spam. Enter code below. You stay inside app, no need to leave.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+            const Text('Check your SMS. Enter code below. You stay inside app.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 24),
             Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: List.generate(6, (i) => _otpBox(i))),
             const SizedBox(height: 16),
@@ -506,12 +547,12 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
             _loading ? const Center(child: CircularProgressIndicator()) : ElevatedButton(
               onPressed: _verifyOtp,
               style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
-              child: const Text('VERIFY OTP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: const Text('VERIFY SMS OTP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(height: 12),
             _resendSeconds > 0
-                ? Center(child: Text('Resend in $_resendSeconds s', style: const TextStyle(color: Colors.grey)))
-                : OutlinedButton(onPressed: _otpSending ? null : _sendOtp, child: Text(_otpSending ? 'Sending...' : 'Resend OTP')),
+                ? Center(child: Text('Resend SMS in $_resendSeconds s', style: const TextStyle(color: Colors.grey)))
+                : OutlinedButton(onPressed: _otpSending ? null : _sendOtp, child: Text(_otpSending ? 'Sending SMS...' : 'Resend SMS OTP')),
             const SizedBox(height: 12),
             TextButton(onPressed: _cancelOtp, child: const Text('Cancel Registration', style: TextStyle(color: Colors.red))),
           ]),
@@ -525,15 +566,15 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
         child: Column(children: [
           TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full Name')),
           TextField(controller: _username, decoration: const InputDecoration(labelText: 'Username')),
-          TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email - for OTP only')),
+          TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email (optional - for recovery only)')),
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(flex: 2, child: DropdownButtonFormField<String>(value: _selectedCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'Country Code'), items: [..._countries.map((c) => DropdownMenuItem<String>(value: '${c['name']}|${c['code']}', child: Text('${c['name']} (${c['code']})', overflow: TextOverflow.ellipsis))), const DropdownMenuItem<String>(value: 'Other|', child: Text('Other (type code)'))], onChanged: (v) { if (v != null) setState(() => _selectedCountry = v); })),
             const SizedBox(width: 10),
-            Expanded(flex: 3, child: TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Phone Number - you will login with this', hintText: _isOtherCountry ? 'Number without code' : 'e.g. 241234567 (no 0, no code)'))),
+            Expanded(flex: 3, child: TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Phone Number - OTP comes here', hintText: _isOtherCountry ? 'Number without code' : 'e.g. 241234567 (no 0, no code)'))),
           ]),
           if (_isOtherCountry) Padding(padding: const EdgeInsets.only(top: 8), child: TextField(controller: _otherCode, keyboardType: TextInputType.phone, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Your Country Code', hintText: 'e.g. +999'))),
           const SizedBox(height: 4),
-          Align(alignment: Alignment.centerLeft, child: Text('Full number for login: ${_phone.text.trim().isEmpty ? '...' : _fullPhone}', style: const TextStyle(fontSize: 12, color: Colors.grey))),
+          Align(alignment: Alignment.centerLeft, child: Text('OTP will be sent to: ${_phone.text.trim().isEmpty ? '...' : _fullPhone}', style: const TextStyle(fontSize: 12, color: Colors.grey))),
           TextField(controller: _pass, obscureText: _obscurePassword, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: 'Password - you will login with this', hintText: 'Min 8 chars, upper + lower + number + symbol', suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)))),
           const SizedBox(height: 8),
           if (_pass.text.isNotEmpty) ...[
@@ -545,9 +586,9 @@ class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
           const SizedBox(height: 16),
           ListTile(leading: const Icon(Icons.photo), title: Text(_photo == null ? 'Upload Photo (optional)' : 'Photo Selected: ${_photo!.name}'), trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo'))),
           const SizedBox(height: 20),
-          _loading ? const CircularProgressIndicator() : ElevatedButton(onPressed: _register, child: const Text('REGISTER AS CLIENT - SEND OTP')),
+          _loading ? const CircularProgressIndicator() : ElevatedButton(onPressed: _register, child: const Text('REGISTER - SEND SMS OTP')),
           const SizedBox(height: 8),
-          const Text('After OTP, login with Phone Number + Password. No CEO approval needed.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12)),
+          const Text('After SMS OTP, login with Phone Number + Password. No CEO approval needed.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12)),
         ]),
       ),
     );
