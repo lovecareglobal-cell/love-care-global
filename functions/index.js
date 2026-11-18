@@ -165,3 +165,178 @@ exports.onNewChatMessage = onValueCreated(
     } catch (e) { console.error('Chat push failed:', e); }
   }
 );
+
+// ========== NEW: COMPLETE DELETE - CEO DELETE => EMAIL FIT RE-REGISTER ==========
+// Called from CEO app: FirebaseFunctions.instance.httpsCallable('deleteAuthUser').call({uid, email})
+// Why this exists: Flutter app CANNOT delete another user's Auth account.
+// Only Admin SDK (this function) can. Without this, delete in CEO app leaves
+// Auth behind, and re-register fails with "email-already-in-use / already registered".
+// This function uses v2 onCall to match the rest of this file - DO NOT use v1 syntax here.
+// It deletes:
+//   1. Firebase Auth user (by uid, or by email if uid empty)
+//   2. RTDB: nurses/clients + all registration + allowed + email indexes + bookings for that uid
+//   3. Firestore: same collections (best-effort, no crash if doc no dey)
+//   4. Storage: nurses/{uid} + clients/{uid} folders (best-effort)
+// CEO Flutter already deletes RTDB/Firestore/Storage too - this is backup so
+// even if Flutter delete fails halfway, Auth + indexes still go, and email is free.
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
+
+function sanitizeEmailKey(email) {
+  return String(email || '').toLowerCase().replace(/[\.#\$@\[\]]/g, '_');
+}
+
+exports.deleteAuthUser = onCall(
+  { region: 'us-central1' },
+  async (request) => {
+    const data = request.data || {};
+    const uid = String(data.uid || '').trim();
+    const email = String(data.email || '').toLowerCase().trim();
+    const emailKey = sanitizeEmailKey(email);
+
+    if (!uid && !email) {
+      throw new HttpsError('invalid-argument', 'uid or email required');
+    }
+
+    // --- 1. Find Auth uid ---
+    let targetUid = uid;
+    let targetEmail = email;
+    try {
+      if (targetUid) {
+        const u = await admin.auth().getUser(targetUid);
+        targetEmail = (u.email || targetEmail || '').toLowerCase();
+      } else if (targetEmail) {
+        const u = await admin.auth().getUserByEmail(targetEmail);
+        targetUid = u.uid;
+      }
+    } catch (e) {
+      // Auth user may already be gone - continue to clean DB anyway
+      console.log('Auth lookup: user not found or already deleted:', e.message);
+    }
+
+    // --- 2. Delete Auth user ---
+    let authDeleted = false;
+    if (targetUid) {
+      try {
+        await admin.auth().deleteUser(targetUid);
+        authDeleted = true;
+        console.log('Auth deleted:', targetUid, targetEmail);
+      } catch (e) {
+        if (e.code === 'auth/user-not-found') {
+          authDeleted = true; // already gone = good, email is free
+        } else {
+          console.error('Auth delete failed:', e);
+          throw new HttpsError('internal', 'Auth delete failed: ' + e.message);
+        }
+      }
+    }
+
+    // --- 3. RTDB cleanup (backup for Flutter delete) ---
+    const db = admin.database();
+    const rtdbBases = [
+      'nurses', 'pending_nurses', 'pendingNurses', 'allNurses',
+      'nurse_registrations', 'nurseApplications', 'nurseUsers',
+      'ceoNurseUpdates', 'verified_nurses', 'nurseProfiles',
+      'onlineNurses', 'nursePresence', 'nurseLocations',
+      'clients', 'client_registrations', 'allClients', 'clientUsers',
+      'ceoClientUpdates', 'verified_clients', 'onlineClients',
+      'clientPresence', 'pending_clients', 'pendingClients',
+      'pendingClientRegistrations', 'registrations',
+    ];
+    const indexPaths = [];
+    if (targetUid) {
+      indexPaths.push(
+        'allowedNursesByUid/' + targetUid,
+        'allowedClientsByUid/' + targetUid,
+        'allowedNurses/' + targetUid,
+        'allowedClients/' + targetUid,
+        'users/' + targetUid,
+      );
+    }
+    if (emailKey) {
+      indexPaths.push(
+        'allowedNurses/' + emailKey,
+        'allowedClients/' + emailKey,
+        'nursesByEmail/' + emailKey,
+        'clientsByEmail/' + emailKey,
+        'registeredEmails/' + emailKey,
+        'usedEmails/' + emailKey,
+        'registered_emails/' + emailKey,
+        'used_emails/' + emailKey,
+        'emailIndex/' + emailKey,
+        'emails/' + emailKey,
+        'emailToUid/' + emailKey,
+        'usersByEmail/' + emailKey,
+        'nurseEmails/' + emailKey,
+        'clientEmails/' + emailKey,
+        'users/' + emailKey,
+      );
+    }
+    if (targetEmail) {
+      indexPaths.push(
+        'registeredEmails/' + targetEmail,
+        'usedEmails/' + targetEmail,
+        'emailToUid/' + targetEmail,
+        'usersByEmail/' + targetEmail,
+      );
+    }
+    try {
+      for (const base of rtdbBases) {
+        if (targetUid) await db.ref(base + '/' + targetUid).remove().catch(() => {});
+        if (emailKey) await db.ref(base + '/' + emailKey).remove().catch(() => {});
+      }
+      // ceoRegistrationCenter sub-nodes
+      if (targetUid) {
+        await db.ref('ceoRegistrationCenter/nurses/' + targetUid).remove().catch(() => {});
+        await db.ref('ceoRegistrationCenter/clients/' + targetUid).remove().catch(() => {});
+      }
+      for (const p of indexPaths) {
+        await db.ref(p).remove().catch(() => {});
+      }
+      // Final sweep: any child in main bases whose email matches
+      for (const base of ['nurses', 'pending_nurses', 'nurse_registrations', 'clients', 'client_registrations', 'ceoRegistrationCenter/nurses', 'ceoRegistrationCenter/clients']) {
+        try {
+          const snap = await db.ref(base).get();
+          if (snap.exists()) {
+            const val = snap.val();
+            for (const k of Object.keys(val)) {
+              const v = val[k] || {};
+              const e2 = String(v.email || v.clientEmail || v.emailAddress || '').toLowerCase();
+              if (targetEmail && e2 && e2 === targetEmail) {
+                await db.ref(base + '/' + k).remove().catch(() => {});
+              }
+            }
+          }
+        } catch (_) {}
+      }
+    } catch (e) {
+      console.error('RTDB cleanup failed (non-fatal):', e);
+    }
+
+    // --- 4. Firestore cleanup (best-effort) ---
+    try {
+      const fs = admin.firestore();
+      const colls = ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications', 'allNurses', 'nurseUsers', 'clients', 'client_registrations', 'pending_clients', 'clientApplications', 'allClients', 'clientUsers', 'users', 'registeredEmails', 'usedEmails', 'usersByEmail', 'emailIndex', 'nursesByEmail', 'clientsByEmail'];
+      for (const coll of colls) {
+        if (targetUid) await fs.collection(coll).doc(targetUid).delete().catch(() => {});
+        if (emailKey) await fs.collection(coll).doc(emailKey).delete().catch(() => {});
+        if (targetEmail) await fs.collection(coll).doc(targetEmail).delete().catch(() => {});
+      }
+    } catch (e) {
+      console.error('Firestore cleanup failed (non-fatal):', e);
+    }
+
+    // --- 5. Storage cleanup (best-effort) ---
+    try {
+      const bucket = admin.storage().bucket();
+      if (targetUid) {
+        await bucket.deleteFiles({ prefix: 'nurses/' + targetUid + '/' }).catch(() => {});
+        await bucket.deleteFiles({ prefix: 'clients/' + targetUid + '/' }).catch(() => {});
+        await bucket.deleteFiles({ prefix: 'ceo_registration/' + targetUid + '/' }).catch(() => {});
+      }
+    } catch (e) {
+      console.error('Storage cleanup failed (non-fatal):', e);
+    }
+
+    return { ok: true, authDeleted, uid: targetUid, email: targetEmail, message: 'Deleted Auth + DB indexes for ' + targetEmail };
+  }
+);
