@@ -3,35 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
-/// CEO Registration Center - Flutter version of ceo-registration-center.html
-/// - Loads: Nurses from ceoRegistrationCenter/nurses + nurses + pending_nurses + pendingNurses + ceoNurseUpdates + nurse_registrations + allNurses + nurseUsers + nurseApplications + allowedNurses + allowedNursesByUid + verified_nurses
-///   Clients from ceoRegistrationCenter/clients + clients + client_registrations + allClients + clientUsers + pendingClientRegistrations + ceoClientUpdates + allowedClients + allowedClientsByUid
-///   Merge by uid: keep TRUE approval (true wins), merge photo/video/ID/licence/cert (first non-empty wins)
-/// - normalizeRecord: v = raw.profile ?? raw.data ?? raw ; email (lower), username (username/userName/id), fullName (fullName/name/displayName/clientName/username/email-prefix, max 50)
-///   phone (phone/phoneNumber/clientPhone/phoneNumberFull), countryCode, photo (photoURL/photo/photoUrl/avatar/avatarUrl), idURL (idURL/idUrl/nationalIdUrl), licenceURL (licenceURL/licenseUrl/licence/licenceUrl), videoURL (videoURL/videoUrl), certURL (cvURL/cvUrl/certificateURL/certificate)
-///   lat/lng, gpsName (gpsActualName/gpsName), qualification, services (services/specialty), referenceName/Phone, passwordHash
-///   isApproved = isApproved || approved || status approved/Approved || canLogin || isVerified || hasAll4
-///   hasAll5 (nurse) = fullName && photo && phone && videoURL ; hasAll5 (client) = fullName && username && photo && phone ; hasAll4 = fullName && username && photo && phone
-///   hasPhoto/Video/Id/Licence/Cert booleans
-/// - Tabs: nursesPending / nursesApproved / clientsPending / clientsApproved / all — same as HTML switchTab()
-/// - Search: fullName + name + username + email + phone + countryCode ; Doc filter: all / missing ( !hasAll5 ) / hasVideo / hasPhoto — same as HTML render()
-/// - Card: avatar (photo or initial), name + 👩‍⚕️/👤, Username, badge ✅ APPROVED / ⏳ PENDING, badge ✅ ALL 4 / ❌ Missing, email, phone (countryCode + phone), nurse: 🎓 qualification • services, Ref name/phone, 📍 gpsName (lat,lng), UID • createdAt
-///   Docs: Photo ✅/❌, ID, Licence, Video, Cert (CV) — tap opens viewer (image / PDF link / video with sound ON volume 100% — same as HTML viewDoc, video muted=false volume=1.0)
-///   View All Docs: dialog with Full Name / Username / Email / Country Code / Phone / Full Phone / Approved / HasAll4 / Photo/ID/Licence/Video/Cert links — same as HTML viewAllDocs()
-/// - Approve: confirm "Approve {type} {email}? This will update ALL 12 database paths so nurse moves to Approved and can login."
-///   approvedPayload {isApproved true, approved true, status approved, canLogin true, isVerified true, approvedAt, approvedBy CEO, updatedAt}
-///   Nurse: update if exists in nurses/{uid} + pending_nurses + pendingNurses + nurse_registrations + nurseApplications + allNurses + nurseUsers + ceoNurseUpdates + ceoRegistrationCenter/nurses + verified_nurses, then set allowedNurses/{emailKey} + allowedNursesByUid/{uid} = {...raw, uid, email lower, ...payload}
-///   Client: update if exists in clients + client_registrations + allClients + clientUsers + ceoClientUpdates + ceoRegistrationCenter/clients + pendingClientRegistrations, then set allowedClients/{emailKey} + allowedClientsByUid/{uid}
-///   Log panel: "Approving ... in ALL paths..." + per-path ✅ Updated + DONE — reload after 1.5s
-/// - Reject: confirm -> nurse: nurses/{uid} + ceoRegistrationCenter/nurses {isApproved false, status rejected, rejectedAt} + remove allowedNurses/{emailKey} + allowedNursesByUid/{uid} ; client: clients/{uid} + ceoRegistrationCenter/clients {isApproved false, status rejected} — reload 800ms
-/// - Fix All Approved: confirm -> scan allowedNurses, for each uid+email set approved payload in nurses + pending_nurses + pendingNurses + ceoRegistrationCenter/nurses + ceoNurseUpdates + nurse_registrations -> toast "✅ Fixed {n} nurses"
-/// - Delete Account COMPLETELY: confirm x2 + type DELETE prompt (must type DELETE) -> find all UIDs by email in nurses/pending_nurses/nurse_registrations/ceoRegistrationCenter/nurses
-///   Nurse RTDB bases: nurses, pending_nurses, pendingNurses, allNurses, nurse_registrations, nurseApplications, nurseUsers, ceoNurseUpdates, ceoRegistrationCenter/nurses, verified_nurses, allowedNurses, allowedNursesByUid, nursesByEmail, nurseProfiles, onlineNurses, nursePresence ; mapping: allowedNurses/{emailKey}, allowedClients/{emailKey}, nursesByEmail/{emailKey}, allowedNurses/{uid}, allowedNursesByUid/{uid}
-///   Client RTDB bases: clients, client_registrations, allClients, clientUsers, ceoClientUpdates, ceoRegistrationCenter/clients, allowedClients, allowedClientsByUid, pendingClientRegistrations, verified_clients, onlineClients, clientPresence, clientsByEmail, clientBookings, bookings ; mapping: allowedClients/{emailKey}, allowedClients/{uid}, allowedClientsByUid/{uid}, clientUsernames/{username}, clientPhones/{phoneRaw/phoneDigits}, clientsByEmail/{emailKey}, allowedClients/{username}, clients/{username} + find via clientUsernames/clientPhones + phone/username variants
-///   Log panel shows per-path ✅ Deleted. Firestore + Storage deletion in HTML required Firebase Auth admin / Storage SDK — Flutter uses RTDB only (same as all other Flutter screens); log notes "Firestore/Storage: delete via Firebase Console if needed".
-/// - NO alert buttons — only Sound Settings.
+// CEO REGISTRATION CENTER - FULL FILE - COMPLETE DELETE FIX
+// - Approve / Reject / Delete / Delete All / Export / Fix All Approved
+// - Delete COMPLETELY: RTDB + Firestore + Storage + Email/Username/Phone/PIN indexes + Firebase Auth
+// - After delete, same email fit re-register - no more "you have already registered"
+// NEED in pubspec: cloud_functions: ^4.6.0
+// NEED Cloud Function: deleteAuthUser (see bottom of this file for functions/index.js)
 
 class CEORegistrationCenterScreen extends StatefulWidget {
   const CEORegistrationCenterScreen({super.key});
@@ -46,6 +25,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   List<Map> allRecords = [];
   List<String> logLines = [];
   bool showLog = false;
+  bool isLoading = false;
   final _searchCtrl = TextEditingController();
 
   @override
@@ -54,10 +34,14 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     _loadAll();
   }
 
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   String _sanitizeEmail(String e) => e.toLowerCase().replaceAll(RegExp(r'[.#\$@\[\]]'), '_');
-  // FIX: RTDB cannot save Firestore Timestamp objects - it throws
-  // "Invalid argument: Instance of 'Timestamp'" and Approve fails halfway.
-  // Convert any Timestamp (has millisecondsSinceEpoch) to an int ms.
+
   dynamic _sanitizeForRtdb(dynamic v) {
     if (v is Map) return v.map((k, val) => MapEntry(k.toString(), _sanitizeForRtdb(val)));
     if (v is List) return v.map(_sanitizeForRtdb).toList();
@@ -69,188 +53,171 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     }
     return v;
   }
-  void _log(String m) => setState(() { showLog = true; logLines.add(m); });
-  void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
-  // Firestore Timestamp has .millisecondsSinceEpoch, RTDB stores int ms, old docs may store String.
+  void _log(String m) {
+    if (!mounted) return;
+    setState(() { showLog = true; logLines.add(m); });
+  }
+
+  void _toast(String m) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  }
+
   num _createdAtMs(Object? raw) {
     if (raw is num) return raw;
-    if (raw is String) return num.tryParse(raw) ?? DateTime.now().millisecondsSinceEpoch;
-    if (raw != null) {
-      try {
-        final ms = (raw as dynamic).millisecondsSinceEpoch;
-        if (ms is num) return ms;
-      } catch (_) {}
-    }
-    return DateTime.now().millisecondsSinceEpoch;
+    if (raw is String) return int.tryParse(raw) ?? 0;
+    try {
+      final ms = (raw as dynamic).millisecondsSinceEpoch;
+      if (ms is num) return ms;
+    } catch (_) {}
+    return 0;
   }
 
-  Map _normalize(String id, Map raw, String type) {
-    final v = raw['profile'] is Map ? Map<String, dynamic>.from(raw['profile']) : raw['data'] is Map ? Map<String, dynamic>.from(raw['data']) : raw;
-    final email = ((v['email'] ?? v['clientEmail'] ?? '') as String).toLowerCase();
-    // NEVER use UID / doc id as username - that is the gibberish like 0DhJwm...
-    String _cleanUsername(Object? raw) {
-      final s = (raw ?? '').toString().trim();
-      if (s.isEmpty || s == id) return '';
-      final looksLikeUid = s.length >= 20 && !s.contains(' ') && !s.contains('@') && RegExp(r'[A-Z]').hasMatch(s) && RegExp(r'[a-z]').hasMatch(s) && RegExp(r'[0-9]').hasMatch(s);
-      return looksLikeUid ? '' : s;
-    }
-    final username = _cleanUsername(v['username'] ?? v['userName']);
-    var fullName = (v['fullName'] ?? v['name'] ?? v['displayName'] ?? v['clientName'] ?? (username.isNotEmpty ? username : null) ?? (email.isNotEmpty ? email.split('@')[0] : 'Unnamed')).toString();
-    if (fullName.length > 50) fullName = fullName.substring(0, 50);
-    final photo = v['photoURL'] ?? v['photo'] ?? v['photoUrl'] ?? v['avatar'] ?? v['avatarUrl'] ?? '';
-    // NEW nurse_registration.dart fields: photoUrl, idFrontUrl, idBackUrl, pinCardUrl/pinUrl, cvUrl, certificateUrl
-    final idURL = v['idURL'] ?? v['idUrl'] ?? v['nationalIdUrl'] ?? v['idFrontURL'] ?? v['idFrontUrl'] ?? v['idFrontUrl'] ?? v['nationalIdFrontUrl'] ?? '';
-    final idBackURL = v['idBackURL'] ?? v['idBackUrl'] ?? v['nationalIdBackUrl'] ?? '';
-    final licenceURL = v['licenceURL'] ?? v['licenseUrl'] ?? v['licence'] ?? v['licenceUrl'] ?? v['pinDocURL'] ?? v['pinDocUrl'] ?? v['pinCardUrl'] ?? v['pinCardURL'] ?? v['pinUrl'] ?? '';
-    final videoURL = v['videoURL'] ?? v['videoUrl'] ?? '';
-    final certURL = v['certificateURL'] ?? v['certificateUrl'] ?? v['certificate'] ?? v['certURL'] ?? v['certUrl'] ?? v['cvUrl'] ?? v['cvURL'] ?? '';
-    final cvURL = v['cvURL'] ?? v['cvUrl'] ?? '';
-    final phone = (v['phone'] ?? v['phoneNumber'] ?? v['clientPhone'] ?? v['phoneNumberFull'] ?? '').toString();
-    // FIX: hasAll4 / having docs does NOT mean approved. Only approval flags count,
-    // otherwise every pending nurse shows as APPROVED before CEO taps Approve.
-    final isApproved = v['isApproved'] == true || v['approved'] == true || v['status'] == 'approved' || v['status'] == 'Approved' || v['canLogin'] == true || v['isVerified'] == true || v['approvalStatus'] == 'approved';
-    final hasAll5 = type == 'client' ? (fullName.isNotEmpty && username.toString().isNotEmpty && photo.toString().isNotEmpty && phone.isNotEmpty) : (fullName.isNotEmpty && photo.toString().isNotEmpty && phone.isNotEmpty && videoURL.toString().isNotEmpty);
-    final hasAll4 = fullName.isNotEmpty && username.toString().isNotEmpty && photo.toString().isNotEmpty && phone.isNotEmpty;
-    return {'id': id, 'uid': v['uid'] ?? id, 'type': type, 'fullName': fullName, 'name': fullName.length > 40 ? fullName.substring(0, 40) : fullName, 'username': username, 'email': email, 'phone': phone, 'countryCode': v['countryCode'] ?? '', 'photo': photo, 'idURL': idURL, 'licenceURL': licenceURL, 'videoURL': videoURL, 'certURL': certURL, 'lat': v['lat'] ?? v['latitude'], 'lng': v['lng'] ?? v['longitude'], 'gpsName': v['gpsActualName'] ?? v['gpsName'] ?? '', 'isApproved': isApproved, 'hasAll5': hasAll5, 'hasAll4': hasAll4, 'hasPhoto': photo.toString().isNotEmpty, 'hasVideo': videoURL.toString().isNotEmpty, 'hasId': idURL.toString().isNotEmpty, 'hasLicence': licenceURL.toString().isNotEmpty, 'hasCert': certURL.toString().isNotEmpty, 'raw': v, 'createdAt': _createdAtMs(v['createdAt'] ?? v['timestamp']), 'qualification': v['qualification'] ?? '', 'services': v['services'] ?? v['specialty'] ?? '', 'referenceName': v['referenceName'] ?? '', 'referencePhone': v['referencePhone'] ?? '', 'cvURL': cvURL, 'idBackURL': idBackURL, 'idFrontURL': idURL, 'pinNumber': v['pinNumber'] ?? '', 'idType': v['idType'] ?? '', 'idCheck': v['idCheck'] ?? '', 'idVerified': v['idVerified'] ?? false};
-  }
-
+  // ============ LOAD ALL ============
   Future<void> _loadAll() async {
-    Map<String, Map> nursesMap = {}, clientsMap = {};
-    final nursePaths = ['ceoRegistrationCenter/nurses', 'nurses', 'pending_nurses', 'pendingNurses', 'ceoNurseUpdates', 'nurse_registrations', 'allNurses', 'nurseUsers', 'nurseApplications', 'allowedNurses', 'allowedNursesByUid', 'verified_nurses', 'ceo_registration'];
-    for (final path in nursePaths) {
-      try {
-        final snap = await FirebaseDatabase.instance.ref(path).get();
-        if (!snap.exists) continue;
-        (snap.value as Map).forEach((k, val) {
+    setState(() => isLoading = true);
+    try {
+      final db = FirebaseDatabase.instance;
+      List<Map> out = [];
+
+      Future<void> scan(String base, String type) async {
+        try {
+          final s = await db.ref(base).get();
+          if (!s.exists) return;
+          final val = s.value;
           if (val is! Map) return;
-          final rec = _normalize(k.toString(), Map<String, dynamic>.from(val), 'nurse');
-          final key = rec['uid'].toString();
-          if (!nursesMap.containsKey(key)) nursesMap[key] = rec;
-          else {
-            final ex = nursesMap[key]!;
-            final isApprovedNow = ex['isApproved'] == true || rec['isApproved'] == true;
-            nursesMap[key] = {...ex, ...rec, 'photo': (ex['photo'].toString().isNotEmpty ? ex['photo'] : rec['photo']), 'videoURL': (ex['videoURL'].toString().isNotEmpty ? ex['videoURL'] : rec['videoURL']), 'idURL': (ex['idURL'].toString().isNotEmpty ? ex['idURL'] : rec['idURL']), 'licenceURL': (ex['licenceURL'].toString().isNotEmpty ? ex['licenceURL'] : rec['licenceURL']), 'certURL': (ex['certURL'].toString().isNotEmpty ? ex['certURL'] : rec['certURL']), 'isApproved': isApprovedNow, 'hasPhoto': (ex['photo'].toString().isNotEmpty || rec['photo'].toString().isNotEmpty), 'hasVideo': (ex['videoURL'].toString().isNotEmpty || rec['videoURL'].toString().isNotEmpty)};
+          for (final e in (val as Map).entries) {
+            if (e.value is! Map) continue;
+            final m = Map<String, dynamic>.from(e.value as Map);
+            // Skip index / whitelist nodes that are not full records
+            if (m['email'] == null && m['clientEmail'] == null && m['emailAddress'] == null && m['fullName'] == null && m['name'] == null) continue;
+            final email = (m['email'] ?? m['clientEmail'] ?? m['emailAddress'] ?? '').toString();
+            final name = (m['fullName'] ?? m['name'] ?? m['username'] ?? '').toString();
+            final uid = (m['uid'] ?? m['id'] ?? e.key).toString();
+            final isApproved = m['isApproved'] == true || m['approved'] == true || m['status'] == 'approved' || m['approvalStatus'] == 'approved';
+            // Dedupe by uid+email
+            final exists = out.any((x) => x['uid'].toString() == uid && x['email'].toString().toLowerCase() == email.toLowerCase());
+            if (exists) continue;
+            out.add({
+              'uid': uid,
+              'key': e.key.toString(),
+              'type': type,
+              'email': email.toLowerCase(),
+              'fullName': name,
+              'username': (m['username'] ?? m['userName'] ?? '').toString(),
+              'phone': (m['phone'] ?? m['phoneNumber'] ?? '').toString(),
+              'countryCode': (m['countryCode'] ?? '').toString(),
+              'isApproved': isApproved,
+              'hasPhoto': _hasDoc(m, ['photo', 'photoURL', 'photoUrl', 'image', 'profilePic']),
+              'hasVideo': _hasDoc(m, ['video', 'videoURL', 'videoUrl', 'introVideo', 'introVideoUrl', 'profileVideo']),
+              'hasId': _hasDoc(m, ['idURL', 'idUrl', 'idFront', 'idFrontURL', 'nationalId', 'ghanaCard']),
+              'hasLicence': _hasDoc(m, ['licenceURL', 'licenceUrl', 'licenseURL', 'licence', 'license']),
+              'hasCert': _hasDoc(m, ['certURL', 'certUrl', 'certificateURL', 'certificate']),
+              'hasCv': _hasDoc(m, ['cvURL', 'cvUrl', 'cv']),
+              'hasPin': (m['nursingPin'] ?? m['pin'] ?? '').toString().isNotEmpty,
+              'qualification': (m['qualification'] ?? m['education'] ?? '').toString(),
+              'services': (m['services'] ?? m['speciality'] ?? m['specialty'] ?? '').toString(),
+              'referenceName': (m['referenceName'] ?? '').toString(),
+              'referencePhone': (m['referencePhone'] ?? '').toString(),
+              'gpsName': (m['gpsName'] ?? m['location'] ?? '').toString(),
+              'lat': m['lat'] ?? m['latitude'] ?? m['gpsLat'],
+              'lng': m['lng'] ?? m['longitude'] ?? m['gpsLng'],
+              'createdAt': _createdAtMs(m['createdAt'] ?? m['timestamp'] ?? m['created_at']),
+              'photo': (m['photo'] ?? m['photoURL'] ?? m['photoUrl'] ?? '').toString(),
+              'idURL': (m['idURL'] ?? m['idUrl'] ?? m['idFrontURL'] ?? '').toString(),
+              'licenceURL': (m['licenceURL'] ?? m['licenceUrl'] ?? '').toString(),
+              'videoURL': (m['videoURL'] ?? m['videoUrl'] ?? m['introVideoUrl'] ?? m['video'] ?? m['introVideo'] ?? '').toString(),
+              'certURL': (m['certURL'] ?? m['certUrl'] ?? m['certificateURL'] ?? '').toString(),
+              'cvURL': (m['cvURL'] ?? m['cvUrl'] ?? '').toString(),
+              'raw': m,
+            });
           }
-        });
-      } catch (_) {}
+        } catch (_) {}
+      }
+
+      await scan('nurses', 'nurse');
+      await scan('pending_nurses', 'nurse');
+      await scan('pendingNurses', 'nurse');
+      await scan('nurse_registrations', 'nurse');
+      await scan('nurseApplications', 'nurse');
+      await scan('allNurses', 'nurse');
+      await scan('ceoRegistrationCenter/nurses', 'nurse');
+      await scan('clients', 'client');
+      await scan('client_registrations', 'client');
+      await scan('allClients', 'client');
+      await scan('pending_clients', 'client');
+      await scan('pendingClients', 'client');
+      await scan('pendingClientRegistrations', 'client');
+      await scan('ceoRegistrationCenter/clients', 'client');
+
+      // Also scan Firestore if RTDB empty for some (migration safety)
+      if (out.isEmpty) {
+        try {
+          final qs = await FirebaseFirestore.instance.collection('nurses').get();
+          for (final d in qs.docs) {
+            final m = d.data();
+            out.add({'uid': d.id, 'key': d.id, 'type': 'nurse', 'email': (m['email'] ?? '').toString().toLowerCase(), 'fullName': (m['fullName'] ?? m['name'] ?? '').toString(), 'username': '', 'phone': (m['phone'] ?? '').toString(), 'countryCode': '', 'isApproved': m['isApproved'] == true, 'hasPhoto': true, 'hasVideo': true, 'hasId': true, 'hasLicence': true, 'hasCert': true, 'hasCv': false, 'hasPin': false, 'qualification': '', 'services': '', 'referenceName': '', 'referencePhone': '', 'gpsName': '', 'lat': null, 'lng': null, 'createdAt': 0, 'photo': '', 'idURL': '', 'licenceURL': '', 'videoURL': '', 'certURL': '', 'cvURL': '', 'raw': m});
+          }
+        } catch (_) {}
+      }
+
+      if (!mounted) return;
+      setState(() { allRecords = out; isLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() => isLoading = false);
+      _toast('Load failed: $e');
     }
-    final clientPaths = ['ceoRegistrationCenter/clients', 'clients', 'client_registrations', 'allClients', 'clientUsers', 'pendingClientRegistrations', 'ceoClientUpdates', 'allowedClients', 'allowedClientsByUid'];
-    for (final path in clientPaths) {
-      try {
-        final snap = await FirebaseDatabase.instance.ref(path).get();
-        if (!snap.exists) continue;
-        (snap.value as Map).forEach((k, val) {
-          if (val is! Map) return;
-          final rec = _normalize(k.toString(), Map<String, dynamic>.from(val), 'client');
-          final key = rec['uid'].toString();
-          if (!clientsMap.containsKey(key)) clientsMap[key] = rec;
-          else { final ex = clientsMap[key]!; final isApprovedNow = ex['isApproved'] == true || rec['isApproved'] == true; clientsMap[key] = {...ex, ...rec, 'photo': (ex['photo'].toString().isNotEmpty ? ex['photo'] : rec['photo']), 'isApproved': isApprovedNow}; }
-        });
-      } catch (_) {}
+  }
+
+  bool _hasDoc(Map m, List<String> keys) {
+    for (final k in keys) {
+      final v = m[k];
+      if (v != null && v.toString().isNotEmpty && v.toString().startsWith('http')) return true;
+      if (v is Map && v['url'] != null && v['url'].toString().startsWith('http')) return true;
     }
-    // ---- RECALL OLD USERS: Firestore-only registrations (before the dual-write fix) ----
-    // Old nurses/clients saved ONLY to Firestore pending_nurses / pending_clients.
-    // CEO used to read RTDB only, so they were invisible. Now CEO reads Firestore too,
-    // and auto-migrates each Firestore-only record into RTDB ceoRegistrationCenter/...,
-    // so Approve / Reject / Delete (which work on RTDB) will work for them as well.
-    final rtdbNurseUids = nursesMap.keys.toSet();
-    final rtdbClientUids = clientsMap.keys.toSet();
-    int migratedNurses = 0, migratedClients = 0;
-    // FIX: include 'ceo_registration' - this is where nurse_registration.dart sends new nurses.
-    // Without it, new nurses were invisible here.
-    for (final coll in ['pending_nurses', 'nurses', 'nurse_registrations', 'nurseApplications', 'ceo_registration']) {
-      try {
-        final qs = await FirebaseFirestore.instance.collection(coll).get();
-        for (final doc in qs.docs) {
-          final data = Map<String, dynamic>.from(doc.data());
-          final rec = _normalize(doc.id, data, 'nurse');
-          final key = rec['uid'].toString();
-          if (!nursesMap.containsKey(key)) {
-            nursesMap[key] = rec;
-          } else {
-            final ex = nursesMap[key]!;
-            nursesMap[key] = {...ex, ...rec, 'photo': (ex['photo'].toString().isNotEmpty ? ex['photo'] : rec['photo']), 'videoURL': (ex['videoURL'].toString().isNotEmpty ? ex['videoURL'] : rec['videoURL']), 'idURL': (ex['idURL'].toString().isNotEmpty ? ex['idURL'] : rec['idURL']), 'licenceURL': (ex['licenceURL'].toString().isNotEmpty ? ex['licenceURL'] : rec['licenceURL'])};
-          }
-          // Migrate Firestore-only -> RTDB (only if RTDB did not have this uid)
-          if (!rtdbNurseUids.contains(key)) {
-            try {
-              final toRtdb = _sanitizeForRtdb(Map<String, Object?>.from(data)) as Map<String, Object?>;
-              toRtdb['createdAt'] = (rec['createdAt'] as num).toInt();
-              toRtdb['uid'] = key;
-              await FirebaseDatabase.instance.ref('ceoRegistrationCenter/nurses/$key').set(toRtdb);
-              migratedNurses++;
-              rtdbNurseUids.add(key);
-            } catch (_) {}
-          }
+    // Check nested documents/uploads
+    for (final parent in ['documents', 'uploads', 'files', 'credentials']) {
+      if (m[parent] is Map) {
+        final sub = Map.from(m[parent] as Map);
+        for (final entry in sub.entries) {
+          if (keys.any((k) => entry.key.toString().toLowerCase().contains(k.toLowerCase().replaceAll('url', ''))) && entry.value.toString().startsWith('http')) return true;
         }
-      } catch (_) {}
+      }
     }
-    for (final coll in ['pending_clients', 'clients', 'client_registrations', 'clientApplications']) {
-      try {
-        final qs = await FirebaseFirestore.instance.collection(coll).get();
-        for (final doc in qs.docs) {
-          final data = Map<String, dynamic>.from(doc.data());
-          final rec = _normalize(doc.id, data, 'client');
-          final key = rec['uid'].toString();
-          if (!clientsMap.containsKey(key)) clientsMap[key] = rec;
-          if (!rtdbClientUids.contains(key)) {
-            try {
-              final toRtdb = _sanitizeForRtdb(Map<String, Object?>.from(data)) as Map<String, Object?>;
-              toRtdb['createdAt'] = (rec['createdAt'] as num).toInt();
-              toRtdb['uid'] = key;
-              await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$key').set(toRtdb);
-              migratedClients++;
-              rtdbClientUids.add(key);
-            } catch (_) {}
-          }
-        }
-      } catch (_) {}
-    }
-    final nurses = nursesMap.values.toList(), clients = clientsMap.values.toList();
-    setState(() => allRecords = [...nurses, ...clients]..sort((a, b) => ((b['createdAt'] ?? 0) as num).compareTo((a['createdAt'] ?? 0) as num)));
-    _toast('Loaded: ${nurses.length} nurses, ${clients.length} clients${(migratedNurses + migratedClients) > 0 ? ' - Recalled $migratedNurses old nurses + $migratedClients old clients from Firestore' : ''}');
+    return false;
   }
 
   List<Map> get filtered {
-    var list = <Map>[];
-    if (currentTab == 'nursesPending') list = allRecords.where((r) => r['type'] == 'nurse' && r['isApproved'] != true).toList();
-    else if (currentTab == 'nursesApproved') list = allRecords.where((r) => r['type'] == 'nurse' && r['isApproved'] == true).toList();
-    else if (currentTab == 'clientsPending') list = allRecords.where((r) => r['type'] == 'client' && r['isApproved'] != true).toList();
-    else if (currentTab == 'clientsApproved') list = allRecords.where((r) => r['type'] == 'client' && r['isApproved'] == true).toList();
-    else list = List<Map>.from(allRecords);
-    if (search.isNotEmpty) list = list.where((r) => ('${r['fullName']} ${r['name']} ${r['username']} ${r['email']} ${r['phone']} ${r['countryCode']} ${r['phone']}').toLowerCase().contains(search)).toList();
-    if (docFilter == 'missing') list = list.where((r) => r['hasAll5'] != true).toList();
-    else if (docFilter == 'hasVideo') list = list.where((r) => r['hasVideo'] == true).toList();
-    else if (docFilter == 'hasPhoto') list = list.where((r) => r['hasPhoto'] == true).toList();
+    var list = List<Map>.from(allRecords);
+    if (currentTab == 'nursesPending') list = list.where((x) => x['type'] == 'nurse' && x['isApproved'] != true).toList();
+    if (currentTab == 'nursesApproved') list = list.where((x) => x['type'] == 'nurse' && x['isApproved'] == true).toList();
+    if (currentTab == 'clientsPending') list = list.where((x) => x['type'] == 'client' && x['isApproved'] != true).toList();
+    if (currentTab == 'clientsApproved') list = list.where((x) => x['type'] == 'client' && x['isApproved'] == true).toList();
+    if (currentTab == 'all') list = list;
+    if (search.trim().isNotEmpty) {
+      final q = search.toLowerCase();
+      list = list.where((x) => x['fullName'].toString().toLowerCase().contains(q) || x['email'].toString().toLowerCase().contains(q) || x['username'].toString().toLowerCase().contains(q) || x['phone'].toString().contains(q)).toList();
+    }
+    if (docFilter != 'all') {
+      if (docFilter == 'noVideo') list = list.where((x) => x['hasVideo'] != true).toList();
+      if (docFilter == 'noPhoto') list = list.where((x) => x['hasPhoto'] != true).toList();
+      if (docFilter == 'noId') list = list.where((x) => x['hasId'] != true).toList();
+    }
     return list;
   }
 
-  void _viewDoc(String url, String title, String type) {
-    if (url.isEmpty) { _toast('No file'); return; }
-    showDialog(context: context, builder: (_) => AlertDialog(
-      title: Text('$title — 🔊 Sound Fixed'),
-      content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        if (url.contains('.pdf')) TextButton(onPressed: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication), child: const Text('📄 Open PDF')),
-        if (type == 'video') Column(children: [const Chip(label: Text('🔊 Sound ON — Volume 100%')), const SizedBox(height: 8), TextButton(onPressed: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication), child: const Text('▶️ Play Video (with sound)'))]),
-        if (type == 'image') Image.network(url, errorBuilder: (_, __, ___) => const Text('Could not load image')),
-        if (type != 'video' && type != 'image' && !url.contains('.pdf')) TextButton(onPressed: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication), child: const Text('Open File')),
-      ])),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-    ));
-  }
+  int get nursesPendingCount => allRecords.where((x) => x['type'] == 'nurse' && x['isApproved'] != true).length;
+  int get nursesApprovedCount => allRecords.where((x) => x['type'] == 'nurse' && x['isApproved'] == true).length;
+  int get clientsPendingCount => allRecords.where((x) => x['type'] == 'client' && x['isApproved'] != true).length;
+  int get clientsApprovedCount => allRecords.where((x) => x['type'] == 'client' && x['isApproved'] == true).length;
 
-  void _viewAllDocs(Map rec) {
-    showDialog(context: context, builder: (_) => AlertDialog(
-      title: Text('All Uploads — ${rec['fullName'] ?? rec['name']}'),
-      content: SingleChildScrollView(child: Text('Full Name: ${rec['fullName'] ?? rec['name']}\nUsername (Login): ${rec['username'] ?? rec['id']}\nEmail: ${rec['email'].toString().isEmpty ? 'N/A (Username System)' : rec['email']}\nCountry Code: ${rec['countryCode'] ?? 'N/A'}\nPhone: ${rec['phone']}\nFull Phone: ${rec['countryCode'] ?? ''} ${rec['phone']}\nApproved: ${rec['isApproved'] == true ? 'YES ✅' : 'NO ⏳'}\nHasAll4: ${rec['hasAll4'] == true ? 'YES ✅' : 'NO'}\nPhoto: ${rec['photo'].toString().isNotEmpty ? 'View' : 'Missing'}\nID: ${rec['idURL'].toString().isNotEmpty ? 'View' : 'Missing'}\nLicence: ${rec['licenceURL'].toString().isNotEmpty ? 'View' : 'Missing'}\nVideo: ${rec['videoURL'].toString().isNotEmpty ? 'View' : 'Missing'}\nCert: ${rec['certURL'].toString().isNotEmpty ? 'View' : 'Optional'}')),
-      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
-    ));
-  }
-
+  // ============ APPROVE ============
   Future<void> _approve(Map rec) async {
-    final uid = rec['uid'].toString(); final email = rec['email'].toString(); final type = rec['type'].toString();
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Approve?'), content: Text('Approve $type $email?\n\nThis will update ALL 12 database paths so ${type == 'nurse' ? 'nurse' : 'client'} moves to Approved and can login.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Approve'))]));
+    final uid = rec['uid'].toString();
+    final email = rec['email'].toString();
+    final type = rec['type'].toString();
+    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Approve?'), content: Text('Approve $type $email?\n\nThis will update ALL database paths so $type moves to Approved and can login.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Approve'))]));
     if (confirm != true) return;
     setState(() { showLog = true; logLines = []; });
     _log('Approving $type $email ($uid) in ALL paths...');
@@ -259,7 +226,9 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       final now = DateTime.now().millisecondsSinceEpoch;
       final payload = {'isApproved': true, 'approved': true, 'status': 'approved', 'canLogin': true, 'isVerified': true, 'approvedAt': now, 'approvedBy': 'CEO', 'updatedAt': now};
       final db = FirebaseDatabase.instance;
-      final paths = type == 'nurse' ? ['nurses/$uid', 'pending_nurses/$uid', 'pendingNurses/$uid', 'nurse_registrations/$uid', 'nurseApplications/$uid', 'allNurses/$uid', 'nurseUsers/$uid', 'ceoNurseUpdates/$uid', 'ceoRegistrationCenter/nurses/$uid', 'verified_nurses/$uid'] : ['clients/$uid', 'client_registrations/$uid', 'allClients/$uid', 'clientUsers/$uid', 'ceoClientUpdates/$uid', 'ceoRegistrationCenter/clients/$uid', 'pendingClientRegistrations/$uid'];
+      final paths = type == 'nurse'
+          ? ['nurses/$uid', 'pending_nurses/$uid', 'pendingNurses/$uid', 'nurse_registrations/$uid', 'nurseApplications/$uid', 'allNurses/$uid', 'nurseUsers/$uid', 'ceoNurseUpdates/$uid', 'ceoRegistrationCenter/nurses/$uid', 'verified_nurses/$uid']
+          : ['clients/$uid', 'client_registrations/$uid', 'allClients/$uid', 'clientUsers/$uid', 'ceoClientUpdates/$uid', 'ceoRegistrationCenter/clients/$uid', 'pendingClientRegistrations/$uid'];
       for (final p in paths) {
         try { final s = await db.ref(p).get(); if (s.exists) { await db.ref(p).update(payload); _log('✅ Updated $p → approved'); } } catch (e) { _log('⚠️ $p not exist or err: $e'); }
       }
@@ -271,11 +240,10 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         await db.ref('allowedClients/$emailKey').set(whitelist); _log('✅ Created allowedClients/$emailKey');
         await db.ref('allowedClientsByUid/$uid').set(whitelist); _log('✅ Created allowedClientsByUid/$uid');
       }
-      // FIX: also update Firestore - nurse login checks Firestore nurses/{uid}.status.
-      // RTDB-only approve left login stuck on pending forever.
       try {
         final fsPayload = {'isApproved': true, 'approved': true, 'status': 'approved', 'approvalStatus': 'approved', 'canLogin': true, 'isVerified': true, 'approvedAt': now, 'approvedBy': 'CEO', 'updatedAt': now};
-        for (final coll in ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications']) {
+        final colls = type == 'nurse' ? ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications'] : ['clients', 'client_registrations', 'ceo_registration', 'pending_clients'];
+        for (final coll in colls) {
           try { await FirebaseFirestore.instance.collection(coll).doc(uid).set(fsPayload, SetOptions(merge: true)); _log('✅ Firestore updated $coll/$uid → approved'); } catch (e) { _log('⚠️ Firestore $coll err: $e'); }
         }
       } catch (e) { _log('⚠️ Firestore approve err: $e'); }
@@ -285,16 +253,19 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     } catch (e) { _log('❌ Approve failed: $e'); _toast('Approve failed: $e'); }
   }
 
+  // ============ REJECT ============
   Future<void> _reject(Map rec) async {
-    final uid = rec['uid'].toString(); final email = rec['email'].toString(); final type = rec['type'].toString();
+    final uid = rec['uid'].toString();
+    final email = rec['email'].toString();
+    final type = rec['type'].toString();
     final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Reject?'), content: Text('Reject $type $email?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Reject'))]));
     if (confirm != true) return;
     try {
-      final db = FirebaseDatabase.instance; final now = DateTime.now().millisecondsSinceEpoch;
+      final db = FirebaseDatabase.instance;
+      final now = DateTime.now().millisecondsSinceEpoch;
       if (type == 'nurse') {
         await db.ref('nurses/$uid').update({'isApproved': false, 'status': 'rejected', 'rejectedAt': now});
         await db.ref('ceoRegistrationCenter/nurses/$uid').update({'isApproved': false, 'status': 'rejected'});
-        // FIX: Firestore too, so login gate sees rejected
         for (final coll in ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses']) {
           try { await FirebaseFirestore.instance.collection(coll).doc(uid).set({'isApproved': false, 'approved': false, 'status': 'rejected', 'approvalStatus': 'rejected', 'canLogin': false, 'rejectedAt': now}, SetOptions(merge: true)); } catch (_) {}
         }
@@ -309,6 +280,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     } catch (e) { _toast('Reject failed: $e'); }
   }
 
+  // ============ FIX ALL APPROVED ============
   Future<void> _fixAllApproved() async {
     final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Fix All Approved?'), content: const Text('This will scan all nurses that are in allowedNurses whitelist but still showing pending, and fix them to approved in ALL paths. Continue?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Fix All'))]));
     if (confirm != true) return;
@@ -317,10 +289,12 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     try {
       final snap = await FirebaseDatabase.instance.ref('allowedNurses').get();
       if (!snap.exists) { _toast('No allowedNurses found'); return; }
-      int fixed = 0; final db = FirebaseDatabase.instance;
+      int fixed = 0;
+      final db = FirebaseDatabase.instance;
       for (final entry in (snap.value as Map).entries) {
         final v = entry.value is Map ? Map<String, dynamic>.from(entry.value as Map) : {};
-        final uid = v['uid']?.toString(); final email = v['email']?.toString();
+        final uid = v['uid']?.toString();
+        final email = v['email']?.toString();
         if (uid != null && email != null) {
           final payload = {'isApproved': true, 'approved': true, 'status': 'approved', 'canLogin': true, 'isVerified': true, 'approvedAt': DateTime.now().millisecondsSinceEpoch, 'updatedAt': DateTime.now().millisecondsSinceEpoch};
           for (final p in ['nurses/$uid', 'pending_nurses/$uid', 'pendingNurses/$uid', 'ceoRegistrationCenter/nurses/$uid', 'ceoNurseUpdates/$uid', 'nurse_registrations/$uid']) await db.ref(p).update(payload).catchError((_) {});
@@ -333,21 +307,20 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     } catch (e) { _toast('Fix failed: $e'); _log('Fix failed: $e'); }
   }
 
-  // Complete-delete helper: wipes Firestore + Storage.
-  // _deleteAccount already wipes RTDB. Calling this too means the person
-  // cannot reload back via the Firestore -> RTDB migration in _loadAll.
+  // ============ COMPLETE DELETE - THE FIX ============
+  // Wipes Firestore + Storage. _deleteAccount wipes RTDB.
   Future<void> _deleteFirestoreAndStorage({required String uid, required String email, required String type}) async {
     final eLower = email.toLowerCase().trim();
     final emailKey = _sanitizeEmail(email);
     final isNurse = type == 'nurse';
     final fsColls = isNurse
-        ? ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications', 'allNurses', 'nurseUsers', 'ceoNurseUpdates', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'users']
-        : ['clients', 'client_registrations', 'pending_clients', 'clientApplications', 'allClients', 'clientUsers', 'ceoClientUpdates', 'verified_clients', 'allowedClients', 'allowedClientsByUid', 'users', 'pendingClients'];
+        ? ['nurses', 'nurse_registrations', 'ceo_registration', 'pending_nurses', 'nurseApplications', 'allNurses', 'nurseUsers', 'ceoNurseUpdates', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'users', 'registeredEmails', 'usedEmails', 'usersByEmail', 'emailIndex', 'nursesByEmail', 'clientsByEmail']
+        : ['clients', 'client_registrations', 'pending_clients', 'clientApplications', 'allClients', 'clientUsers', 'ceoClientUpdates', 'verified_clients', 'allowedClients', 'allowedClientsByUid', 'users', 'pendingClients', 'registeredEmails', 'usedEmails', 'usersByEmail', 'emailIndex', 'nursesByEmail', 'clientsByEmail'];
     for (final coll in fsColls) {
       try { await FirebaseFirestore.instance.collection(coll).doc(uid).delete(); } catch (_) {}
       try { await FirebaseFirestore.instance.collection(coll).doc(emailKey).delete(); } catch (_) {}
+      try { await FirebaseFirestore.instance.collection(coll).doc(eLower).delete(); } catch (_) {}
       if (eLower.isNotEmpty) {
-        // Email may be stored as email / clientEmail / emailAddress - check all three
         for (final field in ['email', 'clientEmail', 'emailAddress']) {
           try {
             final q = await FirebaseFirestore.instance.collection(coll).where(field, isEqualTo: eLower).get();
@@ -355,7 +328,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           } catch (_) {}
         }
       }
-      // Doc ID may be a random push-key while the real uid is inside the doc
       if (uid.isNotEmpty) {
         try {
           final q = await FirebaseFirestore.instance.collection(coll).where('uid', isEqualTo: uid).get();
@@ -363,7 +335,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         } catch (_) {}
       }
     }
-    for (final folder in ['nurses/$uid', 'clients/$uid', 'ceo_registration/$uid']) {
+    for (final folder in ['nurses/$uid', 'clients/$uid', 'ceo_registration/$uid', 'registrations/$uid', 'nurse_registrations/$uid', 'client_registrations/$uid']) {
       try { await _deleteStorageFolder(folder); } catch (_) {}
     }
   }
@@ -377,33 +349,111 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     } catch (_) {}
   }
 
+  // NEW: Delete ALL email/username/phone/PIN index nodes that block re-register
+  Future<void> _deleteEmailIndexes({required String uid, required String email, required String type, required Map rec}) async {
+    final db = FirebaseDatabase.instance;
+    final eLower = email.toLowerCase().trim();
+    final emailKey = _sanitizeEmail(email);
+    final raw = rec['raw'] is Map ? Map.from(rec['raw'] as Map) : {};
+    final username = ((raw['username'] ?? raw['userName'] ?? '') as String).toLowerCase();
+    final phoneRaw = (raw['phone'] ?? raw['phoneNumber'] ?? '').toString();
+    final phoneDigits = phoneRaw.replaceAll(RegExp(r'[^0-9]'), '');
+    final pin = (raw['nursingPin'] ?? raw['pin'] ?? '').toString();
+
+    final indexPaths = [
+      'registeredEmails/$emailKey', 'registeredEmails/$eLower',
+      'usedEmails/$emailKey', 'usedEmails/$eLower',
+      'registered_emails/$emailKey', 'used_emails/$emailKey',
+      'emailIndex/$emailKey', 'emails/$emailKey', 'emailToUid/$emailKey', 'emailToUid/$eLower',
+      'usersByEmail/$emailKey', 'usersByEmail/$eLower',
+      'nursesByEmail/$emailKey', 'clientsByEmail/$emailKey',
+      'nurseEmails/$emailKey', 'clientEmails/$emailKey',
+      'allowedNurses/$emailKey', 'allowedClients/$emailKey',
+      'allowedNursesByUid/$uid', 'allowedClientsByUid/$uid',
+      'allowedNurses/$uid', 'allowedClients/$uid',
+      if (username.isNotEmpty) 'usernames/$username',
+      if (username.isNotEmpty) 'nurseUsernames/$username',
+      if (username.isNotEmpty) 'clientUsernames/$username',
+      if (phoneDigits.isNotEmpty) 'phones/$phoneDigits',
+      if (phoneDigits.isNotEmpty) 'nursePhones/$phoneDigits',
+      if (phoneDigits.isNotEmpty) 'clientPhones/$phoneDigits',
+      if (phoneDigits.isNotEmpty) 'clientPhones/$phoneRaw',
+      if (phoneRaw.isNotEmpty) 'phones/$phoneRaw',
+      if (pin.isNotEmpty) 'nursingPins/$pin',
+      if (pin.isNotEmpty) 'usedPins/$pin',
+      if (pin.isNotEmpty) 'pins/$pin',
+      'users/$uid', 'users/$emailKey',
+    ];
+    for (final p in indexPaths) {
+      try { await db.ref(p).remove(); _log('✅ Deleted index: $p'); } catch (_) {}
+    }
+    for (final coll in ['registeredEmails', 'usedEmails', 'usersByEmail', 'emailIndex', 'nursesByEmail', 'clientsByEmail']) {
+      try { await FirebaseFirestore.instance.collection(coll).doc(uid).delete(); } catch (_) {}
+      try { await FirebaseFirestore.instance.collection(coll).doc(emailKey).delete(); } catch (_) {}
+      try {
+        final q = await FirebaseFirestore.instance.collection(coll).where('email', isEqualTo: eLower).get();
+        for (final d in q.docs) await d.reference.delete();
+      } catch (_) {}
+    }
+    for (final base in ['clientUsernames', 'nurseUsernames', 'usernames', 'clientPhones', 'nursePhones', 'phones']) {
+      try {
+        final s = await db.ref(base).get();
+        if (s.exists) {
+          for (final e in (s.value as Map).entries) {
+            if (e.value.toString() == uid || e.value.toString().toLowerCase() == eLower) {
+              await db.ref('$base/${e.key}').remove();
+              _log('✅ Deleted sweep: $base/${e.key}');
+            }
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  // NEW: Delete Firebase Auth via Cloud Function - only Admin SDK can delete another user
+  Future<void> _deleteAuthUser({required String uid, required String email}) async {
+    try {
+      final res = await FirebaseFunctions.instance.httpsCallable('deleteAuthUser').call({
+        'uid': uid,
+        'email': email.toLowerCase().trim(),
+      });
+      _log('✅ Auth deleted via Cloud Function: ${res.data}');
+    } catch (e) {
+      _log('⚠️ Auth NOT deleted via Function ($e) - Go Firebase Console > Authentication > Search $email > Delete manually, OR deploy deleteAuthUser function');
+      _toast('⚠️ Delete Auth manually in Firebase Console for $email');
+    }
+  }
+
   Future<void> _deleteAccount(Map rec) async {
-    final uid = rec['uid'].toString(); final email = rec['email'].toString(); final type = rec['type'].toString();
+    final uid = rec['uid'].toString();
+    final email = rec['email'].toString();
+    final type = rec['type'].toString();
     final displayName = rec['fullName'] ?? email;
-    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('DELETE COMPLETELY?'), content: Text('DELETE $type $displayName ($email) COMPLETELY?\n\nThis will delete:\n- RTDB: 20+ locations (nurses, pending, allowed, ceo, etc)\n- Firestore: all collections\n- Storage: all files\n- By BOTH UID and EMAIL\n\nThis cannot be undone!\n\nDelete $email?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('DELETE'))]));
+    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('DELETE COMPLETELY?'), content: Text('DELETE $type $displayName ($email) COMPLETELY?\n\nThis will delete:\n- RTDB: all locations\n- Firestore: all collections\n- Storage: all files\n- Email / Username / Phone / PIN indexes\n- Firebase Auth account\n\nSo this email fit re-register again.\n\nThis cannot be undone!\n\nDelete $email?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('DELETE'))]));
     if (c1 != true) return;
-    final c2 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('FINAL CONFIRM'), content: Text('Really delete $email from ALL database?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('YES DELETE'))]));
+    final c2 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('FINAL CONFIRM'), content: Text('Really delete $email from ALL database + Auth?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('YES DELETE'))]));
     if (c2 != true) return;
     final ctrl = TextEditingController();
     final confirmText = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: Text('Type DELETE to confirm deletion of $email'), content: TextField(controller: ctrl), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Confirm'))]));
     if (confirmText != 'DELETE') { _toast('Cancelled - you must type DELETE'); return; }
     setState(() { showLog = true; logLines = []; });
     _log('STARTING COMPLETE DELETE for $email ($uid) - Type: $type');
-    final emailKey = _sanitizeEmail(email); final eLower = email.toLowerCase().trim();
+    final emailKey = _sanitizeEmail(email);
+    final eLower = email.toLowerCase().trim();
     _log('EmailKey: $emailKey');
     try {
       final db = FirebaseDatabase.instance;
       Set<String> allUids = {uid, emailKey};
-      // FIX: scan CLIENT folders for a client, NURSE folders for a nurse.
       final scanPaths = type == 'nurse'
           ? ['nurses', 'pending_nurses', 'nurse_registrations', 'ceoRegistrationCenter/nurses']
           : ['clients', 'client_registrations', 'ceoRegistrationCenter/clients', 'allClients', 'clientUsers', 'pendingClientRegistrations', 'pending_clients', 'ceoClientUpdates', 'allowedClients', 'allowedClientsByUid'];
       for (final p in scanPaths) {
         try { final s = await db.ref(p).get(); if (s.exists) (s.value as Map).forEach((k, v) { if (v is Map && (v['email'] ?? v['clientEmail'] ?? v['emailAddress'] ?? '').toString().toLowerCase() == eLower) { allUids.add(k.toString()); _log('Found RTDB $p/$k with email $email'); } }); } catch (_) {}
       }
-      List<String> rtdbBases = []; List<String> mappingPaths = [];
-      if (type == 'nurse') { // FIX: every client WITH an email went down the nurse branch before
-        rtdbBases = ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence'];
+      List<String> rtdbBases = [];
+      List<String> mappingPaths = [];
+      if (type == 'nurse') {
+        rtdbBases = ['nurses', 'pending_nurses', 'pendingNurses', 'allNurses', 'nurse_registrations', 'nurseApplications', 'nurseUsers', 'ceoNurseUpdates', 'ceoRegistrationCenter/nurses', 'verified_nurses', 'allowedNurses', 'allowedNursesByUid', 'nursesByEmail', 'nurseProfiles', 'onlineNurses', 'nursePresence', 'registrations', 'nurse_registrations', 'nurseLocations', 'nurseBookings'];
         mappingPaths = ['allowedNurses/$emailKey', 'allowedClients/$emailKey', 'nursesByEmail/$emailKey', 'allowedNurses/$uid', 'allowedNursesByUid/$uid'];
       } else {
         final raw = Map<String, dynamic>.from(rec['raw'] as Map);
@@ -431,7 +481,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       if (type != 'nurse') {
         try { final s = await db.ref('clientUsernames').get(); if (s.exists) (s.value as Map).forEach((k, val) { if (val == uid) db.ref('clientUsernames/$k').remove(); }); } catch (_) {}
       }
-      // FINAL SWEEP: catch any child whose email matches, even if its key was never in allUids
       for (final base in rtdbBases) {
         try {
           final s = await db.ref(base).get();
@@ -445,16 +494,17 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           }
         } catch (_) {}
       }
+      // NEW - Delete indexes + Auth + Firestore + Storage
+      await _deleteEmailIndexes(uid: uid, email: email, type: type, rec: rec);
+      await _deleteAuthUser(uid: uid, email: email);
       await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
-      _log('✅ Firestore + Storage deleted for $email');
-      _toast('Deleted $deleted paths for $email');
+      _log('✅ Firestore + Storage + Auth + Indexes deleted for $email');
+      _toast('Deleted $deleted paths for $email - Email fit re-register now');
       _loadAll();
     } catch (e) { _log('Delete failed: $e'); _toast('Delete failed: $e'); }
   }
 
-  // ---------- EXPORT + DELETE ALL (current tab) ----------
-  // No web-only import here - it breaks WASM build (same error as HR page).
-  // Plain TextButton used.
+  // ============ EXPORT + DELETE ALL ============
   String _csvCell(String v) {
     final s = v.replaceAll('"', '""');
     if (s.contains(',') || s.contains('"') || s.contains('\n')) return '"$s"';
@@ -467,34 +517,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     ];
     for (final r in list) {
       final created = r['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((r['createdAt'] as num).toInt()).toString() : '';
-      rows.add([
-        '${r['type'] ?? ''}',
-        '${r['fullName'] ?? ''}',
-        '${r['username'] ?? ''}',
-        '${r['email'] ?? ''}',
-        '${r['phone'] ?? ''}',
-        '${r['countryCode'] ?? ''}',
-        '${r['isApproved'] == true ? 'APPROVED' : 'PENDING'}',
-        '${r['hasPhoto'] == true ? 'YES' : 'NO'}',
-        '${r['hasVideo'] == true ? 'YES' : 'NO'}',
-        '${r['hasId'] == true ? 'YES' : 'NO'}',
-        '${r['hasLicence'] == true ? 'YES' : 'NO'}',
-        '${r['hasCert'] == true ? 'YES' : 'NO'}',
-        '${r['qualification'] ?? ''}',
-        '${r['services'] ?? ''}',
-        '${r['referenceName'] ?? ''}',
-        '${r['referencePhone'] ?? ''}',
-        '${r['gpsName'] ?? ''}',
-        '${r['lat'] ?? ''}',
-        '${r['lng'] ?? ''}',
-        '${r['uid'] ?? ''}',
-        created,
-        '${r['photo'] ?? ''}',
-        '${r['idURL'] ?? ''}',
-        '${r['licenceURL'] ?? ''}',
-        '${r['videoURL'] ?? ''}',
-        '${r['certURL'] ?? ''}',
-      ]);
+      rows.add(['${r['type'] ?? ''}', '${r['fullName'] ?? ''}', '${r['username'] ?? ''}', '${r['email'] ?? ''}', '${r['phone'] ?? ''}', '${r['countryCode'] ?? ''}', '${r['isApproved'] == true ? 'APPROVED' : 'PENDING'}', '${r['hasPhoto'] == true ? 'YES' : 'NO'}', '${r['hasVideo'] == true ? 'YES' : 'NO'}', '${r['hasId'] == true ? 'YES' : 'NO'}', '${r['hasLicence'] == true ? 'YES' : 'NO'}', '${r['hasCert'] == true ? 'YES' : 'NO'}', '${r['qualification'] ?? ''}', '${r['services'] ?? ''}', '${r['referenceName'] ?? ''}', '${r['referencePhone'] ?? ''}', '${r['gpsName'] ?? ''}', '${r['lat'] ?? ''}', '${r['lng'] ?? ''}', '${r['uid'] ?? ''}', created, '${r['photo'] ?? ''}', '${r['idURL'] ?? ''}', '${r['licenceURL'] ?? ''}', '${r['videoURL'] ?? ''}', '${r['certURL'] ?? ''}']);
     }
     return rows.map((r) => r.map(_csvCell).join(',')).join('\n');
   }
@@ -505,24 +528,13 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     final csv = _buildCsv(list);
     await Clipboard.setData(ClipboardData(text: csv));
     if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Export - CSV copied (${list.length} in $currentTab)'),
-        content: SingleChildScrollView(child: Text('Saved ${list.length} records to clipboard.\n\nPaste it into Excel / Google Sheets / WhatsApp / Notes.\n\n$csv')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-          ElevatedButton(onPressed: () { Clipboard.setData(ClipboardData(text: csv)); Navigator.pop(context); _toast('Copied again'); }, child: const Text('Copy Again')),
-        ],
-      ),
-    );
+    showDialog(context: context, builder: (_) => AlertDialog(title: Text('Export - CSV copied (${list.length} in $currentTab)'), content: SingleChildScrollView(child: Text('Saved ${list.length} records to clipboard.\n\nPaste it into Excel / Google Sheets / WhatsApp / Notes.\n\n$csv')), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')), ElevatedButton(onPressed: () { Clipboard.setData(ClipboardData(text: csv)); Navigator.pop(context); _toast('Copied again'); }, child: const Text('Copy Again'))]));
   }
 
   Future<void> _deleteAllFiltered() async {
     final list = List<Map>.from(filtered);
     if (list.isEmpty) { _toast('Nothing to delete'); return; }
-    // One confirm for ALL - type DELETE once, not once per person (unlike per-card Delete)
-    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Delete ALL ${list.length} in $currentTab?'), content: Text('This deletes ALL ${list.length} records in the current tab ($currentTab) from RTDB. It cannot be undone.\n\nTip: Export first, so you still have a copy saved.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Continue'))]));
+    final c1 = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Delete ALL ${list.length} in $currentTab?'), content: Text('This deletes ALL ${list.length} records in the current tab ($currentTab) from RTDB + Firestore + Auth. It cannot be undone.\n\nTip: Export first, so you still have a copy saved.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Continue'))]));
     if (c1 != true) return;
     final ctrl = TextEditingController();
     final confirmText = await showDialog<String>(context: context, builder: (_) => AlertDialog(title: Text('Type DELETE to delete ALL ${list.length}'), content: TextField(controller: ctrl), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Confirm'))]));
@@ -544,12 +556,15 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           if (uid.length >= 2) { try { await db.ref('$base/$uid').remove(); } catch (_) {} }
           if (emailKey.length >= 2) { try { await db.ref('$base/$emailKey').remove(); } catch (_) {} }
         }
+        // NEW: indexes + Auth + Firestore for each
+        await _deleteEmailIndexes(uid: uid, email: email, type: type, rec: rec);
+        await _deleteAuthUser(uid: uid, email: email);
         await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
         done++;
-        _log('Deleted: $type ${rec['fullName']} ($email) - Firestore + RTDB + Storage');
+        _log('Deleted: $type ${rec['fullName']} ($email) - Firestore + RTDB + Storage + Auth');
       }
       _log('DONE - Deleted $done records');
-      _toast('Deleted $done records');
+      _toast('Deleted $done records - Emails fit re-register now');
       _loadAll();
     } catch (e) {
       _log('Delete All failed: $e');
@@ -557,59 +572,123 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     }
   }
 
-  Widget _docBox(String url, String label, bool has, String type) => InkWell(onTap: () => _viewDoc(url, label, type), child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10), border: Border.all(color: has ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3))), child: Column(children: [if (url.isNotEmpty && type == 'image') ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(url, height: 80, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(height: 80, child: Center(child: Text('Photo'))))) else SizedBox(height: 80, child: Center(child: Text(has ? 'View $label' : 'No $label', style: const TextStyle(color: Colors.white60, fontSize: 11)))), const SizedBox(height: 4), Text('$label ${has ? '✅' : '❌'}', style: const TextStyle(fontSize: 10))])));
+  // ============ VIEW DOC ============
+  void _viewDoc(String url, String label, String type) {
+    if (url.isEmpty) { _toast('No $label'); return; }
+    showDialog(context: context, builder: (_) => AlertDialog(title: Text(label), content: SingleChildScrollView(child: Column(children: [if (type == 'image') Image.network(url, errorBuilder: (_, __, ___) => const Text('Image no load')) else Text(url), const SizedBox(height: 10), SelectableText(url)])), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')), ElevatedButton(onPressed: () { Clipboard.setData(ClipboardData(text: url)); Navigator.pop(context); _toast('Link copied'); }, child: const Text('Copy Link'))]));
+  }
 
+  Widget _docBox(String url, String label, bool has, String type) => InkWell(
+        onTap: () => _viewDoc(url, label, type),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10), border: Border.all(color: has ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3))),
+          child: Column(children: [
+            if (url.isNotEmpty && type == 'image') ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(url, height: 80, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const SizedBox(height: 80, child: Center(child: Text('Photo'))))) else SizedBox(height: 80, child: Center(child: Text(has ? 'View $label' : 'No $label', style: const TextStyle(color: Colors.white60, fontSize: 11)))),
+            const SizedBox(height: 4),
+            Text('$label ${has ? '✅' : '❌'}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+          ]),
+        ),
+      );
+
+  // ============ UI ============
   @override
   Widget build(BuildContext context) {
     final list = filtered;
-    final nursesPending = allRecords.where((r) => r['type'] == 'nurse' && r['isApproved'] != true).length;
-    final nursesApproved = allRecords.where((r) => r['type'] == 'nurse' && r['isApproved'] == true).length;
-    final clientsPending = allRecords.where((r) => r['type'] == 'client' && r['isApproved'] != true).length;
-    final clientsApproved = allRecords.where((r) => r['type'] == 'client' && r['isApproved'] == true).length;
-    final tabs = [{'key': 'nursesPending', 'label': '👩‍⚕️ Nurses Pending ($nursesPending)'}, {'key': 'nursesApproved', 'label': '✅ Nurses Approved ($nursesApproved)'}, {'key': 'clientsPending', 'label': '👥 Clients Pending ($clientsPending)'}, {'key': 'clientsApproved', 'label': '✅ Clients Approved ($clientsApproved)'}, {'key': 'all', 'label': '📦 ALL (${allRecords.length})'}];
     return Scaffold(
       backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: const Text('CEO View All Uploads', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [IconButton(icon: const Icon(Icons.volume_up), onPressed: () => Navigator.pushNamed(context, '/sound-settings')), TextButton(onPressed: _export, child: const Text('Export', style: TextStyle(color: Color(0xFFFACC15), fontSize: 11, fontWeight: FontWeight.bold))), TextButton(onPressed: _deleteAllFiltered, child: const Text('Delete All', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold))), TextButton(onPressed: _fixAllApproved, child: const Text('Fix All Approved', style: TextStyle(color: Colors.yellow, fontSize: 11))), IconButton(icon: const Icon(Icons.refresh), onPressed: _loadAll)]),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1A1633),
+        title: const Text('CEO Registration Center', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        actions: [
+          TextButton(onPressed: _export, child: const Text('Export', style: TextStyle(color: Colors.amber))),
+          TextButton(onPressed: _deleteAllFiltered, child: const Text('Delete All', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: _fixAllApproved, child: const Text('Fix All Approved', style: TextStyle(color: Colors.greenAccent))),
+          IconButton(onPressed: _loadAll, icon: const Icon(Icons.refresh, color: Colors.white)),
+        ],
+      ),
       body: Column(children: [
-        Padding(padding: const EdgeInsets.all(10), child: Wrap(spacing: 6, runSpacing: 6, children: tabs.map((t) => ChoiceChip(label: Text(t['label']!, style: const TextStyle(fontSize: 11)), selected: currentTab == t['key'], onSelected: (_) => setState(() => currentTab = t['key']!))).toList())),
-        Padding(padding: const EdgeInsets.symmetric(horizontal: 10), child: Row(children: [Expanded(child: TextField(controller: _searchCtrl, decoration: const InputDecoration(hintText: 'Search name / username / email / phone', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)), onChanged: (v) => setState(() => search = v.toLowerCase()))), const SizedBox(width: 8), DropdownButton<String>(value: docFilter, items: const [DropdownMenuItem(value: 'all', child: Text('All Documents')), DropdownMenuItem(value: 'missing', child: Text('Missing ALL 5')), DropdownMenuItem(value: 'hasVideo', child: Text('Has Video')), DropdownMenuItem(value: 'hasPhoto', child: Text('Has Photo'))], onChanged: (v) => setState(() => docFilter = v ?? 'all'))])),
-        if (showLog) Container(width: double.infinity, margin: const EdgeInsets.all(10), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(10)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Log', style: TextStyle(fontWeight: FontWeight.bold)), TextButton(onPressed: () => setState(() => showLog = false), child: const Text('Hide'))]), ...logLines.take(30).map((l) => Text(l, style: const TextStyle(fontSize: 10, color: Colors.white60)))])),
-        Expanded(child: list.isEmpty ? Center(child: Text('$currentTab — No records${search.isNotEmpty ? ' for "$search"' : ''}', style: const TextStyle(color: Colors.white60))) : GridView.builder(padding: const EdgeInsets.all(10), gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 400, childAspectRatio: 0.85, crossAxisSpacing: 10, mainAxisSpacing: 10), itemCount: list.length, itemBuilder: (_, i) {
-          final rec = list[i];
-          final displayName = rec['fullName'] ?? rec['name'];
-          return Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: rec['isApproved'] == true ? Colors.green.withOpacity(0.08) : const Color(0xFF1C1238), borderRadius: BorderRadius.circular(18), border: Border.all(color: rec['isApproved'] == true ? Colors.green.withOpacity(0.4) : Colors.purple.withOpacity(0.2))), child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Column(children: [
-              CircleAvatar(radius: 42, backgroundImage: rec['photo'].toString().isNotEmpty ? NetworkImage(rec['photo']) : null, child: rec['photo'].toString().isEmpty ? Text(displayName.toString().isNotEmpty ? displayName[0].toUpperCase() : '?', style: const TextStyle(fontSize: 28)) : null),
-              const SizedBox(height: 8),
-              Text('$displayName ${rec['type'] == 'nurse' ? '👩‍⚕️' : '👤'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Colors.white), textAlign: TextAlign.center),
-              if (rec['username'] != null && (rec['username'] as String).isNotEmpty) Text('@${rec['username']}', style: const TextStyle(color: Colors.purpleAccent, fontSize: 12)),
-            ]),
-            const SizedBox(height: 8),
-            Row(children: [Chip(label: Text(rec['isApproved'] == true ? '✅ APPROVED' : '⏳ PENDING', style: const TextStyle(fontSize: 10)), backgroundColor: rec['isApproved'] == true ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2)), const SizedBox(width: 6), Chip(label: Text((rec['hasAll5'] == true || rec['hasAll4'] == true) ? '✅ ALL 4' : '❌ Missing', style: const TextStyle(fontSize: 10)), backgroundColor: (rec['hasAll5'] == true || rec['hasAll4'] == true) ? Colors.green.withOpacity(0.2) : Colors.red.withOpacity(0.2))]),
-            const SizedBox(height: 6),
-            Text('📧 ${rec['email'].toString().isEmpty ? 'no email' : rec['email']}', style: const TextStyle(fontSize: 11)),
-            Text('📞 ${rec['phone'].toString().isEmpty ? 'no phone' : rec['phone']}', style: const TextStyle(fontSize: 11)),
-            if (rec['type'] == 'nurse') Text('🎓 ${rec['qualification'] ?? ''} • ${rec['services'] ?? ''}\n👤 Ref: ${rec['referenceName'] ?? ''} ${rec['referencePhone'] ?? ''}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
-            Text('📍 ${rec['gpsName'] ?? ''} ${rec['lat'] != null ? '(${(rec['lat'] as num).toStringAsFixed(4)}, ${(rec['lng'] as num).toStringAsFixed(4)})' : ''}', style: const TextStyle(fontSize: 11, color: Colors.white60)),
-            Text(rec['createdAt'] != null ? DateTime.fromMillisecondsSinceEpoch((rec['createdAt'] as num).toInt()).toString() : '', style: const TextStyle(fontSize: 10, color: Colors.white60)), // UID hidden - it is gibberish, not a name
-            const SizedBox(height: 10),
-            GridView.count(crossAxisCount: 2, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), childAspectRatio: 1.2, crossAxisSpacing: 8, mainAxisSpacing: 8, children: [
-              _docBox(rec['photo'], 'Photo', rec['hasPhoto'] == true, 'image'),
-              if (rec['type'] == 'nurse') _docBox(rec['idURL'], 'ID', rec['hasId'] == true, 'image'),
-              if (rec['type'] == 'nurse') _docBox(rec['licenceURL'], 'Licence', rec['hasLicence'] == true, 'image'),
-              if (rec['type'] == 'nurse') _docBox(rec['videoURL'], 'Video', rec['hasVideo'] == true, 'video'),
-              _docBox(rec['certURL'], 'Cert (CV)', rec['hasCert'] == true, 'image'),
-            ]),
-            const SizedBox(height: 10),
-            Wrap(spacing: 6, runSpacing: 6, children: [
-              if (rec['isApproved'] != true) ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => _approve(rec), child: const Text('Approve', style: TextStyle(fontSize: 11))),
-              ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => _reject(rec), child: const Text('Reject', style: TextStyle(fontSize: 11))),
-              OutlinedButton(onPressed: () => _viewAllDocs(rec), child: const Text('All Docs', style: TextStyle(fontSize: 11))),
-              OutlinedButton(onPressed: () => _deleteAccount(rec), child: const Text('Delete', style: TextStyle(fontSize: 11, color: Colors.red))),
-            ]),
-          ])));
-        })),
+        Padding(
+          padding: const EdgeInsets.all(10),
+          child: Wrap(spacing: 8, runSpacing: 8, children: [
+            _tabBtn('Nurses Pending ($nursesPendingCount)', 'nursesPending', Colors.orange),
+            _tabBtn('Nurses Approved ($nursesApprovedCount)', 'nursesApproved', Colors.green),
+            _tabBtn('Clients Pending ($clientsPendingCount)', 'clientsPending', Colors.blue),
+            _tabBtn('Clients Approved ($clientsApprovedCount)', 'clientsApproved', Colors.teal),
+            _tabBtn('ALL (${allRecords.length})', 'all', Colors.purple),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(children: [
+            Expanded(child: TextField(controller: _searchCtrl, onChanged: (v) => setState(() => search = v), style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: 'Search name / username / email / phone...', hintStyle: const TextStyle(color: Colors.white54), filled: true, fillColor: const Color(0xFF1A1633), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.search, color: Colors.white54)))),
+            const SizedBox(width: 8),
+            DropdownButton<String>(value: docFilter, dropdownColor: const Color(0xFF1A1633), style: const TextStyle(color: Colors.white), items: const [DropdownMenuItem(value: 'all', child: Text('All Documents')), DropdownMenuItem(value: 'noVideo', child: Text('No Video')), DropdownMenuItem(value: 'noPhoto', child: Text('No Photo')), DropdownMenuItem(value: 'noId', child: Text('No ID'))], onChanged: (v) => setState(() => docFilter = v ?? 'all')),
+          ]),
+        ),
+        if (showLog)
+          Container(
+            margin: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
+            height: 140,
+            decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
+            child: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: logLines.map((l) => Text(l, style: const TextStyle(color: Colors.greenAccent, fontSize: 11))).toList())),
+          ),
+        Expanded(
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator(color: Colors.purple))
+              : list.isEmpty
+                  ? const Center(child: Text('No records here', style: TextStyle(color: Colors.white54)))
+                  : ListView.builder(
+                      itemCount: list.length,
+                      itemBuilder: (_, i) {
+                        final r = list[i];
+                        final raw = r['raw'] is Map ? Map.from(r['raw'] as Map) : {};
+                        return Card(
+                          color: const Color(0xFF1A1633),
+                          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Row(children: [
+                                CircleAvatar(radius: 24, backgroundImage: r['photo'].toString().isNotEmpty ? NetworkImage(r['photo'].toString()) : null, backgroundColor: Colors.purple, child: r['photo'].toString().isEmpty ? Text(r['type'] == 'nurse' ? '👩‍⚕️' : '👤') : null),
+                                const SizedBox(width: 10),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(r['fullName'].toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)), Text('${r['email']} • ${r['phone']}', style: const TextStyle(color: Colors.white60, fontSize: 12)), Text('${r['type']} • ${r['isApproved'] == true ? '✅ APPROVED' : '⏳ PENDING'} • UID: ${r['uid']}', style: TextStyle(color: r['isApproved'] == true ? Colors.greenAccent : Colors.orange, fontSize: 11))])),
+                              ]),
+                              const SizedBox(height: 10),
+                              GridView.count(crossAxisCount: 4, shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisSpacing: 6, mainAxisSpacing: 6, children: [
+                                _docBox(r['photo'].toString(), 'Photo', r['hasPhoto'] == true, 'image'),
+                                _docBox(r['idURL'].toString(), 'ID', r['hasId'] == true, 'image'),
+                                _docBox(r['licenceURL'].toString(), 'Licence', r['hasLicence'] == true, 'image'),
+                                _docBox(r['videoURL'].toString(), 'Video', r['hasVideo'] == true, 'video'),
+                                _docBox(r['certURL'].toString(), 'Cert', r['hasCert'] == true, 'image'),
+                                _docBox(r['cvURL'].toString(), 'CV', r['hasCv'] == true, 'image'),
+                                _docBox('', 'PIN ${raw['nursingPin'] ?? raw['pin'] ?? '—'}', r['hasPin'] == true, 'text'),
+                                _docBox('', 'Phone ${r['phone']}', r['phone'].toString().isNotEmpty, 'text'),
+                              ]),
+                              const SizedBox(height: 10),
+                              Row(children: [
+                                Expanded(child: ElevatedButton(onPressed: () => _approve(r), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('Approve', style: TextStyle(color: Colors.white)))),
+                                const SizedBox(width: 8),
+                                Expanded(child: ElevatedButton(onPressed: () => _reject(r), style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), child: const Text('Reject', style: TextStyle(color: Colors.white)))),
+                                const SizedBox(width: 8),
+                                Expanded(child: ElevatedButton(onPressed: () => _deleteAccount(r), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Delete Completely', style: TextStyle(color: Colors.white, fontSize: 12)))),
+                              ]),
+                            ]),
+                          ),
+                        );
+                      },
+                    ),
+        ),
       ]),
+    );
+  }
+
+  Widget _tabBtn(String label, String value, Color color) {
+    final active = currentTab == value;
+    return InkWell(
+      onTap: () => setState(() => currentTab = value),
+      child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: active ? color : Colors.black26, borderRadius: BorderRadius.circular(20), border: Border.all(color: color)), child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
     );
   }
 }
