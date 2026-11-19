@@ -245,10 +245,42 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
     }
   }
 
+  // BACK + FRONT - always show, even if this page is first page
+  void _goBack() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      // No page behind - go to Welcome / Home. Change '/' to your welcome route if different.
+      Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
+    }
+  }
+
+  void _goFront() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClientRegistrationPage()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Client Login'), backgroundColor: Colors.purple, foregroundColor: Colors.white),
+      // ===== FIXED: BACK + FRONT ARROW - ONLY CHANGE HERE =====
+      appBar: AppBar(
+        title: const Text('Client Login'),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false, // stop Flutter from hiding arrow
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, size: 28),
+          tooltip: 'Back',
+          onPressed: _goBack,
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.arrow_forward, size: 28),
+            tooltip: 'Forward to Register',
+            onPressed: _goFront,
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
