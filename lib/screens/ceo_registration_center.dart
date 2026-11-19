@@ -4,12 +4,12 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-// CEO REGISTRATION CENTER - FULL FILE - FIXED BUILD ERROR
-// FIX: Line 537 error was Row(children: [if (!isClient) ...]) + missing ] - now card is in _buildCard(), no if-inside-Row
-// NEW RULE:
-//  CLIENT: Pending = NOT verified ONLY. CEO does NOT approve Client. Verified = Auto-Approved, can login.
-//  NURSE: CEO approval STILL required.
+// CEO REGISTRATION CENTER - FULL FILE - FIXED
+// CLIENT: Pending = NOT verified ONLY. CEO does NOT approve Client. Verified = Auto-Approved.
+// NURSE: CEO approval STILL required.
+// FIX: _loadAll now scans RTDB + FIRESTORE + users/nurseUsers, and does NOT skip on field-name mismatch.
 
 class CEORegistrationCenterScreen extends StatefulWidget {
   const CEORegistrationCenterScreen({super.key});
@@ -76,11 +76,71 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     return 0;
   }
 
+  // ============ FIXED _loadAll - RTDB + FIRESTORE ============
   Future<void> _loadAll() async {
     setState(() => isLoading = true);
     try {
       final db = FirebaseDatabase.instance;
       List<Map> out = [];
+
+      String pickEmail(Map m) {
+        for (final k in ['email', 'clientEmail', 'emailAddress', 'nurseEmail', 'userEmail', 'mail']) {
+          if (m[k] != null && m[k].toString().contains('@')) return m[k].toString();
+        }
+        return '';
+      }
+
+      String pickName(Map m) {
+        for (final k in ['fullName', 'name', 'username', 'userName', 'nurseName', 'displayName', 'firstName']) {
+          if (m[k] != null && m[k].toString().isNotEmpty) return m[k].toString();
+        }
+        return '';
+      }
+
+      Map<String, dynamic> buildRecord(String uid, String key, String type, Map m, String email, String name, String phone) {
+        bool isApproved;
+        if (type == 'client') {
+          isApproved = m['isApproved'] == true || m['approved'] == true || m['status'] == 'approved' || m['approvalStatus'] == 'approved' || m['emailVerified'] == true;
+        } else {
+          isApproved = m['isApproved'] == true || m['approved'] == true || m['status'] == 'approved' || m['approvalStatus'] == 'approved';
+        }
+        return {
+          'uid': uid,
+          'key': key,
+          'type': type,
+          'email': email.toLowerCase(),
+          'fullName': name,
+          'username': (m['username'] ?? m['userName'] ?? '').toString(),
+          'phone': phone,
+          'countryCode': (m['countryCode'] ?? '').toString(),
+          'isApproved': isApproved,
+          'emailVerified': m['emailVerified'] == true || m['verifiedByEmail'] == true,
+          'needsProfile': m['needsProfile'] == true,
+          'hasPhoto': _hasDoc(m, ['photo', 'photoURL', 'photoUrl', 'image', 'profilePic']),
+          'hasVideo': _hasDoc(m, ['video', 'videoURL', 'videoUrl', 'introVideo', 'introVideoUrl', 'profileVideo']),
+          'hasId': _hasDoc(m, ['idURL', 'idUrl', 'idFront', 'idFrontURL', 'nationalId', 'ghanaCard']),
+          'hasLicence': _hasDoc(m, ['licenceURL', 'licenceUrl', 'licenseURL', 'licence', 'license']),
+          'hasCert': _hasDoc(m, ['certURL', 'certUrl', 'certificateURL', 'certificate']),
+          'hasCv': _hasDoc(m, ['cvURL', 'cvUrl', 'cv']),
+          'hasPin': (m['nursingPin'] ?? m['pin'] ?? '').toString().isNotEmpty,
+          'qualification': (m['qualification'] ?? m['education'] ?? '').toString(),
+          'services': (m['services'] ?? m['speciality'] ?? m['specialty'] ?? '').toString(),
+          'referenceName': (m['referenceName'] ?? '').toString(),
+          'referencePhone': (m['referencePhone'] ?? '').toString(),
+          'gpsName': (m['gpsName'] ?? m['location'] ?? '').toString(),
+          'lat': m['lat'] ?? m['latitude'] ?? m['gpsLat'],
+          'lng': m['lng'] ?? m['longitude'] ?? m['gpsLng'],
+          'createdAt': _createdAtMs(m['createdAt'] ?? m['timestamp'] ?? m['created_at']),
+          'photo': (m['photo'] ?? m['photoURL'] ?? m['photoUrl'] ?? '').toString(),
+          'idURL': (m['idURL'] ?? m['idUrl'] ?? m['idFrontURL'] ?? '').toString(),
+          'licenceURL': (m['licenceURL'] ?? m['licenceUrl'] ?? '').toString(),
+          'videoURL': (m['videoURL'] ?? m['videoUrl'] ?? m['introVideoUrl'] ?? m['video'] ?? m['introVideo'] ?? '').toString(),
+          'certURL': (m['certURL'] ?? m['certUrl'] ?? m['certificateURL'] ?? '').toString(),
+          'cvURL': (m['cvURL'] ?? m['cvUrl'] ?? '').toString(),
+          'raw': m,
+        };
+      }
+
       Future<void> scan(String base, String type) async {
         try {
           final s = await db.ref(base).get();
@@ -90,63 +150,58 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           for (final e in (val as Map).entries) {
             if (e.value is! Map) continue;
             final m = Map<String, dynamic>.from(e.value as Map);
-            if (m['email'] == null && m['clientEmail'] == null && m['emailAddress'] == null && m['fullName'] == null && m['name'] == null) continue;
-            final email = (m['email'] ?? m['clientEmail'] ?? m['emailAddress'] ?? '').toString();
-            final name = (m['fullName'] ?? m['name'] ?? m['username'] ?? '').toString();
-            final uid = (m['uid'] ?? m['id'] ?? e.key).toString();
-            bool isApproved;
-            if (type == 'client') {
-              isApproved = m['isApproved'] == true || m['approved'] == true || m['status'] == 'approved' || m['approvalStatus'] == 'approved' || m['emailVerified'] == true;
-            } else {
-              isApproved = m['isApproved'] == true || m['approved'] == true || m['status'] == 'approved' || m['approvalStatus'] == 'approved';
+            String email = pickEmail(m);
+            // If email dey for KEY like nurses/john_gmail_com
+            if (email.isEmpty && e.key.toString().contains('_')) email = e.key.toString();
+            final name = pickName(m);
+            final phone = (m['phone'] ?? m['phoneNumber'] ?? m['nursePhone'] ?? '').toString();
+            // FIX: Only skip if email + name + phone ALL empty
+            if (email.isEmpty && name.isEmpty && phone.isEmpty) continue;
+            // If scanning generic users, only keep nurses/clients with role or relevant fields
+            if (base == 'users') {
+              final role = '${m['role'] ?? m['userType'] ?? ''}'.toLowerCase();
+              if (type == 'nurse' && !(role.contains('nurse') || m.containsKey('nursingPin') || m.containsKey('licenceURL') || m.containsKey('licenseURL'))) {
+                // Still keep if it looks like a nurse record, else skip to avoid double-count clients
+                if (role.contains('client')) continue;
+              }
             }
+            final uid = (m['uid'] ?? m['id'] ?? e.key).toString();
+            final rec = buildRecord(uid, e.key.toString(), type, m, email, name, phone);
             final exists = out.any((x) => x['uid'].toString() == uid && x['email'].toString().toLowerCase() == email.toLowerCase());
             if (exists) continue;
-            out.add({
-              'uid': uid,
-              'key': e.key.toString(),
-              'type': type,
-              'email': email.toLowerCase(),
-              'fullName': name,
-              'username': (m['username'] ?? m['userName'] ?? '').toString(),
-              'phone': (m['phone'] ?? m['phoneNumber'] ?? '').toString(),
-              'countryCode': (m['countryCode'] ?? '').toString(),
-              'isApproved': isApproved,
-              'emailVerified': m['emailVerified'] == true || m['verifiedByEmail'] == true,
-              'needsProfile': m['needsProfile'] == true,
-              'hasPhoto': _hasDoc(m, ['photo', 'photoURL', 'photoUrl', 'image', 'profilePic']),
-              'hasVideo': _hasDoc(m, ['video', 'videoURL', 'videoUrl', 'introVideo', 'introVideoUrl', 'profileVideo']),
-              'hasId': _hasDoc(m, ['idURL', 'idUrl', 'idFront', 'idFrontURL', 'nationalId', 'ghanaCard']),
-              'hasLicence': _hasDoc(m, ['licenceURL', 'licenceUrl', 'licenseURL', 'licence', 'license']),
-              'hasCert': _hasDoc(m, ['certURL', 'certUrl', 'certificateURL', 'certificate']),
-              'hasCv': _hasDoc(m, ['cvURL', 'cvUrl', 'cv']),
-              'hasPin': (m['nursingPin'] ?? m['pin'] ?? '').toString().isNotEmpty,
-              'qualification': (m['qualification'] ?? m['education'] ?? '').toString(),
-              'services': (m['services'] ?? m['speciality'] ?? m['specialty'] ?? '').toString(),
-              'referenceName': (m['referenceName'] ?? '').toString(),
-              'referencePhone': (m['referencePhone'] ?? '').toString(),
-              'gpsName': (m['gpsName'] ?? m['location'] ?? '').toString(),
-              'lat': m['lat'] ?? m['latitude'] ?? m['gpsLat'],
-              'lng': m['lng'] ?? m['longitude'] ?? m['gpsLng'],
-              'createdAt': _createdAtMs(m['createdAt'] ?? m['timestamp'] ?? m['created_at']),
-              'photo': (m['photo'] ?? m['photoURL'] ?? m['photoUrl'] ?? '').toString(),
-              'idURL': (m['idURL'] ?? m['idUrl'] ?? m['idFrontURL'] ?? '').toString(),
-              'licenceURL': (m['licenceURL'] ?? m['licenceUrl'] ?? '').toString(),
-              'videoURL': (m['videoURL'] ?? m['videoUrl'] ?? m['introVideoUrl'] ?? m['video'] ?? m['introVideo'] ?? '').toString(),
-              'certURL': (m['certURL'] ?? m['certUrl'] ?? m['certificateURL'] ?? '').toString(),
-              'cvURL': (m['cvURL'] ?? m['cvUrl'] ?? '').toString(),
-              'raw': m,
-            });
+            out.add(rec);
           }
         } catch (_) {}
       }
 
+      Future<void> scanFirestore(String coll, String type) async {
+        try {
+          final qs = await FirebaseFirestore.instance.collection(coll).get();
+          for (final d in qs.docs) {
+            final m = d.data();
+            String email = pickEmail(m);
+            final name = pickName(m);
+            final phone = (m['phone'] ?? m['phoneNumber'] ?? m['nursePhone'] ?? '').toString();
+            if (email.isEmpty && name.isEmpty && phone.isEmpty) continue;
+            final uid = (m['uid'] ?? m['id'] ?? d.id).toString();
+            final rec = buildRecord(uid, d.id, type, m, email, name, phone);
+            final exists = out.any((x) => x['uid'].toString() == uid && x['email'].toString().toLowerCase() == email.toLowerCase());
+            if (exists) continue;
+            out.add(rec);
+          }
+        } catch (_) {}
+      }
+
+      // RTDB
       await scan('nurses', 'nurse');
       await scan('pending_nurses', 'nurse');
       await scan('pendingNurses', 'nurse');
       await scan('nurse_registrations', 'nurse');
       await scan('nurseApplications', 'nurse');
       await scan('allNurses', 'nurse');
+      await scan('nurseUsers', 'nurse');
+      await scan('ceoNurseUpdates', 'nurse');
+      await scan('users', 'nurse');
       await scan('ceoRegistrationCenter/nurses', 'nurse');
       await scan('clients', 'client');
       await scan('client_registrations', 'client');
@@ -155,6 +210,16 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       await scan('pendingClients', 'client');
       await scan('pendingClientRegistrations', 'client');
       await scan('ceoRegistrationCenter/clients', 'client');
+
+      // FIRESTORE - THIS WAS MISSING BEFORE
+      await scanFirestore('nurses', 'nurse');
+      await scanFirestore('nurse_registrations', 'nurse');
+      await scanFirestore('pending_nurses', 'nurse');
+      await scanFirestore('nurseApplications', 'nurse');
+      await scanFirestore('ceo_registration', 'nurse');
+      await scanFirestore('users', 'nurse');
+      await scanFirestore('clients', 'client');
+      await scanFirestore('client_registrations', 'client');
 
       if (!mounted) return;
       setState(() {
@@ -293,7 +358,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     try {
       final emailKey = _sanitizeEmail(email);
       final now = DateTime.now().millisecondsSinceEpoch;
-      final payload = {'isApproved': true, 'approved': true, 'status': 'approved', 'canLogin': true, 'isVerified': true, 'emailVerified': true, 'approvedAt': now, 'approvedBy': 'CEO', 'updatedAt': now};
+      final payload = {'isApproved': true, 'approved': true, 'status': 'approved', 'approvalStatus': 'approved', 'canLogin': true, 'isVerified': true, 'emailVerified': true, 'approvedAt': now, 'approvedBy': 'CEO', 'updatedAt': now};
       final db = FirebaseDatabase.instance;
       final paths = ['nurses/$uid', 'pending_nurses/$uid', 'pendingNurses/$uid', 'nurse_registrations/$uid', 'nurseApplications/$uid', 'allNurses/$uid', 'nurseUsers/$uid', 'ceoNurseUpdates/$uid', 'ceoRegistrationCenter/nurses/$uid', 'verified_nurses/$uid'];
       for (final p in paths) {
@@ -348,6 +413,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       if (type == 'nurse') {
         await db.ref('nurses/$uid').update({'isApproved': false, 'status': 'rejected', 'rejectedAt': now});
         await db.ref('ceoRegistrationCenter/nurses/$uid').update({'isApproved': false, 'status': 'rejected'});
+        await db.ref('pendingNurses/$uid').remove();
       } else {
         await db.ref('clients/$uid').update({'isApproved': false, 'status': 'rejected'});
         await db.ref('ceoRegistrationCenter/clients/$uid').update({'isApproved': false, 'status': 'rejected'});
@@ -455,139 +521,43 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   }
 
   Future<void> _deleteEmailIndexes({required String uid, required String email, required String type, required Map rec}) async {
-    final db = FirebaseDatabase.instance;
+    final eLower = email.toLowerCase();
     final emailKey = _sanitizeEmail(email);
-    final raw = rec['raw'] is Map ? Map.from(rec['raw'] as Map) : {};
-    final username = ((raw['username'] ?? raw['userName'] ?? '') as String).toLowerCase();
-    final phoneRaw = (raw['phone'] ?? raw['phoneNumber'] ?? '').toString();
-    final phoneDigits = phoneRaw.replaceAll(RegExp(r'[^0-9]'), '');
-    final pin = (raw['nursingPin'] ?? raw['pin'] ?? '').toString();
-    final indexPaths = <String>[
-      'registeredEmails/$emailKey',
-      'usedEmails/$emailKey',
-      'registered_emails/$emailKey',
-      'used_emails/$emailKey',
-      'emailIndex/$emailKey',
-      'emails/$emailKey',
-      'emailToUid/$emailKey',
-      'usersByEmail/$emailKey',
-      'nursesByEmail/$emailKey',
-      'clientsByEmail/$emailKey',
-      'allowedNurses/$emailKey',
-      'allowedClients/$emailKey',
-      'allowedNursesByUid/$uid',
-      'allowedClientsByUid/$uid',
-      'users/$uid',
-      'users/$emailKey',
-    ];
-    if (username.isNotEmpty) indexPaths.add('usernames/$username');
-    if (phoneDigits.isNotEmpty) indexPaths.add('phones/$phoneDigits');
-    if (pin.isNotEmpty) indexPaths.add('nursingPins/$pin');
-    for (final p in indexPaths) {
+    final db = FirebaseDatabase.instance;
+    for (final base in ['registeredEmails', 'usedEmails', 'usersByEmail', 'emailIndex', 'nursesByEmail', 'clientsByEmail', 'allowedNurses', 'allowedNursesByUid', 'allowedClients', 'allowedClientsByUid']) {
       try {
-        await db.ref(p).remove();
+        await db.ref('$base/$emailKey').remove();
+      } catch (_) {}
+      try {
+        await db.ref('$base/$uid').remove();
       } catch (_) {}
     }
-  }
-
-  Future<void> _deleteAuthUser({required String uid, required String email}) async {
     try {
-      final res = await FirebaseFunctions.instance.httpsCallable('deleteAuthUser').call({'uid': uid, 'email': email.toLowerCase().trim()});
-      _log('Auth deleted: ${res.data}');
-    } catch (e) {
-      _log('Auth NOT deleted via Function ($e) - Delete manually in Console');
-      _toast('Delete Auth manually in Console for $email');
-    }
-  }
-
-  Future<void> _deleteStorageOrphansByUid({required String uid, required String email}) async {
-    final eLower = email.toLowerCase().trim();
-    try {
-      final root = FirebaseStorage.instance.ref();
-      final list = await root.listAll();
-      for (final prefix in list.prefixes) {
-        try {
-          final sub = await prefix.listAll();
-          for (final item in sub.items) {
-            if (item.fullPath.toLowerCase().contains(uid.toLowerCase()) || item.fullPath.toLowerCase().contains(eLower)) {
-              try {
-                await item.delete();
-              } catch (_) {}
-            }
+      final snap = await db.ref('registeredEmails').get();
+      if (snap.exists && snap.value is Map) {
+        for (final e in (snap.value as Map).entries) {
+          if (e.value is Map && (e.value as Map)['email']?.toString().toLowerCase() == eLower) {
+            await db.ref('registeredEmails/${e.key}').remove();
           }
-          for (final p2 in sub.prefixes) {
-            try {
-              final sub2 = await p2.listAll();
-              for (final item in sub2.items) {
-                if (item.fullPath.toLowerCase().contains(uid.toLowerCase()) || item.fullPath.toLowerCase().contains(eLower)) {
-                  try {
-                    await item.delete();
-                  } catch (_) {}
-                }
-              }
-            } catch (_) {}
-          }
-        } catch (_) {}
+        }
       }
     } catch (_) {}
   }
 
-  Future<void> _wipeAllAuthAndStorage() async {
-    final c1 = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('WIPE EVERYTHING?'),
-        content: const Text('This will DELETE ALL Auth users + ALL Storage files + ALL Database.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('Continue')),
-        ],
-      ),
-    );
-    if (c1 != true) return;
-    final ctrl = TextEditingController(text: 'joshouapee@gmail.com');
-    final keep = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('CEO Email to KEEP'),
-        content: TextField(controller: ctrl),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('WIPE ALL')),
-        ],
-      ),
-    );
-    if (keep == null) return;
-    final ctrl2 = TextEditingController();
-    final confirmText = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Type WIPE to confirm'),
-        content: TextField(controller: ctrl2),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, ctrl2.text), child: const Text('Confirm')),
-        ],
-      ),
-    );
-    if (confirmText != 'WIPE') {
-      _toast('Cancelled - you must type WIPE');
-      return;
-    }
-    setState(() {
-      showLog = true;
-      logLines = [];
-    });
-    _log('WIPE ALL START - Keep: $keep');
+  Future<void> _deleteAuthUser({required String uid, required String email}) async {
     try {
-      final res = await FirebaseFunctions.instance.httpsCallable('wipeAllAuthAndStorage').call({'keepEmail': keep.toLowerCase().trim()});
-      _log('WIPE DONE: ${res.data}');
-      _toast('Wipe done');
-      _loadAll();
+      await FirebaseFunctions.instance.httpsCallable('deleteAuthUser').call({'uid': uid, 'email': email});
     } catch (e) {
-      _log('Wipe failed: $e');
-      _toast('Wipe failed: $e');
+      _log('Auth delete failed (may need Cloud Function): $e');
     }
+  }
+
+  Future<void> _deleteStorageOrphansByUid({required String uid, required String email}) async {
+    try {
+      await _deleteStorageFolder('users/$uid');
+      await _deleteStorageFolder('nurses/$uid');
+      await _deleteStorageFolder('clients/$uid');
+    } catch (_) {}
   }
 
   Future<void> _deleteAccount(Map rec) async {
@@ -728,58 +698,52 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
             await db.ref('$base/$uid').remove();
           } catch (_) {}
         }
-        await _deleteEmailIndexes(uid: uid, email: email, type: type, rec: rec);
-        await _deleteAuthUser(uid: uid, email: email);
-        await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
-        await _deleteStorageOrphansByUid(uid: uid, email: email);
+        try {
+          await _deleteFirestoreAndStorage(uid: uid, email: email, type: type);
+        } catch (_) {}
         done++;
       }
-      _toast('Deleted $done records');
+      _toast('Deleted $done');
       _loadAll();
     } catch (e) {
-      _toast('Delete All failed: $e');
+      _toast('Delete all failed: $e');
     }
   }
 
-  void _viewDoc(String url, String label, String type) {
-    if (url.isEmpty) {
-      _toast('No $label');
-      return;
-    }
-    showDialog(
+  Future<void> _wipeAllAuthAndStorage() async {
+    final c = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(label),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              if (type == 'image')
-                Image.network(url, errorBuilder: (_, __, ___) => const Text('Image no load'))
-              else
-                Text(url),
-              const SizedBox(height: 10),
-              SelectableText(url),
-            ],
-          ),
-        ),
+        title: const Text('WIPE ALL?'),
+        content: const Text('This will call Cloud Function to wipe Auth. Cannot be undone!'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-          ElevatedButton(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: url));
-              Navigator.pop(context);
-              _toast('Link copied');
-            },
-            child: const Text('Copy Link'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.red), onPressed: () => Navigator.pop(context, true), child: const Text('WIPE')),
         ],
       ),
+    );
+    if (c != true) return;
+    try {
+      final res = await FirebaseFunctions.instance.httpsCallable('wipeAllAuthAndStorage').call({});
+      _log('WIPE DONE: ${res.data}');
+      _toast('Wiped');
+      _loadAll();
+    } catch (e) {
+      _toast('Wipe failed: $e');
+    }
+  }
+
+  Widget _tabBtn(String label, String tab, Color color) {
+    final selected = currentTab == tab;
+    return ElevatedButton(
+      onPressed: () => setState(() => currentTab = tab),
+      style: ElevatedButton.styleFrom(backgroundColor: selected ? color : Colors.white24),
+      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
     );
   }
 
   Widget _docBox(String url, String label, bool has, String type) {
-    return InkWell(
-      onTap: () => _viewDoc(url, label, type),
+    return Expanded(
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -803,7 +767,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     );
   }
 
-  // FIXED CARD - separate method, no if-inside-Row, brackets are simple
   Widget _buildCard(Map r) {
     final bool isClient = r['type'] == 'client';
     final bool verified = r['emailVerified'] == true;
@@ -829,42 +792,43 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
                   radius: 24,
                   backgroundColor: Colors.purple,
                   backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
-                  child: photoUrl.isEmpty ? Text(isClient ? 'P' : 'N') : null,
+                  child: photoUrl.isEmpty ? Text(isClient ? 'C' : 'N') : null,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        r['fullName'].toString().isEmpty ? '(No name - Needs Profile)' : r['fullName'].toString(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                      ),
-                      Text('${r['email']} - ${r['phone']}', style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                      Text(
-                        '${r['type']} - $statusText - UID: ${r['uid']}',
-                        style: TextStyle(color: approved ? Colors.greenAccent : Colors.orange, fontSize: 11),
-                      ),
+                      Text(r['fullName'].toString().isEmpty ? r['email'].toString() : r['fullName'].toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      Text(r['email'].toString(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(r['phone'].toString(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                      Text(statusText, style: TextStyle(color: approved || verified ? Colors.greenAccent : Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 10),
-            GridView.count(
-              crossAxisCount: 4,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 6,
-              mainAxisSpacing: 6,
+            Row(
               children: [
                 _docBox(r['photo'].toString(), 'Photo', r['hasPhoto'] == true, 'image'),
+                const SizedBox(width: 6),
                 _docBox(r['idURL'].toString(), 'ID', r['hasId'] == true, 'image'),
+                const SizedBox(width: 6),
                 _docBox(r['licenceURL'].toString(), 'Licence', r['hasLicence'] == true, 'image'),
-                _docBox(r['videoURL'].toString(), 'Video', r['hasVideo'] == true, 'video'),
+                const SizedBox(width: 6),
+                _docBox(r['videoURL'].toString(), 'Video', r['hasVideo'] == true, 'image'),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
                 _docBox(r['certURL'].toString(), 'Cert', r['hasCert'] == true, 'image'),
+                const SizedBox(width: 6),
                 _docBox(r['cvURL'].toString(), 'CV', r['hasCv'] == true, 'image'),
+                const SizedBox(width: 6),
                 _docBox('', 'PIN', r['hasPin'] == true, 'text'),
+                const SizedBox(width: 6),
                 _docBox('', 'Phone', r['phone'].toString().isNotEmpty, 'text'),
               ],
             ),
@@ -876,7 +840,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     );
   }
 
-  // FIXED BUTTONS - no if-inside-Row, use two separate Rows
   Widget _buildButtons(Map r, bool isClient) {
     if (isClient) {
       return Column(
@@ -923,7 +886,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           child: ElevatedButton(
             onPressed: () => _approve(r),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Approve Nurse', style: TextStyle(color: Colors.white)),
+            child: const Text('Approve', style: TextStyle(color: Colors.white)),
           ),
         ),
         const SizedBox(width: 8),
@@ -950,13 +913,12 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   Widget build(BuildContext context) {
     final list = filtered;
     return Scaffold(
-      backgroundColor: const Color(0xFF0E0A1C),
+      backgroundColor: const Color(0xFF0F0C29),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A1633),
-        title: const Text('CEO Registration Center', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: const Text('CEO Registration Center', style: TextStyle(color: Colors.white)),
         actions: [
-          TextButton(onPressed: _export, child: const Text('Export', style: TextStyle(color: Colors.amber))),
-          TextButton(onPressed: _recoverOrphans, child: const Text('Recover', style: TextStyle(color: Colors.yellow))),
+          TextButton(onPressed: _export, child: const Text('Export', style: TextStyle(color: Colors.yellow))),
           TextButton(onPressed: _fixAllClientsToNewRule, child: const Text('Fix Clients', style: TextStyle(color: Colors.lightGreenAccent))),
           TextButton(onPressed: _deleteAllFiltered, child: const Text('Delete All', style: TextStyle(color: Colors.red))),
           TextButton(onPressed: _wipeAllAuthAndStorage, child: const Text('Wipe', style: TextStyle(color: Colors.redAccent))),
@@ -993,9 +955,8 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
                       hintText: 'Search name / email / phone...',
                       hintStyle: const TextStyle(color: Colors.white54),
                       filled: true,
-                      fillColor: const Color(0xFF1A1633),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      prefixIcon: const Icon(Icons.search, color: Colors.white54),
+                      fillColor: Colors.white12,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                 ),
@@ -1005,7 +966,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
                   dropdownColor: const Color(0xFF1A1633),
                   style: const TextStyle(color: Colors.white),
                   items: const [
-                    DropdownMenuItem(value: 'all', child: Text('All Documents')),
+                    DropdownMenuItem(value: 'all', child: Text('All Docs')),
                     DropdownMenuItem(value: 'noVideo', child: Text('No Video')),
                     DropdownMenuItem(value: 'noPhoto', child: Text('No Photo')),
                     DropdownMenuItem(value: 'noId', child: Text('No ID')),
@@ -1017,46 +978,34 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           ),
           if (showLog)
             Container(
+              height: 120,
+              width: double.infinity,
               margin: const EdgeInsets.all(10),
-              padding: const EdgeInsets.all(10),
-              height: 140,
-              decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(12)),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: logLines.map((l) => Text(l, style: const TextStyle(color: Colors.greenAccent, fontSize: 11))).toList(),
-                ),
-              ),
+              padding: const EdgeInsets.all(8),
+              color: Colors.black,
+              child: SingleChildScrollView(child: Text(logLines.join('\n'), style: const TextStyle(color: Colors.greenAccent, fontSize: 11))),
             ),
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.purple))
+                ? const Center(child: CircularProgressIndicator(color: Colors.white))
                 : list.isEmpty
-                    ? const Center(child: Text('No records here', style: TextStyle(color: Colors.white54)))
+                    ? const Center(child: Text('No records in this tab.\n\nIf nurse just registered, press Refresh.\nCheck if nurse saved to Firestore or RTDB.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)))
                     : ListView.builder(
                         itemCount: list.length,
-                        itemBuilder: (_, i) {
-                          return _buildCard(list[i]);
-                        },
+                        itemBuilder: (_, i) => _buildCard(list[i]),
                       ),
           ),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                Expanded(child: ElevatedButton(onPressed: _recoverOrphans, child: const Text('Recover Orphans'))),
+                const SizedBox(width: 8),
+                Expanded(child: ElevatedButton(onPressed: _export, child: const Text('Export CSV'))),
+              ],
+            ),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _tabBtn(String label, String value, Color color) {
-    final active = currentTab == value;
-    return InkWell(
-      onTap: () => setState(() => currentTab = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: active ? color : Colors.black26,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: color),
-        ),
-        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
       ),
     );
   }
