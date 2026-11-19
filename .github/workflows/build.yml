@@ -37,9 +37,6 @@ jobs:
             echo "⚠️ NO google-services.json found! Upload it to android/app/ first!"
             ls -la android/app/
           fi
-          # Old android/ folder is v1 embedding (deleted in Flutter 3.35).
-          # Patching it failed. Delete it and let Flutter create a fresh v2 folder.
-          # The steps BELOW re-add ML Kit + R8 fix, so nothing is lost.
           rm -rf android
           PROJ=$(grep -m1 '^name:' pubspec.yaml | sed 's/name: *//;s/ *//g')
           if [ -z "$PROJ" ]; then PROJ="love_care_global"; fi
@@ -156,21 +153,54 @@ jobs:
           sed -i 's/android:label="[^"]*"/android:label="Love Care Global"/' android/app/src/main/AndroidManifest.xml
           grep -n "android:label" android/app/src/main/AndroidManifest.xml
 
-      - name: Create Debug Keystore if missing
+      - name: Restore PERMANENT Release Keystore
         run: |
-          mkdir -p ~/.android ~/.config/.android
-          for D in ~/.android ~/.config/.android; do
-            if [ ! -f $D/debug.keystore ]; then
-              keytool -genkey -v -keystore $D/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-              echo "✅ Created $D/debug.keystore"
-            else
-              echo "✅ exists $D/debug.keystore"
-            fi
-          done
-          cp ~/.android/debug.keystore ~/.config/.android/debug.keystore || true
-          ls -lh ~/.android/debug.keystore ~/.config/.android/debug.keystore
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/lovecare-release.jks
+          cat > android/key.properties <<EOF
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=lovecare-release.jks
+          EOF
+          ls -lh android/app/lovecare-release.jks
+          keytool -list -v -keystore android/app/lovecare-release.jks -alias ${{ secrets.ANDROID_KEY_ALIAS }} -storepass ${{ secrets.ANDROID_KEYSTORE_PASSWORD }} | grep -E "SHA1|SHA256"
 
-      - name: Show SHA fingerprints
+      - name: Patch build.gradle.kts to use PERMANENT key
+        run: |
+          python3 - << 'PYEOF'
+          import pathlib, re
+          p = pathlib.Path("android/app/build.gradle.kts")
+          t = p.read_text()
+          if "keystoreProperties" not in t:
+              # Load key.properties at top
+              t = "import java.util.Properties\nimport java.io.FileInputStream\n\n" + t
+              t = t.replace("android {", """val keystoreProperties = Properties()
+          val keystorePropertiesFile = rootProject.file("key.properties")
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+          }
+          android {""", 1)
+          # Add signingConfigs release
+          if 'create("release")' not in t:
+              t = t.replace("android {", """android {
+              signingConfigs {
+                  create("release") {
+                      keyAlias = keystoreProperties["keyAlias"] as String
+                      keyPassword = keystoreProperties["keyPassword"] as String
+                      storeFile = keystoreProperties["storeFile"]?.let { file(it as String) }
+                      storePassword = keystoreProperties["storePassword"] as String
+                  }
+              }""", 1)
+          # Use release signing in release buildType
+          t = re.sub(r'signingConfig\s*=\s*signingConfigs\.getByName\("debug"\)', 'signingConfig = signingConfigs.getByName("release")', t)
+          if 'signingConfigs.getByName("release")' not in t:
+              # Insert inside release { } block
+              t = re.sub(r'(release\s*\{)', r'\1\n            signingConfig = signingConfigs.getByName("release")', t, count=1)
+          p.write_text(t)
+          print(t)
+          PYEOF
+
+      - name: Show SHA fingerprints - MUST BE D4:38...
         run: |
           cd android
           chmod +x gradlew
