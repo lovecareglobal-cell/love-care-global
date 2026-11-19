@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class ClientDashboard extends StatefulWidget {
-  const ClientDashboard({super.key});
+class ClientDashboardScreen extends StatefulWidget {
+  const ClientDashboardScreen({super.key});
   @override
-  State<ClientDashboard> createState() => _ClientDashboardState();
+  State<ClientDashboardScreen> createState() => _ClientDashboardScreenState();
 }
 
-class _ClientDashboardState extends State<ClientDashboard> {
+class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
   String clientName = 'Client';
   String clientPhone = '';
   int myBookingsCount = 0;
@@ -59,7 +59,6 @@ class _ClientDashboardState extends State<ClientDashboard> {
     return d;
   }
 
-  // LIVE BOOKINGS COUNT - no more .get() once
   void _listenBookingsCountLive() {
     _bookingsSub?.cancel();
     _bookingsSub = FirebaseDatabase.instance.ref('bookings').onValue.listen((e) {
@@ -79,7 +78,6 @@ class _ClientDashboardState extends State<ClientDashboard> {
             final u = '${v['clientId'] ?? v['userId'] ?? v['uid'] ?? ''}';
             final myP = normPhone(clientPhone);
             final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-            // If we don't know identity yet, count all active for now
             if ((myP.isEmpty && myUid.isEmpty) || p == myP || (u.isNotEmpty && u == myUid)) count++;
           }
         });
@@ -88,7 +86,6 @@ class _ClientDashboardState extends State<ClientDashboard> {
     }, onError: (_) {});
   }
 
-  // LIVE ONLINE NURSES - count only truly online
   void _loadLiveNursesCount() {
     _liveSub?.cancel();
     _liveSub = FirebaseDatabase.instance.ref('onlineNurses').onValue.listen((e) {
@@ -112,7 +109,6 @@ class _ClientDashboardState extends State<ClientDashboard> {
     });
   }
 
-  // LIVE CLOCK - every second
   void _startClock() {
     _clockTimer?.cancel();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -156,9 +152,9 @@ class _ClientDashboardState extends State<ClientDashboard> {
             ),
             const SizedBox(height: 16),
             Row(children: [
-              Expanded(child: _card('My Bookings', '$myBookingsCount Bookings', Icons.calendar_today, () {})),
+              Expanded(child: _card('My Bookings', '$myBookingsCount Bookings', Icons.calendar_today, () => Navigator.pushNamed(context, '/my-bookings'))),
               const SizedBox(width: 12),
-              Expanded(child: _card('Book Nurse', liveNursesCount > 0 ? 'LIVE • $liveNursesCount online' : 'No nurse online now', Icons.local_hospital, () {})),
+              Expanded(child: _card('Book Nurse', liveNursesCount > 0 ? 'LIVE • $liveNursesCount online' : 'No nurse online now', Icons.local_hospital, () => Navigator.pushNamed(context, '/book-nurse'))),
             ]),
             const SizedBox(height: 16),
             Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.access_time, color: Colors.grey), const SizedBox(width: 8), Text(ghanaTime, style: const TextStyle(fontWeight: FontWeight.bold))])),
