@@ -1,0 +1,37 @@
+name: GENERATE PERMANENT KEY ONCE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate PERMANENT Keystore ONCE
+        run: |
+          # This will run ONLY ONCE. After this, NEVER run it again.
+          # Password: LoveCare2026!  Alias: lovecare
+          keytool -genkeypair -v -keystore lovecare-release.jks -alias lovecare -keyalg RSA -keysize 2048 -validity 10000 -storepass LoveCare2026! -keypass LoveCare2026! -dname "CN=Peter, OU=LoveCare, O=LoveCare Global, L=Accra, ST=Greater Accra, C=GH"
+          echo "=== YOUR PERMANENT SHA - COPY THIS ==="
+          keytool -list -v -keystore lovecare-release.jks -alias lovecare -storepass LoveCare2026! | grep -E "SHA1|SHA256|SHA-1|SHA-256"
+          echo "=== DONE ==="
+
+      - name: Save Keystore as Artifact (Download it)
+        uses: actions/upload-artifact@v4
+        with:
+          name: MY-PERMANENT-KEYSTORE-DO-NOT-LOSE
+          path: lovecare-release.jks
+
+      - name: Save Base64 for Secrets (Download it too)
+        run: |
+          base64 -w 0 lovecare-release.jks > keystore-base64.txt
+          echo "Base64 file created - download it below"
+          wc -c keystore-base64.txt
+
+      - name: Upload Base64 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MY-BASE64-FOR-GITHUB-SECRETS
+          path: keystore-base64.txt
