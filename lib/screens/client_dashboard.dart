@@ -59,7 +59,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     return d;
   }
 
-  // LIVE BOOKINGS COUNT
   void _listenBookingsCountLive() {
     _bookingsSub?.cancel();
     _bookingsSub = FirebaseDatabase.instance.ref('bookings').onValue.listen((e) {
@@ -87,7 +86,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     }, onError: (_) {});
   }
 
-  // LIVE ONLINE NURSES
   void _loadLiveNursesCount() {
     _liveSub?.cancel();
     _liveSub = FirebaseDatabase.instance.ref('onlineNurses').onValue.listen((e) {
@@ -155,7 +153,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
         padding: const EdgeInsets.all(14),
         child: Column(
           children: [
-            // TOP PROFILE CARD - SAME AS YOUR SCREENSHOT
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(color: pink, borderRadius: BorderRadius.circular(20)),
@@ -171,13 +168,17 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(clientName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                        Text(clientName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 2),
-                        Text(clientPhone, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                        // FIXED: Phone no go break into 2 lines again
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(clientPhone, maxLines: 1, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                        ),
                       ],
                     ),
                   ),
-                  // FIXED ONLINE PILL - TEXT MUST SHOW, NO BE EMPTY AGAIN
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30)),
@@ -195,50 +196,39 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // ===== YOUR DASHBOARD - ONLY BUTTONS =====
-            // Row 1
+            // ===== CLIENT DASHBOARD - ONLY BUTTONS - NO MY JOB OFFER =====
+            // My Job Offer removed - na for NURSES only
             Row(children: [
               Expanded(child: _button('Book Nurse', Icons.local_hospital, liveNursesCount > 0 ? '$liveNursesCount nurse online' : 'No nurse online now', pink, () => Navigator.pushNamed(context, '/book-nurse'))),
               const SizedBox(width: 12),
               Expanded(child: _button('My Bookings', Icons.calendar_today, '$myBookingsCount Bookings', pink, () => Navigator.pushNamed(context, '/my-bookings'))),
             ]),
             const SizedBox(height: 12),
-            // Row 2
             Row(children: [
-              Expanded(child: _button('My Job Offer', Icons.work, 'View offers', pink, () => Navigator.pushNamed(context, '/my-job-offer'))),
-              const SizedBox(width: 12),
               Expanded(child: _button('Book Nurse 50%', Icons.discount, '50% booking', pink, () => Navigator.pushNamed(context, '/book-nurse-50'))),
-            ]),
-            const SizedBox(height: 12),
-            // Row 3
-            Row(children: [
+              const SizedBox(width: 12),
               Expanded(child: _button('SOS Emergency', Icons.sos, 'Emergency help', Colors.red, () => Navigator.pushNamed(context, '/sos'))),
-              const SizedBox(width: 12),
+            ]),
+            const SizedBox(height: 12),
+            Row(children: [
               Expanded(child: _button('Complaint', Icons.report_problem, 'Report issue', pink, () => Navigator.pushNamed(context, '/client-complaint'))),
-            ]),
-            const SizedBox(height: 12),
-            // Row 4
-            Row(children: [
+              const SizedBox(width: 12),
               Expanded(child: _button('Rate Nurse', Icons.star, 'Rate your nurse', pink, () => Navigator.pushNamed(context, '/rating'))),
-              const SizedBox(width: 12),
-              Expanded(child: _button('Refund Query', Icons.money_off, 'Refund help', pink, () => Navigator.pushNamed(context, '/refund-query'))),
             ]),
             const SizedBox(height: 12),
-            // Row 5
             Row(children: [
-              Expanded(child: _button('Increase Payment', Icons.add_card, 'Top up booking', pink, () => Navigator.pushNamed(context, '/increase-payment'))),
+              Expanded(child: _button('Refund Query', Icons.money_off, 'Refund help', pink, () => Navigator.pushNamed(context, '/refund-query'))),
               const SizedBox(width: 12),
-              Expanded(child: _button('Settings', Icons.settings, 'Profile & alerts', pink, () => Navigator.pushNamed(context, '/client-settings'))),
+              Expanded(child: _button('Increase Payment', Icons.add_card, 'Top up booking', pink, () => Navigator.pushNamed(context, '/increase-payment'))),
             ]),
             const SizedBox(height: 12),
-            // Row 6 - Full width logout
-            SizedBox(
-              width: double.infinity,
-              child: _button('Logout', Icons.logout, 'Sign out safely', darkPink, _logout),
-            ),
+            Row(children: [
+              Expanded(child: _button('Settings', Icons.settings, 'Profile & alerts', pink, () => Navigator.pushNamed(context, '/client-settings'))),
+              const SizedBox(width: 12),
+              Expanded(child: _button('Logout', Icons.logout, 'Sign out safely', darkPink, _logout)),
+            ]),
             const SizedBox(height: 16),
 
-            // TIME BAR - FIXED, TIME MUST SHOW
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
@@ -252,7 +242,6 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     );
   }
 
-  // ONE BUTTON STYLE FOR ALL - TITLE ALWAYS VISIBLE, NO HIDDEN TEXT AGAIN
   Widget _button(String title, IconData icon, String subtitle, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
