@@ -59,6 +59,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     return d;
   }
 
+  // LIVE BOOKINGS COUNT
   void _listenBookingsCountLive() {
     _bookingsSub?.cancel();
     _bookingsSub = FirebaseDatabase.instance.ref('bookings').onValue.listen((e) {
@@ -86,6 +87,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
     }, onError: (_) {});
   }
 
+  // LIVE ONLINE NURSES
   void _loadLiveNursesCount() {
     _liveSub?.cancel();
     _liveSub = FirebaseDatabase.instance.ref('onlineNurses').onValue.listen((e) {
@@ -119,58 +121,155 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
 
   String get ghanaTime => DateFormat('EEE • MMM d, y • hh:mm:ss a').format(ghanaNow);
 
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    try { await FirebaseAuth.instance.signOut(); } catch (_) {}
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
+    const pink = Color(0xFFE91E63);
+    const darkPink = Color(0xFF880E4F);
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFD81B60),
+        backgroundColor: pink,
+        elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Hi, $clientName', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            Text('$liveNursesCount ONLINE • $ghanaTime', style: const TextStyle(fontSize: 11)),
+            Text('Hi, $clientName', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('$liveNursesCount ONLINE • $ghanaTime', style: const TextStyle(color: Colors.white, fontSize: 12)),
           ],
         ),
-        actions: [IconButton(icon: const Icon(Icons.notifications), onPressed: () {})],
+        actions: [
+          IconButton(icon: const Icon(Icons.notifications, color: Colors.white, size: 28), onPressed: () => Navigator.pushNamed(context, '/client-settings')),
+        ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           children: [
+            // TOP PROFILE CARD - SAME AS YOUR SCREENSHOT
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: const Color(0xFFD81B60), borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(color: pink, borderRadius: BorderRadius.circular(20)),
               child: Row(
                 children: [
-                  const CircleAvatar(radius: 28, backgroundColor: Colors.white, child: Text('C', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFD81B60)))),
-                  const SizedBox(width: 12),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(clientName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), Text(clientPhone, style: const TextStyle(color: Colors.white70))])),
-                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Row(children: [const CircleAvatar(radius: 4, backgroundColor: Colors.green), const SizedBox(width: 5), Text('$liveNursesCount ONLINE', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))])),
+                  CircleAvatar(
+                    radius: 34,
+                    backgroundColor: Colors.white,
+                    child: Text(clientName.isNotEmpty ? clientName[0].toUpperCase() : 'C', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: pink)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(clientName, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        Text(clientPhone, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                      ],
+                    ),
+                  ),
+                  // FIXED ONLINE PILL - TEXT MUST SHOW, NO BE EMPTY AGAIN
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                        const SizedBox(width: 6),
+                        Text('$liveNursesCount ONLINE', style: const TextStyle(color: darkPink, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
+
+            // ===== YOUR DASHBOARD - ONLY BUTTONS =====
+            // Row 1
             Row(children: [
-              Expanded(child: _card('My Bookings', '$myBookingsCount Bookings', Icons.calendar_today, () => Navigator.pushNamed(context, '/my-bookings'))),
+              Expanded(child: _button('Book Nurse', Icons.local_hospital, liveNursesCount > 0 ? '$liveNursesCount nurse online' : 'No nurse online now', pink, () => Navigator.pushNamed(context, '/book-nurse'))),
               const SizedBox(width: 12),
-              Expanded(child: _card('Book Nurse', liveNursesCount > 0 ? 'LIVE • $liveNursesCount online' : 'No nurse online now', Icons.local_hospital, () => Navigator.pushNamed(context, '/book-nurse'))),
+              Expanded(child: _button('My Bookings', Icons.calendar_today, '$myBookingsCount Bookings', pink, () => Navigator.pushNamed(context, '/my-bookings'))),
             ]),
+            const SizedBox(height: 12),
+            // Row 2
+            Row(children: [
+              Expanded(child: _button('My Job Offer', Icons.work, 'View offers', pink, () => Navigator.pushNamed(context, '/my-job-offer'))),
+              const SizedBox(width: 12),
+              Expanded(child: _button('Book Nurse 50%', Icons.discount, '50% booking', pink, () => Navigator.pushNamed(context, '/book-nurse-50'))),
+            ]),
+            const SizedBox(height: 12),
+            // Row 3
+            Row(children: [
+              Expanded(child: _button('SOS Emergency', Icons.sos, 'Emergency help', Colors.red, () => Navigator.pushNamed(context, '/sos'))),
+              const SizedBox(width: 12),
+              Expanded(child: _button('Complaint', Icons.report_problem, 'Report issue', pink, () => Navigator.pushNamed(context, '/client-complaint'))),
+            ]),
+            const SizedBox(height: 12),
+            // Row 4
+            Row(children: [
+              Expanded(child: _button('Rate Nurse', Icons.star, 'Rate your nurse', pink, () => Navigator.pushNamed(context, '/rating'))),
+              const SizedBox(width: 12),
+              Expanded(child: _button('Refund Query', Icons.money_off, 'Refund help', pink, () => Navigator.pushNamed(context, '/refund-query'))),
+            ]),
+            const SizedBox(height: 12),
+            // Row 5
+            Row(children: [
+              Expanded(child: _button('Increase Payment', Icons.add_card, 'Top up booking', pink, () => Navigator.pushNamed(context, '/increase-payment'))),
+              const SizedBox(width: 12),
+              Expanded(child: _button('Settings', Icons.settings, 'Profile & alerts', pink, () => Navigator.pushNamed(context, '/client-settings'))),
+            ]),
+            const SizedBox(height: 12),
+            // Row 6 - Full width logout
+            SizedBox(
+              width: double.infinity,
+              child: _button('Logout', Icons.logout, 'Sign out safely', darkPink, _logout),
+            ),
             const SizedBox(height: 16),
-            Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.access_time, color: Colors.grey), const SizedBox(width: 8), Text(ghanaTime, style: const TextStyle(fontWeight: FontWeight.bold))])),
+
+            // TIME BAR - FIXED, TIME MUST SHOW
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+              child: Row(children: [const Icon(Icons.access_time, color: Colors.grey, size: 22), const SizedBox(width: 10), Expanded(child: Text(ghanaTime, style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold)))]),
+            ),
+            const SizedBox(height: 20),
+            const Text('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.grey, fontSize: 11)),
           ],
         ),
       ),
     );
   }
 
-  Widget _card(String title, String sub, IconData icon, VoidCallback onTap) {
+  // ONE BUTTON STYLE FOR ALL - TITLE ALWAYS VISIBLE, NO HIDDEN TEXT AGAIN
+  Widget _button(String title, IconData icon, String subtitle, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: const Color(0xFFD81B60)), const SizedBox(height: 8), Text(title, style: const TextStyle(fontWeight: FontWeight.bold)), Text(sub, style: const TextStyle(fontSize: 12, color: Colors.grey))]),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 30),
+            const SizedBox(height: 14),
+            Text(title, style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          ],
+        ),
       ),
     );
   }
