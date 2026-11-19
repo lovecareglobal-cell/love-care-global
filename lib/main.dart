@@ -118,6 +118,85 @@ Future<void> _setupFCM() async {
   }
 }
 
+// ===== FIX FOR reCAPTCHA SPINNING / OTP NEVER COMES - NEW =====
+// ALSO DO IN CONSOLE (once): Firebase Console > App Check > Android > Play Integrity ON
+// + Google Cloud > Enable Play Integrity API + Android Device Verification.
+// + Keep GitHub SHAs in Firebase: SHA-1 B3:88:7A... / SHA-256 E6:D1:6A... + Play Signing SHAs.
+Future<void> _setupPhoneAuthNoRecaptcha() async {
+  try {
+    // Warm up App Check token BEFORE any OTP request - this is the key fix.
+    // If token is ready, Firebase uses silent Play Integrity check, NO reCAPTCHA page.
+    try {
+      await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
+      final token = await FirebaseAppCheck.instance.getToken(false);
+      debugPrint('AppCheck token ready: ${token != null && token.isNotEmpty}');
+    } catch (e) {
+      debugPrint('AppCheck warmup failed (will fallback): $e');
+    }
+    // Tell Firebase Auth: do NOT force reCAPTCHA. Use Play Integrity first.
+    try {
+      await FirebaseAuth.instance.setSettings(
+        appVerificationDisabledForTesting: false,
+        forceRecaptchaFlow: false,
+      );
+    } catch (e) {
+      debugPrint('Auth settings failed: $e');
+    }
+  } catch (_) {}
+}
+
+/// Helper - use this everywhere you send OTP, instead of raw verifyPhoneNumber
+class PhoneAuthHelper {
+  static bool _sending = false;
+
+  static Future<void> sendOtp({
+    required String phone,
+    required void Function(String verificationId, int? resendToken) onCodeSent,
+    required void Function(String message) onFailed,
+    void Function()? onAutoVerified,
+    int? forceResendingToken,
+  }) async {
+    if (_sending) return; // prevent double-tap -> double reCAPTCHA -> spinning
+    _sending = true;
+    try {
+      try {
+        await FirebaseAppCheck.instance.getToken(true);
+      } catch (_) {}
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: phone.trim(),
+        timeout: const Duration(seconds: 60),
+        forceResendingToken: forceResendingToken,
+        verificationCompleted: (PhoneAuthCredential cred) async {
+          try {
+            await FirebaseAuth.instance.signInWithCredential(cred);
+            onAutoVerified?.call();
+          } catch (_) {}
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          String msg = e.message ?? 'Verification failed';
+          if (e.code == 'captcha-check-failed') {
+            msg = 'reCAPTCHA check failed. Check internet, update Play Services, try again.';
+          } else if (e.code == 'too-many-requests') {
+            msg = 'Too many tries. Wait 10 mins and try again.';
+          } else if (e.code == 'app-not-authorized') {
+            msg = 'App not authorized. SHA-1 / SHA-256 missing in Firebase. Add B3:88... / E6:D1... + Play Signing SHAs.';
+          }
+          onFailed(msg);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          // ONLY here is OTP truly sent. Never show "OTP sent" before this.
+          onCodeSent(verificationId, resendToken);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
+      );
+    } catch (e) {
+      onFailed('Could not send OTP: $e');
+    } finally {
+      Future.delayed(const Duration(seconds: 2), () => _sending = false);
+    }
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -127,6 +206,8 @@ void main() async {
     } catch (e) {
       debugPrint('App Check activate failed: $e');
     }
+    // NEW: Warm up AppCheck + disable forced reCAPTCHA BEFORE runApp
+    await _setupPhoneAuthNoRecaptcha();
   } catch (e) {
     debugPrint('Firebase init failed (web/demo mode): $e');
   }
