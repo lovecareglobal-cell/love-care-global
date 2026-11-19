@@ -15,19 +15,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "1062578660694-1gka7k5n35geuuk7mbgsn471o0llm9fc.apps.googleusercontent.com",
+          "client_id": "1062578660694-gkqlbgk8t0tslgj1pvl3jjr3ilscqu18.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.ecareglobal.love_care_global",
-            "certificate_hash": "d98e17a874456b530a743933c74931a9ef1c30f5"
-          }
-        },
-        {
-          "client_id": "1062578660694-o7p4tt15as2dsfa3ln45m8jtp649k011.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.ecareglobal.love_care_global",
-            "certificate_hash": "b0065782748953e7644c352ad7bc708e2414e950"
+            "certificate_hash": "5d745e53cb7af6bac997f4f0e1802ef5b7446589"
           }
         },
         {
