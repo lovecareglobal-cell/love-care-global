@@ -307,9 +307,9 @@ class LoveCareApp extends StatelessWidget {
         '/alert-settings': (context) => const AlertSettingsScreen(),
         '/book-nurse': (context) => const BookNurseScreen(),
         '/book-nurse-50': (context) => const BookNurse50Screen(),
-        '/client-dashboard': (context) => const ClientDashboardScreen(),
+        '/client-dashboard': (context) => ClientDashboardScreen(),
         '/client-settings': (context) => const ClientSettingsScreen(),
-        '/my-bookings': (context) => const MyBookingsScreen(),
+        '/my-bookings': (context) => MyBookingsScreen(),
         '/my-job-offer': (context) => const MyJobOfferScreen(),
         '/my-job-offers': (context) => const MyJobOfferScreen(),
         '/nurse-settings': (context) => const NurseSettingsScreen(),
@@ -421,7 +421,7 @@ class StartupGate extends StatelessWidget {
             await prefs.setString('lcg_client_uid', uid);
             await prefs.setString('clientUid', uid);
             await prefs.setBool('client_pending_verification', false);
-            return const ClientDashboardScreen();
+            return ClientDashboardScreen();
           } else {
             // Not verified yet -> Client Login will show "I HAVE VERIFIED" help. Do NOT go Home.
             return const ClientLoginPage();
