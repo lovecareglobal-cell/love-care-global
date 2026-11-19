@@ -4,13 +4,13 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class MyBookingsPage extends StatefulWidget {
-  const MyBookingsPage({super.key});
+class MyBookingsScreen extends StatefulWidget {
+  const MyBookingsScreen({super.key});
   @override
-  State<MyBookingsPage> createState() => _MyBookingsPageState();
+  State<MyBookingsScreen> createState() => _MyBookingsScreenState();
 }
 
-class _MyBookingsPageState extends State<MyBookingsPage> {
+class _MyBookingsScreenState extends State<MyBookingsScreen> {
   List<Map> bookings = [];
   List<Map> history = [];
   bool isLoading = true;
@@ -31,7 +31,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
       _listenLive();
       _loadHistory();
     });
-    // Safety: never spin forever - after 8s stop spinner
     Future.delayed(const Duration(seconds: 8), () {
       if (mounted && isLoading) setState(() => isLoading = false);
     });
@@ -44,7 +43,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     super.dispose();
   }
 
-  // ---------- IDENTITIES ----------
   String normPhone(String? p) {
     if (p == null) return '';
     var d = p.replaceAll(RegExp(r'[^0-9]'), '');
@@ -60,16 +58,12 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     myEmails.clear();
     myUids.clear();
     final prefs = await SharedPreferences.getInstance();
-
-    // 1. FirebaseAuth - most reliable
     final authUser = FirebaseAuth.instance.currentUser;
     if (authUser != null) {
       myUids.add(authUser.uid);
       if (authUser.phoneNumber != null) myPhones.add(normPhone(authUser.phoneNumber));
       if (authUser.email != null) myEmails.add(normEmail(authUser.email));
     }
-
-    // 2. SharedPreferences - any saved keys
     for (final k in prefs.getKeys()) {
       final lk = k.toLowerCase();
       final v = prefs.get(k);
@@ -79,11 +73,9 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
       if (lk.contains('uid') || lk.contains('user_id')) myUids.add(v);
       if (lk.contains('name') || lk.contains('username')) myName = v;
     }
-    // 3. Client name from prefs keys used in your app
     myName ??= prefs.getString('clientName') ?? prefs.getString('fullName') ?? prefs.getString('name');
   }
 
-  // ---------- LIVE LISTEN - THE FIX ----------
   void _listenLive() {
     _bookingsSub?.cancel();
     setState(() => isLoading = true);
@@ -158,7 +150,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   bool isHistory(Map v) => v['isHistory'] == true;
   num _asNum(dynamic v) => v is num ? v : num.tryParse('$v') ?? 0;
 
-  // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
     final list = filter == 'All' ? bookings : bookings.where((b) => '${b['status']}'.toLowerCase() == filter.toLowerCase()).toList();
@@ -170,13 +161,12 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: ['All', 'Pending', 'Accepted', 'History'].map((f) {
-                final selected = filter == f || (f == 'History' && filter == 'History');
                 return Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 3),
                     child: ChoiceChip(
                       label: Text(f),
-                      selected: selected,
+                      selected: filter == f,
                       onSelected: (_) => setState(() => filter = f),
                     ),
                   ),
