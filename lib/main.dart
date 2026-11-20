@@ -499,8 +499,8 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
   // This is NOT your dashboard password Peterasa80@you!
   // Dashboard password = to enter gate. Auth password = to login to Firebase as CEO.
   static const String CEO_UID = 's7OXgdm38Zg6RCeDHAlg0iY35vq1';
-  static const String CEO_AUTH_EMAIL = 'PUT_CEO_AUTH_EMAIL_HERE'; // e.g. ceo@lovecare.com
-  static const String CEO_AUTH_PASSWORD = 'PUT_CEO_AUTH_PASSWORD_HERE'; // password for that Auth user
+  static const String CEO_AUTH_EMAIL = 'lovecareglobal.gmail.com'; // e.g. ceo@lovecare.com
+  static const String CEO_AUTH_PASSWORD = 'Peterasa80@you!'; // password for that Auth user
 
   Future<void> _login() async {
     final saved = await _getSavedPassword();
