@@ -7,6 +7,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import 'package:http/http.dart' as http;
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 // CEO REGISTRATION CENTER - FULL FILE - FIXED
 // CLIENT: Pending = NOT verified ONLY. CEO does NOT approve Client.
@@ -880,11 +882,12 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     );
   }
 
-  // ============ FIX: FILES NOW OPEN ON TAP ============
+  // ============ FIX v2: DETECT REAL FILE TYPE, NOT URL EXTENSION ============
+  // Firebase Storage URLs look like .../o/file?alt=media&token=xxx - NO .pdf / .jpg
+  // So we ask the server for Content-Type, and fall back to the label.
   Future<void> _openDoc(String url, String label, String type) async {
     final u = url.trim();
     if (u.isEmpty) { _toast('No $label uploaded'); return; }
-    // PIN / Phone are text values, not files - show them, don't try to open
     if (type == 'text') {
       showDialog(context: context, builder: (_) => AlertDialog(
         title: Text(label),
@@ -893,30 +896,44 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       ));
       return;
     }
-    final lower = u.toLowerCase();
-    final isImage = lower.contains('.jpg') || lower.contains('.jpeg') || lower.contains('.png') || lower.contains('.webp') || lower.contains('photo') || lower.contains('image') || type == 'image' && (label == 'Photo' || label == 'ID' || label == 'Licence');
-    final isVideo = lower.contains('.mp4') || lower.contains('.mov') || lower.contains('.webm') || lower.contains('video') || label == 'Video';
-    final isPdf = lower.contains('.pdf');
-
-    // Images + PDFs + Videos open INSIDE the app so they always work,
-    // even if no external viewer is installed.
-    if (isVideo) {
+    if (label == 'Video') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => _VideoViewerPage(url: u, title: label)));
       return;
     }
-    if (isImage || isPdf) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => _DocViewerPage(url: u, title: label, isPdf: isPdf)));
-      return;
-    }
-    // Fallback: anything else (doc/docx etc) -> open in browser / external app
+    // Show loading while we detect type
+    _toast('Opening $label...');
+    String kind = 'unknown'; // pdf | image | video | other
     try {
-      final uri = Uri.parse(u);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      } else {
-        _toast('Cannot open $label');
-      }
-    } catch (e) { _toast('Cannot open $label: $e'); }
+      final res = await http.head(Uri.parse(u)).timeout(const Duration(seconds: 8));
+      final ct = (res.headers['content-type'] ?? '').toLowerCase();
+      if (ct.contains('pdf')) kind = 'pdf';
+      else if (ct.contains('image')) kind = 'image';
+      else if (ct.contains('video')) kind = 'video';
+      else if (ct.contains('word') || ct.contains('msword') || ct.contains('officedocument') || ct.contains('octet')) kind = 'office';
+    } catch (_) {}
+    // Fallback 1: URL extension, if present
+    if (kind == 'unknown') {
+      final lower = u.toLowerCase();
+      if (lower.contains('.pdf')) kind = 'pdf';
+      else if (lower.contains('.jpg') || lower.contains('.jpeg') || lower.contains('.png') || lower.contains('.webp')) kind = 'image';
+      else if (lower.contains('.mp4') || lower.contains('.mov') || lower.contains('.webm')) kind = 'video';
+    }
+    // Fallback 2: label heuristic - Cert / CV / Licence are ALMOST ALWAYS PDFs
+    // in nurse registration, even when uploaded without an extension.
+    if (kind == 'unknown' || kind == 'office') {
+      if (label == 'Cert' || label == 'CV' || label == 'Licence') kind = 'pdf';
+      else if (label == 'Photo') kind = 'image';
+    }
+    if (!mounted) return;
+    if (kind == 'video') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => _VideoViewerPage(url: u, title: label)));
+    } else if (kind == 'pdf' || kind == 'office') {
+      // Smart viewer: tries REAL PDF first, with "View as Image" + "Open externally" fallbacks
+      Navigator.push(context, MaterialPageRoute(builder: (_) => _SmartDocViewerPage(url: u, title: label)));
+    } else {
+      // Image, or still unknown -> smart viewer will try image, then offer PDF view
+      Navigator.push(context, MaterialPageRoute(builder: (_) => _SmartDocViewerPage(url: u, title: label)));
+    }
   }
 
   Widget _docBox(String url, String label, bool has, String type) {
@@ -1219,40 +1236,55 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
 
 
 // ---- In-app viewers (put at bottom of file, outside the State class) ----
-class _DocViewerPage extends StatelessWidget {
-  final String url; final String title; final bool isPdf;
-  const _DocViewerPage({required this.url, required this.title, required this.isPdf});
+class _SmartDocViewerPage extends StatefulWidget {
+  final String url; final String title;
+  const _SmartDocViewerPage({required this.url, required this.title});
+  @override
+  State<_SmartDocViewerPage> createState() => _SmartDocViewerPageState();
+}
+class _SmartDocViewerPageState extends State<_SmartDocViewerPage> {
+  // 'auto' = try PDF if it looks like a doc, else image. User can switch.
+  String _mode = 'auto';
   @override
   Widget build(BuildContext context) {
+    final isDocLabel = widget.title == 'Cert' || widget.title == 'CV' || widget.title == 'Licence' || widget.title == 'ID';
+    final showPdf = _mode == 'pdf' || (_mode == 'auto' && isDocLabel);
     return Scaffold(
-      appBar: AppBar(title: Text(title), backgroundColor: const Color(0xFF1A1633)),
+      appBar: AppBar(
+        title: Text(widget.title),
+        backgroundColor: const Color(0xFF1A1633),
+        actions: [
+          // Let CEO switch if detection was wrong - this is what fixes "CV can't be read"
+          TextButton(onPressed: () => setState(() => _mode = 'pdf'), child: Text('PDF', style: TextStyle(color: _mode == 'pdf' || showPdf ? Colors.greenAccent : Colors.white70))),
+          TextButton(onPressed: () => setState(() => _mode = 'image'), child: Text('IMAGE', style: TextStyle(color: _mode == 'image' ? Colors.greenAccent : Colors.white70))),
+          IconButton(icon: const Icon(Icons.open_in_new, size: 20), tooltip: 'Open externally', onPressed: () async { final uri = Uri.parse(widget.url); if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication); }),
+        ],
+      ),
       backgroundColor: Colors.black,
-      body: Center(
-        child: isPdf
-          ? _PdfFallback(url: url)
-          : InteractiveViewer(
-              child: Image.network(url,
+      body: showPdf
+        ? SfPdfViewer.network(
+            widget.url,
+            canShowScrollHead: true,
+            canShowScrollStatus: true,
+            enableDoubleTapZooming: true,
+            onDocumentLoadFailed: (d) => setState(() => _mode = 'image'),
+          )
+        : InteractiveViewer(
+            child: Center(
+              child: Image.network(widget.url,
                 fit: BoxFit.contain,
-                loadingBuilder: (_, c, p) => p == null ? c : const CircularProgressIndicator(color: Colors.white),
-                errorBuilder: (_, __, ___) => const Padding(padding: EdgeInsets.all(24), child: Text('Could not load image. Check Storage rules / URL.', style: TextStyle(color: Colors.white), textAlign: TextAlign.center)),
+                loadingBuilder: (_, c, p) => p == null ? c : const Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(color: Colors.white), SizedBox(height: 12), Text('Loading ${widget.title}...', style: TextStyle(color: Colors.white70))]),
+                errorBuilder: (_, __, ___) => Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  const Text('Could not load as image. Trying as PDF...', style: TextStyle(color: Colors.white), textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: () => setState(() => _mode = 'pdf'), child: const Text('View as PDF')),
+                  const SizedBox(height: 8),
+                  ElevatedButton(onPressed: () async { final uri = Uri.parse(widget.url); if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication); }, child: const Text('Open externally')),
+                ])),
               ),
             ),
-      ),
+          ),
     );
-  }
-}
-
-class _PdfFallback extends StatelessWidget {
-  final String url; const _PdfFallback({required this.url});
-  @override
-  Widget build(BuildContext context) {
-    return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const Icon(Icons.picture_as_pdf, size: 64, color: Colors.white54),
-      const SizedBox(height: 16),
-      const Padding(padding: EdgeInsets.symmetric(horizontal: 24), child: Text('PDF preview needs an external viewer on this device.', style: TextStyle(color: Colors.white), textAlign: TextAlign.center)),
-      const SizedBox(height: 16),
-      ElevatedButton(onPressed: () async { final uri = Uri.parse(url); if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication); }, child: const Text('Open PDF')),
-    ]);
   }
 }
 
@@ -1282,7 +1314,7 @@ class _VideoViewerPageState extends State<_VideoViewerPage> {
       appBar: AppBar(title: Text(widget.title), backgroundColor: const Color(0xFF1A1633)),
       backgroundColor: Colors.black,
       body: Center(
-        child: _err != null ? Padding(padding: const EdgeInsets.all(24), child: Text('Could not play video: $_err', style: const TextStyle(color: Colors.white), textAlign: TextAlign.center))
+        child: _err != null ? Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text('Could not play video: $_err', style: const TextStyle(color: Colors.white), textAlign: TextAlign.center), const SizedBox(height: 16), ElevatedButton(onPressed: () async { final uri = Uri.parse(widget.url); if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication); }, child: const Text('Open externally'))]))
         : _cc == null ? const CircularProgressIndicator(color: Colors.white)
         : AspectRatio(aspectRatio: _vc!.value.aspectRatio, child: Chewie(controller: _cc!)),
       ),
