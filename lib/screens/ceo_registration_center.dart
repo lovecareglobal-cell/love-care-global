@@ -4,6 +4,9 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 
 // CEO REGISTRATION CENTER - FULL FILE - FIXED
 // CLIENT: Pending = NOT verified ONLY. CEO does NOT approve Client.
@@ -877,26 +880,80 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     );
   }
 
+  // ============ FIX: FILES NOW OPEN ON TAP ============
+  Future<void> _openDoc(String url, String label, String type) async {
+    final u = url.trim();
+    if (u.isEmpty) { _toast('No $label uploaded'); return; }
+    // PIN / Phone are text values, not files - show them, don't try to open
+    if (type == 'text') {
+      showDialog(context: context, builder: (_) => AlertDialog(
+        title: Text(label),
+        content: SelectableText(u),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
+      ));
+      return;
+    }
+    final lower = u.toLowerCase();
+    final isImage = lower.contains('.jpg') || lower.contains('.jpeg') || lower.contains('.png') || lower.contains('.webp') || lower.contains('photo') || lower.contains('image') || type == 'image' && (label == 'Photo' || label == 'ID' || label == 'Licence');
+    final isVideo = lower.contains('.mp4') || lower.contains('.mov') || lower.contains('.webm') || lower.contains('video') || label == 'Video';
+    final isPdf = lower.contains('.pdf');
+
+    // Images + PDFs + Videos open INSIDE the app so they always work,
+    // even if no external viewer is installed.
+    if (isVideo) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => _VideoViewerPage(url: u, title: label)));
+      return;
+    }
+    if (isImage || isPdf) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => _DocViewerPage(url: u, title: label, isPdf: isPdf)));
+      return;
+    }
+    // Fallback: anything else (doc/docx etc) -> open in browser / external app
+    try {
+      final uri = Uri.parse(u);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        _toast('Cannot open $label');
+      }
+    } catch (e) { _toast('Cannot open $label: $e'); }
+  }
+
   Widget _docBox(String url, String label, bool has, String type) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.black26,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: has ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            SizedBox(
-              height: 80,
-              child: Center(
-                child: Text(has ? 'View $label' : 'No $label', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () {
+          if (!has || url.trim().isEmpty) { _toast('No $label uploaded'); return; }
+          _openDoc(url, label, type);
+        },
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black26,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: has ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 80,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(has ? Icons.visibility : Icons.block, color: has ? Colors.white70 : Colors.white30, size: 22),
+                      const SizedBox(height: 4),
+                      Text(has ? 'View $label' : 'No $label', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                      if (has) const Text('Tap to open', style: TextStyle(color: Colors.greenAccent, fontSize: 9)),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text('$label ${has ? 'OK' : 'NO'}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-          ],
+              const SizedBox(height: 4),
+              Text('$label ${has ? 'OK' : 'NO'}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+            ],
+          ),
         ),
       ),
     );
@@ -962,9 +1019,9 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
                 const SizedBox(width: 6),
                 _docBox(r['cvURL'].toString(), 'CV', r['hasCv'] == true, 'image'),
                 const SizedBox(width: 6),
-                _docBox('', 'PIN', r['hasPin'] == true, 'text'),
+                _docBox((r['raw'] is Map ? ((r['raw']['nursingPin'] ?? r['raw']['pin'] ?? r['raw']['nmcPin'] ?? '')).toString() : ''), 'PIN', r['hasPin'] == true, 'text'),
                 const SizedBox(width: 6),
-                _docBox('', 'Phone', r['phone'].toString().isNotEmpty, 'text'),
+                _docBox(r['phone'].toString(), 'Phone', r['phone'].toString().isNotEmpty, 'text'),
               ],
             ),
             const SizedBox(height: 10),
@@ -1155,6 +1212,79 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+// ---- In-app viewers (put at bottom of file, outside the State class) ----
+class _DocViewerPage extends StatelessWidget {
+  final String url; final String title; final bool isPdf;
+  const _DocViewerPage({required this.url, required this.title, required this.isPdf});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title), backgroundColor: const Color(0xFF1A1633)),
+      backgroundColor: Colors.black,
+      body: Center(
+        child: isPdf
+          ? _PdfFallback(url: url)
+          : InteractiveViewer(
+              child: Image.network(url,
+                fit: BoxFit.contain,
+                loadingBuilder: (_, c, p) => p == null ? c : const CircularProgressIndicator(color: Colors.white),
+                errorBuilder: (_, __, ___) => const Padding(padding: EdgeInsets.all(24), child: Text('Could not load image. Check Storage rules / URL.', style: TextStyle(color: Colors.white), textAlign: TextAlign.center)),
+              ),
+            ),
+      ),
+    );
+  }
+}
+
+class _PdfFallback extends StatelessWidget {
+  final String url; const _PdfFallback({required this.url});
+  @override
+  Widget build(BuildContext context) {
+    return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      const Icon(Icons.picture_as_pdf, size: 64, color: Colors.white54),
+      const SizedBox(height: 16),
+      const Padding(padding: EdgeInsets.symmetric(horizontal: 24), child: Text('PDF preview needs an external viewer on this device.', style: TextStyle(color: Colors.white), textAlign: TextAlign.center)),
+      const SizedBox(height: 16),
+      ElevatedButton(onPressed: () async { final uri = Uri.parse(url); if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication); }, child: const Text('Open PDF')),
+    ]);
+  }
+}
+
+class _VideoViewerPage extends StatefulWidget {
+  final String url; final String title;
+  const _VideoViewerPage({required this.url, required this.title});
+  @override
+  State<_VideoViewerPage> createState() => _VideoViewerPageState();
+}
+class _VideoViewerPageState extends State<_VideoViewerPage> {
+  VideoPlayerController? _vc; ChewieController? _cc; String? _err;
+  @override
+  void initState() { super.initState(); _init(); }
+  Future<void> _init() async {
+    try {
+      _vc = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+      await _vc!.initialize();
+      _cc = ChewieController(videoPlayerController: _vc!, autoPlay: true, looping: false);
+      if (mounted) setState(() {});
+    } catch (e) { if (mounted) setState(() => _err = e.toString()); }
+  }
+  @override
+  void dispose() { _cc?.dispose(); _vc?.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title), backgroundColor: const Color(0xFF1A1633)),
+      backgroundColor: Colors.black,
+      body: Center(
+        child: _err != null ? Padding(padding: const EdgeInsets.all(24), child: Text('Could not play video: $_err', style: const TextStyle(color: Colors.white), textAlign: TextAlign.center))
+        : _cc == null ? const CircularProgressIndicator(color: Colors.white)
+        : AspectRatio(aspectRatio: _vc!.value.aspectRatio, child: Chewie(controller: _cc!)),
       ),
     );
   }
