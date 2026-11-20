@@ -4,12 +4,12 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 // CEO REGISTRATION CENTER - FULL FILE - FIXED
-// CLIENT: Pending = NOT verified ONLY. CEO does NOT approve Client. Verified = Auto-Approved.
+// CLIENT: Pending = NOT verified ONLY. CEO does NOT approve Client.
 // NURSE: CEO approval STILL required.
-// FIX: _loadAll now scans RTDB + FIRESTORE + users/nurseUsers, and does NOT skip on field-name mismatch.
+// FIX: _loadAll scans RTDB + Firestore + users/nurseUsers
+// FIX: _fixUploadsFromStorage - recovers URLs from Storage when nurse registration uploaded to Storage but no save URL to Database
 
 class CEORegistrationCenterScreen extends StatefulWidget {
   const CEORegistrationCenterScreen({super.key});
@@ -76,7 +76,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     return 0;
   }
 
-  // ============ FIXED _loadAll - RTDB + FIRESTORE ============
   Future<void> _loadAll() async {
     setState(() => isLoading = true);
     try {
@@ -118,11 +117,11 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           'needsProfile': m['needsProfile'] == true,
           'hasPhoto': _hasDoc(m, ['photo', 'photoURL', 'photoUrl', 'image', 'profilePic']),
           'hasVideo': _hasDoc(m, ['video', 'videoURL', 'videoUrl', 'introVideo', 'introVideoUrl', 'profileVideo']),
-          'hasId': _hasDoc(m, ['idURL', 'idUrl', 'idFront', 'idFrontURL', 'nationalId', 'ghanaCard']),
-          'hasLicence': _hasDoc(m, ['licenceURL', 'licenceUrl', 'licenseURL', 'licence', 'license']),
+          'hasId': _hasDoc(m, ['idURL', 'idUrl', 'idFront', 'idFrontURL', 'idBackURL', 'nationalId', 'ghanaCard', 'ghanaCardURL', 'ghanaCardFront', 'idCard', 'idCardURL', 'nationalIdURL', 'id']),
+          'hasLicence': _hasDoc(m, ['licenceURL', 'licenceUrl', 'licenseURL', 'licenseUrl', 'licence', 'license', 'nursingLicence', 'nursingLicense', 'nmcLicence', 'nmcLicense', 'practiceLicence', 'practiceLicense']),
           'hasCert': _hasDoc(m, ['certURL', 'certUrl', 'certificateURL', 'certificate']),
           'hasCv': _hasDoc(m, ['cvURL', 'cvUrl', 'cv']),
-          'hasPin': (m['nursingPin'] ?? m['pin'] ?? '').toString().isNotEmpty,
+          'hasPin': (m['nursingPin'] ?? m['pin'] ?? m['nmcPin'] ?? m['pinNumber'] ?? m['nursingPIN'] ?? m['nmcPIN'] ?? '').toString().isNotEmpty,
           'qualification': (m['qualification'] ?? m['education'] ?? '').toString(),
           'services': (m['services'] ?? m['speciality'] ?? m['specialty'] ?? '').toString(),
           'referenceName': (m['referenceName'] ?? '').toString(),
@@ -151,19 +150,13 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
             if (e.value is! Map) continue;
             final m = Map<String, dynamic>.from(e.value as Map);
             String email = pickEmail(m);
-            // If email dey for KEY like nurses/john_gmail_com
             if (email.isEmpty && e.key.toString().contains('_')) email = e.key.toString();
             final name = pickName(m);
             final phone = (m['phone'] ?? m['phoneNumber'] ?? m['nursePhone'] ?? '').toString();
-            // FIX: Only skip if email + name + phone ALL empty
             if (email.isEmpty && name.isEmpty && phone.isEmpty) continue;
-            // If scanning generic users, only keep nurses/clients with role or relevant fields
             if (base == 'users') {
               final role = '${m['role'] ?? m['userType'] ?? ''}'.toLowerCase();
-              if (type == 'nurse' && !(role.contains('nurse') || m.containsKey('nursingPin') || m.containsKey('licenceURL') || m.containsKey('licenseURL'))) {
-                // Still keep if it looks like a nurse record, else skip to avoid double-count clients
-                if (role.contains('client')) continue;
-              }
+              if (type == 'nurse' && role.contains('client')) continue;
             }
             final uid = (m['uid'] ?? m['id'] ?? e.key).toString();
             final rec = buildRecord(uid, e.key.toString(), type, m, email, name, phone);
@@ -192,7 +185,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         } catch (_) {}
       }
 
-      // RTDB
       await scan('nurses', 'nurse');
       await scan('pending_nurses', 'nurse');
       await scan('pendingNurses', 'nurse');
@@ -211,7 +203,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
       await scan('pendingClientRegistrations', 'client');
       await scan('ceoRegistrationCenter/clients', 'client');
 
-      // FIRESTORE - THIS WAS MISSING BEFORE
       await scanFirestore('nurses', 'nurse');
       await scanFirestore('nurse_registrations', 'nurse');
       await scanFirestore('pending_nurses', 'nurse');
@@ -235,8 +226,24 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   bool _hasDoc(Map m, List<String> keys) {
     for (final k in keys) {
       final v = m[k];
-      if (v != null && v.toString().isNotEmpty && v.toString().startsWith('http')) return true;
-      if (v is Map && v['url'] != null && v['url'].toString().startsWith('http')) return true;
+      if (v != null && v.toString().isNotEmpty) {
+        if (v.toString().startsWith('http')) return true;
+        if (k.toLowerCase().contains('pin')) return true;
+        if (v is Map && v['url'] != null && v['url'].toString().isNotEmpty) return true;
+        if (v.toString().contains('/') || v.toString().contains('.jpg') || v.toString().contains('.png') || v.toString().contains('.pdf')) return true;
+      }
+    }
+    final raw = m['raw'] is Map ? Map<String, dynamic>.from(m['raw'] as Map) : m;
+    for (final entry in raw.entries) {
+      final keyLower = entry.key.toString().toLowerCase();
+      final val = entry.value?.toString() ?? '';
+      if (val.isEmpty) continue;
+      if (keys.any((k) => k.toLowerCase().contains('id')) && (keyLower.contains('ghana') || keyLower.contains('nationalid') || keyLower.contains('idcard') || keyLower.contains('idfront') || keyLower.contains('id_back'))) {
+        if (val.startsWith('http') || val.contains('/')) return true;
+      }
+      if (keys.any((k) => k.toLowerCase().contains('licen')) && (keyLower.contains('licen') || keyLower.contains('license') || keyLower.contains('nmc') || keyLower.contains('practice'))) {
+        if (val.startsWith('http') || val.contains('/')) return true;
+      }
     }
     return false;
   }
@@ -271,6 +278,134 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   int get nursesApprovedCount => allRecords.where((x) => x['type'] == 'nurse' && x['isApproved'] == true).length;
   int get clientsPendingCount => allRecords.where((x) => x['type'] == 'client' && x['isApproved'] != true).length;
   int get clientsApprovedCount => allRecords.where((x) => x['type'] == 'client' && x['isApproved'] == true).length;
+
+  // ============ NEW: FIX UPLOADS FROM STORAGE ============
+  Future<void> _fixUploadsFromStorage(Map rec) async {
+    final uid = rec['uid'].toString();
+    final email = rec['email'].toString();
+    setState(() {
+      showLog = true;
+      logLines = [];
+    });
+    _log('Fixing uploads from Storage for $email ($uid)...');
+    try {
+      final db = FirebaseDatabase.instance;
+      final storageRef = FirebaseStorage.instance.ref('nurses/$uid');
+      var list = await storageRef.listAll();
+      _log('Found ${list.items.length} files in nurses/$uid');
+
+      // Try other folders if empty
+      if (list.items.isEmpty) {
+        final altFolders = ['nurse_registrations/$uid', 'registrations/$uid', 'users/$uid', 'nurses/$email', 'ceo_registration/$uid'];
+        for (final folder in altFolders) {
+          try {
+            final altList = await FirebaseStorage.instance.ref(folder).listAll();
+            if (altList.items.isNotEmpty) {
+              _log('Found ${altList.items.length} files in $folder');
+              list.items.addAll(altList.items);
+            }
+          } catch (_) {}
+        }
+      }
+
+      if (list.items.isEmpty) {
+        _toast('No files found in Storage for this nurse. Check Storage folder name.');
+        return;
+      }
+
+      String photoURL = '';
+      String idURL = '';
+      String licenceURL = '';
+      String videoURL = '';
+      String certURL = '';
+      String cvURL = '';
+
+      for (final item in list.items) {
+        final name = item.name.toLowerCase();
+        final fullPath = item.fullPath.toLowerCase();
+        final url = await item.getDownloadURL();
+        _log('File: ${item.name} -> $url');
+        if (name.contains('photo') || name.contains('profile') || name.contains('pic')) {
+          photoURL = url;
+        } else if (name.contains('id') || name.contains('ghana') || name.contains('national') || name.contains('card')) {
+          idURL = url;
+        } else if (name.contains('licen') || name.contains('license') || name.contains('nmc') || name.contains('practice')) {
+          licenceURL = url;
+        } else if (name.contains('video') || name.contains('intro') || name.endsWith('.mp4') || name.endsWith('.mov')) {
+          videoURL = url;
+        } else if (name.contains('cert') || name.contains('certificate')) {
+          certURL = url;
+        } else if (name.contains('cv') || name.contains('resume')) {
+          cvURL = url;
+        }
+        if (fullPath.contains('id') && idURL.isEmpty) idURL = url;
+        if (fullPath.contains('licen') && licenceURL.isEmpty) licenceURL = url;
+      }
+
+      _log('Recovered: Photo=${photoURL.isNotEmpty} ID=${idURL.isNotEmpty} Licence=${licenceURL.isNotEmpty} Video=${videoURL.isNotEmpty} Cert=${certURL.isNotEmpty} CV=${cvURL.isNotEmpty}');
+
+      final payload = <String, dynamic>{};
+      if (photoURL.isNotEmpty) {
+        payload['photo'] = photoURL;
+        payload['photoURL'] = photoURL;
+        payload['photoUrl'] = photoURL;
+      }
+      if (idURL.isNotEmpty) {
+        payload['idURL'] = idURL;
+        payload['idUrl'] = idURL;
+        payload['idFrontURL'] = idURL;
+        payload['ghanaCard'] = idURL;
+        payload['nationalId'] = idURL;
+      }
+      if (licenceURL.isNotEmpty) {
+        payload['licenceURL'] = licenceURL;
+        payload['licenceUrl'] = licenceURL;
+        payload['licenseURL'] = licenceURL;
+        payload['licenseUrl'] = licenceURL;
+        payload['licence'] = licenceURL;
+        payload['license'] = licenceURL;
+      }
+      if (videoURL.isNotEmpty) {
+        payload['videoURL'] = videoURL;
+        payload['videoUrl'] = videoURL;
+        payload['video'] = videoURL;
+        payload['introVideoUrl'] = videoURL;
+      }
+      if (certURL.isNotEmpty) {
+        payload['certURL'] = certURL;
+        payload['certUrl'] = certURL;
+        payload['certificateURL'] = certURL;
+      }
+      if (cvURL.isNotEmpty) {
+        payload['cvURL'] = cvURL;
+        payload['cvUrl'] = cvURL;
+        payload['cv'] = cvURL;
+      }
+
+      if (payload.isEmpty) {
+        _toast('Files found but names no match. Check log for file names.');
+        return;
+      }
+
+      for (final p in ['nurses/$uid', 'pending_nurses/$uid', 'pendingNurses/$uid', 'ceoRegistrationCenter/nurses/$uid', 'nurse_registrations/$uid']) {
+        try {
+          await db.ref(p).update(payload);
+          _log('Updated $p');
+        } catch (_) {}
+      }
+      try {
+        for (final coll in ['nurses', 'nurse_registrations', 'pending_nurses']) {
+          await FirebaseFirestore.instance.collection(coll).doc(uid).set(payload, SetOptions(merge: true));
+        }
+      } catch (_) {}
+
+      _toast('Fixed uploads from Storage! Press Refresh.');
+      _loadAll();
+    } catch (e) {
+      _log('Fix uploads failed: $e');
+      _toast('Fix failed: $e');
+    }
+  }
 
   Future<void> _recoverOrphans() async {
     final c = await showDialog<bool>(
@@ -864,7 +999,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
                 child: ElevatedButton(
                   onPressed: () => _reject(r),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                  child: const Text('Reject', style: TextStyle(color: Colors.white)),
+                  child: const FittedBox(child: Text('Reject', style: TextStyle(color: Colors.white))),
                 ),
               ),
               const SizedBox(width: 8),
@@ -872,7 +1007,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
                 child: ElevatedButton(
                   onPressed: () => _deleteAccount(r),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text('Delete', style: TextStyle(color: Colors.white, fontSize: 12)),
+                  child: const FittedBox(child: Text('Delete', style: TextStyle(color: Colors.white, fontSize: 12))),
                 ),
               ),
             ],
@@ -880,30 +1015,44 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         ],
       );
     }
-    return Row(
+    // NURSE - with Fix Uploads From Storage button on top
+    return Column(
       children: [
-        Expanded(
+        SizedBox(
+          width: double.infinity,
           child: ElevatedButton(
-            onPressed: () => _approve(r),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Approve', style: TextStyle(color: Colors.white)),
+            onPressed: () => _fixUploadsFromStorage(r),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            child: const Text('Fix Uploads From Storage', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => _reject(r),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Reject', style: TextStyle(color: Colors.white)),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () => _deleteAccount(r),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete', style: TextStyle(color: Colors.white, fontSize: 12)),
-          ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _approve(r),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                child: const FittedBox(child: Text('Approve', style: TextStyle(color: Colors.white))),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _reject(r),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                child: const FittedBox(child: Text('Reject', style: TextStyle(color: Colors.white))),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () => _deleteAccount(r),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const FittedBox(child: Text('Delete', style: TextStyle(color: Colors.white, fontSize: 12))),
+              ),
+            ),
+          ],
         ),
       ],
     );
