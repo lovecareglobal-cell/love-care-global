@@ -479,6 +479,7 @@ class CEOPasswordGate extends StatefulWidget {
 
 class _CEOPasswordGateState extends State<CEOPasswordGate> {
   final TextEditingController _passController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _oldController = TextEditingController();
   final TextEditingController _newController = TextEditingController();
   bool _obscure = true;
