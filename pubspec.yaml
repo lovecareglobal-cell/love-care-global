@@ -27,6 +27,7 @@ dependencies:
   latlong2: ^0.9.1 # for Live Nurse Map LatLng
   share_plus: ^10.1.2
   video_player: ^2.9.5 # watch nurse registration VIDEO in Live Map + 50% page
+  chewie: ^1.8.5 # video controls (play/pause/seek/fullscreen) for CEO doc viewer
   url_launcher: ^6.3.1
   cached_network_image: ^3.4.1
   google_fonts: ^6.2.1
