@@ -492,14 +492,49 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
     return prefs.getString('ceo_password') ?? DEFAULT_CEO_PASSWORD;
   }
 
+    // === CEO FIREBASE LOGIN - PATCHED ===
+  // CEO UID: s7OXgdm38Zg6RCeDHAlg0iY35vq1
+  // Go Firebase Console -> Authentication -> Search this UID -> copy its EMAIL
+  // Put that EMAIL + its Auth password here.
+  // This is NOT your dashboard password Peterasa80@you!
+  // Dashboard password = to enter gate. Auth password = to login to Firebase as CEO.
+  static const String CEO_UID = 's7OXgdm38Zg6RCeDHAlg0iY35vq1';
+  static const String CEO_AUTH_EMAIL = 'PUT_CEO_AUTH_EMAIL_HERE'; // e.g. ceo@lovecare.com
+  static const String CEO_AUTH_PASSWORD = 'PUT_CEO_AUTH_PASSWORD_HERE'; // password for that Auth user
+
   Future<void> _login() async {
     final saved = await _getSavedPassword();
-    if (_passController.text == saved) {
-      if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CEODashboardScreen()));
-    } else {
+    if (_passController.text != saved) {
       setState(() => _error = 'Wrong password. Try again.');
+      return;
     }
+
+    // 1. Dashboard password correct - now login to Firebase as CEO
+    // So Storage Rules go see request.auth.uid == s7OXgdm38Zg6RCeDHAlg0iY35vq1
+    setState(() => _error = 'Logging in as CEO...');
+    try {
+      final current = FirebaseAuth.instance.currentUser;
+      if (current?.uid != CEO_UID) {
+        await FirebaseAuth.instance.signOut();
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: CEO_AUTH_EMAIL,
+          password: CEO_AUTH_PASSWORD,
+        );
+      }
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      print('CEO LOGGED IN UID: $uid');
+      if (uid != CEO_UID) {
+        setState(() => _error = 'CEO login wrong UID: $uid. Check CEO_AUTH_EMAIL.');
+        return;
+      }
+    } catch (e) {
+      setState(() => _error = 'CEO Firebase login failed: $e');
+      return;
+    }
+
+    // 2. Now go Dashboard - Storage go allow CEO now
+    if (!mounted) return;
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CEODashboardScreen()));
   }
 
   Future<void> _changePassword() async {
