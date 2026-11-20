@@ -8,7 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:http/http.dart' as http;
-import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 
 // CEO REGISTRATION CENTER - FULL FILE - FIXED
 // CLIENT: Pending = NOT verified ONLY. CEO does NOT approve Client.
@@ -1262,18 +1261,12 @@ class _SmartDocViewerPageState extends State<_SmartDocViewerPage> {
       ),
       backgroundColor: Colors.black,
       body: showPdf
-        ? SfPdfViewer.network(
-            widget.url,
-            canShowScrollHead: true,
-            canShowScrollStatus: true,
-            enableDoubleTapZooming: true,
-            onDocumentLoadFailed: (d) => setState(() => _mode = 'image'),
-          )
+        ? _PdfOpenPage(url: widget.url, title: widget.title)
         : InteractiveViewer(
             child: Center(
               child: Image.network(widget.url,
                 fit: BoxFit.contain,
-                loadingBuilder: (_, c, p) => p == null ? c : const Column(mainAxisAlignment: MainAxisAlignment.center, children: [CircularProgressIndicator(color: Colors.white), SizedBox(height: 12), Text('Loading ${widget.title}...', style: TextStyle(color: Colors.white70))]),
+                loadingBuilder: (_, c, p) => p == null ? c : Column(mainAxisAlignment: MainAxisAlignment.center, children: [const CircularProgressIndicator(color: Colors.white), const SizedBox(height: 12), Text('Loading ${widget.title}...', style: const TextStyle(color: Colors.white70))]),
                 errorBuilder: (_, __, ___) => Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Text('Could not load as image. Trying as PDF...', style: TextStyle(color: Colors.white), textAlign: TextAlign.center),
                   const SizedBox(height: 16),
@@ -1284,6 +1277,43 @@ class _SmartDocViewerPageState extends State<_SmartDocViewerPage> {
               ),
             ),
           ),
+    );
+  }
+}
+
+// PDF viewer with ZERO new packages: opens the PDF in Google Docs Viewer
+// inside the phone browser - it renders + scrolls + zooms, no external PDF app needed.
+class _PdfOpenPage extends StatelessWidget {
+  final String url; final String title;
+  const _PdfOpenPage({required this.url, required this.title});
+  Future<void> _open(BuildContext context, String link) async {
+    final uri = Uri.parse(link);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open PDF - no browser found')));
+    }
+  }
+  @override
+  Widget build(BuildContext context) {
+    final docsViewer = 'https://docs.google.com/viewer?url=${Uri.encodeComponent(url)}&embedded=true';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          const Icon(Icons.picture_as_pdf, size: 72, color: Colors.redAccent),
+          const SizedBox(height: 16),
+          Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          const Text('Tap below to read this PDF. It opens in your browser where you can scroll, zoom and read every page.', style: TextStyle(color: Colors.white70), textAlign: TextAlign.center),
+          const SizedBox(height: 24),
+          SizedBox(width: double.infinity, child: ElevatedButton.icon(icon: const Icon(Icons.visibility), label: const Text('Read PDF in Browser'), onPressed: () => _open(context, docsViewer))),
+          const SizedBox(height: 12),
+          SizedBox(width: double.infinity, child: OutlinedButton.icon(icon: const Icon(Icons.download), label: const Text('Download / Open Directly'), onPressed: () => _open(context, url))),
+          const SizedBox(height: 12),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Go back')),
+        ]),
+      ),
     );
   }
 }
