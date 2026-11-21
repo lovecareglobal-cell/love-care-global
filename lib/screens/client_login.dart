@@ -197,7 +197,6 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
         final dbPhone = dbPhoneSnap.exists ? dbPhoneSnap.value.toString() : '';
         if ((authPhone == null || authPhone.isEmpty) && dbPhone.isNotEmpty) {
           print('AUTH PHONE MISSING for $uid, DB phone = $dbPhone. Old account created before phone-link fix. New registers will have Auth phone.');
-          // Keep DB phone + Auth in sync for CEO view - save authPhone field
           await FirebaseDatabase.instance.ref('clients/$uid').update({'authPhone': dbPhone}).catchError((_) {});
         } else {
           print('AUTH LOGIN OK: uid=$uid email=${cred.user?.email} phone=${authPhone ?? dbPhone}');
@@ -229,7 +228,6 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
       try {
         await FirebaseDatabase.instance.ref('phones/$_phoneDigits').set(email);
         await FirebaseDatabase.instance.ref('clientsByPhone/$_phoneDigits').set(uid);
-        // Also save phone for Auth user profile if missing - Firestore/RTDB already has it
         if (cred.user?.phoneNumber != null && cred.user!.phoneNumber!.isNotEmpty) {
           await FirebaseDatabase.instance.ref('clients/$uid').update({'authPhone': cred.user!.phoneNumber, 'phone': _fullPhone, 'phoneNumber': _fullPhone}).catchError((_) {});
         }
@@ -245,24 +243,16 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
     }
   }
 
-  // BACK + FRONT - always show, even if this page is first page
+  // BACK ONLY - left arrow always goes to main.dart Home Page '/home'
+  // Right arrow deleted as requested.
   void _goBack() {
-    if (Navigator.canPop(context)) {
-      Navigator.pop(context);
-    } else {
-      // No page behind - go to Welcome / Home. Change '/' to your welcome route if different.
-      Navigator.pushNamedAndRemoveUntil(context, '/', (r) => false);
-    }
-  }
-
-  void _goFront() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClientRegistrationPage()));
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // ===== FIXED: BACK + FRONT ARROW - ONLY CHANGE HERE =====
+      // ===== FIXED: BACK ONLY - LEFT ARROW TO main.dart HOME =====
       appBar: AppBar(
         title: const Text('Client Login'),
         backgroundColor: Colors.purple,
@@ -273,13 +263,7 @@ class _ClientLoginPageState extends State<ClientLoginPage> {
           tooltip: 'Back',
           onPressed: _goBack,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.arrow_forward, size: 28),
-            tooltip: 'Forward to Register',
-            onPressed: _goFront,
-          ),
-        ],
+        // NO actions - right arrow deleted
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
