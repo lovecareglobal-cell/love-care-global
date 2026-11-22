@@ -46,19 +46,21 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_database/firebase_database.dart';
 
 // ALL SCREENS
+// NEW 20/80 RULE: 50% DELETED, Increase Payment DELETED, Nurse Withdrawal DELETED.
+// Client pays 20% CEO fee in app. Nurse cash 80% paid CASH by client after work. CEO never pays nurse.
 import 'screens/alert_settings.dart';
 import 'screens/book_nurse.dart';
-import 'screens/book_nurse_50.dart';
+// import 'screens/book_nurse_50.dart'; // DELETED - old 50% booking
 import 'screens/client_complaint.dart';
 import 'screens/client_dashboard.dart';
 import 'screens/client_settings.dart';
-import 'screens/increase_payment.dart';
+// import 'screens/increase_payment.dart'; // DELETED - old 50% top-up
 import 'screens/my_bookings.dart';
 import 'screens/my_job_offer.dart';
 import 'screens/nurse_complaint.dart';
 import 'screens/nurse_dashboard.dart';
 import 'screens/nurse_settings.dart';
-import 'screens/nurse_withdrawal.dart';
+// import 'screens/nurse_withdrawal.dart'; // DELETED - old CEO-pays-nurse
 import 'screens/rating.dart';
 import 'screens/refund_query.dart';
 import 'screens/sos.dart';
@@ -306,7 +308,7 @@ class LoveCareApp extends StatelessWidget {
         '/nurse-group-chat': (context) => const NurseGroupChatScreen(),
         '/alert-settings': (context) => const AlertSettingsScreen(),
         '/book-nurse': (context) => const BookNurseScreen(),
-        '/book-nurse-50': (context) => const BookNurse50Screen(),
+        // '/book-nurse-50': (context) => const BookNurse50Screen(), // DELETED - old 50%
         '/client-dashboard': (context) => ClientDashboardScreen(),
         '/client-settings': (context) => const ClientSettingsScreen(),
         '/my-bookings': (context) => MyBookingsScreen(),
@@ -314,7 +316,7 @@ class LoveCareApp extends StatelessWidget {
         '/my-job-offers': (context) => const MyJobOfferScreen(),
         '/nurse-settings': (context) => const NurseSettingsScreen(),
         '/nurse-dashboard': (context) => const NurseDashboardScreen(),
-        '/nurse-withdrawal': (context) => const NurseWithdrawalScreen(),
+        // '/nurse-withdrawal': (context) => const NurseWithdrawalScreen(), // DELETED - CEO never pays nurse
         '/rating': (context) => const RatingScreen(),
         '/refund-query': (context) => const RefundQueryScreen(),
         '/sos': (context) => const SOSScreen(),
@@ -350,8 +352,8 @@ class LoveCareApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => ClientComplaintScreen(params: args is Map<String, dynamic> ? args : null));
           case '/nurse-complaint':
             return MaterialPageRoute(builder: (_) => NurseComplaintScreen(params: args is Map<String, dynamic> ? args : null));
-          case '/increase-payment':
-            return MaterialPageRoute(builder: (_) => IncreasePaymentScreen(bookingKey: args is String ? args : null));
+          // case '/increase-payment': // DELETED - old 50% top-up
+          //   return MaterialPageRoute(builder: (_) => IncreasePaymentScreen(bookingKey: args is String ? args : null));
           case '/alert-settings-role':
             return MaterialPageRoute(builder: (_) => AlertSettingsScreen(role: args is String ? args : null));
           default:
