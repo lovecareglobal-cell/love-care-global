@@ -18,8 +18,12 @@ import 'package:http/http.dart' as http;
 ///   GPS fast (3s timeout, don't block online if GPS slow), onDisconnect cancels
 /// - Receiver-only sound: bookings child_changed shouldRing (lastChangedBy != nurse, not my own change, isMyBooking, within 2 min)
 ///   + soundTriggers/{nurse, phone9, uid, emailKey} limit 5, delete after 5s
-/// - Stats: My bookings (pending / accepted / completed), Earnings = 80% of completed amount
-/// - Booking cards: Accept / Reject (reject writes rejectedBy + sound trigger to client)
+/// - Stats: My bookings (pending / accepted / completed), Cash Earnings = 80% cash collected from client (NOT from CEO)
+/// - Booking cards: Accept / Reject (reject writes rejected_by_nurse + refund full 20% + sound trigger to client)
+/// - NEW 20/80 RULE: Nurse sees ONLY her cash (80%). NEVER total, NEVER CEO fee (20%).
+///   CEO NEVER pays nurse. Nurse collects CASH from client after work.
+///   Withdraw Earnings DELETED - replaced with Confirm Cash Received / My Job Offers.
+///   Accept = Lock nurse (Busy). Reject / Cash Received / Cancel = Unlock nurse (Available).
 
 class NurseDashboardScreen extends StatefulWidget {
   const NurseDashboardScreen({super.key});
@@ -54,6 +58,55 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
     _stopLiveGps();
     _player.dispose();
     super.dispose();
+  }
+
+  // ===== NEW 20/80 HELPERS - NURSE SEES ONLY HER CASH =====
+  double _nurseCash(Map b) {
+    double v(dynamic x) {
+      if (x == null) return 0;
+      if (x is num) return x.toDouble();
+      return double.tryParse(x.toString()) ?? 0;
+    }
+    double c = v(b['nurseCash']);
+    if (c > 0) return c;
+    c = v(b['nurseCashAmount']);
+    if (c > 0) return c;
+    c = v(b['amountYouWillCollectCash']);
+    if (c > 0) return c;
+    final total = v(b['totalAmount'] ?? b['total'] ?? b['amount']);
+    if (total > 0) return total * 0.80;
+    return 0;
+  }
+  String _nurseCashStr(Map b) {
+    final cur = (b['currency'] ?? 'GHS').toString();
+    return '$cur ${_nurseCash(b).toStringAsFixed(2)}';
+  }
+  bool get _hasActiveBooking {
+    return myBookings.any((b) {
+      final s = (b['status'] ?? '').toString().toLowerCase();
+      return s == 'pending' || s == 'new' || s == 'accepted' || s == 'on_the_way' || s == 'close' || s == 'completed';
+    });
+  }
+  Future<void> _lockNurse() async {
+    final uid = currentNurseId;
+    if (uid.isEmpty || uid == 'demo-nurse') return;
+    final bid = myBookings.isNotEmpty ? '${myBookings.first['id'] ?? ''}' : '';
+    try {
+      await FirebaseDatabase.instance.ref('nurses/$uid').update({'isAvailable': false, 'isBooked': true, 'isBusy': true, 'status': 'busy', 'currentBookingId': bid, 'currentBookingStatus': 'accepted'});
+    } catch (_) {}
+    try {
+      await FirebaseDatabase.instance.ref('onlineNurses/$uid').update({'isAvailable': false, 'isBooked': true, 'currentBookingId': bid});
+    } catch (_) {}
+  }
+  Future<void> _unlockNurse() async {
+    final uid = currentNurseId;
+    if (uid.isEmpty || uid == 'demo-nurse') return;
+    try {
+      await FirebaseDatabase.instance.ref('nurses/$uid').update({'isAvailable': true, 'isBooked': false, 'isBusy': false, 'status': 'available', 'currentBookingId': null, 'currentBookingStatus': null});
+    } catch (_) {}
+    try {
+      await FirebaseDatabase.instance.ref('onlineNurses/$uid').update({'isAvailable': true, 'isBooked': false, 'currentBookingId': null});
+    } catch (_) {}
   }
 
   // ===== LIVE GPS - PHOTO BLINKING + MOVING ON CLIENT MAP =====
@@ -284,8 +337,10 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
     final timeStr = DateTime.now().toString();
     setState(() { isOnline = true; saveStatus = '🟢 Going ONLINE... Broadcasting to all clients...'; });
     final loc = await _getLocationFast();
+    // If nurse has active booking, she is ONLINE but NOT Available for new bookings
+    final bool busy = _hasActiveBooking;
     final payload = {
-      'isOnline': true, 'online': true, 'isAvailable': true, 'available': true, 'status': 'online', 'presence': 'online',
+      'isOnline': true, 'online': true, 'isAvailable': !busy, 'available': !busy, 'status': busy ? 'busy' : 'online', 'presence': 'online',
       'lastSeen': now, 'lastActive': now, 'lastOnline': now, 'onlineAt': now, 'updatedAt': now, 'lastUpdate': now, 'timeStr': timeStr,
       'fullName': nurseName, 'name': nurseName, 'photoURL': photoUrl, 'photo': photoUrl, 'photoUrl': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty,
       'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'],
@@ -303,7 +358,7 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
         db.ref('liveNurses/$uid').set(payload),
         db.ref('liveTracking/$uid').set(payload),
         db.ref('nurseLocations/$uid').update({'isLive': true, 'isOnline': true, 'status': 'online', 'lat': loc['lat'], 'lng': loc['lng'], 'lastSeen': now, 'updatedAt': now}),
-        db.ref('nurses/$uid').update({'isOnline': true, 'online': true, 'isAvailable': true, 'status': 'online', 'lastSeen': now, 'lastOnline': now, 'onlineAt': now, 'timeStr': timeStr, 'fullName': nurseName, 'name': nurseName, 'photoUrl': photoUrl, 'photoURL': photoUrl, 'photo': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty, 'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'], 'gpsLat': loc['lat'], 'gpsLng': loc['lng'], 'location': loc['place'], 'placeName': loc['place'], 'address': loc['place'], 'gpsActualName': loc['place'], 'lastGpsAt': now}),
+        db.ref('nurses/$uid').update({'isOnline': true, 'online': true, 'isAvailable': !busy, 'status': busy ? 'busy' : 'online', 'lastSeen': now, 'lastOnline': now, 'onlineAt': now, 'timeStr': timeStr, 'fullName': nurseName, 'name': nurseName, 'photoUrl': photoUrl, 'photoURL': photoUrl, 'photo': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty, 'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'], 'gpsLat': loc['lat'], 'gpsLng': loc['lng'], 'location': loc['place'], 'placeName': loc['place'], 'address': loc['place'], 'gpsActualName': loc['place'], 'lastGpsAt': now}),
         db.ref('allNurses/$uid').update({'isOnline': true, 'status': 'online', 'lastSeen': now, 'onlineAt': now, 'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'], 'location': loc['place'], 'placeName': loc['place']}),
         db.ref('pending_nurses/$uid').update({'isOnline': true, 'status': 'online'}),
         db.ref('pendingNurses/$uid').update({'isOnline': true, 'status': 'online'}),
@@ -451,6 +506,7 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
   Future<void> _acceptBooking(Map b) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     await FirebaseDatabase.instance.ref('bookings/${b['id']}').update({'status': 'accepted', 'acceptedAt': now, 'acceptedBy': currentNurseId, 'lastChangedBy': 'nurse', 'lastChangedUid': currentNurseId, 'lastChangedAt': now});
+    await _lockNurse();
     await _sendSoundTrigger('client', {'bookingId': b['id'], 'status': 'accepted', 'title': '✅ Nurse Don Accept!'});
     await FirebaseDatabase.instance.ref('nurseNotifications/${b['clientUid'] ?? b['clientId'] ?? ''}').push().set({'title': '✅ Nurse Accepted', 'message': 'Nurse $nurseName accepted booking ${b['id']}', 'bookingId': b['id'], 'type': 'accepted', 'createdAt': now}).catchError((_) {});
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Booking accepted')));
@@ -459,13 +515,24 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
   Future<void> _rejectBooking(Map b) async {
     final reason = await showDialog<String>(context: context, builder: (_) {
       final c = TextEditingController();
-      return AlertDialog(title: const Text('Reject Booking — Reason?'), content: TextField(controller: c, decoration: const InputDecoration(hintText: 'e.g. Too far, busy')), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, c.text), child: const Text('Reject'))]);
+      return AlertDialog(title: const Text('Reject Booking — Reason?'), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: c, decoration: const InputDecoration(hintText: 'e.g. Too far, busy')), const SizedBox(height: 8), const Text('Client gets FULL 20% refund and can book another nurse. You become Available again.', style: TextStyle(fontSize: 11, color: Colors.grey))]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, c.text), child: const Text('Reject'))]);
     });
     if (reason == null) return;
     final now = DateTime.now().millisecondsSinceEpoch;
-    await FirebaseDatabase.instance.ref('bookings/${b['id']}').update({'status': 'rejected', 'rejectedAt': now, 'rejectedBy': currentNurseId, 'rejectedByNurseId': currentNurseId, 'rejectedByNurseName': nurseName, 'rejectReason': reason, 'lastChangedBy': 'nurse', 'lastChangedUid': currentNurseId, 'lastChangedAt': now});
-    await _sendSoundTrigger('client', {'bookingId': b['id'], 'status': 'rejected', 'title': 'Nurse rejected — Increase payment?'});
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking rejected — Client can increase payment')));
+    await FirebaseDatabase.instance.ref('bookings/${b['id']}').update({'status': 'rejected_by_nurse', 'rejectedAt': now, 'rejectedBy': currentNurseId, 'rejectedByNurseId': currentNurseId, 'rejectedByNurseName': nurseName, 'rejectReason': reason, 'lastChangedBy': 'nurse', 'lastChangedUid': currentNurseId, 'lastChangedAt': now, 'refundCeoFee': true, 'refundStatus': 'refund_due_full_20', 'cancelTermsApplied': 'nurse_rejects_refund_full_20'});
+    await _unlockNurse();
+    await _sendSoundTrigger('client', {'bookingId': b['id'], 'status': 'rejected_by_nurse', 'title': 'Nurse rejected - Full 20% refund due to you'});
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rejected - Client gets full 20% refund - You are Available again')));
+  }
+
+  Future<void> _confirmCashReceived(Map b) async {
+    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Confirm Cash Received?'), content: Text('Confirm client paid you CASH: ${_nurseCashStr(b)}\nCEO does NOT pay you. After this you become Available again.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not Yet')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Cash Received'))]));
+    if (confirm != true) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await FirebaseDatabase.instance.ref('bookings/${b['id']}').update({'status': 'cash_received_by_nurse', 'lastChangedBy': 'nurse', 'lastChangedUid': currentNurseId, 'lastChangedAt': now, 'cashPaidToNurse': true, 'nurseCashPaid': true, 'cashConfirmedByNurse': true, 'cashConfirmedAt': now});
+    await _unlockNurse();
+    await _sendSoundTrigger('client', {'bookingId': b['id'], 'status': 'cash_received_by_nurse', 'title': 'Nurse confirmed cash received'});
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cash confirmed - You are Available again')));
   }
 
   @override
@@ -476,7 +543,7 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
     double earnings = 0;
     for (final b in myBookings) {
       final s = (b['status'] ?? '').toString().toLowerCase();
-      if (s == 'completed' || s == 'done') earnings += (double.tryParse((b['amount'] ?? 0).toString()) ?? 0) * 0.8;
+      if (s == 'completed' || s == 'done' || s == 'cash_received_by_nurse' || s == 'cash_confirmed_by_client' || s == 'client_confirmed_finished') earnings += _nurseCash(b);
     }
     return Scaffold(
       backgroundColor: const Color(0xFF0E0A1C),
@@ -484,7 +551,7 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
       drawer: Drawer(child: Container(color: const Color(0xFF120E26), child: ListView(padding: EdgeInsets.zero, children: [
         DrawerHeader(decoration: const BoxDecoration(color: Color(0xFF1C1238)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [CircleAvatar(radius: 28, backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null, child: photoUrl.isEmpty ? Text(nurseName.isNotEmpty ? nurseName[0] : 'N') : null), const SizedBox(height: 8), Text(nurseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text(nurseEmail, style: const TextStyle(color: Colors.white60, fontSize: 11))])),
         ListTile(title: const Text('My Job Offers', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/my-job-offers'); }),
-        ListTile(title: const Text('Withdraw Earnings', style: TextStyle(color: Color(0xFFFACC15))), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/nurse-withdrawal'); }),
+        ListTile(title: const Text('My Cash Earnings', style: TextStyle(color: Color(0xFFFACC15))), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/my-job-offers'); }),
         ListTile(title: const Text('Nurse Group Chat', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/nurse-group-chat'); }),
         ListTile(title: const Text('Sound Settings', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/sound-settings'); }),
         ListTile(title: const Text('Nurse Settings', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/nurse-settings'); }),
@@ -516,7 +583,7 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
             Expanded(child: _stat('🎉 Completed', '$completed', Colors.blue)),
           ]),
           const SizedBox(height: 8),
-          Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFFFACC15).withOpacity(0.12), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFFACC15).withOpacity(0.3))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('💰 Earnings (80% of Completed)', style: TextStyle(fontWeight: FontWeight.bold)), Text('GHS ${earnings.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFFACC15))), const SizedBox(height: 6), SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/nurse-withdrawal'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFACC15)), child: const Text('Withdraw Earnings', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))))])),
+          Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFFFACC15).withOpacity(0.12), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFFACC15).withOpacity(0.3))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('💰 Cash You Collect (80%) - Paid CASH by Client, NOT by CEO', style: TextStyle(fontWeight: FontWeight.bold)), Text('GHS ${earnings.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFFACC15))), const SizedBox(height: 6), SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/my-job-offers'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFACC15)), child: const Text('See My Job Offers', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))))])),
           const SizedBox(height: 12),
           // My Bookings
           Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -528,15 +595,17 @@ class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
               return Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(14)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text('${b['id']} — ${b['clientName'] ?? 'Client'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: s == 'pending' ? Colors.orange.withOpacity(0.2) : s == 'accepted' ? Colors.green.withOpacity(0.2) : s == 'completed' ? Colors.blue.withOpacity(0.2) : Colors.red.withOpacity(0.2), borderRadius: BorderRadius.circular(999)), child: Text(s.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))]),
                 const SizedBox(height: 4),
-                Text('Service: ${b['service'] ?? b['serviceType'] ?? ''} • Amount: GHS ${b['amount'] ?? ''} • Location: ${b['location'] ?? ''}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                Text('Service: ${b['service'] ?? b['serviceType'] ?? ''} • Location: ${b['location'] ?? ''}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+                Container(margin: const EdgeInsets.only(top: 6), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF22C55E).withOpacity(0.4))), child: Row(children: [const Icon(Icons.money, color: Colors.greenAccent, size: 18), const SizedBox(width: 6), Expanded(child: Text('You will collect CASH after work: ${_nurseCashStr(b)}', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13)))])),
                 if (s == 'pending') Row(children: [Expanded(child: ElevatedButton(onPressed: () => _acceptBooking(b), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('✅ Accept'))), const SizedBox(width: 8), Expanded(child: ElevatedButton(onPressed: () => _rejectBooking(b), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('❌ Reject')))]),
+                if (s == 'accepted' || s == 'completed' || s == 'close') Padding(padding: const EdgeInsets.only(top: 8), child: SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => _confirmCashReceived(b), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: Text('💵 Confirm Cash Received - ${_nurseCashStr(b)}', style: const TextStyle(fontSize: 12))))),
               ]));
             }),
           ])),
           const SizedBox(height: 20),
         ]),
       ),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => Navigator.pushNamed(context, '/nurse-withdrawal'), backgroundColor: const Color(0xFFFACC15), label: const Text('Withdraw Earnings', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
+      floatingActionButton: FloatingActionButton.extended(onPressed: () => Navigator.pushNamed(context, '/my-job-offers'), backgroundColor: const Color(0xFFFACC15), label: const Text('My Job Offers', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
     );
   }
 
