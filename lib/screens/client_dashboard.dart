@@ -5,6 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Client Dashboard - CLIENT ONLY
+/// - NEW 20/80 RULE: Client pays ONLY 20% CEO fee in app to book.
+///   Nurse cash 80% is paid CASH by client to nurse AFTER work. CEO never sends money to nurse.
+/// - 50% DELETED: 'Book Nurse 50%' button + '/book-nurse-50' route DELETED.
+/// - 'Increase Payment / Top up booking' DELETED (that was old 50% balance top-up).
+///   Replaced with 'Confirm Cash Paid' -> /my-bookings (80% cash to nurse).
+/// - Terms banner: Nurse rejects = full 20% refund. Client cancels before start = CEO keeps 20%.
+///   Client cancels after start = CEO keeps 20% + client pays nurse cash for days worked.
+/// - My Job Offer removed - na for NURSES only (kept).
+
 class ClientDashboardScreen extends StatefulWidget {
   const ClientDashboardScreen({super.key});
   @override
@@ -194,6 +204,21 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            // NEW 20/80 BANNER - so client no go confuse again
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.12), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF22C55E).withOpacity(0.4))),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Pay 20% CEO fee in app to book. Pay 80% CASH to nurse after work.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  SizedBox(height: 4),
+                  Text('CEO never pays nurse. Nurse rejects = full 20% refund. You cancel before start = CEO keeps 20%.', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
 
             // ===== CLIENT DASHBOARD - ONLY BUTTONS - NO MY JOB OFFER =====
@@ -205,7 +230,8 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             ]),
             const SizedBox(height: 12),
             Row(children: [
-              Expanded(child: _button('Book Nurse 50%', Icons.discount, '50% booking', pink, () => Navigator.pushNamed(context, '/book-nurse-50'))),
+              // 50% DELETED - replaced with 20% to Book (same /book-nurse page)
+              Expanded(child: _button('Book Nurse - 20% to Book', Icons.discount, '20% CEO fee only', pink, () => Navigator.pushNamed(context, '/book-nurse'))),
               const SizedBox(width: 12),
               Expanded(child: _button('SOS Emergency', Icons.sos, 'Emergency help', Colors.red, () => Navigator.pushNamed(context, '/sos'))),
             ]),
@@ -219,7 +245,8 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
             Row(children: [
               Expanded(child: _button('Refund Query', Icons.money_off, 'Refund help', pink, () => Navigator.pushNamed(context, '/refund-query'))),
               const SizedBox(width: 12),
-              Expanded(child: _button('Increase Payment', Icons.add_card, 'Top up booking', pink, () => Navigator.pushNamed(context, '/increase-payment'))),
+              // Increase Payment (old 50% top-up) DELETED - replaced with Confirm Cash Paid
+              Expanded(child: _button('Confirm Cash Paid', Icons.money, '80% cash to nurse', pink, () => Navigator.pushNamed(context, '/my-bookings'))),
             ]),
             const SizedBox(height: 12),
             Row(children: [
