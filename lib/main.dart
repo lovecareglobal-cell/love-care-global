@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
@@ -716,6 +718,9 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                 ],
               ),
             ),
+            // NEW: CEO ANNOUNCEMENT BANNER - listens LIVE to homePageBanner/current
+            // CEO Control Chat writes here. Before, Home had NO listener, so nothing ever showed.
+            const _CeoAnnouncementBanner(),
             const SizedBox(height: 20),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -762,6 +767,242 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
             const Icon(Icons.arrow_forward_ios, color: Color(0xFF880E4F), size: 16),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ================= CEO ANNOUNCEMENT BANNER - NEW =================
+// CEO Control Chat writes to:
+//   homePageBanner/current  (primary)
+//   ceoHomePageCurrent      (fallback)
+//   ceoHomePageAnnouncements/{id} (fallback - last one)
+// Fields: text, textColor (#FFFFFF), bgColor (#191531), displayType
+// (marquee_slow / marquee_fast / static / photo_full), speed (slow/medium/fast),
+// images [{url/data}], videos [{url/data}], active
+// If no announcement, show nothing - Home looks exactly like before.
+class _CeoAnnouncementBanner extends StatefulWidget {
+  const _CeoAnnouncementBanner();
+  @override
+  State<_CeoAnnouncementBanner> createState() => _CeoAnnouncementBannerState();
+}
+
+class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
+  Map<String, dynamic>? _banner;
+
+  @override
+  void initState() {
+    super.initState();
+    final db = FirebaseDatabase.instance;
+    // Primary: homePageBanner/current
+    db.ref('homePageBanner/current').onValue.listen((e) {
+      if (e.snapshot.value is Map) {
+        final m = Map<String, dynamic>.from(e.snapshot.value as Map);
+        if (mounted) setState(() => _banner = m);
+      }
+    });
+    // Fallback: ceoHomePageCurrent - only if primary never came
+    db.ref('ceoHomePageCurrent').onValue.listen((e) {
+      if (e.snapshot.value is Map) {
+        final m = Map<String, dynamic>.from(e.snapshot.value as Map);
+        if (mounted && _banner == null) setState(() => _banner = m);
+      }
+    });
+    // Fallback: last announcement in ceoHomePageAnnouncements
+    db.ref('ceoHomePageAnnouncements').orderByChild('createdAt').limitToLast(1).onValue.listen((e) {
+      if (e.snapshot.value is Map) {
+        final data = Map<String, dynamic>.from(e.snapshot.value as Map);
+        if (data.isEmpty) return;
+        final last = data.values.first;
+        if (last is Map) {
+          final m = Map<String, dynamic>.from(last as Map);
+          if (mounted && _banner == null) setState(() => _banner = m);
+        }
+      }
+    });
+  }
+
+  Color _parseColor(dynamic v, Color fallback) {
+    try {
+      final s = (v ?? '').toString().trim();
+      if (s.isEmpty) return fallback;
+      var hex = s.replaceAll('#', '');
+      if (hex.length == 6) hex = 'FF$hex';
+      if (hex.length == 8) return Color(int.parse(hex, radix: 16));
+    } catch (_) {}
+    return fallback;
+  }
+
+  String _firstMediaUrl(Map m, String key) {
+    final list = m[key];
+    if (list is List && list.isNotEmpty) {
+      final first = list.first;
+      if (first is Map) {
+        final u = (first['url'] ?? first['data'] ?? '').toString();
+        if (u.isNotEmpty) return u;
+      } else if (first is String && first.isNotEmpty) {
+        return first;
+      }
+    }
+    final direct = (m[key] ?? '').toString();
+    if (direct.isNotEmpty) return direct;
+    return '';
+  }
+
+  Uint8List? _base64ToBytes(String s) {
+    try {
+      var clean = s.trim();
+      if (clean.contains(',')) clean = clean.split(',').last;
+      // Skip huge base64 in banner - it will freeze Home. Only decode if < 2MB text.
+      if (clean.length > 2000000) return null;
+      return base64Decode(clean);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _mediaWidget(String url) {
+    if (url.isEmpty) return const SizedBox.shrink();
+    if (url.startsWith('http')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          url,
+          width: double.infinity,
+          height: 200,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            width: double.infinity,
+            height: 120,
+            color: Colors.black26,
+            child: const Center(child: Text('🎥 CEO Video / Photo - Tap CEO Control to view', style: TextStyle(color: Colors.white))),
+          ),
+        ),
+      );
+    }
+    if (url.startsWith('data:image')) {
+      final bytes = _base64ToBytes(url);
+      if (bytes != null) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.memory(bytes, width: double.infinity, height: 200, fit: BoxFit.cover),
+        );
+      }
+    }
+    // Video base64 or Storage video URL that is not http image - show play box
+    return Container(
+      width: double.infinity,
+      height: 120,
+      decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
+      child: const Center(child: Text('🎥 CEO Video Announcement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final b = _banner;
+    if (b == null) return const SizedBox.shrink();
+    if (b['active'] == false) return const SizedBox.shrink();
+    final text = (b['text'] ?? b['message'] ?? b['title'] ?? '').toString();
+    final displayType = (b['displayType'] ?? 'static').toString();
+    final speed = (b['speed'] ?? 'slow').toString();
+    final textColor = _parseColor(b['textColor'], Colors.white);
+    final bgColor = _parseColor(b['bgColor'], const Color(0xFF191531));
+    final imageUrl = _firstMediaUrl(b, 'images');
+    final videoUrl = _firstMediaUrl(b, 'videos');
+    final mediaUrl = imageUrl.isNotEmpty ? imageUrl : videoUrl;
+    final isMarquee = displayType.contains('marquee');
+    final isPhotoFull = displayType == 'photo_full';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '📢 CEO ANNOUNCEMENT',
+            style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          if (isPhotoFull && mediaUrl.isNotEmpty) ...[
+            _mediaWidget(mediaUrl),
+            const SizedBox(height: 10),
+          ] else if (mediaUrl.isNotEmpty && imageUrl.isNotEmpty) ...[
+            _mediaWidget(mediaUrl),
+            const SizedBox(height: 10),
+          ],
+          if (text.isNotEmpty)
+            isMarquee
+                ? _MarqueeText(text: text, color: textColor, fast: speed == 'fast' || displayType == 'marquee_fast')
+                : Text(text, style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w600)),
+          if (videoUrl.isNotEmpty && !isPhotoFull) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(20)),
+              child: const Text('🎥 Video attached - see CEO Control', style: TextStyle(color: Colors.white70, fontSize: 11)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// Simple marquee - text moves left, repeats. No new package needed.
+class _MarqueeText extends StatefulWidget {
+  final String text;
+  final Color color;
+  final bool fast;
+  const _MarqueeText({required this.text, required this.color, required this.fast});
+  @override
+  State<_MarqueeText> createState() => _MarqueeTextState();
+}
+
+class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: Duration(seconds: widget.fast ? 8 : 16),
+      vsync: this,
+    )..repeat();
+    _anim = Tween<double>(begin: 1.0, end: -1.0).animate(_ctrl);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: AnimatedBuilder(
+        animation: _anim,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(_anim.value * 200, 0),
+            child: Text(
+              widget.text,
+              style: TextStyle(color: widget.color, fontSize: 14, fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.visible,
+              softWrap: false,
+            ),
+          );
+        },
       ),
     );
   }
