@@ -718,8 +718,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                 ],
               ),
             ),
-            // NEW: CEO ANNOUNCEMENT BANNER - listens LIVE to homePageBanner/current
-            // CEO Control Chat writes here. Before, Home had NO listener, so nothing ever showed.
+            // NEW: CEO ANNOUNCEMENT BANNER - listens LIVE, shows EVERYTHING CEO posts
             const _CeoAnnouncementBanner(),
             const SizedBox(height: 20),
             Padding(
@@ -772,15 +771,13 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
   }
 }
 
-// ================= CEO ANNOUNCEMENT BANNER - NEW =================
+// ================= CEO ANNOUNCEMENT BANNER - DISPLAY EVERYTHING =================
 // CEO Control Chat writes to:
-//   homePageBanner/current  (primary)
-//   ceoHomePageCurrent      (fallback)
-//   ceoHomePageAnnouncements/{id} (fallback - last one)
-// Fields: text, textColor (#FFFFFF), bgColor (#191531), displayType
-// (marquee_slow / marquee_fast / static / photo_full), speed (slow/medium/fast),
-// images [{url/data}], videos [{url/data}], active
-// If no announcement, show nothing - Home looks exactly like before.
+//   ceoHomePageAnnouncements/{id} (MAIN - all posts, last 20)
+//   homePageBanner/current (fallback)
+//   ceoHomePageCurrent (fallback)
+// Before: only current (1 post) + marquee 1 line = cut.
+// Now: show ALL posts, newest first. Each post: FULL text wrapped, FULL photos/videos, no cut, no marquee.
 class _CeoAnnouncementBanner extends StatefulWidget {
   const _CeoAnnouncementBanner();
   @override
@@ -788,36 +785,42 @@ class _CeoAnnouncementBanner extends StatefulWidget {
 }
 
 class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
-  Map<String, dynamic>? _banner;
+  List<Map<String, dynamic>> _posts = [];
+  Map<String, dynamic>? _current;
 
   @override
   void initState() {
     super.initState();
     final db = FirebaseDatabase.instance;
-    // Primary: homePageBanner/current
+    db.ref('ceoHomePageAnnouncements').orderByChild('createdAt').limitToLast(20).onValue.listen((e) {
+      if (e.snapshot.value is! Map) return;
+      final data = Map<String, dynamic>.from(e.snapshot.value as Map);
+      final list = <Map<String, dynamic>>[];
+      for (final entry in data.entries) {
+        if (entry.value is! Map) continue;
+        final m = Map<String, dynamic>.from(entry.value as Map);
+        if (m['active'] == false) continue;
+        list.add({...m, 'key': entry.key.toString()});
+      }
+      list.sort((a, b) {
+        final ta = int.tryParse('${a['createdAt'] ?? 0}') ?? 0;
+        final tb = int.tryParse('${b['createdAt'] ?? 0}') ?? 0;
+        return tb.compareTo(ta);
+      });
+      if (mounted) setState(() => _posts = list);
+    });
     db.ref('homePageBanner/current').onValue.listen((e) {
       if (e.snapshot.value is Map) {
         final m = Map<String, dynamic>.from(e.snapshot.value as Map);
-        if (mounted) setState(() => _banner = m);
+        if (mounted) setState(() => _current = m);
+      } else {
+        if (mounted) setState(() => _current = null);
       }
     });
-    // Fallback: ceoHomePageCurrent - only if primary never came
     db.ref('ceoHomePageCurrent').onValue.listen((e) {
       if (e.snapshot.value is Map) {
         final m = Map<String, dynamic>.from(e.snapshot.value as Map);
-        if (mounted && _banner == null) setState(() => _banner = m);
-      }
-    });
-    // Fallback: last announcement in ceoHomePageAnnouncements
-    db.ref('ceoHomePageAnnouncements').orderByChild('createdAt').limitToLast(1).onValue.listen((e) {
-      if (e.snapshot.value is Map) {
-        final data = Map<String, dynamic>.from(e.snapshot.value as Map);
-        if (data.isEmpty) return;
-        final last = data.values.first;
-        if (last is Map) {
-          final m = Map<String, dynamic>.from(last as Map);
-          if (mounted && _banner == null) setState(() => _banner = m);
-        }
+        if (mounted && _current == null) setState(() => _current = m);
       }
     });
   }
@@ -833,27 +836,26 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
     return fallback;
   }
 
-  String _firstMediaUrl(Map m, String key) {
+  List<String> _allMediaUrls(Map m, String key) {
+    final urls = <String>[];
     final list = m[key];
-    if (list is List && list.isNotEmpty) {
-      final first = list.first;
-      if (first is Map) {
-        final u = (first['url'] ?? first['data'] ?? '').toString();
-        if (u.isNotEmpty) return u;
-      } else if (first is String && first.isNotEmpty) {
-        return first;
+    if (list is List) {
+      for (final item in list) {
+        if (item is Map) {
+          final u = (item['url'] ?? item['data'] ?? '').toString();
+          if (u.isNotEmpty) urls.add(u);
+        } else if (item is String && item.isNotEmpty) {
+          urls.add(item);
+        }
       }
     }
-    final direct = (m[key] ?? '').toString();
-    if (direct.isNotEmpty) return direct;
-    return '';
+    return urls;
   }
 
   Uint8List? _base64ToBytes(String s) {
     try {
       var clean = s.trim();
       if (clean.contains(',')) clean = clean.split(',').last;
-      // Skip huge base64 in banner - it will freeze Home. Only decode if < 2MB text.
       if (clean.length > 2000000) return null;
       return base64Decode(clean);
     } catch (_) {
@@ -869,7 +871,6 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
         child: Image.network(
           url,
           width: double.infinity,
-          height: 200,
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Container(
             width: double.infinity,
@@ -885,11 +886,10 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
       if (bytes != null) {
         return ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: Image.memory(bytes, width: double.infinity, height: 200, fit: BoxFit.cover),
+          child: Image.memory(bytes, width: double.infinity, fit: BoxFit.cover),
         );
       }
     }
-    // Video base64 or Storage video URL that is not http image - show play box
     return Container(
       width: double.infinity,
       height: 120,
@@ -900,20 +900,29 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
 
   @override
   Widget build(BuildContext context) {
-    final b = _banner;
-    if (b == null) return const SizedBox.shrink();
-    if (b['active'] == false) return const SizedBox.shrink();
-    final text = (b['text'] ?? b['message'] ?? b['title'] ?? '').toString();
-    final displayType = (b['displayType'] ?? 'static').toString();
-    final speed = (b['speed'] ?? 'slow').toString();
+    List<Map<String, dynamic>> show = _posts;
+    if (show.isEmpty && _current != null) {
+      show = [_current!];
+    }
+    if (show.isEmpty) return const SizedBox.shrink();
+    return Column(
+      children: [
+        for (final b in show) _onePost(b),
+      ],
+    );
+  }
+
+  Widget _onePost(Map b) {
+    final text = (b['text'] ?? b['message'] ?? b['title'] ?? b['announcement'] ?? '').toString();
     final textColor = _parseColor(b['textColor'], Colors.white);
     final bgColor = _parseColor(b['bgColor'], const Color(0xFF191531));
-    final imageUrl = _firstMediaUrl(b, 'images');
-    final videoUrl = _firstMediaUrl(b, 'videos');
-    final mediaUrl = imageUrl.isNotEmpty ? imageUrl : videoUrl;
-    final isMarquee = displayType.contains('marquee');
-    final isPhotoFull = displayType == 'photo_full';
-
+    final imageUrls = _allMediaUrls(b, 'images');
+    final videoUrls = _allMediaUrls(b, 'videos');
+    final createdAt = int.tryParse('${b['createdAt'] ?? 0}') ?? 0;
+    final timeStr = createdAt > 0 ? DateTime.fromMillisecondsSinceEpoch(createdAt).toString().substring(0, 16) : '';
+    if (text.isEmpty && imageUrls.isEmpty && videoUrls.isEmpty) {
+      return const SizedBox.shrink();
+    }
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -926,83 +935,44 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '📢 CEO ANNOUNCEMENT',
-            style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  '📢 CEO ANNOUNCEMENT',
+                  style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+              if (timeStr.isNotEmpty)
+                Text(timeStr, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+            ],
           ),
           const SizedBox(height: 8),
-          if (isPhotoFull && mediaUrl.isNotEmpty) ...[
-            _mediaWidget(mediaUrl),
-            const SizedBox(height: 10),
-          ] else if (mediaUrl.isNotEmpty && imageUrl.isNotEmpty) ...[
-            _mediaWidget(mediaUrl),
+          for (final url in imageUrls) ...[
+            _mediaWidget(url),
             const SizedBox(height: 10),
           ],
           if (text.isNotEmpty)
-            isMarquee
-                ? _MarqueeText(text: text, color: textColor, fast: speed == 'fast' || displayType == 'marquee_fast')
-                : Text(text, style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w600)),
-          if (videoUrl.isNotEmpty && !isPhotoFull) ...[
+            Text(
+              text,
+              style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w600, height: 1.4),
+              softWrap: true,
+              maxLines: null,
+              overflow: TextOverflow.visible,
+            ),
+          for (final url in videoUrls) ...[
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(20)),
-              child: const Text('🎥 Video attached - see CEO Control', style: TextStyle(color: Colors.white70, fontSize: 11)),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
+              child: Text(
+                '🎥 Video attached (${videoUrls.length} video${videoUrls.length > 1 ? 's' : ''}) - see CEO Control',
+                style: const TextStyle(color: Colors.white70, fontSize: 11),
+              ),
             ),
           ],
         ],
-      ),
-    );
-  }
-}
-
-// Simple marquee - text moves left, repeats. No new package needed.
-class _MarqueeText extends StatefulWidget {
-  final String text;
-  final Color color;
-  final bool fast;
-  const _MarqueeText({required this.text, required this.color, required this.fast});
-  @override
-  State<_MarqueeText> createState() => _MarqueeTextState();
-}
-
-class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _anim;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      duration: Duration(seconds: widget.fast ? 8 : 16),
-      vsync: this,
-    )..repeat();
-    _anim = Tween<double>(begin: 1.0, end: -1.0).animate(_ctrl);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: AnimatedBuilder(
-        animation: _anim,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(_anim.value * 200, 0),
-            child: Text(
-              widget.text,
-              style: TextStyle(color: widget.color, fontSize: 14, fontWeight: FontWeight.w600),
-              maxLines: 1,
-              overflow: TextOverflow.visible,
-              softWrap: false,
-            ),
-          );
-        },
       ),
     );
   }
