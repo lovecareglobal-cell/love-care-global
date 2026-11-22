@@ -9,11 +9,21 @@ import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:http/http.dart' as http;
 
-// CEO REGISTRATION CENTER - FULL FILE - FIXED
+// CEO REGISTRATION CENTER - FULL FILE - FIXED v3
 // CLIENT: Pending = NOT verified ONLY. CEO does NOT approve Client.
 // NURSE: CEO approval STILL required.
-// FIX: _loadAll scans RTDB + Firestore + users/nurseUsers
-// FIX: _fixUploadsFromStorage - recovers URLs from Storage when nurse registration uploaded to Storage but no save URL to Database
+// FIX v3:
+//  - _pickUrl/_pickText: check ALL spellings - idFrontUrl/idFrontURL/idUrl, certificateUrl/certURL/certUrl,
+//    pinCardUrl/pinUrl, licenceUrl/licenceURL/licenseUrl, nested {url:...}, + fallback scan by key name.
+//    This fixes ID/Cert/PIN showing NO even though nurse uploaded them.
+//  - buildRecord now saves ALL written words: specialty, experience, country, idType, idNumber,
+//    pinNumber, licenceNumber, location, gpsLat/gpsLng, idCheckPassed, idBackURL, pinCardURL.
+//  - Merge on dedupe: RTDB empty copy + Firestore full copy MERGE, no longer "first wins, rest ignored".
+//  - _fixUploadsFromStorage: RECURSIVE - walks nurses/$uid/photo/, id_front/, id_back/, certificate/,
+//    licence/, pin/, cv/, video/ subfolders. Old version only listed top folder = 0 files.
+//  - _docBox: FittedBox - "View ID" never cuts to "ew ID" again.
+//  - Card: NEW Details box (Specialty/Experience/Country/ID/PIN/Licence No/Location/ID Verified)
+//    + NEW 3rd doc row: ID Back + PIN Card + Licence No + Location.
 
 class CEORegistrationCenterScreen extends StatefulWidget {
   const CEORegistrationCenterScreen({super.key});
@@ -80,6 +90,41 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     return 0;
   }
 
+  // ============ NEW v3: UNIVERSAL PICKERS - fix key-name mismatch ============
+  // Nurse saves idFrontUrl, CEO used to look for idFrontURL only -> missed.
+  // Now we check EVERY spelling, nested {url:...}, and fallback by key name.
+  String _pickUrl(Map m, List<String> keys) {
+    for (final k in keys) {
+      final v = m[k];
+      if (v is String && v.trim().isNotEmpty) return v.trim();
+      if (v is Map && v['url'] != null && v['url'].toString().isNotEmpty) return v['url'].toString();
+      if (v is Map && v['downloadUrl'] != null && v['downloadUrl'].toString().isNotEmpty) return v['downloadUrl'].toString();
+      if (v is Map && v['downloadURL'] != null && v['downloadURL'].toString().isNotEmpty) return v['downloadURL'].toString();
+    }
+    return '';
+  }
+
+  String _pickUrlFallback(Map m, List<String> contains) {
+    for (final e in m.entries) {
+      final keyLower = e.key.toString().toLowerCase();
+      final v = e.value;
+      if (v is! String || v.trim().isEmpty) continue;
+      if (!v.startsWith('http') && !v.contains('/')) continue;
+      for (final c in contains) {
+        if (keyLower.contains(c)) return v.trim();
+      }
+    }
+    return '';
+  }
+
+  String _pickText(Map m, List<String> keys) {
+    for (final k in keys) {
+      final v = m[k];
+      if (v != null && v.toString().trim().isNotEmpty) return v.toString().trim();
+    }
+    return '';
+  }
+
   Future<void> _loadAll() async {
     setState(() => isLoading = true);
     try {
@@ -107,6 +152,47 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         } else {
           isApproved = m['isApproved'] == true || m['approved'] == true || m['status'] == 'approved' || m['approvalStatus'] == 'approved';
         }
+        // --- URLs: ALL spellings + fallback ---
+        final photoUrl = _pickUrl(m, ['photo', 'photoURL', 'photoUrl', 'image', 'profilePic', 'profilePhoto', 'avatar']);
+        final idUrl = _pickUrl(m, ['idFrontUrl', 'idFrontURL', 'idURL', 'idUrl', 'idFront', 'idCardUrl', 'idCardURL', 'idCardFrontUrl', 'idCardFrontURL', 'nationalId', 'nationalIdURL', 'nationalIdUrl', 'ghanaCard', 'ghanaCardURL', 'ghanaCardUrl', 'id']);
+        final idBackUrl = _pickUrl(m, ['idBackUrl', 'idBackURL', 'idBack', 'idCardBackUrl', 'idCardBackURL']);
+        final idUrlFinal = idUrl.isNotEmpty ? idUrl : _pickUrlFallback(m, ['idfront', 'id_front', 'idcard', 'nationalid', 'ghanacard']);
+        final licenceUrl = _pickUrl(m, ['licenceUrl', 'licenceURL', 'licenseUrl', 'licenseURL', 'licence', 'license', 'nursingLicence', 'nursingLicense', 'nmcLicence', 'nmcLicense', 'practiceLicence', 'practiceLicense']);
+        final licenceUrlFinal = licenceUrl.isNotEmpty ? licenceUrl : _pickUrlFallback(m, ['licen', 'license', 'nmc', 'practice']);
+        final certUrl = _pickUrl(m, ['certificateUrl', 'certificateURL', 'certUrl', 'certURL', 'certificate', 'cert']);
+        final certUrlFinal = certUrl.isNotEmpty ? certUrl : _pickUrlFallback(m, ['certificat', 'cert']);
+        final cvUrl = _pickUrl(m, ['cvUrl', 'cvURL', 'cv', 'resume', 'resumeUrl']);
+        final videoUrl = _pickUrl(m, ['videoUrl', 'videoURL', 'video', 'introVideo', 'introVideoUrl', 'introVideoURL', 'profileVideo', 'profileVideoUrl']);
+        final pinCardUrl = _pickUrl(m, ['pinCardUrl', 'pinCardURL', 'pinUrl', 'pinURL', 'pinCard', 'pin']);
+        final pinCardUrlFinal = (pinCardUrl.isNotEmpty && pinCardUrl.startsWith('http')) ? pinCardUrl : _pickUrlFallback(m, ['pincard', 'pin_card']);
+
+        // --- Written words: ALL nurse fields ---
+        final pinNumber = _pickText(m, ['pinNumber', 'pinNo', 'nursingPin', 'nmcPin', 'nursingPIN', 'nmcPIN', 'pin']);
+        // pin field may be URL (new nurse saves pin=pinUrl) - if it looks like URL, it is NOT the number
+        final pinNumberFinal = (pinNumber.startsWith('http')) ? _pickText(m, ['pinNumber', 'pinNo', 'nursingPin', 'nmcPin']) : pinNumber;
+        final idNumber = _pickText(m, ['idNumber', 'idNo', 'nationalIdNumber', 'ghanaCardNumber']);
+        final licenceNumber = _pickText(m, ['licenceNumber', 'licenseNumber', 'licenceNo', 'licenseNo', 'licence', 'license']);
+        final licenceNumberFinal = (licenceNumber.startsWith('http')) ? '' : licenceNumber;
+        final specialty = _pickText(m, ['specialty', 'speciality', 'services']);
+        final experience = _pickText(m, ['experience', 'yearsOfExperience', 'yearsExperience']);
+        final country = _pickText(m, ['country', 'workCountry', 'residenceCountry', 'idCountry']);
+        final idType = _pickText(m, ['idType', 'idTypeLabel']);
+        final location = _pickText(m, ['location', 'placeName', 'address', 'gpsName']);
+        final lat = m['lat'] ?? m['latitude'] ?? m['gpsLat'] ?? m['locationLat'];
+        final lng = m['lng'] ?? m['longitude'] ?? m['gpsLng'] ?? m['locationLng'];
+        final idCheckPassed = m['idCheckPassed'] == true || m['idVerified'] == true;
+
+        // --- has* - use picked URLs + text, not raw key names ---
+        final hasPhoto = photoUrl.isNotEmpty;
+        final hasVideo = videoUrl.isNotEmpty;
+        final hasId = idUrlFinal.isNotEmpty;
+        final hasIdBack = idBackUrl.isNotEmpty;
+        final hasLicence = licenceUrlFinal.isNotEmpty;
+        final hasCert = certUrlFinal.isNotEmpty;
+        final hasCv = cvUrl.isNotEmpty;
+        final hasPin = pinNumberFinal.isNotEmpty || pinCardUrlFinal.isNotEmpty;
+        final hasPinCard = pinCardUrlFinal.isNotEmpty;
+
         return {
           'uid': uid,
           'key': key,
@@ -119,29 +205,73 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
           'isApproved': isApproved,
           'emailVerified': m['emailVerified'] == true || m['verifiedByEmail'] == true,
           'needsProfile': m['needsProfile'] == true,
-          'hasPhoto': _hasDoc(m, ['photo', 'photoURL', 'photoUrl', 'image', 'profilePic']),
-          'hasVideo': _hasDoc(m, ['video', 'videoURL', 'videoUrl', 'introVideo', 'introVideoUrl', 'profileVideo']),
-          'hasId': _hasDoc(m, ['idURL', 'idUrl', 'idFront', 'idFrontURL', 'idBackURL', 'nationalId', 'ghanaCard', 'ghanaCardURL', 'ghanaCardFront', 'idCard', 'idCardURL', 'nationalIdURL', 'id']),
-          'hasLicence': _hasDoc(m, ['licenceURL', 'licenceUrl', 'licenseURL', 'licenseUrl', 'licence', 'license', 'nursingLicence', 'nursingLicense', 'nmcLicence', 'nmcLicense', 'practiceLicence', 'practiceLicense']),
-          'hasCert': _hasDoc(m, ['certURL', 'certUrl', 'certificateURL', 'certificate']),
-          'hasCv': _hasDoc(m, ['cvURL', 'cvUrl', 'cv']),
-          'hasPin': (m['nursingPin'] ?? m['pin'] ?? m['nmcPin'] ?? m['pinNumber'] ?? m['nursingPIN'] ?? m['nmcPIN'] ?? '').toString().isNotEmpty,
+          'hasPhoto': hasPhoto,
+          'hasVideo': hasVideo,
+          'hasId': hasId,
+          'hasIdBack': hasIdBack,
+          'hasLicence': hasLicence,
+          'hasCert': hasCert,
+          'hasCv': hasCv,
+          'hasPin': hasPin,
+          'hasPinCard': hasPinCard,
           'qualification': (m['qualification'] ?? m['education'] ?? '').toString(),
           'services': (m['services'] ?? m['speciality'] ?? m['specialty'] ?? '').toString(),
           'referenceName': (m['referenceName'] ?? '').toString(),
           'referencePhone': (m['referencePhone'] ?? '').toString(),
-          'gpsName': (m['gpsName'] ?? m['location'] ?? '').toString(),
-          'lat': m['lat'] ?? m['latitude'] ?? m['gpsLat'],
-          'lng': m['lng'] ?? m['longitude'] ?? m['gpsLng'],
+          'gpsName': location,
+          'lat': lat,
+          'lng': lng,
           'createdAt': _createdAtMs(m['createdAt'] ?? m['timestamp'] ?? m['created_at']),
-          'photo': (m['photo'] ?? m['photoURL'] ?? m['photoUrl'] ?? '').toString(),
-          'idURL': (m['idURL'] ?? m['idUrl'] ?? m['idFrontURL'] ?? '').toString(),
-          'licenceURL': (m['licenceURL'] ?? m['licenceUrl'] ?? '').toString(),
-          'videoURL': (m['videoURL'] ?? m['videoUrl'] ?? m['introVideoUrl'] ?? m['video'] ?? m['introVideo'] ?? '').toString(),
-          'certURL': (m['certURL'] ?? m['certUrl'] ?? m['certificateURL'] ?? '').toString(),
-          'cvURL': (m['cvURL'] ?? m['cvUrl'] ?? '').toString(),
+          'photo': photoUrl,
+          'photoURL': photoUrl,
+          'idURL': idUrlFinal,
+          'idBackURL': idBackUrl,
+          'licenceURL': licenceUrlFinal,
+          'videoURL': videoUrl,
+          'certURL': certUrlFinal,
+          'cvURL': cvUrl,
+          'pinCardURL': pinCardUrlFinal,
+          // NEW: written words - shown in Details box
+          'specialty': specialty,
+          'experience': experience,
+          'country': country,
+          'idType': idType,
+          'idNumber': idNumber,
+          'pinNumber': pinNumberFinal,
+          'licenceNumber': licenceNumberFinal,
+          'location': location,
+          'gpsLat': lat,
+          'gpsLng': lng,
+          'idCheckPassed': idCheckPassed,
+          'idVerified': idCheckPassed,
           'raw': m,
         };
+      }
+
+      // NEW v3: MERGE - if same nurse already in list, merge raw maps and rebuild.
+      // Old code did "if exists continue" -> Firestore full record thrown away if RTDB empty came first.
+      void upsertRecord(String uid, String key, String type, Map m, String email, String name, String phone) {
+        final idx = out.indexWhere((x) => x['uid'].toString() == uid && x['email'].toString().toLowerCase() == email.toLowerCase());
+        if (idx == -1) {
+          out.add(buildRecord(uid, key, type, m, email, name, phone));
+          return;
+        }
+        final existing = out[idx];
+        final mergedRaw = Map<String, dynamic>.from(existing['raw'] as Map);
+        // Only fill empty fields from new source, never overwrite a good URL with empty
+        for (final e in m.entries) {
+          final k = e.key.toString();
+          final v = e.value;
+          if (v == null) continue;
+          if (v is String && v.trim().isEmpty) continue;
+          if (mergedRaw[k] == null || (mergedRaw[k] is String && mergedRaw[k].toString().trim().isEmpty)) {
+            mergedRaw[k] = v;
+          }
+        }
+        final mergedEmail = existing['email'].toString().isNotEmpty ? existing['email'].toString() : email;
+        final mergedName = existing['fullName'].toString().isNotEmpty ? existing['fullName'].toString() : name;
+        final mergedPhone = existing['phone'].toString().isNotEmpty ? existing['phone'].toString() : phone;
+        out[idx] = buildRecord(uid, existing['key'].toString(), type, mergedRaw, mergedEmail, mergedName, mergedPhone);
       }
 
       Future<void> scan(String base, String type) async {
@@ -163,10 +293,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
               if (type == 'nurse' && role.contains('client')) continue;
             }
             final uid = (m['uid'] ?? m['id'] ?? e.key).toString();
-            final rec = buildRecord(uid, e.key.toString(), type, m, email, name, phone);
-            final exists = out.any((x) => x['uid'].toString() == uid && x['email'].toString().toLowerCase() == email.toLowerCase());
-            if (exists) continue;
-            out.add(rec);
+            upsertRecord(uid, e.key.toString(), type, m, email, name, phone);
           }
         } catch (_) {}
       }
@@ -181,10 +308,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
             final phone = (m['phone'] ?? m['phoneNumber'] ?? m['nursePhone'] ?? '').toString();
             if (email.isEmpty && name.isEmpty && phone.isEmpty) continue;
             final uid = (m['uid'] ?? m['id'] ?? d.id).toString();
-            final rec = buildRecord(uid, d.id, type, m, email, name, phone);
-            final exists = out.any((x) => x['uid'].toString() == uid && x['email'].toString().toLowerCase() == email.toLowerCase());
-            if (exists) continue;
-            out.add(rec);
+            upsertRecord(uid, d.id, type, m, email, name, phone);
           }
         } catch (_) {}
       }
@@ -283,7 +407,19 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
   int get clientsPendingCount => allRecords.where((x) => x['type'] == 'client' && x['isApproved'] != true).length;
   int get clientsApprovedCount => allRecords.where((x) => x['type'] == 'client' && x['isApproved'] == true).length;
 
-  // ============ NEW: FIX UPLOADS FROM STORAGE ============
+  // ============ FIXED v3: FIX UPLOADS FROM STORAGE - RECURSIVE ============
+  // Old: listAll(nurses/$uid) -> 0 items, because files live in subfolders.
+  // New: walk every subfolder recursively, match by FOLDER name first, then file name.
+  Future<void> _collectStorageItems(Reference ref, List<Reference> out) async {
+    try {
+      final list = await ref.listAll();
+      out.addAll(list.items);
+      for (final prefix in list.prefixes) {
+        await _collectStorageItems(prefix, out);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _fixUploadsFromStorage(Map rec) async {
     final uid = rec['uid'].toString();
     final email = rec['email'].toString();
@@ -294,47 +430,61 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     _log('Fixing uploads from Storage for $email ($uid)...');
     try {
       final db = FirebaseDatabase.instance;
-      final storageRef = FirebaseStorage.instance.ref('nurses/$uid');
-      var list = await storageRef.listAll();
-      _log('Found ${list.items.length} files in nurses/$uid');
-
-      // Try other folders if empty
-      if (list.items.isEmpty) {
-        final altFolders = ['nurse_registrations/$uid', 'registrations/$uid', 'users/$uid', 'nurses/$email', 'ceo_registration/$uid'];
-        for (final folder in altFolders) {
-          try {
-            final altList = await FirebaseStorage.instance.ref(folder).listAll();
-            if (altList.items.isNotEmpty) {
-              _log('Found ${altList.items.length} files in $folder');
-              list.items.addAll(altList.items);
-            }
-          } catch (_) {}
-        }
+      final List<Reference> allItems = [];
+      await _collectStorageItems(FirebaseStorage.instance.ref('nurses/$uid'), allItems);
+      // Also try other roots
+      for (final root in ['nurse_registrations/$uid', 'registrations/$uid', 'users/$uid', 'nurses/$email', 'ceo_registration/$uid', 'clients/$uid']) {
+        await _collectStorageItems(FirebaseStorage.instance.ref(root), allItems);
       }
+      // Dedupe by fullPath
+      final seen = <String>{};
+      final items = allItems.where((it) => seen.add(it.fullPath)).toList();
+      _log('Found ${items.length} files (recursive) for $uid');
 
-      if (list.items.isEmpty) {
+      if (items.isEmpty) {
         _toast('No files found in Storage for this nurse. Check Storage folder name.');
         return;
       }
 
       String photoURL = '';
       String idURL = '';
+      String idBackURL = '';
       String licenceURL = '';
       String videoURL = '';
       String certURL = '';
       String cvURL = '';
+      String pinURL = '';
 
-      for (final item in list.items) {
+      for (final item in items) {
         final name = item.name.toLowerCase();
         final fullPath = item.fullPath.toLowerCase();
         final url = await item.getDownloadURL();
-        _log('File: ${item.name} -> $url');
-        if (name.contains('photo') || name.contains('profile') || name.contains('pic')) {
+        _log('File: ${item.fullPath} -> $url');
+        // Folder first - most reliable: nurses/$uid/id_front/xxx.jpg
+        if (fullPath.contains('/photo/') || fullPath.contains('/profile')) {
+          photoURL = url;
+        } else if (fullPath.contains('id_front') || fullPath.contains('idfront') || (fullPath.contains('/id/') && fullPath.contains('front'))) {
+          idURL = url;
+        } else if (fullPath.contains('id_back') || fullPath.contains('idback') || (fullPath.contains('/id/') && fullPath.contains('back'))) {
+          idBackURL = url;
+        } else if (fullPath.contains('licen') || fullPath.contains('license')) {
+          licenceURL = url;
+        } else if (fullPath.contains('/pin/') || fullPath.contains('pincard') || fullPath.contains('pin_card')) {
+          pinURL = url;
+        } else if (fullPath.contains('certificate') || fullPath.contains('/cert/')) {
+          certURL = url;
+        } else if (fullPath.contains('/cv/') || fullPath.contains('resume')) {
+          cvURL = url;
+        } else if (fullPath.contains('/video/') || fullPath.contains('intro')) {
+          videoURL = url;
+        } else if (name.contains('photo') || name.contains('profile') || name.contains('pic')) {
           photoURL = url;
         } else if (name.contains('id') || name.contains('ghana') || name.contains('national') || name.contains('card')) {
-          idURL = url;
+          if (name.contains('back')) { idBackURL = url; } else { idURL = url; }
         } else if (name.contains('licen') || name.contains('license') || name.contains('nmc') || name.contains('practice')) {
           licenceURL = url;
+        } else if (name.contains('pin')) {
+          pinURL = url;
         } else if (name.contains('video') || name.contains('intro') || name.endsWith('.mp4') || name.endsWith('.mov')) {
           videoURL = url;
         } else if (name.contains('cert') || name.contains('certificate')) {
@@ -342,11 +492,9 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         } else if (name.contains('cv') || name.contains('resume')) {
           cvURL = url;
         }
-        if (fullPath.contains('id') && idURL.isEmpty) idURL = url;
-        if (fullPath.contains('licen') && licenceURL.isEmpty) licenceURL = url;
       }
 
-      _log('Recovered: Photo=${photoURL.isNotEmpty} ID=${idURL.isNotEmpty} Licence=${licenceURL.isNotEmpty} Video=${videoURL.isNotEmpty} Cert=${certURL.isNotEmpty} CV=${cvURL.isNotEmpty}');
+      _log('Recovered: Photo=${photoURL.isNotEmpty} ID=${idURL.isNotEmpty} ID Back=${idBackURL.isNotEmpty} Licence=${licenceURL.isNotEmpty} Video=${videoURL.isNotEmpty} Cert=${certURL.isNotEmpty} CV=${cvURL.isNotEmpty} PIN Card=${pinURL.isNotEmpty}');
 
       final payload = <String, dynamic>{};
       if (photoURL.isNotEmpty) {
@@ -358,8 +506,15 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         payload['idURL'] = idURL;
         payload['idUrl'] = idURL;
         payload['idFrontURL'] = idURL;
+        payload['idFrontUrl'] = idURL;
+        payload['idFront'] = idURL;
         payload['ghanaCard'] = idURL;
         payload['nationalId'] = idURL;
+      }
+      if (idBackURL.isNotEmpty) {
+        payload['idBackURL'] = idBackURL;
+        payload['idBackUrl'] = idBackURL;
+        payload['idBack'] = idBackURL;
       }
       if (licenceURL.isNotEmpty) {
         payload['licenceURL'] = licenceURL;
@@ -379,11 +534,20 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         payload['certURL'] = certURL;
         payload['certUrl'] = certURL;
         payload['certificateURL'] = certURL;
+        payload['certificateUrl'] = certURL;
+        payload['certificate'] = certURL;
       }
       if (cvURL.isNotEmpty) {
         payload['cvURL'] = cvURL;
         payload['cvUrl'] = cvURL;
         payload['cv'] = cvURL;
+      }
+      if (pinURL.isNotEmpty) {
+        payload['pinCardURL'] = pinURL;
+        payload['pinCardUrl'] = pinURL;
+        payload['pinUrl'] = pinURL;
+        payload['pinURL'] = pinURL;
+        payload['pinCard'] = pinURL;
       }
 
       if (payload.isEmpty) {
@@ -398,7 +562,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
         } catch (_) {}
       }
       try {
-        for (final coll in ['nurses', 'nurse_registrations', 'pending_nurses']) {
+        for (final coll in ['nurses', 'nurse_registrations', 'pending_nurses', 'ceo_registration']) {
           await FirebaseFirestore.instance.collection(coll).doc(uid).set(payload, SetOptions(merge: true));
         }
       } catch (_) {}
@@ -935,6 +1099,7 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     }
   }
 
+  // FIXED v3: FittedBox so "View ID" never cuts to "ew ID"
   Widget _docBox(String url, String label, bool has, String type) {
     return Expanded(
       child: InkWell(
@@ -960,17 +1125,37 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
                     children: [
                       Icon(has ? Icons.visibility : Icons.block, color: has ? Colors.white70 : Colors.white30, size: 22),
                       const SizedBox(height: 4),
-                      Text(has ? 'View $label' : 'No $label', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white60, fontSize: 11)),
-                      if (has) const Text('Tap to open', style: TextStyle(color: Colors.greenAccent, fontSize: 9)),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(has ? 'View $label' : 'No $label', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white60, fontSize: 11), maxLines: 1),
+                      ),
+                      if (has) const FittedBox(fit: BoxFit.scaleDown, child: Text('Tap to open', style: TextStyle(color: Colors.greenAccent, fontSize: 9))),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 4),
-              Text('$label ${has ? 'OK' : 'NO'}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('$label ${has ? 'OK' : 'NO'}', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold), maxLines: 1),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 110, child: Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11))),
+          Expanded(child: SelectableText(value, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500))),
+        ],
       ),
     );
   }
@@ -1016,6 +1201,32 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
                 ),
               ],
             ),
+            // NEW v3: Details - ALL written words from nurse registration
+            if (!isClient) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(10)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('📋 Nurse Details - as entered during registration', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 6),
+                    _detailRow('Specialty', r['specialty'].toString()),
+                    _detailRow('Experience', r['experience'].toString()),
+                    _detailRow('Country', r['country'].toString()),
+                    _detailRow('ID Type', r['idType'].toString()),
+                    _detailRow('ID Number', r['idNumber'].toString()),
+                    _detailRow('ID Verified', (r['idCheckPassed'] == true) ? '✅ YES - OCR matched' : '❌ NO / Not checked'),
+                    _detailRow('PIN Number', r['pinNumber'].toString()),
+                    _detailRow('Licence No', r['licenceNumber'].toString()),
+                    _detailRow('Location', r['location'].toString()),
+                    _detailRow('GPS', (r['gpsLat'] != null && r['gpsLng'] != null) ? '${r['gpsLat']}, ${r['gpsLng']}' : ''),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             Row(
               children: [
@@ -1035,9 +1246,21 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
                 const SizedBox(width: 6),
                 _docBox(r['cvURL'].toString(), 'CV', r['hasCv'] == true, 'image'),
                 const SizedBox(width: 6),
-                _docBox((r['raw'] is Map ? ((r['raw']['nursingPin'] ?? r['raw']['pin'] ?? r['raw']['nmcPin'] ?? '')).toString() : ''), 'PIN', r['hasPin'] == true, 'text'),
+                _docBox(r['pinCardURL'].toString(), 'PIN Card', r['hasPinCard'] == true, 'image'),
                 const SizedBox(width: 6),
                 _docBox(r['phone'].toString(), 'Phone', r['phone'].toString().isNotEmpty, 'text'),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _docBox(r['idBackURL'].toString(), 'ID Back', r['hasIdBack'] == true, 'image'),
+                const SizedBox(width: 6),
+                _docBox(r['pinNumber'].toString(), 'PIN No', r['hasPin'] == true, 'text'),
+                const SizedBox(width: 6),
+                _docBox(r['licenceNumber'].toString(), 'Lic No', (r['licenceNumber'] ?? '').toString().isNotEmpty, 'text'),
+                const SizedBox(width: 6),
+                _docBox(r['location'].toString(), 'Location', (r['location'] ?? '').toString().isNotEmpty, 'text'),
               ],
             ),
             const SizedBox(height: 10),
@@ -1232,7 +1455,6 @@ class _CEORegistrationCenterScreenState extends State<CEORegistrationCenterScree
     );
   }
 }
-
 
 // ---- In-app viewers (put at bottom of file, outside the State class) ----
 class _SmartDocViewerPage extends StatefulWidget {
