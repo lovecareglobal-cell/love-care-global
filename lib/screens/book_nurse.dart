@@ -10,16 +10,20 @@ import 'package:geolocator/geolocator.dart';
 // NEW: UberLiveMap from live_nurse_map.dart uses flutter_map / OpenStreetMap - NO API KEY, NO CRASH, photo MOVES like Uber
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
-import 'book_nurse_50.dart';
 import 'live_nurse_map.dart';
 
-/// Book Nurse - FULL PAYMENT - Flutter version of book-nurse.html
+/// Book Nurse - CEO 20% ONLY - Flutter version of book-nurse.html
 /// - ONLY ONLINE NURSES show (onlineNurses + nursePresence + nurseLocations)
 /// - CEO Live Rates: config/rates, ceoPricing, pricing -> GHS hourly / USD hourly
 /// - Booking: Start 08:00 End 17:00 = 9 hrs/day, Care Mode Daily x1 / Weekly x7 / Monthly x30
 /// - Client auto-filled + Patient (can be different place) + Map + GPS
-/// - FULL PAYMENT - Pay 100% now via Paystack
-/// - Saves to bookings + bookingsByClient + bookingsByNurse + nurseBookings (same as HTML)
+/// - NEW RULE: Client sees FULL total, but pays ONLY 20% CEO fee in app to book.
+///   Nurse cash 80% is paid CASH by client to nurse AFTER work. CEO never sends money to nurse.
+/// - 50% page DELETED. Full-payment 100% DELETED.
+/// - Saves to bookings + bookingsByClient + bookingsByNurse + nurseBookings
+/// - NURSE PRIVACY: nurse copy shows ONLY her cash amount (80%), NEVER total / CEO fee.
+/// - NURSE LOCK: nurse isAvailable=false while booking active, back to true on completed/cancelled.
+/// - TERMS: Nurse rejects -> full 20% refund to client. Client cancels before start -> CEO keeps 20%. Client cancels after start -> CEO keeps 20% + client pays nurse cash for days worked.
 /// - UBER LIVE MAP: selected nurse photo blinks + moves live on map
 
 class BookNurseScreen extends StatefulWidget {
@@ -198,6 +202,10 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
           if (!onlineIds.contains(uid)) continue;
           if (entry.value is! Map) continue;
           final n = Map<String, dynamic>.from(entry.value as Map);
+          // NURSE LOCK: hide nurses who are busy on an active booking until completed/cancelled
+          if (n['isAvailable'] == false || n['isBooked'] == true || n['isBusy'] == true) continue;
+          if (n['currentBookingId'] != null && (n['currentBookingId'] as String).isNotEmpty) continue;
+          if (n['status'] == 'busy' || n['status'] == 'booked') continue;
           final locRaw = locMap[uid];
           final loc = locRaw is Map ? Map<String, dynamic>.from(locRaw) : <String, dynamic>{};
           final lat = _asDouble(loc['lat'] ?? loc['latitude'] ?? loc['gpsLat'] ?? n['lat'] ?? n['latitude'] ?? n['gpsLat'] ?? n['locationLat']);
@@ -233,9 +241,12 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
     final totalHours = hrs * mult * quantity;
     final careCost = totalHours * rate;
     final total = careCost + transport;
-    final payNow = total;
-    final payLater = total - payNow;
-    return {'hrsPerDay': hrs, 'totalHours': totalHours, 'rate': rate, 'careCost': careCost, 'total': total, 'payNow': payNow, 'payLater': payLater, 'mult': mult};
+    // NEW 20/80 RULE: payNow = CEO fee 20% only. payLater = nurse cash 80%, paid CASH after work, never in app.
+    final ceoFee = total * 0.20;
+    final nurseCash = total * 0.80;
+    final payNow = ceoFee;
+    final payLater = nurseCash;
+    return {'hrsPerDay': hrs, 'totalHours': totalHours, 'rate': rate, 'careCost': careCost, 'total': total, 'payNow': payNow, 'payLater': payLater, 'mult': mult, 'ceoFee': ceoFee, 'nurseCash': nurseCash, 'nurseCashAmount': nurseCash};
   }
 
   Future<void> _pickTime(bool isStart) async {
@@ -329,8 +340,8 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
     setState(() => isPaying = true);
     try {
       final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
-        title: Text('Full Payment'),
-        content: Text('Pay ${currency} ${payNow.toStringAsFixed(2)} now?\nTotal: ${currency} ${total.toStringAsFixed(2)}\nPay 100% now\nNurse: $selectedNurseName'),
+        title: const Text('Pay CEO Fee 20% to Book'),
+        content: Text('Total job: ${currency} ${total.toStringAsFixed(2)}\nPay NOW in app (CEO 20%): ${currency} ${payNow.toStringAsFixed(2)}\nPay NURSE CASH after work (80%): ${currency} ${(calc['nurseCash'] as double).toStringAsFixed(2)}\n\nTerms: Nurse rejects = full 20% refund. You cancel before start = CEO keeps 20%. You cancel after start = CEO keeps 20% + you pay nurse cash for days worked.\nNurse: $selectedNurseName'),
         actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pay Now'))],
       ));
       if (confirmed != true) { setState(() => isPaying = false); return; }
@@ -355,20 +366,42 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
       'patientLat': patientLat, 'patientLng': patientLng, 'patientLatLng': {'lat': patientLat, 'lng': patientLng},
       'patientRelationship': patientRelationship,
       'nurseId': selectedNurseId, 'nurseName': selectedNurseName, 'nursePhone': selectedNursePhone, 'nurseWasOnline': true, 'nurseOnlineAt': DateTime.now().millisecondsSinceEpoch,
-      'amount': calc['total'], 'amountPaidNow': calc['payNow'], 'amountBalance': calc['payLater'], 'payNow': calc['payNow'], 'payLater': calc['payLater'],
-      'currency': currency, 'paymentMethod': 'paystack_full', 'paymentType': 'full_payment', 'paystackRef': paystackRef,
-      'status': 'pending', 'time': DateTime.now().millisecondsSinceEpoch, 'createdAt': DateTime.now().millisecondsSinceEpoch,
+      'amount': calc['total'], 'totalAmount': calc['total'], 'total': calc['total'],
+      'amountPaidNow': calc['payNow'], 'amountBalance': calc['payLater'], 'payNow': calc['payNow'], 'payLater': calc['payLater'],
+      'ceoFee': calc['ceoFee'], 'ceoPercent': 20, 'ceoFeePaid': calc['ceoFee'], 'ceoFeePaidInApp': true,
+      'nurseCash': calc['nurseCash'], 'nurseCashAmount': calc['nurseCash'], 'nurseCashPercent': 80, 'nurseCashPaid': false, 'nurseCashPaidCash': false, 'cashPaidToNurse': false, 'cashConfirmedByClient': false, 'cashConfirmedByNurse': false,
+      'currency': currency, 'paymentMethod': 'paystack_ceo_20', 'paymentType': 'ceo_20_only', 'paystackRef': paystackRef,
+      'status': 'pending', 'bookingStatus': 'pending_nurse_response', 'paymentStatus': 'ceo_fee_paid',
+      'time': DateTime.now().millisecondsSinceEpoch, 'createdAt': DateTime.now().millisecondsSinceEpoch,
       'totalHours': calc['totalHours'], 'hrsPerDay': calc['hrsPerDay'], 'startTime': startTime, 'endTime': endTime, 'careMode': careMode, 'quantity': quantity, 'transport': transport,
       'hourlyRateUsed': calc['rate'], 'service': careMode,
-      'amountSplit': {'nurse': (calc['payNow'] as double) * 0.8, 'ceo': (calc['payNow'] as double) * 0.2},
+      'amountSplit': {'nurse': calc['nurseCash'], 'nurseCash': calc['nurseCash'], 'ceo': calc['ceoFee'], 'ceoFee': calc['ceoFee']},
+      'terms': 'Nurse rejects = full 20% refund to client. Client cancels before start = CEO keeps 20%. Client cancels after start = CEO keeps 20% + client pays nurse cash for days worked.',
+      'cancelTerms': {'nurseRejects': 'refund_ceo_fee_full', 'clientCancelsBeforeStart': 'ceo_keeps_20', 'clientCancelsAfterStart': 'ceo_keeps_20_plus_nurse_cash_for_days_worked'},
     };
     final db = FirebaseDatabase.instance;
     final emailKey = _clientEmailCtrl.text.trim().toLowerCase().replaceAll(RegExp(r'[.#\$@\[\]]'), '_');
     await db.ref('bookings/$bookingId').set(booking);
     await db.ref('bookingsByClient/$emailKey/$bookingId').set(booking);
-    await db.ref('bookingsByNurse/$selectedNurseId/$bookingId').set(booking);
-    await db.ref('nurseBookings/$selectedNurseId/$bookingId').set(booking);
+    // NURSE COPY: ONLY her cash amount. NEVER total, NEVER CEO fee.
+    final nurseBooking = {
+      'bookingId': bookingId, 'id': bookingId,
+      'clientName': _clientNameCtrl.text.trim(), 'clientPhone': _clientPhoneCtrl.text.trim(),
+      'patientName': _patientNameCtrl.text.trim(), 'patientLocation': _patientLocCtrl.text.trim(),
+      'patientLat': patientLat, 'patientLng': patientLng,
+      'nurseId': selectedNurseId, 'nurseName': selectedNurseName,
+      'nurseCash': calc['nurseCash'], 'nurseCashAmount': calc['nurseCash'], 'amountYouWillCollectCash': calc['nurseCash'],
+      'currency': currency, 'paymentMethod': 'cash_after_work',
+      'status': 'pending', 'bookingStatus': 'pending_nurse_response',
+      'startTime': startTime, 'endTime': endTime, 'careMode': careMode, 'quantity': quantity, 'totalHours': calc['totalHours'],
+      'cashPaidToNurse': false, 'time': DateTime.now().millisecondsSinceEpoch, 'createdAt': DateTime.now().millisecondsSinceEpoch,
+    };
+    await db.ref('bookingsByNurse/$selectedNurseId/$bookingId').set(nurseBooking);
+    await db.ref('nurseBookings/$selectedNurseId/$bookingId').set(nurseBooking);
     await db.ref('clientBookings/$emailKey/$bookingId').set(booking);
+    // NURSE LOCK: nobody can book her until this booking is completed or cancelled.
+    await db.ref('nurses/$selectedNurseId').update({'isAvailable': false, 'isBooked': true, 'status': 'busy', 'currentBookingId': bookingId, 'currentBookingStatus': 'pending_nurse_response'});
+    await db.ref('onlineNurses/$selectedNurseId').update({'isAvailable': false, 'isBooked': true, 'currentBookingId': bookingId}).catchError((_) {});
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('✅ Booking created! $bookingId - Nurse will Accept/Reject')));
     Navigator.pushNamed(context, '/my-bookings');
@@ -399,7 +432,7 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
         selectedNursePhone = (selected['phone'] ?? '').toString();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ You chose $selectedNurseName - now choose 50% Paystack + Cash OR Full Payment below')),
+        SnackBar(content: Text('✅ You chose $selectedNurseName - now pay ONLY 20% CEO fee to book. You will pay nurse 80% cash after work.')),
       );
     }
   }
@@ -409,19 +442,19 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
     final calc = calcTotal();
     return Scaffold(
       backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: Text('Book Nurse — FULL PAY — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633)),
+      appBar: AppBar(title: Text('Book Nurse — PAY 20% CEO FEE ONLY — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.info, color: Colors.amber), const SizedBox(width: 8), Expanded(child: Text('CEO Live: ${currency} ${calc['rate']} /hr — FULL PAY — LIVE — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)))])),
+          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.info, color: Colors.amber), const SizedBox(width: 8), Expanded(child: Text('CEO Live: ${currency} ${calc['rate']} /hr — PAY 20% TO BOOK — 80% CASH TO NURSE AFTER WORK — ONLY ONLINE NURSES', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)))])),
           const SizedBox(height: 12),
-          _sectionTitle('⏱️ Booking — FULL PAYMENT'),
+          _sectionTitle('⏱️ Booking — PAY 20% CEO FEE TO BOOK'),
           Row(children: [
             Expanded(child: _timeField('START TIME *', startTime, () => _pickTime(true))),
             const SizedBox(width: 8),
             Expanded(child: _timeField('END TIME *', endTime, () => _pickTime(false))),
             const SizedBox(width: 8),
-            Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Column(children: [const Text('HOURS/DAY', style: TextStyle(fontSize: 9, color: Colors.white60)), Text('${calc['hrsPerDay'].toStringAsFixed(1)} hrs', style: const TextStyle(fontWeight: FontWeight.bold))]))),
+            Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Column(children: [const Text('HOURS/DAY', style: TextStyle(fontSize: 9, color: Colors.white60)), Text('${calc['hrsPerDay'].toStringAsFixed(1)} hrs', style: const TextStyle(fontWeight: FontWeight.bold))])),
           ]),
           const SizedBox(height: 10),
           Row(children: [
@@ -442,8 +475,10 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
             const Divider(),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('TOTAL', style: TextStyle(fontWeight: FontWeight.bold)), Text('${currency} ${calc['total'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))]),
             const SizedBox(height: 6),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Pay Now (100%)', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)), Text('${currency} ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))]),
-            if ((calc['payLater'] as double) > 0) Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay Later'), Text('${currency} ${calc['payLater'].toStringAsFixed(2)}')]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay NOW in App — CEO Fee (20%)', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)), Text('${currency} ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))]),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay NURSE CASH After Work (80%)', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)), Text('${currency} ${calc['payLater'].toStringAsFixed(2)}', style: const TextStyle(color: Colors.amber, fontWeight: FontWeight.bold))]),
+            const SizedBox(height: 6),
+            const Text('Terms: Nurse rejects = full 20% refund. You cancel before start = CEO keeps 20%. You cancel after start = CEO keeps 20% + you pay nurse cash for days worked.', style: TextStyle(fontSize: 11, color: Colors.white70)),
           ])),
           const SizedBox(height: 16),
           _sectionTitle('👤 CLIENT — Payer (Auto-filled)'),
@@ -484,7 +519,6 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
                   const SizedBox(width: 8),
                   Expanded(child: OutlinedButton(onPressed: _pickAnotherOne, style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white38)), child: const Text('👀 Look At Another One'))),
                 ]),
-                // === UBER LIVE MAP - ONLY NEW PART - photo moves like Uber car ===
                 const SizedBox(height: 10),
                 if (_autoPickedNurse != null && patientLat != null && patientLng != null)
                   UberLiveMap(
@@ -516,19 +550,7 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
             ]),
           ),
           const SizedBox(height: 12),
-          Container(
-            width: double.infinity, padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFF00C853).withOpacity(0.12), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF00C853).withOpacity(0.4))),
-            child: Column(children: [
-              const Text('Not all clients have full money before nurse starts work', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12)),
-              const SizedBox(height: 8),
-              SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => const BookNurse50Screen())); }, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00C853), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: const Text('💳 Pay 50% via Paystack + 💵 50% Cash to Nurse', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)))),
-              const SizedBox(height: 6),
-              const Text('Pay 50% now in Paystack • Give 50% cash to nurse later', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60, fontSize: 11)),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: isPaying ? null : _payWithPaystack, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA855F7), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: Text(isPaying ? 'Processing Paystack...' : '💳 Pay Full Amount — ${currency} ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)))),
+          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: isPaying ? null : _payWithPaystack, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA855F7), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: Text(isPaying ? 'Processing Paystack...' : '💳 Pay 20% CEO Fee to Book — ${currency} ${calc['payNow'].toStringAsFixed(2)}  •  Nurse gets ${currency} ${(calc['nurseCash'] as double).toStringAsFixed(2)} CASH after work', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)))),
           const SizedBox(height: 20),
         ]),
       ),
