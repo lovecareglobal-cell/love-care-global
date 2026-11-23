@@ -1,596 +1,1444 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'client_login.dart';
+// client_registration_translations.dart
+// FILE - Client Registration - ONLY SCREEN WORDS - ALL 22 LANGUAGES
+// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
+// ONE FILE - Drop in lib/screens
+// NOTE: Country names stay in English in all languages - dial-code dropdown.
 
-class ClientRegistrationPage extends StatefulWidget {
-  const ClientRegistrationPage({super.key});
-  @override
-  State<ClientRegistrationPage> createState() => _ClientRegistrationPageState();
-}
+class ClientRegistrationTranslations {
+  static const Map<String, Map<String, String>> all = {
 
-class _ClientRegistrationPageState extends State<ClientRegistrationPage> {
-  final _name = TextEditingController();
-  final _username = TextEditingController();
-  final _email = TextEditingController(); // OPTIONAL - for recovery only, not for OTP
-  final _phone = TextEditingController();
-  final _pass = TextEditingController();
-  final _otpControllers = List.generate(6, (_) => TextEditingController());
-  final _otpFocus = List.generate(6, (_) => FocusNode());
-  XFile? _photo;
+    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
+    "en": {
+      "title": "Client Registration",
+      "fullName": "Full Name",
+      "username": "Username",
+      "emailOptional": "Email (optional - for recovery only)",
+      "countryCode": "Country Code",
+      "otherTypeCode": "Other (type code)",
+      "phoneLabel": "Phone Number - OTP comes here",
+      "phoneHint": "e.g. 241234567 (no 0, no code)",
+      "phoneHintOther": "Number without code",
+      "yourCountryCode": "Your Country Code",
+      "countryCodeHint": "e.g. +999",
+      "otpWillBeSentTo": "OTP will be sent to: {phone}",
+      "otpWillBeSentToEmpty": "OTP will be sent to: ...",
+      "passwordLabel": "Password - you will login with this",
+      "passwordHint": "Min 8 chars, upper + lower + number + symbol",
+      "uploadPhoto": "Upload Photo (optional)",
+      "photoSelected": "Photo Selected: {name}",
+      "pickPhoto": "Pick Photo",
+      "registerBtn": "REGISTER - SEND SMS OTP",
+      "afterOtpNote": "After SMS OTP, login with Phone Number + Password. No CEO approval needed.",
+      "otpTitle": "Enter SMS OTP",
+      "otpSentTo": "We sent 6-digit SMS code to\n{phone}",
+      "checkSms": "Check your SMS. Enter code below. You stay inside app.",
+      "verifyOtp": "VERIFY SMS OTP",
+      "resendIn": "Resend SMS in {sec} s",
+      "sendingSms": "Sending SMS...",
+      "resendOtp": "Resend SMS OTP",
+      "cancelReg": "Cancel Registration",
+      "enterPhoneFirst": "Enter Phone Number first",
+      "sendingOtpTo": "Sending SMS OTP to {phone}...",
+      "autoDetected": "SMS auto-detected! Verifying...",
+      "failedSendSms": "Failed to send SMS: {e}",
+      "smsFailed": "SMS failed: {e}",
+      "enterComplete6": "Enter complete 6-digit SMS code",
+      "noOtpYet": "No OTP sent yet. Tap Resend OTP first.",
+      "wrongOtp": "Wrong OTP: {e}",
+      "otpVerified": "Phone OTP verified! Auth saved phone {phone}. Login with Phone + Password now.",
+      "passwordMissing": "Password missing. Go back and enter password again.",
+      "errorSaving": "Error saving: {e}",
+      "otpCancelled": "OTP cancelled. Register again.",
+      "fillAll": "Fill Name, Username, Phone and Password. Email is optional.",
+      "passwordWeakMissing": "Password too weak. Missing: {missing}",
+      "enterValidCode": "Enter a valid country code for Other, e.g. +999",
+      "phoneHasAccount": "This phone already has an account. Login with Phone + Password instead.",
+      "blockedNurse": "BLOCKED: This phone is already registered as a NURSE. Use Nurse Login.",
+      "blockedNurseShort": "BLOCKED: This phone is already registered as a NURSE.",
+      "welcomeBack": "Welcome back! Enter SMS OTP sent to {phone}. If expired, tap Resend.",
+      "otpSentEnter": "SMS OTP sent to {phone}. Enter 6-digit code.",
+      "failed": "Failed: {e}",
+      "weak": "Weak",
+      "medium": "Medium",
+      "strong": "Strong",
+      "veryStrong": "Very strong",
+      "missing8": "At least 8 characters",
+      "missingUpper": "One UPPERCASE letter (A-Z)",
+      "missingLower": "One lowercase letter (a-z)",
+      "missingNumber": "One number (0-9)",
+      "missingSpecial": "One special character (! @ # \$ % etc.)",
+      "missingNoSpaces": "No spaces",
+      "strongPassword": "Strong password",
+    },
 
-  // CLIENT PHONE OTP RULE:
-  // Pending = SMS OTP NOT verified. CEO does NOT approve Client.
-  // SMS OTP verified -> isApproved = true, canLogin = true, status = approved -> Login with Phone + Password straight.
-  // NO Gmail link. NO Email OTP. OTP comes as SMS to Phone.
-  // AUTH SAVES PHONE: After OTP, we link Phone + Email/Password to SAME Auth user, so Firebase Console shows phone + email.
-  bool _waitingOtp = false;
-  bool _loading = false;
-  bool _obscurePassword = true;
-  bool _otpSending = false;
-  int _resendSeconds = 0;
-  Timer? _resendTimer;
-  String _otpStatus = '';
-  String _verificationId = '';
-  int? _resendToken;
-  final _picker = ImagePicker();
+    // 2. TWI
+    "tw": {
+      "title": "Ɔkra Kyerɛw Din",
+      "fullName": "Din A Ɛyɛ Pɛ",
+      "username": "Username",
+      "emailOptional": "Email (nyɛ den - ma recovery nko)",
+      "countryCode": "Ɔman Code",
+      "otherTypeCode": "Foforo (kyerɛw code)",
+      "phoneLabel": "Phone Number - OTP bɛba ha",
+      "phoneHint": "s.b. 241234567 (0 biara, code biara)",
+      "phoneHintOther": "Number a code nni mu",
+      "yourCountryCode": "Wo Ɔman Code",
+      "countryCodeHint": "s.b. +999",
+      "otpWillBeSentTo": "Wɔde OTP bɛkɔ: {phone}",
+      "otpWillBeSentToEmpty": "Wɔde OTP bɛkɔ: ...",
+      "passwordLabel": "Password - wode bedi dwuma login",
+      "passwordHint": "Min 8, kɛse + ketewa + number + nsɛnkyerɛnne",
+      "uploadPhoto": "Fa Mfonini (nyɛ den)",
+      "photoSelected": "Wɔafa Mfonini: {name}",
+      "pickPhoto": "Yi Mfonini",
+      "registerBtn": "KYERƐW DIN - FA SMS OTP",
+      "afterOtpNote": "SMS OTP akyi, login ne Phone Number + Password. CEO approval nni hɔ.",
+      "otpTitle": "Fa SMS OTP",
+      "otpSentTo": "Yɛde 6-digit SMS code akɔ\n{phone}",
+      "checkSms": "Hwɛ wo SMS. Fa code no. Woda so wɔ app mu.",
+      "verifyOtp": "HYƐ SMS OTP MU",
+      "resendIn": "Fa SMS bio wɔ {sec} s mu",
+      "sendingSms": "Reyi SMS...",
+      "resendOtp": "Fa SMS OTP Bio",
+      "cancelReg": "Gyae Kyerɛw Din",
+      "enterPhoneFirst": "Fa Phone Number daa",
+      "sendingOtpTo": "Reyi SMS OTP kɔ {phone}...",
+      "autoDetected": "Wɔahu SMS! Reyi verify...",
+      "failedSendSms": "SMS antumi: {e}",
+      "smsFailed": "SMS antumi: {e}",
+      "enterComplete6": "Fa 6-digit SMS code a ɛyɛ pɛ",
+      "noOtpYet": "OTP biara nni hɔ da. Fa Resend OTP daa.",
+      "wrongOtp": "OTP mfomso: {e}",
+      "otpVerified": "Phone OTP ahyɛ mu! Login ne Phone + Password mprempren.",
+      "passwordMissing": "Password nni hɔ. San akyi kɔfa password bio.",
+      "errorSaving": "Mfomso wɔ sie mu: {e}",
+      "otpCancelled": "OTP agyae. Kyerɛw din bio.",
+      "fillAll": "Fa Din, Username, Phone ne Password. Email nyɛ den.",
+      "passwordWeakMissing": "Password yɛ mmerɛ. Eka: {missing}",
+      "enterValidCode": "Fa ɔman code a ɛyɛ paa ma Foforo, s.b. +999",
+      "phoneHasAccount": "Phone yi wɔ account da. Login ne Phone + Password.",
+      "blockedNurse": "BLOCKED: Phone yi yɛ NƐƐSE dea da. Fa Nɛɛse Login.",
+      "blockedNurseShort": "BLOCKED: Phone yi yɛ NƐƐSE dea da.",
+      "welcomeBack": "Maakye bio! Fa SMS OTP a wɔde kɔɔ {phone}. Sɛ atwam a, fa Resend.",
+      "otpSentEnter": "SMS OTP akɔ {phone}. Fa 6-digit code.",
+      "failed": "Antumi: {e}",
+      "weak": "Mmerɛ",
+      "medium": "Mfinimfini",
+      "strong": "Den",
+      "veryStrong": "Den paa",
+      "missing8": "Boro 8",
+      "missingUpper": "Ɔkyerɛw kɛse baako (A-Z)",
+      "missingLower": "Ɔkyerɛw ketewa baako (a-z)",
+      "missingNumber": "Number baako (0-9)",
+      "missingSpecial": "Nsɛnkyerɛnne baako (! @ # \$ % dko.)",
+      "missingNoSpaces": "Akwantempɔ biara",
+      "strongPassword": "Password den",
+    },
 
-  static const List<Map<String, String>> _countries = [
-    {"name": "Ghana", "code": "+233"},
-    {"name": "Nigeria", "code": "+234"},
-    {"name": "Kenya", "code": "+254"},
-    {"name": "South Africa", "code": "+27"},
-    {"name": "United States", "code": "+1"},
-    {"name": "Canada", "code": "+1"},
-    {"name": "United Kingdom", "code": "+44"},
-    {"name": "India", "code": "+91"},
-    {"name": "Australia", "code": "+61"},
-    {"name": "Germany", "code": "+49"},
-    {"name": "France", "code": "+33"},
-    {"name": "Togo", "code": "+228"},
-    {"name": "Benin", "code": "+229"},
-    {"name": "Côte d'Ivoire", "code": "+225"},
-    {"name": "Senegal", "code": "+221"},
-    {"name": "Mali", "code": "+223"},
-    {"name": "Burkina Faso", "code": "+226"},
-    {"name": "Niger", "code": "+227"},
-    {"name": "Cameroon", "code": "+237"},
-    {"name": "Uganda", "code": "+256"},
-    {"name": "Tanzania", "code": "+255"},
-    {"name": "Ethiopia", "code": "+251"},
-    {"name": "Egypt", "code": "+20"},
-    {"name": "Morocco", "code": "+212"},
-    {"name": "Brazil", "code": "+55"},
-    {"name": "Mexico", "code": "+52"},
-    {"name": "Spain", "code": "+34"},
-    {"name": "Italy", "code": "+39"},
-    {"name": "Netherlands", "code": "+31"},
-    {"name": "Belgium", "code": "+32"},
-    {"name": "Switzerland", "code": "+41"},
-    {"name": "Sweden", "code": "+46"},
-    {"name": "Norway", "code": "+47"},
-    {"name": "Denmark", "code": "+45"},
-    {"name": "Portugal", "code": "+351"},
-    {"name": "Turkey", "code": "+90"},
-    {"name": "UAE", "code": "+971"},
-    {"name": "Saudi Arabia", "code": "+966"},
-    {"name": "Qatar", "code": "+974"},
-    {"name": "China", "code": "+86"},
-    {"name": "Japan", "code": "+81"},
-    {"name": "South Korea", "code": "+82"},
-    {"name": "Singapore", "code": "+65"},
-    {"name": "Malaysia", "code": "+60"},
-    {"name": "Indonesia", "code": "+62"},
-    {"name": "Philippines", "code": "+63"},
-    {"name": "Pakistan", "code": "+92"},
-    {"name": "Bangladesh", "code": "+880"},
-  ];
-  String _selectedCountry = 'Ghana|+233';
-  final _otherCode = TextEditingController();
-  bool get _isOtherCountry => _selectedCountry == 'Other|';
-  String get _selectedCountryName => _isOtherCountry ? 'Other' : _selectedCountry.split('|')[0];
-  String get _selectedDialCode {
-    if (_isOtherCountry) {
-      var c = _otherCode.text.trim();
-      if (!c.startsWith('+')) c = '+$c';
-      return c;
+    // 3. GA
+    "ga": {
+      "title": "Mɔ Ŋmɛ Nii",
+      "fullName": "Gbɛi Fɛɛ",
+      "username": "Username",
+      "emailOptional": "Email (nyɛ den - hã recovery kɛkɛ)",
+      "countryCode": "Shikpɔŋ Code",
+      "otherTypeCode": "Kroko (ŋmɛ code)",
+      "phoneLabel": "Phone Number - OTP bɛba bɛ",
+      "phoneHint": "y.e. 241234567 (0 ko, code ko)",
+      "phoneHintOther": "Number a code bɛ mli",
+      "yourCountryCode": "O Shikpɔŋ Code",
+      "countryCodeHint": "y.e. +999",
+      "otpWillBeSentTo": "Wɔkɛ OTP bɛya: {phone}",
+      "otpWillBeSentToEmpty": "Wɔkɛ OTP bɛya: ...",
+      "passwordLabel": "Password - okɛ ba login",
+      "passwordHint": "Min 8, agbo + fio + number + okadi",
+      "uploadPhoto": "Woo Foto (nyɛ den)",
+      "photoSelected": "Aha Foto: {name}",
+      "pickPhoto": "Hala Foto",
+      "registerBtn": "ŊMƐ NII - ŊMƐ SMS OTP",
+      "afterOtpNote": "SMS OTP sɛɛ, login kɛ Phone Number + Password. CEO approval bɛ.",
+      "otpTitle": "Ŋmɛ SMS OTP",
+      "otpSentTo": "Wɔŋmɛ 6-digit SMS code kɛya\n{phone}",
+      "checkSms": "Kwɛ o SMS. Ŋmɛ code. Oda so yɛ app mli.",
+      "verifyOtp": "SA SMS OTP MU",
+      "resendIn": "Ŋmɛ SMS bio yɛ {sec} s mli",
+      "sendingSms": "Miiŋmɛ SMS...",
+      "resendOtp": "Ŋmɛ SMS OTP Bio",
+      "cancelReg": "Fo Ŋmɛ Nii",
+      "enterPhoneFirst": "Ŋmɛ Phone Number daa",
+      "sendingOtpTo": "Miiŋmɛ SMS OTP kɛya {phone}...",
+      "autoDetected": "Anaa SMS! Mii sa mu...",
+      "failedSendSms": "SMS egbotwe: {e}",
+      "smsFailed": "SMS egbotwe: {e}",
+      "enterComplete6": "Ŋmɛ 6-digit SMS code a fɛɛ",
+      "noOtpYet": "OTP ko bɛ da. Ŋmɛ Resend OTP daa.",
+      "wrongOtp": "OTP tɔmɔ: {e}",
+      "otpVerified": "Phone OTP asa mu! Login kɛ Phone + Password sane.",
+      "passwordMissing": "Password bɛ. Kumase yaŋmɛ password bio.",
+      "errorSaving": "Tɔmɔ yɛ sie mli: {e}",
+      "otpCancelled": "OTP afo. Ŋmɛ nii bio.",
+      "fillAll": "Ŋmɛ Gbɛi, Username, Phone kɛ Password. Email nyɛ den.",
+      "passwordWeakMissing": "Password gbɔjɔ. Eka: {missing}",
+      "enterValidCode": "Ŋmɛ shikpɔŋ code a kpakpa ma Kroko, y.e. +999",
+      "phoneHasAccount": "Phone nɛɛ yɛ account momo. Login kɛ Phone + Password.",
+      "blockedNurse": "BLOCKED: Phone nɛɛ yɛ NƐƐSE nɔ da. Tsu Nɛɛse Login.",
+      "blockedNurseShort": "BLOCKED: Phone nɛɛ yɛ NƐƐSE nɔ da.",
+      "welcomeBack": "Otsa bio! Ŋmɛ SMS OTP a wɔŋmɛ kɛya {phone}. Kɛ atwam a, ŋmɛ Resend.",
+      "otpSentEnter": "SMS OTP akɛya {phone}. Ŋmɛ 6-digit code.",
+      "failed": "Egbotwe: {e}",
+      "weak": "Gbɔjɔ",
+      "medium": "Mfinimfini",
+      "strong": "Waa",
+      "veryStrong": "Waa paa",
+      "missing8": "Boro 8",
+      "missingUpper": "Ŋmɛ agbo kome (A-Z)",
+      "missingLower": "Ŋmɛ fio kome (a-z)",
+      "missingNumber": "Number kome (0-9)",
+      "missingSpecial": "Okadi kome (! @ # \$ % dko.)",
+      "missingNoSpaces": "Bɔkɔɔ ko",
+      "strongPassword": "Password waa",
+    },
+
+    // 4. EWE
+    "ee": {
+      "title": "Ame Ŋkɔ Ŋlɔ",
+      "fullName": "Ŋkɔ Bliboa",
+      "username": "Username",
+      "emailOptional": "Email (mehiã o - na recovery ɖeɖe)",
+      "countryCode": "Dukɔ Code",
+      "otherTypeCode": "Bubu (ŋlɔ code)",
+      "phoneLabel": "Phone Number - OTP ava afii",
+      "phoneHint": "l. 241234567 (0 aɖeke, code aɖeke)",
+      "phoneHintOther": "Number si code meli o",
+      "yourCountryCode": "Wò Dukɔ Code",
+      "countryCodeHint": "l. +999",
+      "otpWillBeSentTo": "Woaɖo OTP ɖe: {phone}",
+      "otpWillBeSentToEmpty": "Woaɖo OTP ɖe: ...",
+      "passwordLabel": "Password - àtsɔ age ɖe eme",
+      "passwordHint": "Min 8, gã + sue + number + dzesi",
+      "uploadPhoto": "De Foto (mehiã o)",
+      "photoSelected": "Wotia Foto: {name}",
+      "pickPhoto": "Tia Foto",
+      "registerBtn": "ŊLƆ ŊKƆ - ÐO SMS OTP",
+      "afterOtpNote": "SMS OTP megbe, ge ɖe eme kple Phone Number + Password. CEO ɖeɖe meli o.",
+      "otpTitle": "Ŋlɔ SMS OTP",
+      "otpSentTo": "Mieɖo 6-digit SMS code ɖe\n{phone}",
+      "checkSms": "Kpɔ wò SMS. Ŋlɔ code. Ègale app me.",
+      "verifyOtp": "ÐO SMS OTP ÐE EME",
+      "resendIn": "Ðo SMS gbugbɔ le {sec} s me",
+      "sendingSms": "Le SMS ɖoɖo...",
+      "resendOtp": "Ðo SMS OTP Gbugbɔ",
+      "cancelReg": "Ðe Ŋkɔ Ŋlɔ Ða",
+      "enterPhoneFirst": "Ŋlɔ Phone Number gbã",
+      "sendingOtpTo": "Le SMS OTP ɖoɖo ɖe {phone}...",
+      "autoDetected": "Wokpɔ SMS! Le kpɔkpe...",
+      "failedSendSms": "SMS medze o: {e}",
+      "smsFailed": "SMS medze o: {e}",
+      "enterComplete6": "Ŋlɔ 6-digit SMS code bliboa",
+      "noOtpYet": "OTP aɖeke meɖo o. Tia Resend OTP gbã.",
+      "wrongOtp": "OTP vodada: {e}",
+      "otpVerified": "Phone OTP ɖo! Ge ɖe eme kple Phone + Password fifi.",
+      "passwordMissing": "Password meli o. Trɔ megbe nàŋlɔ password gbugbɔ.",
+      "errorSaving": "Vodada le dzraɖo me: {e}",
+      "otpCancelled": "Wode OTP ɖa. Ŋlɔ ŋkɔ gbugbɔ.",
+      "fillAll": "Ŋlɔ Ŋkɔ, Username, Phone kple Password. Email mehiã o.",
+      "passwordWeakMissing": "Password gbɔdzɔ. Ehiã: {missing}",
+      "enterValidCode": "Ŋlɔ dukɔ code si sɔ na Bubu, l. +999",
+      "phoneHasAccount": "Phone sia le account. Ge ɖe eme kple Phone + Password.",
+      "blockedNurse": "BLOCKED: Phone sia nye NƆNƆVIA tɔ. Zã Nɔnɔvia Login.",
+      "blockedNurseShort": "BLOCKED: Phone sia nye NƆNƆVIA tɔ.",
+      "welcomeBack": "Ŋdi gbugbɔ! Ŋlɔ SMS OTP si woɖo ɖe {phone}. Ne ewome a, tia Resend.",
+      "otpSentEnter": "SMS OTP ɖo ɖe {phone}. Ŋlɔ 6-digit code.",
+      "failed": "Medze o: {e}",
+      "weak": "Gbɔdzɔ",
+      "medium": "Dome",
+      "strong": "Sesẽ",
+      "veryStrong": "Sesẽ ŋutɔ",
+      "missing8": "Wugbɔ 8",
+      "missingUpper": "Ŋlɔ gã ɖeka (A-Z)",
+      "missingLower": "Ŋlɔ sue ɖeka (a-z)",
+      "missingNumber": "Number ɖeka (0-9)",
+      "missingSpecial": "Dzesi ɖeka (! @ # \$ % kpl.)",
+      "missingNoSpaces": "Teƒe aɖeke",
+      "strongPassword": "Password sesẽ",
+    },
+
+    // 5. DUTCH
+    "nl": {
+      "title": "Klant Registratie",
+      "fullName": "Volledige Naam",
+      "username": "Gebruikersnaam",
+      "emailOptional": "E-mail (optioneel - alleen voor herstel)",
+      "countryCode": "Landcode",
+      "otherTypeCode": "Anders (typ code)",
+      "phoneLabel": "Telefoonnummer - OTP komt hier",
+      "phoneHint": "bijv. 241234567 (geen 0, geen code)",
+      "phoneHintOther": "Nummer zonder code",
+      "yourCountryCode": "Jouw Landcode",
+      "countryCodeHint": "bijv. +999",
+      "otpWillBeSentTo": "OTP wordt verzonden naar: {phone}",
+      "otpWillBeSentToEmpty": "OTP wordt verzonden naar: ...",
+      "passwordLabel": "Wachtwoord - hiermee log je in",
+      "passwordHint": "Min 8 tekens, hoofd + klein + cijfer + symbool",
+      "uploadPhoto": "Foto Uploaden (optioneel)",
+      "photoSelected": "Foto Geselecteerd: {name}",
+      "pickPhoto": "Kies Foto",
+      "registerBtn": "REGISTREER - STUUR SMS OTP",
+      "afterOtpNote": "Na SMS OTP, login met Telefoonnummer + Wachtwoord. Geen CEO goedkeuring nodig.",
+      "otpTitle": "Voer SMS OTP In",
+      "otpSentTo": "We stuurden 6-cijferige SMS code naar\n{phone}",
+      "checkSms": "Check je SMS. Voer code hieronder in. Je blijft in app.",
+      "verifyOtp": "VERIFIEER SMS OTP",
+      "resendIn": "SMS opnieuw in {sec} s",
+      "sendingSms": "SMS verzenden...",
+      "resendOtp": "SMS OTP Opnieuw Sturen",
+      "cancelReg": "Annuleer Registratie",
+      "enterPhoneFirst": "Voer eerst Telefoonnummer in",
+      "sendingOtpTo": "SMS OTP verzenden naar {phone}...",
+      "autoDetected": "SMS auto-gedetecteerd! Verifiëren...",
+      "failedSendSms": "SMS verzenden mislukt: {e}",
+      "smsFailed": "SMS mislukt: {e}",
+      "enterComplete6": "Voer complete 6-cijferige SMS code in",
+      "noOtpYet": "Nog geen OTP verzonden. Tik eerst Opnieuw Sturen.",
+      "wrongOtp": "Verkeerde OTP: {e}",
+      "otpVerified": "Telefoon OTP geverifieerd! Login nu met Telefoon + Wachtwoord.",
+      "passwordMissing": "Wachtwoord ontbreekt. Ga terug en voer wachtwoord opnieuw in.",
+      "errorSaving": "Fout bij opslaan: {e}",
+      "otpCancelled": "OTP geannuleerd. Registreer opnieuw.",
+      "fillAll": "Vul Naam, Gebruikersnaam, Telefoon en Wachtwoord in. E-mail is optioneel.",
+      "passwordWeakMissing": "Wachtwoord te zwak. Ontbreekt: {missing}",
+      "enterValidCode": "Voer een geldige landcode in voor Anders, bijv. +999",
+      "phoneHasAccount": "Deze telefoon heeft al een account. Login met Telefoon + Wachtwoord.",
+      "blockedNurse": "GEBLOKKEERD: Deze telefoon is al geregistreerd als VERPLEEGKUNDIGE. Gebruik Verpleegkundige Login.",
+      "blockedNurseShort": "GEBLOKKEERD: Deze telefoon is al geregistreerd als VERPLEEGKUNDIGE.",
+      "welcomeBack": "Welkom terug! Voer SMS OTP in verzonden naar {phone}. Als verlopen, tik Opnieuw.",
+      "otpSentEnter": "SMS OTP verzonden naar {phone}. Voer 6-cijferige code in.",
+      "failed": "Mislukt: {e}",
+      "weak": "Zwak",
+      "medium": "Gemiddeld",
+      "strong": "Sterk",
+      "veryStrong": "Zeer sterk",
+      "missing8": "Minstens 8 tekens",
+      "missingUpper": "Eén HOOFDLETTER (A-Z)",
+      "missingLower": "Eén kleine letter (a-z)",
+      "missingNumber": "Eén cijfer (0-9)",
+      "missingSpecial": "Eén speciaal teken (! @ # \$ % etc.)",
+      "missingNoSpaces": "Geen spaties",
+      "strongPassword": "Sterk wachtwoord",
+    },
+
+    // 6. FRENCH
+    "fr": {
+      "title": "Inscription Client",
+      "fullName": "Nom Complet",
+      "username": "Nom d'utilisateur",
+      "emailOptional": "E-mail (optionnel - pour récupération seulement)",
+      "countryCode": "Indicatif Pays",
+      "otherTypeCode": "Autre (tapez code)",
+      "phoneLabel": "Numéro de Téléphone - OTP vient ici",
+      "phoneHint": "ex. 241234567 (pas de 0, pas de code)",
+      "phoneHintOther": "Numéro sans code",
+      "yourCountryCode": "Votre Indicatif Pays",
+      "countryCodeHint": "ex. +999",
+      "otpWillBeSentTo": "OTP sera envoyé à: {phone}",
+      "otpWillBeSentToEmpty": "OTP sera envoyé à: ...",
+      "passwordLabel": "Mot de passe - vous vous connecterez avec ceci",
+      "passwordHint": "Min 8 caractères, maj + min + chiffre + symbole",
+      "uploadPhoto": "Télécharger Photo (optionnel)",
+      "photoSelected": "Photo Sélectionnée: {name}",
+      "pickPhoto": "Choisir Photo",
+      "registerBtn": "S'INSCRIRE - ENVOYER SMS OTP",
+      "afterOtpNote": "Après SMS OTP, connectez-vous avec Numéro de Téléphone + Mot de passe. Aucune approbation CEO nécessaire.",
+      "otpTitle": "Entrez SMS OTP",
+      "otpSentTo": "Nous avons envoyé un code SMS à 6 chiffres à\n{phone}",
+      "checkSms": "Vérifiez votre SMS. Entrez le code ci-dessous. Vous restez dans l'app.",
+      "verifyOtp": "VÉRIFIER SMS OTP",
+      "resendIn": "Renvoyer SMS dans {sec} s",
+      "sendingSms": "Envoi SMS...",
+      "resendOtp": "Renvoyer SMS OTP",
+      "cancelReg": "Annuler Inscription",
+      "enterPhoneFirst": "Entrez d'abord le Numéro de Téléphone",
+      "sendingOtpTo": "Envoi SMS OTP à {phone}...",
+      "autoDetected": "SMS auto-détecté! Vérification...",
+      "failedSendSms": "Échec d'envoi SMS: {e}",
+      "smsFailed": "SMS échoué: {e}",
+      "enterComplete6": "Entrez le code SMS complet à 6 chiffres",
+      "noOtpYet": "Aucun OTP envoyé. Appuyez d'abord sur Renvoyer.",
+      "wrongOtp": "Mauvais OTP: {e}",
+      "otpVerified": "OTP téléphone vérifié! Connectez-vous avec Téléphone + Mot de passe maintenant.",
+      "passwordMissing": "Mot de passe manquant. Revenez et entrez le mot de passe à nouveau.",
+      "errorSaving": "Erreur d'enregistrement: {e}",
+      "otpCancelled": "OTP annulé. Inscrivez-vous à nouveau.",
+      "fillAll": "Remplissez Nom, Nom d'utilisateur, Téléphone et Mot de passe. E-mail est optionnel.",
+      "passwordWeakMissing": "Mot de passe trop faible. Manquant: {missing}",
+      "enterValidCode": "Entrez un indicatif de pays valide pour Autre, ex. +999",
+      "phoneHasAccount": "Ce téléphone a déjà un compte. Connectez-vous avec Téléphone + Mot de passe.",
+      "blockedNurse": "BLOQUÉ: Ce téléphone est déjà enregistré comme INFIRMIÈRE. Utilisez Connexion Infirmière.",
+      "blockedNurseShort": "BLOQUÉ: Ce téléphone est déjà enregistré comme INFIRMIÈRE.",
+      "welcomeBack": "Bon retour! Entrez SMS OTP envoyé à {phone}. Si expiré, appuyez sur Renvoyer.",
+      "otpSentEnter": "SMS OTP envoyé à {phone}. Entrez le code à 6 chiffres.",
+      "failed": "Échec: {e}",
+      "weak": "Faible",
+      "medium": "Moyen",
+      "strong": "Fort",
+      "veryStrong": "Très fort",
+      "missing8": "Au moins 8 caractères",
+      "missingUpper": "Une MAJUSCULE (A-Z)",
+      "missingLower": "Une minuscule (a-z)",
+      "missingNumber": "Un chiffre (0-9)",
+      "missingSpecial": "Un caractère spécial (! @ # \$ % etc.)",
+      "missingNoSpaces": "Pas d'espaces",
+      "strongPassword": "Mot de passe fort",
+    },
+
+    // 7. GERMAN
+    "de": {
+      "title": "Kundenregistrierung",
+      "fullName": "Vollständiger Name",
+      "username": "Benutzername",
+      "emailOptional": "E-Mail (optional - nur für Wiederherstellung)",
+      "countryCode": "Landesvorwahl",
+      "otherTypeCode": "Andere (Code eingeben)",
+      "phoneLabel": "Telefonnummer - OTP kommt hierher",
+      "phoneHint": "z.B. 241234567 (keine 0, kein Code)",
+      "phoneHintOther": "Nummer ohne Code",
+      "yourCountryCode": "Deine Landesvorwahl",
+      "countryCodeHint": "z.B. +999",
+      "otpWillBeSentTo": "OTP wird gesendet an: {phone}",
+      "otpWillBeSentToEmpty": "OTP wird gesendet an: ...",
+      "passwordLabel": "Passwort - damit loggst du dich ein",
+      "passwordHint": "Min 8 Zeichen, groß + klein + Zahl + Symbol",
+      "uploadPhoto": "Foto Hochladen (optional)",
+      "photoSelected": "Foto Ausgewählt: {name}",
+      "pickPhoto": "Foto Wählen",
+      "registerBtn": "REGISTRIEREN - SMS OTP SENDEN",
+      "afterOtpNote": "Nach SMS OTP, login mit Telefonnummer + Passwort. Keine CEO-Genehmigung nötig.",
+      "otpTitle": "SMS OTP Eingeben",
+      "otpSentTo": "Wir haben 6-stelligen SMS Code gesendet an\n{phone}",
+      "checkSms": "Prüfe deine SMS. Gib Code unten ein. Du bleibst in App.",
+      "verifyOtp": "SMS OTP VERIFIZIEREN",
+      "resendIn": "SMS erneut in {sec} s",
+      "sendingSms": "SMS senden...",
+      "resendOtp": "SMS OTP Erneut Senden",
+      "cancelReg": "Registrierung Abbrechen",
+      "enterPhoneFirst": "Gib zuerst Telefonnummer ein",
+      "sendingOtpTo": "SMS OTP wird gesendet an {phone}...",
+      "autoDetected": "SMS auto-erkannt! Verifizieren...",
+      "failedSendSms": "SMS senden fehlgeschlagen: {e}",
+      "smsFailed": "SMS fehlgeschlagen: {e}",
+      "enterComplete6": "Gib vollständigen 6-stelligen SMS Code ein",
+      "noOtpYet": "Noch kein OTP gesendet. Tippe zuerst Erneut Senden.",
+      "wrongOtp": "Falscher OTP: {e}",
+      "otpVerified": "Telefon OTP verifiziert! Login jetzt mit Telefon + Passwort.",
+      "passwordMissing": "Passwort fehlt. Geh zurück und gib Passwort erneut ein.",
+      "errorSaving": "Fehler beim Speichern: {e}",
+      "otpCancelled": "OTP abgebrochen. Registriere erneut.",
+      "fillAll": "Fülle Name, Benutzername, Telefon und Passwort aus. E-Mail ist optional.",
+      "passwordWeakMissing": "Passwort zu schwach. Fehlt: {missing}",
+      "enterValidCode": "Gib eine gültige Landesvorwahl für Andere ein, z.B. +999",
+      "phoneHasAccount": "Dieses Telefon hat schon ein Konto. Login mit Telefon + Passwort.",
+      "blockedNurse": "BLOCKIERT: Dieses Telefon ist schon als KRANKENSCHWESTER registriert. Nutze Krankenschwester Login.",
+      "blockedNurseShort": "BLOCKIERT: Dieses Telefon ist schon als KRANKENSCHWESTER registriert.",
+      "welcomeBack": "Willkommen zurück! Gib SMS OTP ein, gesendet an {phone}. Falls abgelaufen, tippe Erneut.",
+      "otpSentEnter": "SMS OTP gesendet an {phone}. Gib 6-stelligen Code ein.",
+      "failed": "Fehlgeschlagen: {e}",
+      "weak": "Schwach",
+      "medium": "Mittel",
+      "strong": "Stark",
+      "veryStrong": "Sehr stark",
+      "missing8": "Mindestens 8 Zeichen",
+      "missingUpper": "Ein GROSSBUCHSTABE (A-Z)",
+      "missingLower": "Ein Kleinbuchstabe (a-z)",
+      "missingNumber": "Eine Zahl (0-9)",
+      "missingSpecial": "Ein Sonderzeichen (! @ # \$ % etc.)",
+      "missingNoSpaces": "Keine Leerzeichen",
+      "strongPassword": "Starkes Passwort",
+    },
+
+    // 8. SPANISH
+    "es": {
+      "title": "Registro Cliente",
+      "fullName": "Nombre Completo",
+      "username": "Nombre de usuario",
+      "emailOptional": "Correo (opcional - solo para recuperación)",
+      "countryCode": "Código de País",
+      "otherTypeCode": "Otro (escribe código)",
+      "phoneLabel": "Número de Teléfono - OTP llega aquí",
+      "phoneHint": "ej. 241234567 (sin 0, sin código)",
+      "phoneHintOther": "Número sin código",
+      "yourCountryCode": "Tu Código de País",
+      "countryCodeHint": "ej. +999",
+      "otpWillBeSentTo": "OTP se enviará a: {phone}",
+      "otpWillBeSentToEmpty": "OTP se enviará a: ...",
+      "passwordLabel": "Contraseña - iniciarás sesión con esto",
+      "passwordHint": "Mín 8 caracteres, mayús + minús + número + símbolo",
+      "uploadPhoto": "Subir Foto (opcional)",
+      "photoSelected": "Foto Seleccionada: {name}",
+      "pickPhoto": "Elegir Foto",
+      "registerBtn": "REGISTRARSE - ENVIAR SMS OTP",
+      "afterOtpNote": "Después de SMS OTP, inicia sesión con Número de Teléfono + Contraseña. No se necesita aprobación del CEO.",
+      "otpTitle": "Ingresar SMS OTP",
+      "otpSentTo": "Enviamos código SMS de 6 dígitos a\n{phone}",
+      "checkSms": "Revisa tu SMS. Ingresa el código abajo. Te quedas dentro de la app.",
+      "verifyOtp": "VERIFICAR SMS OTP",
+      "resendIn": "Reenviar SMS en {sec} s",
+      "sendingSms": "Enviando SMS...",
+      "resendOtp": "Reenviar SMS OTP",
+      "cancelReg": "Cancelar Registro",
+      "enterPhoneFirst": "Ingresa primero el Número de Teléfono",
+      "sendingOtpTo": "Enviando SMS OTP a {phone}...",
+      "autoDetected": "¡SMS auto-detectado! Verificando...",
+      "failedSendSms": "Error al enviar SMS: {e}",
+      "smsFailed": "SMS fallido: {e}",
+      "enterComplete6": "Ingresa el código SMS completo de 6 dígitos",
+      "noOtpYet": "Aún no se envió OTP. Toca Reenviar primero.",
+      "wrongOtp": "OTP incorrecto: {e}",
+      "otpVerified": "¡OTP de teléfono verificado! Inicia sesión con Teléfono + Contraseña ahora.",
+      "passwordMissing": "Falta contraseña. Vuelve e ingresa la contraseña de nuevo.",
+      "errorSaving": "Error al guardar: {e}",
+      "otpCancelled": "OTP cancelado. Regístrate de nuevo.",
+      "fillAll": "Completa Nombre, Nombre de usuario, Teléfono y Contraseña. Correo es opcional.",
+      "passwordWeakMissing": "Contraseña muy débil. Falta: {missing}",
+      "enterValidCode": "Ingresa un código de país válido para Otro, ej. +999",
+      "phoneHasAccount": "Este teléfono ya tiene una cuenta. Inicia sesión con Teléfono + Contraseña.",
+      "blockedNurse": "BLOQUEADO: Este teléfono ya está registrado como ENFERMERA. Usa Inicio Sesión Enfermera.",
+      "blockedNurseShort": "BLOQUEADO: Este teléfono ya está registrado como ENFERMERA.",
+      "welcomeBack": "¡Bienvenido de nuevo! Ingresa SMS OTP enviado a {phone}. Si expiró, toca Reenviar.",
+      "otpSentEnter": "SMS OTP enviado a {phone}. Ingresa código de 6 dígitos.",
+      "failed": "Falló: {e}",
+      "weak": "Débil",
+      "medium": "Media",
+      "strong": "Fuerte",
+      "veryStrong": "Muy fuerte",
+      "missing8": "Al menos 8 caracteres",
+      "missingUpper": "Una MAYÚSCULA (A-Z)",
+      "missingLower": "Una minúscula (a-z)",
+      "missingNumber": "Un número (0-9)",
+      "missingSpecial": "Un carácter especial (! @ # \$ % etc.)",
+      "missingNoSpaces": "Sin espacios",
+      "strongPassword": "Contraseña fuerte",
+    },
+
+    // 9. ITALIAN
+    "it": {
+      "title": "Registrazione Cliente",
+      "fullName": "Nome Completo",
+      "username": "Nome utente",
+      "emailOptional": "E-mail (opzionale - solo per recupero)",
+      "countryCode": "Prefisso Paese",
+      "otherTypeCode": "Altro (digita codice)",
+      "phoneLabel": "Numero di Telefono - OTP arriva qui",
+      "phoneHint": "es. 241234567 (senza 0, senza codice)",
+      "phoneHintOther": "Numero senza codice",
+      "yourCountryCode": "Il Tuo Prefisso Paese",
+      "countryCodeHint": "es. +999",
+      "otpWillBeSentTo": "OTP verrà inviato a: {phone}",
+      "otpWillBeSentToEmpty": "OTP verrà inviato a: ...",
+      "passwordLabel": "Password - accederai con questa",
+      "passwordHint": "Min 8 caratteri, maiusc + minusc + numero + simbolo",
+      "uploadPhoto": "Carica Foto (opzionale)",
+      "photoSelected": "Foto Selezionata: {name}",
+      "pickPhoto": "Scegli Foto",
+      "registerBtn": "REGISTRATI - INVIA SMS OTP",
+      "afterOtpNote": "Dopo SMS OTP, accedi con Numero di Telefono + Password. Nessuna approvazione CEO necessaria.",
+      "otpTitle": "Inserisci SMS OTP",
+      "otpSentTo": "Abbiamo inviato codice SMS a 6 cifre a\n{phone}",
+      "checkSms": "Controlla il tuo SMS. Inserisci codice qui sotto. Rimani dentro app.",
+      "verifyOtp": "VERIFICA SMS OTP",
+      "resendIn": "Invia SMS di nuovo in {sec} s",
+      "sendingSms": "Invio SMS...",
+      "resendOtp": "Invia SMS OTP di Nuovo",
+      "cancelReg": "Annulla Registrazione",
+      "enterPhoneFirst": "Inserisci prima il Numero di Telefono",
+      "sendingOtpTo": "Invio SMS OTP a {phone}...",
+      "autoDetected": "SMS auto-rilevato! Verifica...",
+      "failedSendSms": "Invio SMS fallito: {e}",
+      "smsFailed": "SMS fallito: {e}",
+      "enterComplete6": "Inserisci codice SMS completo a 6 cifre",
+      "noOtpYet": "Nessun OTP inviato. Tocca Invia di Nuovo prima.",
+      "wrongOtp": "OTP sbagliato: {e}",
+      "otpVerified": "OTP telefono verificato! Accedi ora con Telefono + Password.",
+      "passwordMissing": "Password mancante. Torna indietro e inserisci password di nuovo.",
+      "errorSaving": "Errore salvataggio: {e}",
+      "otpCancelled": "OTP annullato. Registrati di nuovo.",
+      "fillAll": "Compila Nome, Nome utente, Telefono e Password. E-mail è opzionale.",
+      "passwordWeakMissing": "Password troppo debole. Manca: {missing}",
+      "enterValidCode": "Inserisci un prefisso paese valido per Altro, es. +999",
+      "phoneHasAccount": "Questo telefono ha già un account. Accedi con Telefono + Password.",
+      "blockedNurse": "BLOCCATO: Questo telefono è già registrato come INFERMIERA. Usa Login Infermiera.",
+      "blockedNurseShort": "BLOCCATO: Questo telefono è già registrato come INFERMIERA.",
+      "welcomeBack": "Bentornato! Inserisci SMS OTP inviato a {phone}. Se scaduto, tocca Invia di Nuovo.",
+      "otpSentEnter": "SMS OTP inviato a {phone}. Inserisci codice a 6 cifre.",
+      "failed": "Fallito: {e}",
+      "weak": "Debole",
+      "medium": "Media",
+      "strong": "Forte",
+      "veryStrong": "Molto forte",
+      "missing8": "Almeno 8 caratteri",
+      "missingUpper": "Una MAIUSCOLA (A-Z)",
+      "missingLower": "Una minuscola (a-z)",
+      "missingNumber": "Un numero (0-9)",
+      "missingSpecial": "Un carattere speciale (! @ # \$ % etc.)",
+      "missingNoSpaces": "Nessuno spazio",
+      "strongPassword": "Password forte",
+    },
+
+    // 10. PORTUGUESE
+    "pt": {
+      "title": "Cadastro Cliente",
+      "fullName": "Nome Completo",
+      "username": "Nome de usuário",
+      "emailOptional": "E-mail (opcional - só para recuperação)",
+      "countryCode": "Código do País",
+      "otherTypeCode": "Outro (digite código)",
+      "phoneLabel": "Número de Telefone - OTP chega aqui",
+      "phoneHint": "ex. 241234567 (sem 0, sem código)",
+      "phoneHintOther": "Número sem código",
+      "yourCountryCode": "Seu Código de País",
+      "countryCodeHint": "ex. +999",
+      "otpWillBeSentTo": "OTP será enviado para: {phone}",
+      "otpWillBeSentToEmpty": "OTP será enviado para: ...",
+      "passwordLabel": "Senha - você vai entrar com ela",
+      "passwordHint": "Mín 8 caracteres, maiús + minús + número + símbolo",
+      "uploadPhoto": "Enviar Foto (opcional)",
+      "photoSelected": "Foto Selecionada: {name}",
+      "pickPhoto": "Escolher Foto",
+      "registerBtn": "CADASTRAR - ENVIAR SMS OTP",
+      "afterOtpNote": "Após SMS OTP, entre com Número de Telefone + Senha. Nenhuma aprovação do CEO necessária.",
+      "otpTitle": "Digite SMS OTP",
+      "otpSentTo": "Enviamos código SMS de 6 dígitos para\n{phone}",
+      "checkSms": "Confira seu SMS. Digite o código abaixo. Você fica dentro do app.",
+      "verifyOtp": "VERIFICAR SMS OTP",
+      "resendIn": "Reenviar SMS em {sec} s",
+      "sendingSms": "Enviando SMS...",
+      "resendOtp": "Reenviar SMS OTP",
+      "cancelReg": "Cancelar Cadastro",
+      "enterPhoneFirst": "Digite primeiro o Número de Telefone",
+      "sendingOtpTo": "Enviando SMS OTP para {phone}...",
+      "autoDetected": "SMS auto-detectado! Verificando...",
+      "failedSendSms": "Falha ao enviar SMS: {e}",
+      "smsFailed": "SMS falhou: {e}",
+      "enterComplete6": "Digite o código SMS completo de 6 dígitos",
+      "noOtpYet": "Nenhum OTP enviado. Toque em Reenviar primeiro.",
+      "wrongOtp": "OTP errado: {e}",
+      "otpVerified": "OTP de telefone verificado! Entre agora com Telefone + Senha.",
+      "passwordMissing": "Senha faltando. Volte e digite a senha novamente.",
+      "errorSaving": "Erro ao salvar: {e}",
+      "otpCancelled": "OTP cancelado. Cadastre-se novamente.",
+      "fillAll": "Preencha Nome, Nome de usuário, Telefone e Senha. E-mail é opcional.",
+      "passwordWeakMissing": "Senha muito fraca. Falta: {missing}",
+      "enterValidCode": "Digite um código de país válido para Outro, ex. +999",
+      "phoneHasAccount": "Este telefone já tem uma conta. Entre com Telefone + Senha.",
+      "blockedNurse": "BLOQUEADO: Este telefone já está cadastrado como ENFERMEIRA. Use Login Enfermeira.",
+      "blockedNurseShort": "BLOQUEADO: Este telefone já está cadastrado como ENFERMEIRA.",
+      "welcomeBack": "Bem-vindo de volta! Digite SMS OTP enviado para {phone}. Se expirou, toque em Reenviar.",
+      "otpSentEnter": "SMS OTP enviado para {phone}. Digite código de 6 dígitos.",
+      "failed": "Falhou: {e}",
+      "weak": "Fraca",
+      "medium": "Média",
+      "strong": "Forte",
+      "veryStrong": "Muito forte",
+      "missing8": "Pelo menos 8 caracteres",
+      "missingUpper": "Uma MAIÚSCULA (A-Z)",
+      "missingLower": "Uma minúscula (a-z)",
+      "missingNumber": "Um número (0-9)",
+      "missingSpecial": "Um caractere especial (! @ # \$ % etc.)",
+      "missingNoSpaces": "Sem espaços",
+      "strongPassword": "Senha forte",
+    },
+
+    // 11. ARABIC
+    "ar": {
+      "title": "تسجيل العميل",
+      "fullName": "الاسم الكامل",
+      "username": "اسم المستخدم",
+      "emailOptional": "البريد الإلكتروني (اختياري - للاسترداد فقط)",
+      "countryCode": "رمز الدولة",
+      "otherTypeCode": "أخرى (اكتب الرمز)",
+      "phoneLabel": "رقم الهاتف - OTP يأتي هنا",
+      "phoneHint": "مثال 241234567 (بدون 0، بدون رمز)",
+      "phoneHintOther": "رقم بدون رمز",
+      "yourCountryCode": "رمز بلدك",
+      "countryCodeHint": "مثال +999",
+      "otpWillBeSentTo": "سيتم إرسال OTP إلى: {phone}",
+      "otpWillBeSentToEmpty": "سيتم إرسال OTP إلى: ...",
+      "passwordLabel": "كلمة المرور - ستدخل بها",
+      "passwordHint": "8 أحرف على الأقل، كبير + صغير + رقم + رمز",
+      "uploadPhoto": "رفع صورة (اختياري)",
+      "photoSelected": "تم اختيار الصورة: {name}",
+      "pickPhoto": "اختر صورة",
+      "registerBtn": "تسجيل - إرسال SMS OTP",
+      "afterOtpNote": "بعد SMS OTP، ادخل برقم الهاتف + كلمة المرور. لا حاجة لموافقة المدير.",
+      "otpTitle": "أدخل SMS OTP",
+      "otpSentTo": "أرسلنا رمز SMS من 6 أرقام إلى\n{phone}",
+      "checkSms": "تحقق من رسائلك. أدخل الرمز أدناه. تبقى داخل التطبيق.",
+      "verifyOtp": "تحقق من SMS OTP",
+      "resendIn": "إعادة إرسال SMS خلال {sec} ث",
+      "sendingSms": "جارٍ إرسال SMS...",
+      "resendOtp": "إعادة إرسال SMS OTP",
+      "cancelReg": "إلغاء التسجيل",
+      "enterPhoneFirst": "أدخل رقم الهاتف أولاً",
+      "sendingOtpTo": "جارٍ إرسال SMS OTP إلى {phone}...",
+      "autoDetected": "تم اكتشاف SMS تلقائياً! جارٍ التحقق...",
+      "failedSendSms": "فشل إرسال SMS: {e}",
+      "smsFailed": "فشل SMS: {e}",
+      "enterComplete6": "أدخل رمز SMS الكامل من 6 أرقام",
+      "noOtpYet": "لم يتم إرسال OTP بعد. اضغط إعادة إرسال أولاً.",
+      "wrongOtp": "OTP خاطئ: {e}",
+      "otpVerified": "تم التحقق من OTP الهاتف! ادخل الآن بالهاتف + كلمة المرور.",
+      "passwordMissing": "كلمة المرور مفقودة. ارجع وأدخل كلمة المرور مرة أخرى.",
+      "errorSaving": "خطأ في الحفظ: {e}",
+      "otpCancelled": "تم إلغاء OTP. سجّل مرة أخرى.",
+      "fillAll": "املأ الاسم واسم المستخدم والهاتف وكلمة المرور. البريد اختياري.",
+      "passwordWeakMissing": "كلمة المرور ضعيفة جداً. ينقص: {missing}",
+      "enterValidCode": "أدخل رمز دولة صالح لـ أخرى، مثال +999",
+      "phoneHasAccount": "هذا الهاتف لديه حساب بالفعل. ادخل بالهاتف + كلمة المرور.",
+      "blockedNurse": "محظور: هذا الهاتف مسجل بالفعل كممرضة. استخدم دخول الممرضة.",
+      "blockedNurseShort": "محظور: هذا الهاتف مسجل بالفعل كممرضة.",
+      "welcomeBack": "أهلاً بعودتك! أدخل SMS OTP المرسل إلى {phone}. إذا انتهى، اضغط إعادة إرسال.",
+      "otpSentEnter": "تم إرسال SMS OTP إلى {phone}. أدخل رمز 6 أرقام.",
+      "failed": "فشل: {e}",
+      "weak": "ضعيفة",
+      "medium": "متوسطة",
+      "strong": "قوية",
+      "veryStrong": "قوية جداً",
+      "missing8": "8 أحرف على الأقل",
+      "missingUpper": "حرف كبير واحد (A-Z)",
+      "missingLower": "حرف صغير واحد (a-z)",
+      "missingNumber": "رقم واحد (0-9)",
+      "missingSpecial": "رمز خاص واحد (! @ # \$ % إلخ)",
+      "missingNoSpaces": "بدون مسافات",
+      "strongPassword": "كلمة مرور قوية",
+    },
+
+    // 12. CHINESE
+    "zh": {
+      "title": "客户注册",
+      "fullName": "全名",
+      "username": "用户名",
+      "emailOptional": "电子邮件 (可选 - 仅用于恢复)",
+      "countryCode": "国家区号",
+      "otherTypeCode": "其他 (输入区号)",
+      "phoneLabel": "电话号码 - OTP 发到这里",
+      "phoneHint": "例如 241234567 (不要 0，不要区号)",
+      "phoneHintOther": "不带区号的号码",
+      "yourCountryCode": "您的国家区号",
+      "countryCodeHint": "例如 +999",
+      "otpWillBeSentTo": "OTP 将发送到: {phone}",
+      "otpWillBeSentToEmpty": "OTP 将发送到: ...",
+      "passwordLabel": "密码 - 您将用它登录",
+      "passwordHint": "至少 8 字符，大写 + 小写 + 数字 + 符号",
+      "uploadPhoto": "上传照片 (可选)",
+      "photoSelected": "已选择照片: {name}",
+      "pickPhoto": "选择照片",
+      "registerBtn": "注册 - 发送 SMS OTP",
+      "afterOtpNote": "SMS OTP 之后，用电话号码 + 密码登录。无需 CEO 批准。",
+      "otpTitle": "输入 SMS OTP",
+      "otpSentTo": "我们已发送 6 位 SMS 验证码到\n{phone}",
+      "checkSms": "查看您的短信。在下方输入验证码。您留在应用内。",
+      "verifyOtp": "验证 SMS OTP",
+      "resendIn": "{sec} 秒后重发 SMS",
+      "sendingSms": "正在发送 SMS...",
+      "resendOtp": "重发 SMS OTP",
+      "cancelReg": "取消注册",
+      "enterPhoneFirst": "先输入电话号码",
+      "sendingOtpTo": "正在发送 SMS OTP 到 {phone}...",
+      "autoDetected": "SMS 自动检测到! 正在验证...",
+      "failedSendSms": "发送 SMS 失败: {e}",
+      "smsFailed": "SMS 失败: {e}",
+      "enterComplete6": "输入完整的 6 位 SMS 验证码",
+      "noOtpYet": "尚未发送 OTP。先点重发 OTP。",
+      "wrongOtp": "错误的 OTP: {e}",
+      "otpVerified": "电话 OTP 已验证! 现在用电话 + 密码登录。",
+      "passwordMissing": "缺少密码。返回并重新输入密码。",
+      "errorSaving": "保存错误: {e}",
+      "otpCancelled": "OTP 已取消。重新注册。",
+      "fillAll": "填写姓名、用户名、电话和密码。电子邮件可选。",
+      "passwordWeakMissing": "密码太弱。缺少: {missing}",
+      "enterValidCode": "为其他输入有效的国家区号，例如 +999",
+      "phoneHasAccount": "此电话已有账户。用电话 + 密码登录。",
+      "blockedNurse": "已阻止: 此电话已注册为护士。请使用护士登录。",
+      "blockedNurseShort": "已阻止: 此电话已注册为护士。",
+      "welcomeBack": "欢迎回来! 输入发送到 {phone} 的 SMS OTP。如果过期，点重发。",
+      "otpSentEnter": "SMS OTP 已发送到 {phone}。输入 6 位验证码。",
+      "failed": "失败: {e}",
+      "weak": "弱",
+      "medium": "中等",
+      "strong": "强",
+      "veryStrong": "非常强",
+      "missing8": "至少 8 个字符",
+      "missingUpper": "一个大写字母 (A-Z)",
+      "missingLower": "一个小写字母 (a-z)",
+      "missingNumber": "一个数字 (0-9)",
+      "missingSpecial": "一个特殊字符 (! @ # \$ % 等)",
+      "missingNoSpaces": "无空格",
+      "strongPassword": "强密码",
+    },
+
+    // 13. HINDI
+    "hi": {
+      "title": "ग्राहक पंजीकरण",
+      "fullName": "पूरा नाम",
+      "username": "उपयोगकर्ता नाम",
+      "emailOptional": "ईमेल (वैकल्पिक - केवल रिकवरी के लिए)",
+      "countryCode": "देश कोड",
+      "otherTypeCode": "अन्य (कोड टाइप करें)",
+      "phoneLabel": "फ़ोन नंबर - OTP यहाँ आएगा",
+      "phoneHint": "जैसे 241234567 (0 नहीं, कोड नहीं)",
+      "phoneHintOther": "बिना कोड वाला नंबर",
+      "yourCountryCode": "आपका देश कोड",
+      "countryCodeHint": "जैसे +999",
+      "otpWillBeSentTo": "OTP भेजा जाएगा: {phone}",
+      "otpWillBeSentToEmpty": "OTP भेजा जाएगा: ...",
+      "passwordLabel": "पासवर्ड - आप इससे लॉगिन करेंगे",
+      "passwordHint": "कम से कम 8 अक्षर, बड़ा + छोटा + नंबर + चिन्ह",
+      "uploadPhoto": "फ़ोटो अपलोड करें (वैकल्पिक)",
+      "photoSelected": "फ़ोटो चुनी गई: {name}",
+      "pickPhoto": "फ़ोटो चुनें",
+      "registerBtn": "रजिस्टर करें - SMS OTP भेजें",
+      "afterOtpNote": "SMS OTP के बाद, फ़ोन नंबर + पासवर्ड से लॉगिन करें। CEO अनुमोदन की आवश्यकता नहीं।",
+      "otpTitle": "SMS OTP डालें",
+      "otpSentTo": "हमने 6 अंकों का SMS कोड भेजा है\n{phone}",
+      "checkSms": "अपना SMS जांचें। नीचे कोड डालें। आप ऐप के अंदर रहते हैं।",
+      "verifyOtp": "SMS OTP सत्यापित करें",
+      "resendIn": "{sec} सेकंड में SMS फिर से भेजें",
+      "sendingSms": "SMS भेज रहे हैं...",
+      "resendOtp": "SMS OTP फिर से भेजें",
+      "cancelReg": "पंजीकरण रद्द करें",
+      "enterPhoneFirst": "पहले फ़ोन नंबर डालें",
+      "sendingOtpTo": "SMS OTP भेज रहे हैं {phone} पर...",
+      "autoDetected": "SMS स्वतः पता चला! सत्यापित कर रहे हैं...",
+      "failedSendSms": "SMS भेजना विफल: {e}",
+      "smsFailed": "SMS विफल: {e}",
+      "enterComplete6": "पूरा 6 अंकों का SMS कोड डालें",
+      "noOtpYet": "अभी तक OTP नहीं भेजा गया। पहले फिर से भेजें दबाएं।",
+      "wrongOtp": "गलत OTP: {e}",
+      "otpVerified": "फ़ोन OTP सत्यापित! अब फ़ोन + पासवर्ड से लॉगिन करें।",
+      "passwordMissing": "पासवर्ड गायब है। वापस जाएं और पासवर्ड फिर से डालें।",
+      "errorSaving": "सहेजने में त्रुटि: {e}",
+      "otpCancelled": "OTP रद्द किया गया। फिर से रजिस्टर करें।",
+      "fillAll": "नाम, उपयोगकर्ता नाम, फ़ोन और पासवर्ड भरें। ईमेल वैकल्पिक है।",
+      "passwordWeakMissing": "पासवर्ड बहुत कमजोर है। कमी है: {missing}",
+      "enterValidCode": "अन्य के लिए मान्य देश कोड डालें, जैसे +999",
+      "phoneHasAccount": "इस फ़ोन का पहले से खाता है। फ़ोन + पासवर्ड से लॉगिन करें।",
+      "blockedNurse": "अवरुद्ध: यह फ़ोन पहले से नर्स के रूप में पंजीकृत है। नर्स लॉगिन का उपयोग करें।",
+      "blockedNurseShort": "अवरुद्ध: यह फ़ोन पहले से नर्स के रूप में पंजीकृत है।",
+      "welcomeBack": "फिर से स्वागत है! {phone} पर भेजा गया SMS OTP डालें। यदि समाप्त हो गया है, तो फिर से भेजें दबाएं।",
+      "otpSentEnter": "SMS OTP {phone} पर भेजा गया। 6 अंकों का कोड डालें।",
+      "failed": "विफल: {e}",
+      "weak": "कमजोर",
+      "medium": "मध्यम",
+      "strong": "मजबूत",
+      "veryStrong": "बहुत मजबूत",
+      "missing8": "कम से कम 8 अक्षर",
+      "missingUpper": "एक बड़ा अक्षर (A-Z)",
+      "missingLower": "एक छोटा अक्षर (a-z)",
+      "missingNumber": "एक नंबर (0-9)",
+      "missingSpecial": "एक विशेष चिन्ह (! @ # \$ % आदि)",
+      "missingNoSpaces": "कोई जगह नहीं",
+      "strongPassword": "मजबूत पासवर्ड",
+    },
+
+    // 14. SWAHILI
+    "sw": {
+      "title": "Usajili Wa Mteja",
+      "fullName": "Jina Kamili",
+      "username": "Jina La Mtumiaji",
+      "emailOptional": "Barua Pepe (hiari - kwa urejeshaji tu)",
+      "countryCode": "Msimbo Wa Nchi",
+      "otherTypeCode": "Nyingine (andika msimbo)",
+      "phoneLabel": "Namba Ya Simu - OTP inakuja hapa",
+      "phoneHint": "mf. 241234567 (hakuna 0, hakuna msimbo)",
+      "phoneHintOther": "Namba bila msimbo",
+      "yourCountryCode": "Msimbo Wako Wa Nchi",
+      "countryCodeHint": "mf. +999",
+      "otpWillBeSentTo": "OTP itatumwa kwa: {phone}",
+      "otpWillBeSentToEmpty": "OTP itatumwa kwa: ...",
+      "passwordLabel": "Nenosiri - utaingia nalo",
+      "passwordHint": "Angalau herufi 8, kubwa + ndogo + namba + alama",
+      "uploadPhoto": "Pakia Picha (hiari)",
+      "photoSelected": "Picha Imechaguliwa: {name}",
+      "pickPhoto": "Chagua Picha",
+      "registerBtn": "JISAJILI - TUMA SMS OTP",
+      "afterOtpNote": "Baada ya SMS OTP, ingia na Namba Ya Simu + Nenosiri. Hakuna idhini ya CEO inahitajika.",
+      "otpTitle": "Ingiza SMS OTP",
+      "otpSentTo": "Tumetuma msimbo wa SMS wa tarakimu 6 kwa\n{phone}",
+      "checkSms": "Angalia SMS yako. Ingiza msimbo hapa chini. Unabaki ndani ya app.",
+      "verifyOtp": "THIBITISHA SMS OTP",
+      "resendIn": "Tuma SMS tena baada ya {sec} s",
+      "sendingSms": "Inatuma SMS...",
+      "resendOtp": "Tuma SMS OTP Tena",
+      "cancelReg": "Ghairi Usajili",
+      "enterPhoneFirst": "Ingiza Namba Ya Simu kwanza",
+      "sendingOtpTo": "Inatuma SMS OTP kwa {phone}...",
+      "autoDetected": "SMS imegunduliwa kiotomatiki! Inathibitisha...",
+      "failedSendSms": "Imeshindwa kutuma SMS: {e}",
+      "smsFailed": "SMS imeshindikana: {e}",
+      "enterComplete6": "Ingiza msimbo kamili wa SMS wa tarakimu 6",
+      "noOtpYet": "Hakuna OTP iliyotumwa bado. Gusa Tuma Tena kwanza.",
+      "wrongOtp": "OTP mbaya: {e}",
+      "otpVerified": "OTP ya simu imethibitishwa! Ingia sasa na Simu + Nenosiri.",
+      "passwordMissing": "Nenosiri limekosekana. Rudi nyuma na ingiza nenosiri tena.",
+      "errorSaving": "Hitilafu ya kuhifadhi: {e}",
+      "otpCancelled": "OTP imeghairiwa. Jisajili tena.",
+      "fillAll": "Jaza Jina, Jina la Mtumiaji, Simu na Nenosiri. Barua pepe ni hiari.",
+      "passwordWeakMissing": "Nenosiri ni dhaifu sana. Inakosekana: {missing}",
+      "enterValidCode": "Ingiza msimbo halali wa nchi kwa Nyingine, mf. +999",
+      "phoneHasAccount": "Simu hii tayari ina akaunti. Ingia na Simu + Nenosiri.",
+      "blockedNurse": "IMEZUIWA: Simu hii tayari imesajiliwa kama MUUGUZI. Tumia Kuingia Muuguzi.",
+      "blockedNurseShort": "IMEZUIWA: Simu hii tayari imesajiliwa kama MUUGUZI.",
+      "welcomeBack": "Karibu tena! Ingiza SMS OTP iliyotumwa kwa {phone}. Ikiwa imeisha, gusa Tuma Tena.",
+      "otpSentEnter": "SMS OTP imetumwa kwa {phone}. Ingiza msimbo wa tarakimu 6.",
+      "failed": "Imeshindikana: {e}",
+      "weak": "Dhaifu",
+      "medium": "Wastani",
+      "strong": "Imara",
+      "veryStrong": "Imara sana",
+      "missing8": "Angalau herufi 8",
+      "missingUpper": "Herufi KUBWA moja (A-Z)",
+      "missingLower": "Herufi ndogo moja (a-z)",
+      "missingNumber": "Namba moja (0-9)",
+      "missingSpecial": "Alama maalum moja (! @ # \$ % n.k.)",
+      "missingNoSpaces": "Hakuna nafasi",
+      "strongPassword": "Nenosiri imara",
+    },
+
+    // 15. YORUBA
+    "yo": {
+      "title": "Forukọsilẹ Alabara",
+      "fullName": "Orukọ Kikun",
+      "username": "Orukọ Olumulo",
+      "emailOptional": "Imeeli (aṣayan - fun imupadabọ nikan)",
+      "countryCode": "Koodu Orilẹ-ede",
+      "otherTypeCode": "Miiran (tẹ koodu)",
+      "phoneLabel": "Nọmba Foonu - OTP n bọ sibẹ",
+      "phoneHint": "ap. 241234567 (ko si 0, ko si koodu)",
+      "phoneHintOther": "Nọmba laisi koodu",
+      "yourCountryCode": "Koodu Orilẹ-ede Rẹ",
+      "countryCodeHint": "ap. +999",
+      "otpWillBeSentTo": "A o fi OTP ranṣẹ si: {phone}",
+      "otpWillBeSentToEmpty": "A o fi OTP ranṣẹ si: ...",
+      "passwordLabel": "Ọrọ Igbaniwọle - iwọ o fi wọle",
+      "passwordHint": "O kere ju lẹta 8, nla + kekere + nọmba + ami",
+      "uploadPhoto": "Gbe Fọto Soke (aṣayan)",
+      "photoSelected": "A ti Yan Fọto: {name}",
+      "pickPhoto": "Yan Fọto",
+      "registerBtn": "FORUKỌSILẸ - FI SMS OTP RANṢẸ",
+      "afterOtpNote": "Lẹhin SMS OTP, wọle pẹlu Nọmba Foonu + Ọrọ Igbaniwọle. Ko si ifọwọsi CEO ti o nilo.",
+      "otpTitle": "Tẹ SMS OTP",
+      "otpSentTo": "A fi koodu SMS oni-nọmba 6 ranṣẹ si\n{phone}",
+      "checkSms": "Ṣayẹwo SMS rẹ. Tẹ koodu ni isalẹ. O wa ninu app.",
+      "verifyOtp": "JẸRISI SMS OTP",
+      "resendIn": "Fi SMS ranṣẹ lẹẹkansi ni {sec} s",
+      "sendingSms": "Nfi SMS ranṣẹ...",
+      "resendOtp": "Fi SMS OTP Ranṣẹ Lẹẹkansi",
+      "cancelReg": "Fagile Forukọsilẹ",
+      "enterPhoneFirst": "Tẹ Nọmba Foonu ni akọkọ",
+      "sendingOtpTo": "Nfi SMS OTP ranṣẹ si {phone}...",
+      "autoDetected": "A ti rii SMS laifọwọyi! N jẹrisi...",
+      "failedSendSms": "Fifi SMS ranṣẹ kuna: {e}",
+      "smsFailed": "SMS kuna: {e}",
+      "enterComplete6": "Tẹ koodu SMS pipe oni-nọmba 6",
+      "noOtpYet": "Ko si OTP ti a fi ranṣẹ sibẹ. Tẹ Fi Ranṣẹ Lẹẹkansi ni akọkọ.",
+      "wrongOtp": "OTP ti ko tọ: {e}",
+      "otpVerified": "OTP foonu ti jẹrisi! Wọle bayi pẹlu Foonu + Ọrọ Igbaniwọle.",
+      "passwordMissing": "Ọrọ igbaniwọle sonu. Pada sẹhin ki o tẹ ọrọ igbaniwọle lẹẹkansi.",
+      "errorSaving": "Aṣiṣe fifipamọ: {e}",
+      "otpCancelled": "A fagile OTP. Forukọsilẹ lẹẹkansi.",
+      "fillAll": "Kun Orukọ, Orukọ Olumulo, Foonu ati Ọrọ Igbaniwọle. Imeeli jẹ aṣayan.",
+      "passwordWeakMissing": "Ọrọ igbaniwọle ko lagbara to. O sonu: {missing}",
+      "enterValidCode": "Tẹ koodu orilẹ-ede to wulo fun Miiran, ap. +999",
+      "phoneHasAccount": "Foonu yi ni account tẹlẹ. Wọle pẹlu Foonu + Ọrọ Igbaniwọle.",
+      "blockedNurse": "DINA: Foonu yi ti forukọsilẹ tẹlẹ gẹgẹ bi NỌỌSI. Lo Nọọsi Login.",
+      "blockedNurseShort": "DINA: Foonu yi ti forukọsilẹ tẹlẹ gẹgẹ bi NỌỌSI.",
+      "welcomeBack": "Kaabo pada! Tẹ SMS OTP ti a fi ranṣẹ si {phone}. Ti o ba pari, tẹ Fi Ranṣẹ Lẹẹkansi.",
+      "otpSentEnter": "A ti fi SMS OTP ranṣẹ si {phone}. Tẹ koodu oni-nọmba 6.",
+      "failed": "Kuna: {e}",
+      "weak": "Ko lagbara",
+      "medium": "Aarin",
+      "strong": "Lagbara",
+      "veryStrong": "Lagbara pupọ",
+      "missing8": "O kere ju lẹta 8",
+      "missingUpper": "Lẹta NLA kan (A-Z)",
+      "missingLower": "Lẹta kekere kan (a-z)",
+      "missingNumber": "Nọmba kan (0-9)",
+      "missingSpecial": "Ami pataki kan (! @ # \$ % bẹẹbẹ.)",
+      "missingNoSpaces": "Ko si aaye",
+      "strongPassword": "Ọrọ igbaniwọle to lagbara",
+    },
+
+    // 16. IGBO
+    "ig": {
+      "title": "Ndebanye Aha Onye Ahịa",
+      "fullName": "Aha Zuruezu",
+      "username": "Aha Onye Ọrụ",
+      "emailOptional": "Email (nhọrọ - maka iweghachite naanị)",
+      "countryCode": "Koodu Mba",
+      "otherTypeCode": "Ọzọ (dee koodu)",
+      "phoneLabel": "Nọmba Ekwentị - OTP na-abịa ebe a",
+      "phoneHint": "d.k. 241234567 (enweghị 0, enweghị koodu)",
+      "phoneHintOther": "Nọmba na-enweghị koodu",
+      "yourCountryCode": "Koodu Mba Gị",
+      "countryCodeHint": "d.k. +999",
+      "otpWillBeSentTo": "A ga-eziga OTP na: {phone}",
+      "otpWillBeSentToEmpty": "A ga-eziga OTP na: ...",
+      "passwordLabel": "Paswọọdụ - ị ga-eji ya banye",
+      "passwordHint": "Opekata mpe mkpụrụedemede 8, ukwu + obere + nọmba + akara",
+      "uploadPhoto": "Bulite Foto (nhọrọ)",
+      "photoSelected": "Ahọpụtala Foto: {name}",
+      "pickPhoto": "Họrọ Foto",
+      "registerBtn": "DEBANYE AHA - ZIGA SMS OTP",
+      "afterOtpNote": "Mgbe SMS OTP gasịrị, banye na Nọmba Ekwentị + Paswọọdụ. Achọghị nkwado CEO.",
+      "otpTitle": "Tinye SMS OTP",
+      "otpSentTo": "Anyị ezigala koodu SMS nke ọnụọgụ 6 na\n{phone}",
+      "checkSms": "Lelee SMS gị. Tinye koodu n'okpuru. Ị nọ n'ime app.",
+      "verifyOtp": "NYOCHAA SMS OTP",
+      "resendIn": "Ziga SMS ọzọ na {sec} s",
+      "sendingSms": "Na-eziga SMS...",
+      "resendOtp": "Ziga SMS OTP Ọzọ",
+      "cancelReg": "Kagbuo Ndebanye Aha",
+      "enterPhoneFirst": "Buru ụzọ tinye Nọmba Ekwentị",
+      "sendingOtpTo": "Na-eziga SMS OTP na {phone}...",
+      "autoDetected": "Achọpụtara SMS na akpaaka! Na-enyocha...",
+      "failedSendSms": "Iziga SMS dara: {e}",
+      "smsFailed": "SMS dara: {e}",
+      "enterComplete6": "Tinye koodu SMS zuru ezu nke ọnụọgụ 6",
+      "noOtpYet": "Ezipụbeghị OTP. Pịa Ziga Ọzọ mbụ.",
+      "wrongOtp": "OTP na-ezighi ezi: {e}",
+      "otpVerified": "Enyochala OTP ekwentị! Banye ugbu a na Ekwentị + Paswọọdụ.",
+      "passwordMissing": "Paswọọdụ na-efu. Laghachi azụ tinye paswọọdụ ọzọ.",
+      "errorSaving": "Njehie ịchekwa: {e}",
+      "otpCancelled": "Akagbuola OTP. Debanye aha ọzọ.",
+      "fillAll": "Dejupụta Aha, Aha Onye Ọrụ, Ekwentị na Paswọọdụ. Email bụ nhọrọ.",
+      "passwordWeakMissing": "Paswọọdụ adịghị ike. Na-efu: {missing}",
+      "enterValidCode": "Tinye koodu mba ziri ezi maka Ọzọ, d.k. +999",
+      "phoneHasAccount": "Ekwentị a enweelarị akaụntụ. Jiri Ekwentị + Paswọọdụ banye.",
+      "blockedNurse": "AKPỌCHIELA: Ekwentị a edebanyelarị aha dị ka NỌỌSỤ. Jiri Nbanye Nọọsụ.",
+      "blockedNurseShort": "AKPỌCHIELA: Ekwentị a edebanyelarị aha dị ka NỌỌSỤ.",
+      "welcomeBack": "Nnọọ ọzọ! Tinye SMS OTP ezigara na {phone}. Ọ bụrụ na ọ kubiela, pịa Ziga Ọzọ.",
+      "otpSentEnter": "Ezigala SMS OTP na {phone}. Tinye koodu ọnụọgụ 6.",
+      "failed": "Dara: {e}",
+      "weak": "Adịghị ike",
+      "medium": "Etiti",
+      "strong": "Siri ike",
+      "veryStrong": "Siri ike nke ukwuu",
+      "missing8": "Opekata mpe mkpụrụedemede 8",
+      "missingUpper": "Otu mkpụrụedemede UKWU (A-Z)",
+      "missingLower": "Otu mkpụrụedemede obere (a-z)",
+      "missingNumber": "Otu nọmba (0-9)",
+      "missingSpecial": "Otu akara pụrụ iche (! @ # \$ % wdg)",
+      "missingNoSpaces": "Enweghị oghere",
+      "strongPassword": "Paswọọdụ siri ike",
+    },
+
+    // 17. HAUSA
+    "ha": {
+      "title": "Rajistar Abokin Ciniki",
+      "fullName": "Cikakken Suna",
+      "username": "Sunan Mai Amfani",
+      "emailOptional": "Imel (na zaɓi - don dawo da shi kawai)",
+      "countryCode": "Lambar Ƙasa",
+      "otherTypeCode": "Wani (rubuta lamba)",
+      "phoneLabel": "Lambar Waya - OTP yana zuwa nan",
+      "phoneHint": "misali 241234567 (babu 0, babu lamba)",
+      "phoneHintOther": "Lamba ba tare da lamba ba",
+      "yourCountryCode": "Lambar Ƙasarka",
+      "countryCodeHint": "misali +999",
+      "otpWillBeSentTo": "Za a aika OTP zuwa: {phone}",
+      "otpWillBeSentToEmpty": "Za a aika OTP zuwa: ...",
+      "passwordLabel": "Kalmar Sirri - za ka shiga da ita",
+      "passwordHint": "Aƙalla haruffa 8, babba + ƙarami + lamba + alama",
+      "uploadPhoto": "Loda Hoto (na zaɓi)",
+      "photoSelected": "An Zaɓi Hoto: {name}",
+      "pickPhoto": "Zaɓi Hoto",
+      "registerBtn": "YI RAJISTA - AIKA SMS OTP",
+      "afterOtpNote": "Bayan SMS OTP, shiga da Lambar Waya + Kalmar Sirri. Ba a buƙatar amincewar CEO.",
+      "otpTitle": "Shigar da SMS OTP",
+      "otpSentTo": "Mun aika lambar SMS mai lambobi 6 zuwa\n{phone}",
+      "checkSms": "Duba SMS ɗinka. Shigar da lamba a ƙasa. Kuna cikin app.",
+      "verifyOtp": "TABBTAR DA SMS OTP",
+      "resendIn": "Aika SMS kuma a cikin {sec} s",
+      "sendingSms": "Ana aika SMS...",
+      "resendOtp": "Aika SMS OTP Kuma",
+      "cancelReg": "Soke Rajista",
+      "enterPhoneFirst": "Shigar da Lambar Waya da farko",
+      "sendingOtpTo": "Ana aika SMS OTP zuwa {phone}...",
+      "autoDetected": "An gano SMS ta atomatik! Ana tabbatarwa...",
+      "failedSendSms": "Aika SMS ya kasa: {e}",
+      "smsFailed": "SMS ya kasa: {e}",
+      "enterComplete6": "Shigar da cikakken lambar SMS mai lambobi 6",
+      "noOtpYet": "Ba a aika OTP ba tukuna. Danna Aika Kuma da farko.",
+      "wrongOtp": "OTP mara daidai: {e}",
+      "otpVerified": "An tabbatar da OTP na waya! Shiga yanzu da Waya + Kalmar Sirri.",
+      "passwordMissing": "Kalmar sirri ta ɓace. Koma baya ka shigar da kalmar sirri kuma.",
+      "errorSaving": "Kuskuren ajiyewa: {e}",
+      "otpCancelled": "An soke OTP. Yi rajista kuma.",
+      "fillAll": "Cika Suna, Sunan Mai Amfani, Waya da Kalmar Sirri. Imel na zaɓi ne.",
+      "passwordWeakMissing": "Kalmar sirri ta yi rauni sosai. Ana rasa: {missing}",
+      "enterValidCode": "Shigar da ingantaccen lambar ƙasa don Wani, misali +999",
+      "phoneHasAccount": "Wannan wayar tana da asusu tuni. Shiga da Waya + Kalmar Sirri.",
+      "blockedNurse": "AN TOSE: Wannan wayar an riga an yi mata rajista a matsayin NURSE. Yi amfani da Shigar Nurse.",
+      "blockedNurseShort": "AN TOSE: Wannan wayar an riga an yi mata rajista a matsayin NURSE.",
+      "welcomeBack": "Barka da dawowa! Shigar da SMS OTP da aka aika zuwa {phone}. Idan ya ƙare, danna Aika Kuma.",
+      "otpSentEnter": "An aika SMS OTP zuwa {phone}. Shigar da lambar lambobi 6.",
+      "failed": "Ya kasa: {e}",
+      "weak": "Rauni",
+      "medium": "Matsakaici",
+      "strong": "Mai ƙarfi",
+      "veryStrong": "Mai ƙarfi sosai",
+      "missing8": "Aƙalla haruffa 8",
+      "missingUpper": "Babban harafi ɗaya (A-Z)",
+      "missingLower": "Ƙaramin harafi ɗaya (a-z)",
+      "missingNumber": "Lamba ɗaya (0-9)",
+      "missingSpecial": "Alama ta musamman ɗaya (! @ # \$ % da sauransu)",
+      "missingNoSpaces": "Babu sarari",
+      "strongPassword": "Kalmar sirri mai ƙarfi",
+    },
+
+    // 18. RUSSIAN
+    "ru": {
+      "title": "Регистрация Клиента",
+      "fullName": "Полное Имя",
+      "username": "Имя Пользователя",
+      "emailOptional": "Эл. почта (необязательно - только для восстановления)",
+      "countryCode": "Код Страны",
+      "otherTypeCode": "Другая (введите код)",
+      "phoneLabel": "Номер Телефона - OTP приходит сюда",
+      "phoneHint": "напр. 241234567 (без 0, без кода)",
+      "phoneHintOther": "Номер без кода",
+      "yourCountryCode": "Ваш Код Страны",
+      "countryCodeHint": "напр. +999",
+      "otpWillBeSentTo": "OTP будет отправлен на: {phone}",
+      "otpWillBeSentToEmpty": "OTP будет отправлен на: ...",
+      "passwordLabel": "Пароль - с ним вы войдёте",
+      "passwordHint": "Мин 8 символов, заглавная + строчная + цифра + символ",
+      "uploadPhoto": "Загрузить Фото (необязательно)",
+      "photoSelected": "Фото Выбрано: {name}",
+      "pickPhoto": "Выбрать Фото",
+      "registerBtn": "ЗАРЕГИСТРИРОВАТЬСЯ - ОТПРАВИТЬ SMS OTP",
+      "afterOtpNote": "После SMS OTP войдите с Номером Телефона + Паролем. Одобрение CEO не нужно.",
+      "otpTitle": "Введите SMS OTP",
+      "otpSentTo": "Мы отправили 6-значный SMS код на\n{phone}",
+      "checkSms": "Проверьте ваш SMS. Введите код ниже. Вы остаётесь в приложении.",
+      "verifyOtp": "ПОДТВЕРДИТЬ SMS OTP",
+      "resendIn": "Повторная отправка SMS через {sec} с",
+      "sendingSms": "Отправка SMS...",
+      "resendOtp": "Отправить SMS OTP Повторно",
+      "cancelReg": "Отменить Регистрацию",
+      "enterPhoneFirst": "Сначала введите Номер Телефона",
+      "sendingOtpTo": "Отправка SMS OTP на {phone}...",
+      "autoDetected": "SMS авто-обнаружен! Проверка...",
+      "failedSendSms": "Не удалось отправить SMS: {e}",
+      "smsFailed": "SMS не удалось: {e}",
+      "enterComplete6": "Введите полный 6-значный SMS код",
+      "noOtpYet": "OTP ещё не отправлен. Сначала нажмите Повторно.",
+      "wrongOtp": "Неверный OTP: {e}",
+      "otpVerified": "OTP телефона подтверждён! Войдите сейчас с Телефоном + Паролем.",
+      "passwordMissing": "Пароль отсутствует. Вернитесь и введите пароль снова.",
+      "errorSaving": "Ошибка сохранения: {e}",
+      "otpCancelled": "OTP отменён. Зарегистрируйтесь снова.",
+      "fillAll": "Заполните Имя, Имя Пользователя, Телефон и Пароль. Эл. почта необязательна.",
+      "passwordWeakMissing": "Пароль слишком слабый. Не хватает: {missing}",
+      "enterValidCode": "Введите действительный код страны для Другая, напр. +999",
+      "phoneHasAccount": "У этого телефона уже есть аккаунт. Войдите с Телефоном + Паролем.",
+      "blockedNurse": "ЗАБЛОКИРОВАНО: Этот телефон уже зарегистрирован как МЕДСЕСТРА. Используйте Вход Медсестры.",
+      "blockedNurseShort": "ЗАБЛОКИРОВАНО: Этот телефон уже зарегистрирован как МЕДСЕСТРА.",
+      "welcomeBack": "С возвращением! Введите SMS OTP, отправленный на {phone}. Если истёк, нажмите Повторно.",
+      "otpSentEnter": "SMS OTP отправлен на {phone}. Введите 6-значный код.",
+      "failed": "Не удалось: {e}",
+      "weak": "Слабый",
+      "medium": "Средний",
+      "strong": "Сильный",
+      "veryStrong": "Очень сильный",
+      "missing8": "Минимум 8 символов",
+      "missingUpper": "Одна ЗАГЛАВНАЯ буква (A-Z)",
+      "missingLower": "Одна строчная буква (a-z)",
+      "missingNumber": "Одна цифра (0-9)",
+      "missingSpecial": "Один спецсимвол (! @ # \$ % и т.д.)",
+      "missingNoSpaces": "Без пробелов",
+      "strongPassword": "Сильный пароль",
+    },
+
+    // 19. TURKISH
+    "tr": {
+      "title": "Müşteri Kaydı",
+      "fullName": "Tam Ad",
+      "username": "Kullanıcı Adı",
+      "emailOptional": "E-posta (isteğe bağlı - sadece kurtarma için)",
+      "countryCode": "Ülke Kodu",
+      "otherTypeCode": "Diğer (kod yazın)",
+      "phoneLabel": "Telefon Numarası - OTP buraya gelir",
+      "phoneHint": "örn. 241234567 (0 yok, kod yok)",
+      "phoneHintOther": "Kodsuz numara",
+      "yourCountryCode": "Ülke Kodunuz",
+      "countryCodeHint": "örn. +999",
+      "otpWillBeSentTo": "OTP gönderilecek: {phone}",
+      "otpWillBeSentToEmpty": "OTP gönderilecek: ...",
+      "passwordLabel": "Şifre - bununla giriş yapacaksınız",
+      "passwordHint": "En az 8 karakter, büyük + küçük + sayı + sembol",
+      "uploadPhoto": "Fotoğraf Yükle (isteğe bağlı)",
+      "photoSelected": "Fotoğraf Seçildi: {name}",
+      "pickPhoto": "Fotoğraf Seç",
+      "registerBtn": "KAYDOL - SMS OTP GÖNDER",
+      "afterOtpNote": "SMS OTP'den sonra Telefon Numarası + Şifre ile giriş yapın. CEO onayı gerekmez.",
+      "otpTitle": "SMS OTP Girin",
+      "otpSentTo": "6 haneli SMS kodu gönderdik\n{phone}",
+      "checkSms": "SMS'inizi kontrol edin. Kodu aşağıya girin. Uygulama içinde kalırsınız.",
+      "verifyOtp": "SMS OTP'Yİ DOĞRULA",
+      "resendIn": "SMS {sec} sn içinde tekrar gönder",
+      "sendingSms": "SMS gönderiliyor...",
+      "resendOtp": "SMS OTP'yi Tekrar Gönder",
+      "cancelReg": "Kaydı İptal Et",
+      "enterPhoneFirst": "Önce Telefon Numarası Girin",
+      "sendingOtpTo": "SMS OTP {phone} numarasına gönderiliyor...",
+      "autoDetected": "SMS otomatik algılandı! Doğrulanıyor...",
+      "failedSendSms": "SMS gönderilemedi: {e}",
+      "smsFailed": "SMS başarısız: {e}",
+      "enterComplete6": "Tam 6 haneli SMS kodunu girin",
+      "noOtpYet": "Henüz OTP gönderilmedi. Önce Tekrar Gönder'e dokunun.",
+      "wrongOtp": "Yanlış OTP: {e}",
+      "otpVerified": "Telefon OTP doğrulandı! Şimdi Telefon + Şifre ile giriş yapın.",
+      "passwordMissing": "Şifre eksik. Geri dönüp şifreyi tekrar girin.",
+      "errorSaving": "Kaydetme hatası: {e}",
+      "otpCancelled": "OTP iptal edildi. Tekrar kaydolun.",
+      "fillAll": "Ad, Kullanıcı Adı, Telefon ve Şifre doldurun. E-posta isteğe bağlı.",
+      "passwordWeakMissing": "Şifre çok zayıf. Eksik: {missing}",
+      "enterValidCode": "Diğer için geçerli bir ülke kodu girin, örn. +999",
+      "phoneHasAccount": "Bu telefonun zaten hesabı var. Telefon + Şifre ile giriş yapın.",
+      "blockedNurse": "ENGELLENDİ: Bu telefon zaten HEMŞİRE olarak kayıtlı. Hemşire Girişi kullanın.",
+      "blockedNurseShort": "ENGELLENDİ: Bu telefon zaten HEMŞİRE olarak kayıtlı.",
+      "welcomeBack": "Tekrar hoş geldiniz! {phone} numarasına gönderilen SMS OTP'yi girin. Süresi dolduysa Tekrar Gönder'e dokunun.",
+      "otpSentEnter": "SMS OTP {phone} numarasına gönderildi. 6 haneli kodu girin.",
+      "failed": "Başarısız: {e}",
+      "weak": "Zayıf",
+      "medium": "Orta",
+      "strong": "Güçlü",
+      "veryStrong": "Çok güçlü",
+      "missing8": "En az 8 karakter",
+      "missingUpper": "Bir BÜYÜK harf (A-Z)",
+      "missingLower": "Bir küçük harf (a-z)",
+      "missingNumber": "Bir sayı (0-9)",
+      "missingSpecial": "Bir özel karakter (! @ # \$ % vb.)",
+      "missingNoSpaces": "Boşluk yok",
+      "strongPassword": "Güçlü şifre",
+    },
+
+    // 20. KOREAN
+    "ko": {
+      "title": "고객 등록",
+      "fullName": "전체 이름",
+      "username": "사용자 이름",
+      "emailOptional": "이메일 (선택 - 복구용)",
+      "countryCode": "국가 코드",
+      "otherTypeCode": "기타 (코드 입력)",
+      "phoneLabel": "전화번호 - OTP가 여기로 옵니다",
+      "phoneHint": "예: 241234567 (0 없음, 코드 없음)",
+      "phoneHintOther": "코드 없는 번호",
+      "yourCountryCode": "귀하의 국가 코드",
+      "countryCodeHint": "예: +999",
+      "otpWillBeSentTo": "OTP가 전송됩니다: {phone}",
+      "otpWillBeSentToEmpty": "OTP가 전송됩니다: ...",
+      "passwordLabel": "비밀번호 - 이것으로 로그인합니다",
+      "passwordHint": "최소 8자, 대문자 + 소문자 + 숫자 + 기호",
+      "uploadPhoto": "사진 업로드 (선택)",
+      "photoSelected": "사진 선택됨: {name}",
+      "pickPhoto": "사진 선택",
+      "registerBtn": "등록 - SMS OTP 보내기",
+      "afterOtpNote": "SMS OTP 후 전화번호 + 비밀번호로 로그인하세요. CEO 승인이 필요 없습니다.",
+      "otpTitle": "SMS OTP 입력",
+      "otpSentTo": "6자리 SMS 코드를 보냈습니다\n{phone}",
+      "checkSms": "SMS를 확인하세요. 아래에 코드를 입력하세요. 앱 안에 머무릅니다.",
+      "verifyOtp": "SMS OTP 확인",
+      "resendIn": "{sec}초 후 SMS 재전송",
+      "sendingSms": "SMS 전송 중...",
+      "resendOtp": "SMS OTP 재전송",
+      "cancelReg": "등록 취소",
+      "enterPhoneFirst": "먼저 전화번호를 입력하세요",
+      "sendingOtpTo": "SMS OTP를 {phone}로 전송 중...",
+      "autoDetected": "SMS 자동 감지! 확인 중...",
+      "failedSendSms": "SMS 전송 실패: {e}",
+      "smsFailed": "SMS 실패: {e}",
+      "enterComplete6": "완전한 6자리 SMS 코드를 입력하세요",
+      "noOtpYet": "아직 OTP가 전송되지 않았습니다. 먼저 재전송을 누르세요.",
+      "wrongOtp": "잘못된 OTP: {e}",
+      "otpVerified": "전화 OTP가 확인되었습니다! 이제 전화 + 비밀번호로 로그인하세요.",
+      "passwordMissing": "비밀번호가 없습니다. 돌아가서 비밀번호를 다시 입력하세요.",
+      "errorSaving": "저장 오류: {e}",
+      "otpCancelled": "OTP가 취소되었습니다. 다시 등록하세요.",
+      "fillAll": "이름, 사용자 이름, 전화 및 비밀번호를 입력하세요. 이메일은 선택입니다.",
+      "passwordWeakMissing": "비밀번호가 너무 약합니다. 누락: {missing}",
+      "enterValidCode": "기타에 유효한 국가 코드를 입력하세요, 예: +999",
+      "phoneHasAccount": "이 전화에 이미 계정이 있습니다. 전화 + 비밀번호로 로그인하세요.",
+      "blockedNurse": "차단됨: 이 전화는 이미 간호사로 등록되어 있습니다. 간호사 로그인을 사용하세요.",
+      "blockedNurseShort": "차단됨: 이 전화는 이미 간호사로 등록되어 있습니다.",
+      "welcomeBack": "다시 오신 것을 환영합니다! {phone}로 전송된 SMS OTP를 입력하세요. 만료되면 재전송을 누르세요.",
+      "otpSentEnter": "SMS OTP가 {phone}로 전송되었습니다. 6자리 코드를 입력하세요.",
+      "failed": "실패: {e}",
+      "weak": "약함",
+      "medium": "보통",
+      "strong": "강함",
+      "veryStrong": "매우 강함",
+      "missing8": "최소 8자",
+      "missingUpper": "대문자 하나 (A-Z)",
+      "missingLower": "소문자 하나 (a-z)",
+      "missingNumber": "숫자 하나 (0-9)",
+      "missingSpecial": "특수 문자 하나 (! @ # \$ % 등)",
+      "missingNoSpaces": "공백 없음",
+      "strongPassword": "강한 비밀번호",
+    },
+
+    // 21. JAPANESE
+    "ja": {
+      "title": "クライアント登録",
+      "fullName": "フルネーム",
+      "username": "ユーザー名",
+      "emailOptional": "メール (任意 - 回復用のみ)",
+      "countryCode": "国コード",
+      "otherTypeCode": "その他 (コードを入力)",
+      "phoneLabel": "電話番号 - OTPはここに来ます",
+      "phoneHint": "例 241234567 (0なし、コードなし)",
+      "phoneHintOther": "コードなしの番号",
+      "yourCountryCode": "あなたの国コード",
+      "countryCodeHint": "例 +999",
+      "otpWillBeSentTo": "OTPは送信されます: {phone}",
+      "otpWillBeSentToEmpty": "OTPは送信されます: ...",
+      "passwordLabel": "パスワード - これでログインします",
+      "passwordHint": "最低8文字、大文字 + 小文字 + 数字 + 記号",
+      "uploadPhoto": "写真をアップロード (任意)",
+      "photoSelected": "写真を選択しました: {name}",
+      "pickPhoto": "写真を選択",
+      "registerBtn": "登録 - SMS OTPを送信",
+      "afterOtpNote": "SMS OTPの後、電話番号 + パスワードでログインしてください。CEOの承認は不要です。",
+      "otpTitle": "SMS OTPを入力",
+      "otpSentTo": "6桁のSMSコードを送信しました\n{phone}",
+      "checkSms": "SMSを確認してください。下にコードを入力してください。アプリ内に留まります。",
+      "verifyOtp": "SMS OTPを確認",
+      "resendIn": "{sec}秒後にSMSを再送信",
+      "sendingSms": "SMSを送信中...",
+      "resendOtp": "SMS OTPを再送信",
+      "cancelReg": "登録をキャンセル",
+      "enterPhoneFirst": "まず電話番号を入力してください",
+      "sendingOtpTo": "SMS OTPを {phone} に送信中...",
+      "autoDetected": "SMSを自動検出しました! 確認中...",
+      "failedSendSms": "SMS送信に失敗しました: {e}",
+      "smsFailed": "SMSが失敗しました: {e}",
+      "enterComplete6": "完全な6桁のSMSコードを入力してください",
+      "noOtpYet": "OTPはまだ送信されていません。まず再送信をタップしてください。",
+      "wrongOtp": "間違ったOTP: {e}",
+      "otpVerified": "電話OTPが確認されました! 今すぐ電話 + パスワードでログインしてください。",
+      "passwordMissing": "パスワードがありません。戻ってパスワードを再入力してください。",
+      "errorSaving": "保存エラー: {e}",
+      "otpCancelled": "OTPがキャンセルされました。再登録してください。",
+      "fillAll": "名前、ユーザー名、電話番号、パスワードを入力してください。メールは任意です。",
+      "passwordWeakMissing": "パスワードが弱すぎます。不足: {missing}",
+      "enterValidCode": "その他に有効な国コードを入力してください、例 +999",
+      "phoneHasAccount": "この電話にはすでにアカウントがあります。電話 + パスワードでログインしてください。",
+      "blockedNurse": "ブロックされました: この電話はすでに看護師として登録されています。看護師ログインを使用してください。",
+      "blockedNurseShort": "ブロックされました: この電話はすでに看護師として登録されています。",
+      "welcomeBack": "おかえりなさい! {phone} に送信されたSMS OTPを入力してください。期限切れの場合は再送信をタップしてください。",
+      "otpSentEnter": "SMS OTPが {phone} に送信されました。6桁のコードを入力してください。",
+      "failed": "失敗しました: {e}",
+      "weak": "弱い",
+      "medium": "普通",
+      "strong": "強い",
+      "veryStrong": "非常に強い",
+      "missing8": "最低8文字",
+      "missingUpper": "大文字1つ (A-Z)",
+      "missingLower": "小文字1つ (a-z)",
+      "missingNumber": "数字1つ (0-9)",
+      "missingSpecial": "特殊文字1つ (! @ # \$ % など)",
+      "missingNoSpaces": "スペースなし",
+      "strongPassword": "強いパスワード",
+    },
+
+    // 22. POLISH
+    "pl": {
+      "title": "Rejestracja Klienta",
+      "fullName": "Pełne Imię",
+      "username": "Nazwa Użytkownika",
+      "emailOptional": "E-mail (opcjonalnie - tylko do odzyskiwania)",
+      "countryCode": "Kod Kraju",
+      "otherTypeCode": "Inny (wpisz kod)",
+      "phoneLabel": "Numer Telefonu - OTP przychodzi tutaj",
+      "phoneHint": "np. 241234567 (bez 0, bez kodu)",
+      "phoneHintOther": "Numer bez kodu",
+      "yourCountryCode": "Twój Kod Kraju",
+      "countryCodeHint": "np. +999",
+      "otpWillBeSentTo": "OTP zostanie wysłany na: {phone}",
+      "otpWillBeSentToEmpty": "OTP zostanie wysłany na: ...",
+      "passwordLabel": "Hasło - nim się zalogujesz",
+      "passwordHint": "Min 8 znaków, duża + mała + cyfra + symbol",
+      "uploadPhoto": "Wgraj Zdjęcie (opcjonalnie)",
+      "photoSelected": "Wybrano Zdjęcie: {name}",
+      "pickPhoto": "Wybierz Zdjęcie",
+      "registerBtn": "ZAREJESTRUJ - WYŚLIJ SMS OTP",
+      "afterOtpNote": "Po SMS OTP zaloguj się Numerem Telefonu + Hasłem. Zatwierdzenie CEO niepotrzebne.",
+      "otpTitle": "Wpisz SMS OTP",
+      "otpSentTo": "Wysłaliśmy 6-cyfrowy kod SMS na\n{phone}",
+      "checkSms": "Sprawdź swój SMS. Wpisz kod poniżej. Zostajesz w aplikacji.",
+      "verifyOtp": "ZWERYFIKUJ SMS OTP",
+      "resendIn": "Wyślij SMS ponownie za {sec} s",
+      "sendingSms": "Wysyłanie SMS...",
+      "resendOtp": "Wyślij SMS OTP Ponownie",
+      "cancelReg": "Anuluj Rejestrację",
+      "enterPhoneFirst": "Najpierw wpisz Numer Telefonu",
+      "sendingOtpTo": "Wysyłanie SMS OTP na {phone}...",
+      "autoDetected": "SMS auto-wykryty! Weryfikowanie...",
+      "failedSendSms": "Wysyłanie SMS nieudane: {e}",
+      "smsFailed": "SMS nieudane: {e}",
+      "enterComplete6": "Wpisz pełny 6-cyfrowy kod SMS",
+      "noOtpYet": "Nie wysłano jeszcze OTP. Dotknij Wyślij Ponownie.",
+      "wrongOtp": "Zły OTP: {e}",
+      "otpVerified": "OTP telefonu zweryfikowany! Zaloguj się teraz Telefonem + Hasłem.",
+      "passwordMissing": "Brak hasła. Wróć i wpisz hasło ponownie.",
+      "errorSaving": "Błąd zapisywania: {e}",
+      "otpCancelled": "OTP anulowany. Zarejestruj się ponownie.",
+      "fillAll": "Wypełnij Imię, Nazwę Użytkownika, Telefon i Hasło. E-mail jest opcjonalny.",
+      "passwordWeakMissing": "Hasło za słabe. Brakuje: {missing}",
+      "enterValidCode": "Wpisz prawidłowy kod kraju dla Inny, np. +999",
+      "phoneHasAccount": "Ten telefon ma już konto. Zaloguj się Telefonem + Hasłem.",
+      "blockedNurse": "ZABLOKOWANE: Ten telefon jest już zarejestrowany jako PIELĘGNIARKA. Użyj Logowania Pielęgniarki.",
+      "blockedNurseShort": "ZABLOKOWANE: Ten telefon jest już zarejestrowany jako PIELĘGNIARKA.",
+      "welcomeBack": "Witaj z powrotem! Wpisz SMS OTP wysłany na {phone}. Jeśli wygasł, dotknij Wyślij Ponownie.",
+      "otpSentEnter": "SMS OTP wysłany na {phone}. Wpisz 6-cyfrowy kod.",
+      "failed": "Nieudane: {e}",
+      "weak": "Słabe",
+      "medium": "Średnie",
+      "strong": "Silne",
+      "veryStrong": "Bardzo silne",
+      "missing8": "Co najmniej 8 znaków",
+      "missingUpper": "Jedna WIELKA litera (A-Z)",
+      "missingLower": "Jedna mała litera (a-z)",
+      "missingNumber": "Jedna cyfra (0-9)",
+      "missingSpecial": "Jeden znak specjalny (! @ # \$ % itp.)",
+      "missingNoSpaces": "Bez spacji",
+      "strongPassword": "Silne hasło",
+    },
+  };
+
+  // ---------- THE RULE ----------
+  // CEO = English ONLY. Nurse + Client = chosen language.
+  static String get(String lang, String key) {
+    return all[lang]?[key] ?? all['en']?[key] ?? key;
+  }
+
+  static String getForRole(String role, String lang, String key) {
+    if (role.toLowerCase() == 'ceo') {
+      return all['en']?[key] ?? key;
     }
-    return _selectedCountry.split('|')[1];
-  }
-  String get _fullPhone {
-    var local = _phone.text.trim().replaceAll(RegExp(r'[\s\-\(\)]'), '');
-    if (local.startsWith('+')) return local;
-    if (local.startsWith('00')) return '+${local.substring(2)}';
-    if (local.startsWith('0')) local = local.substring(1);
-    return _selectedDialCode.replaceAll(' ', '') + local;
-  }
-  String get _phoneDigits => _fullPhone.replaceAll(RegExp(r'[^0-9]'), '');
-  String get _otpCode => _otpControllers.map((c) => c.text).join();
-  String get _hiddenEmail {
-    final real = _email.text.trim().toLowerCase();
-    if (real.isNotEmpty && real.contains('@')) return real;
-    return '${_phoneDigits}@phone.lovecare';
+    return all[lang]?[key] ?? all['en']?[key] ?? key;
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _resumePendingOtp();
-  }
-
-  @override
-  void dispose() {
-    _resendTimer?.cancel();
-    for (var c in _otpControllers) c.dispose();
-    for (var f in _otpFocus) f.dispose();
-    _name.dispose();
-    _username.dispose();
-    _email.dispose();
-    _phone.dispose();
-    _pass.dispose();
-    _otherCode.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickPhoto() async {
-    final f = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (f != null) setState(() => _photo = f);
-  }
-
-  Future<String?> _upload(XFile file, String path) async {
-    final ref = FirebaseStorage.instance.ref().child(path);
-    final bytes = await file.readAsBytes();
-    await ref.putData(bytes, SettableMetadata(contentType: file.mimeType ?? 'application/octet-stream'));
-    return await ref.getDownloadURL();
-  }
-
-  Future<String?> _checkPhoneNotUsedAsNurse(String phone, String digits) async {
-    try {
-      final s = await FirebaseDatabase.instance.ref('nurses').get();
-      if (s.exists && s.value is Map) {
-        for (final e in (s.value as Map).values) {
-          if (e is! Map) continue;
-          final p = (e['phone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
-          if (p.isNotEmpty && (p == digits || p.endsWith(digits) || digits.endsWith(p))) {
-            return 'BLOCKED: This phone is already registered as a NURSE. Use Nurse Login.';
-          }
-        }
-      }
-    } catch (_) {}
-    try {
-      final q = await FirebaseFirestore.instance.collection('nurses').where('phone', isEqualTo: phone).limit(1).get();
-      if (q.docs.isNotEmpty) return 'BLOCKED: This phone is already registered as a NURSE.';
-    } catch (_) {}
-    return null;
-  }
-
-  Future<void> _savePendingOtp() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('client_pending_otp', true);
-      await prefs.setString('client_pending_name', _name.text.trim());
-      await prefs.setString('client_pending_username', _username.text.trim());
-      await prefs.setString('client_pending_email', _email.text.trim().toLowerCase());
-      await prefs.setString('client_pending_phone', _fullPhone);
-      await prefs.setString('client_pending_countryCode', _selectedDialCode);
-      await prefs.setString('client_pending_country', _selectedCountryName);
-      await prefs.setString('client_pending_password', _pass.text);
-      await prefs.setString('client_pending_verificationId', _verificationId);
-      if (_photo != null) await prefs.setString('client_pending_photo_path', _photo!.path);
-    } catch (_) {}
-  }
-
-  Future<void> _clearPending() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('client_pending_otp');
-      await prefs.remove('client_pending_verification');
-      await prefs.remove('client_pending_name');
-      await prefs.remove('client_pending_username');
-      await prefs.remove('client_pending_email');
-      await prefs.remove('client_pending_phone');
-      await prefs.remove('client_pending_countryCode');
-      await prefs.remove('client_pending_country');
-      await prefs.remove('client_pending_password');
-      await prefs.remove('client_pending_verificationId');
-      await prefs.remove('client_pending_photo_path');
-    } catch (_) {}
-  }
-
-  Future<void> _resumePendingOtp() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('client_pending_otp') != true) return;
-      if (_name.text.isEmpty) _name.text = prefs.getString('client_pending_name') ?? '';
-      if (_username.text.isEmpty) _username.text = prefs.getString('client_pending_username') ?? '';
-      if (_email.text.isEmpty) _email.text = prefs.getString('client_pending_email') ?? '';
-      if (_phone.text.isEmpty) {
-        final saved = prefs.getString('client_pending_phone') ?? '';
-        if (saved.isNotEmpty) {
-          var local = saved.replaceAll(RegExp(r'[^0-9]'), '');
-          if (local.startsWith(_selectedDialCode.replaceAll('+', ''))) local = local.substring(_selectedDialCode.replaceAll('+', '').length);
-          if (local.startsWith('0')) local = local.substring(1);
-          _phone.text = local;
-        }
-      }
-      if (_pass.text.isEmpty) _pass.text = prefs.getString('client_pending_password') ?? '';
-      _verificationId = prefs.getString('client_pending_verificationId') ?? '';
-      final photoPath = prefs.getString('client_pending_photo_path');
-      if (_photo == null && photoPath != null && photoPath.isNotEmpty) {
-        try { _photo = XFile(photoPath); } catch (_) {}
-      }
-      if (!mounted) return;
-      setState(() {
-        _waitingOtp = true;
-        _otpStatus = 'Welcome back! Enter SMS OTP sent to $_fullPhone. If expired, tap Resend.';
-      });
-      _startResendCountdown();
-    } catch (_) {}
-  }
-
-  void _startResendCountdown() {
-    _resendTimer?.cancel();
-    setState(() => _resendSeconds = 60);
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_resendSeconds <= 0) { t.cancel(); if (mounted) setState(() {}); return; }
-      if (mounted) setState(() => _resendSeconds--);
+  static String getWith(String role, String lang, String key, Map<String, String> params) {
+    String raw = getForRole(role, lang, key);
+    params.forEach((k, v) {
+      raw = raw.replaceAll('{$k}', v);
     });
+    return raw;
   }
 
-  Future<void> _sendOtp() async {
-    if (_fullPhone.isEmpty || _phone.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter Phone Number first')));
-      return;
-    }
-    setState(() { _otpSending = true; _otpStatus = 'Sending SMS OTP to $_fullPhone...'; });
-    try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: _fullPhone,
-        timeout: const Duration(seconds: 60),
-        forceResendingToken: _resendToken,
-        verificationCompleted: (PhoneAuthCredential cred) async {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('SMS auto-detected! Verifying...')));
-          await _finishWithPhoneCredential(cred);
-        },
-        verificationFailed: (FirebaseAuthException e) {
-          if (!mounted) return;
-          setState(() { _otpSending = false; _otpStatus = 'Failed to send SMS: ${e.message}'; });
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('SMS failed: ${e.message}'), backgroundColor: Colors.red));
-        },
-        codeSent: (String verId, int? token) async {
-          _verificationId = verId;
-          _resendToken = token;
-          await _savePendingOtp();
-          if (!mounted) return;
-          setState(() { _otpSending = false; _waitingOtp = true; _otpStatus = 'SMS OTP sent to $_fullPhone. Enter 6-digit code.'; });
-          _startResendCountdown();
-        },
-        codeAutoRetrievalTimeout: (String verId) { _verificationId = verId; },
-      );
-    } catch (e) {
-      if (mounted) setState(() { _otpSending = false; _otpStatus = 'Failed: $e'; });
-    }
-  }
-
-  Future<void> _verifyOtp() async {
-    if (_otpCode.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter complete 6-digit SMS code')));
-      return;
-    }
-    if (_verificationId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No OTP sent yet. Tap Resend OTP first.'), backgroundColor: Colors.red));
-      return;
-    }
-    setState(() => _loading = true);
-    try {
-      final cred = PhoneAuthProvider.credential(verificationId: _verificationId, smsCode: _otpCode);
-      await _finishWithPhoneCredential(cred);
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Wrong OTP: $e'), backgroundColor: Colors.red));
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  // After SMS OTP verified -> Auth user MUST have phoneNumber saved
-  // We link Phone + Email/Password to SAME Auth user, so Firebase Console shows phone + email
-  Future<void> _finishWithPhoneCredential(PhoneAuthCredential phoneCred) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final name = _name.text.trim().isNotEmpty ? _name.text.trim() : (prefs.getString('client_pending_name') ?? '');
-      final username = _username.text.trim().isNotEmpty ? _username.text.trim() : (prefs.getString('client_pending_username') ?? '');
-      final realEmail = _email.text.trim().isNotEmpty ? _email.text.trim().toLowerCase() : (prefs.getString('client_pending_email') ?? '');
-      final phone = _fullPhone.isNotEmpty && _phone.text.trim().isNotEmpty ? _fullPhone : (prefs.getString('client_pending_phone') ?? '');
-      final password = _pass.text.isNotEmpty ? _pass.text : (prefs.getString('client_pending_password') ?? '');
-      final emailForAuth = realEmail.isNotEmpty && realEmail.contains('@') ? realEmail : '${phone.replaceAll(RegExp(r'[^0-9]'), '')}@phone.lovecare';
-      final digits = phone.replaceAll(RegExp(r'[^0-9]'), '');
-
-      if (password.isEmpty) throw Exception('Password missing. Go back and enter password again.');
-
-      // 1. Sign in with Phone OTP first - this user ALREADY has phoneNumber in Auth
-      try {
-        await FirebaseAuth.instance.signInWithCredential(phoneCred);
-      } catch (e) {
-        final cur = FirebaseAuth.instance.currentUser;
-        if (cur == null) rethrow;
-      }
-
-      // 2. Try link Email/Password to this Phone user - BEST CASE: Same user gets phone + email
-      bool linked = false;
-      try {
-        final emailCred = EmailAuthProvider.credential(email: emailForAuth, password: password);
-        await FirebaseAuth.instance.currentUser!.linkWithCredential(emailCred);
-        linked = true;
-      } catch (linkErr) {
-        // Email already exists - sign in with Email, then LINK PHONE to Email user
-        try {
-          await FirebaseAuth.instance.signOut();
-          await FirebaseAuth.instance.signInWithEmailAndPassword(email: emailForAuth, password: password);
-          try {
-            await FirebaseAuth.instance.currentUser!.linkWithCredential(phoneCred);
-            linked = true;
-          } catch (phoneLinkErr) {
-            print('Phone link failed (already linked elsewhere): $phoneLinkErr');
-            linked = false;
-          }
-        } catch (_) {
-          try {
-            await FirebaseAuth.instance.signOut();
-            await FirebaseAuth.instance.createUserWithEmailAndPassword(email: emailForAuth, password: password);
-            try {
-              await FirebaseAuth.instance.currentUser!.linkWithCredential(phoneCred);
-              linked = true;
-            } catch (_) {}
-          } catch (createErr) {
-            await FirebaseAuth.instance.signInWithCredential(phoneCred);
-          }
-        }
-      }
-
-      final user = FirebaseAuth.instance.currentUser!;
-      final uid = user.uid;
-
-      // 3. FORCE Auth to save phone + name + photo - this is what shows for Firebase Console
-      try {
-        if ((user.phoneNumber == null || user.phoneNumber!.isEmpty) && linked == false) {
-          try {
-            await user.updatePhoneNumber(phoneCred);
-          } catch (_) {}
-        }
-      } catch (_) {}
-      try {
-        await user.updateDisplayName(name);
-      } catch (_) {}
-
-      String? photoUrl;
-      if (_photo != null) {
-        try { photoUrl = await _upload(_photo!, 'clients/$uid/photo.jpg'); } catch (_) {}
-      }
-      if (photoUrl != null && photoUrl.isNotEmpty) {
-        try { await user.updatePhotoURL(photoUrl); } catch (_) {}
-      }
-      try { await user.reload(); } catch (_) {}
-
-      final finalUser = FirebaseAuth.instance.currentUser!;
-      print('AUTH SAVED: uid=$uid email=${finalUser.email} phone=${finalUser.phoneNumber} name=${finalUser.displayName}');
-
-      final nowMs = DateTime.now().millisecondsSinceEpoch;
-
-      final firestoreData = <String, Object?>{
-        'uid': uid, 'id': uid, 'name': name, 'fullName': name, 'username': username,
-        'email': emailForAuth, 'realEmail': realEmail, 'phone': phone, 'phoneNumber': phone,
-        'authPhone': finalUser.phoneNumber ?? phone,
-        'countryCode': _selectedDialCode, 'country': _selectedCountryName,
-        'role': 'client', 'type': 'client', 'status': 'approved', 'isApproved': true, 'approved': true,
-        'approvalStatus': 'approved', 'canLogin': true, 'phoneVerified': true, 'otpVerified': true,
-        'emailVerified': true, 'verifiedByEmail': false, 'verifiedByPhone': true, 'isVerified': true,
-        'isComplete': true, 'hasAll4': true, 'approvedAt': FieldValue.serverTimestamp(),
-        if (photoUrl != null && photoUrl.isNotEmpty) 'photo': photoUrl,
-        if (photoUrl != null && photoUrl.isNotEmpty) 'photoUrl': photoUrl,
-        if (photoUrl != null && photoUrl.isNotEmpty) 'photoURL': photoUrl,
-      };
-      final rtdbData = <String, Object?>{
-        'uid': uid, 'id': uid, 'name': name, 'fullName': name, 'username': username,
-        'email': emailForAuth, 'realEmail': realEmail, 'phone': phone, 'phoneNumber': phone,
-        'authPhone': finalUser.phoneNumber ?? phone,
-        'countryCode': _selectedDialCode, 'country': _selectedCountryName,
-        'role': 'client', 'type': 'client', 'status': 'approved', 'isApproved': true, 'approved': true,
-        'approvalStatus': 'approved', 'canLogin': true, 'phoneVerified': true, 'otpVerified': true,
-        'emailVerified': true, 'verifiedByEmail': false, 'verifiedByPhone': true, 'isVerified': true,
-        'isComplete': true, 'hasAll4': true, 'approvedAt': nowMs, 'updatedAt': nowMs,
-        if (photoUrl != null && photoUrl.isNotEmpty) 'photo': photoUrl,
-        if (photoUrl != null && photoUrl.isNotEmpty) 'photoUrl': photoUrl,
-        if (photoUrl != null && photoUrl.isNotEmpty) 'photoURL': photoUrl,
-      };
-
-      await FirebaseFirestore.instance.collection('clients').doc(uid).set(firestoreData, SetOptions(merge: true));
-      await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').set(rtdbData);
-      await FirebaseDatabase.instance.ref('clients/$uid').set(rtdbData);
-      await FirebaseDatabase.instance.ref('client_registrations/$uid').set(rtdbData);
-      await FirebaseDatabase.instance.ref('allowedClients/${emailForAuth.replaceAll(RegExp(r'[.#\$@\[\]]'), '_')}').set({...rtdbData, 'uid': uid});
-      await FirebaseDatabase.instance.ref('allowedClientsByUid/$uid').set({...rtdbData, 'uid': uid});
-      if (digits.isNotEmpty) {
-        await FirebaseDatabase.instance.ref('phones/$digits').set(emailForAuth);
-        await FirebaseDatabase.instance.ref('clientsByPhone/$digits').set(uid);
-      }
-
-      await _clearPending();
-      if (!mounted) return;
-      setState(() { _waitingOtp = false; _loading = false; });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Phone OTP verified! Auth saved phone ${finalUser.phoneNumber ?? phone}. Login with Phone + Password now.')));
-      await FirebaseAuth.instance.signOut();
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const ClientLoginPage()));
-    } catch (e) {
-      if (mounted) setState(() => _loading = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red));
-    }
-  }
-
-  Future<void> _cancelOtp() async {
-    _resendTimer?.cancel();
-    try { await FirebaseAuth.instance.signOut(); } catch (_) {}
-    await _clearPending();
-    if (!mounted) return;
-    setState(() { _waitingOtp = false; _loading = false; _otpSending = false; });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP cancelled. Register again.'), backgroundColor: Colors.red));
-  }
-
-  Future<void> _register() async {
-    if (_name.text.trim().isEmpty || _username.text.trim().isEmpty || _phone.text.trim().isEmpty || _pass.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill Name, Username, Phone and Password. Email is optional.')));
-      return;
-    }
-    if (!_isStrongPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Password too weak. Missing: ${_passwordMissing.join(', ')}'), backgroundColor: Colors.red));
-      return;
-    }
-    if (_isOtherCountry && !RegExp(r'^\+\\d{1,4}$').hasMatch(_selectedDialCode)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid country code for Other, e.g. +999')));
-      return;
-    }
-    try {
-      final s = await FirebaseDatabase.instance.ref('phones/$_phoneDigits').get();
-      if (s.exists) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('This phone already has an account. Login with Phone + Password instead.'), backgroundColor: Colors.orange));
-        return;
-      }
-    } catch (_) {}
-    final blocked = await _checkPhoneNotUsedAsNurse(_fullPhone, _phoneDigits);
-    if (blocked != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(blocked), backgroundColor: Colors.red));
-      return;
-    }
-    setState(() => _loading = true);
-    await _savePendingOtp();
-    await _sendOtp();
-    if (mounted) setState(() => _loading = false);
-  }
-
-  int get _passwordScore {
-    final p = _pass.text; var score = 0;
-    if (p.length >= 8) score++;
-    if (p.length >= 12) score++;
-    if (RegExp(r'[A-Z]').hasMatch(p)) score++;
-    if (RegExp(r'[a-z]').hasMatch(p)) score++;
-    if (RegExp(r'[0-9]').hasMatch(p)) score++;
-    if (RegExp(r'[^A-Za-z0-9]').hasMatch(p)) score++;
-    return score;
-  }
-  bool get _isStrongPassword {
-    final p = _pass.text;
-    return p.length >= 8 && RegExp(r'[A-Z]').hasMatch(p) && RegExp(r'[a-z]').hasMatch(p) && RegExp(r'[0-9]').hasMatch(p) && RegExp(r'[^A-Za-z0-9]').hasMatch(p) && !p.contains(' ');
-  }
-  String get _passwordStrengthLabel {
-    if (_pass.text.isEmpty) return '';
-    final s = _passwordScore;
-    if (s <= 2) return 'Weak'; if (s <= 4) return 'Medium'; if (s == 5) return 'Strong'; return 'Very strong';
-  }
-  Color get _passwordStrengthColor {
-    if (_pass.text.isEmpty) return Colors.grey;
-    final s = _passwordScore;
-    if (s <= 2) return Colors.red; if (s <= 4) return Colors.orange; if (s == 5) return Colors.lightGreen; return Colors.green;
-  }
-  List<String> get _passwordMissing {
-    final p = _pass.text; final missing = <String>[];
-    if (p.length < 8) missing.add('At least 8 characters');
-    if (!RegExp(r'[A-Z]').hasMatch(p)) missing.add('One UPPERCASE letter (A-Z)');
-    if (!RegExp(r'[a-z]').hasMatch(p)) missing.add('One lowercase letter (a-z)');
-    if (!RegExp(r'[0-9]').hasMatch(p)) missing.add('One number (0-9)');
-    if (!RegExp(r'[^A-Za-z0-9]').hasMatch(p)) missing.add('One special character (! @ # \$ % etc.)');
-    if (p.contains(' ')) missing.add('No spaces');
-    return missing;
-  }
-
-  Widget _otpBox(int i) {
-    return SizedBox(
-      width: 48, height: 56,
-      child: TextField(
-        controller: _otpControllers[i], focusNode: _otpFocus[i],
-        keyboardType: TextInputType.number, textAlign: TextAlign.center,
-        maxLength: 1, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: InputDecoration(counterText: '', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-        onChanged: (v) {
-          if (v.isNotEmpty && i < 5) _otpFocus[i + 1].requestFocus();
-          if (v.isEmpty && i > 0) _otpFocus[i - 1].requestFocus();
-          setState(() {});
-        },
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_waitingOtp) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Enter SMS OTP'), backgroundColor: Colors.purple, foregroundColor: Colors.white),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            const Icon(Icons.sms_outlined, size: 70, color: Colors.purple),
-            const SizedBox(height: 16),
-            Text('We sent 6-digit SMS code to\n$_fullPhone', textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('Check your SMS. Enter code below. You stay inside app.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 24),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: List.generate(6, (i) => _otpBox(i))),
-            const SizedBox(height: 16),
-            if (_otpStatus.isNotEmpty) Text(_otpStatus, textAlign: TextAlign.center, style: const TextStyle(color: Colors.purple)),
-            const SizedBox(height: 20),
-            _loading ? const Center(child: CircularProgressIndicator()) : ElevatedButton(
-              onPressed: _verifyOtp,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
-              child: const Text('VERIFY SMS OTP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(height: 12),
-            _resendSeconds > 0
-                ? Center(child: Text('Resend SMS in $_resendSeconds s', style: const TextStyle(color: Colors.grey)))
-                : OutlinedButton(onPressed: _otpSending ? null : _sendOtp, child: Text(_otpSending ? 'Sending SMS...' : 'Resend SMS OTP')),
-            const SizedBox(height: 12),
-            TextButton(onPressed: _cancelOtp, child: const Text('Cancel Registration', style: TextStyle(color: Colors.red))),
-          ]),
-        ),
-      );
-    }
-    return Scaffold(
-      appBar: AppBar(title: const Text('Client Registration'), backgroundColor: Colors.purple, foregroundColor: Colors.white),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(children: [
-          TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full Name')),
-          TextField(controller: _username, decoration: const InputDecoration(labelText: 'Username')),
-          TextField(controller: _email, decoration: const InputDecoration(labelText: 'Email (optional - for recovery only)')),
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(flex: 2, child: DropdownButtonFormField<String>(value: _selectedCountry, isExpanded: true, decoration: const InputDecoration(labelText: 'Country Code'), items: [..._countries.map((c) => DropdownMenuItem<String>(value: '${c['name']}|${c['code']}', child: Text('${c['name']} (${c['code']})', overflow: TextOverflow.ellipsis))), const DropdownMenuItem<String>(value: 'Other|', child: Text('Other (type code)'))], onChanged: (v) { if (v != null) setState(() => _selectedCountry = v); })),
-            const SizedBox(width: 10),
-            Expanded(flex: 3, child: TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Phone Number - OTP comes here', hintText: _isOtherCountry ? 'Number without code' : 'e.g. 241234567 (no 0, no code)'))),
-          ]),
-          if (_isOtherCountry) Padding(padding: const EdgeInsets.only(top: 8), child: TextField(controller: _otherCode, keyboardType: TextInputType.phone, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Your Country Code', hintText: 'e.g. +999'))),
-          const SizedBox(height: 4),
-          Align(alignment: Alignment.centerLeft, child: Text('OTP will be sent to: ${_phone.text.trim().isEmpty ? '...' : _fullPhone}', style: const TextStyle(fontSize: 12, color: Colors.grey))),
-          TextField(controller: _pass, obscureText: _obscurePassword, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: 'Password - you will login with this', hintText: 'Min 8 chars, upper + lower + number + symbol', suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePassword = !_obscurePassword)))),
-          const SizedBox(height: 8),
-          if (_pass.text.isNotEmpty) ...[
-            Row(children: [Expanded(child: LinearProgressIndicator(value: _passwordScore / 6, backgroundColor: Colors.grey.shade300, color: _passwordStrengthColor, minHeight: 6)), const SizedBox(width: 8), Text(_passwordStrengthLabel, style: TextStyle(color: _passwordStrengthColor, fontWeight: FontWeight.bold))]),
-            const SizedBox(height: 6),
-            ..._passwordMissing.map((m) => Row(children: [const Icon(Icons.close, size: 14, color: Colors.red), const SizedBox(width: 4), Expanded(child: Text(m, style: const TextStyle(fontSize: 12, color: Colors.red)))])),
-            if (_isStrongPassword) const Row(children: [Icon(Icons.check_circle, size: 14, color: Colors.green), SizedBox(width: 4), Text('Strong password', style: TextStyle(fontSize: 12, color: Colors.green))]),
-          ],
-          const SizedBox(height: 16),
-          ListTile(leading: const Icon(Icons.photo), title: Text(_photo == null ? 'Upload Photo (optional)' : 'Photo Selected: ${_photo!.name}'), trailing: ElevatedButton(onPressed: _pickPhoto, child: const Text('Pick Photo'))),
-          const SizedBox(height: 20),
-          _loading ? const CircularProgressIndicator() : ElevatedButton(onPressed: _register, child: const Text('REGISTER - SEND SMS OTP')),
-          const SizedBox(height: 8),
-          const Text('After SMS OTP, login with Phone Number + Password. No CEO approval needed.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 12)),
-        ]),
-      ),
-    );
+  // For password missing list - join with ", "
+  static String joinMissing(String role, String lang, List<String> missingKeys) {
+    return missingKeys.map((k) => getForRole(role, lang, k)).join(', ');
   }
 }
