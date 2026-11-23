@@ -19,6 +19,7 @@ import 'screens/privacy_policy.dart';
 import 'screens/refund_policy.dart';
 import 'screens/delete_account_policy.dart';
 import 'screens/terms_and_conditions.dart';
+import 'screens/health_disclaimer.dart';
 
 // CEO FILES
 import 'screens/ceo_dashboard.dart';
@@ -277,6 +278,7 @@ class LoveCareApp extends StatelessWidget {
         '/refund': (context) => const RefundPolicyPage(),
         '/delete-account': (context) => const DeleteAccountPolicyPage(),
         '/terms': (context) => const TermsAndConditionsPage(),
+        '/health-disclaimer': (context) => const HealthDisclaimerPage(),
         '/home': (context) => const LoveCareHomePage(),
         '/lc-ceo-9x7k2q-2026': (context) => const CEOPasswordGate(),
         '/ceo-control': (context) => const CeoControlPage(),
@@ -348,6 +350,8 @@ class LoveCareApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => NurseComplaintScreen(params: args is Map<String, dynamic> ? args : null));
           case '/alert-settings-role':
             return MaterialPageRoute(builder: (_) => AlertSettingsScreen(role: args is String ? args : null));
+          case '/health-disclaimer':
+            return MaterialPageRoute(builder: (_) => const HealthDisclaimerPage(), settings: settings);
           default:
             return null;
         }
@@ -630,11 +634,18 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF4A0A26),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF880E4F),
+        foregroundColor: Colors.white,
+        title: const Text('💜 Love Care Global', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        centerTitle: false,
+      ),
+      drawer: const _LoveCareDrawer(),
       body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+              padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
               decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF880E4F), Color(0xFFC2185B)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
               child: Column(
                 children: [
@@ -644,6 +655,8 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                   ),
                   const SizedBox(height: 8),
                   const Text('Trusted Care, With Love', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  const Text('Tap ☰ top-left to see all Policies', style: TextStyle(color: Colors.white70, fontSize: 12)),
                   const SizedBox(height: 20),
                   const Text('CEO-verified Nurses. Safe Clients. No Fake Accounts.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 13)),
                   const SizedBox(height: 24),
@@ -696,6 +709,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                       TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const Text('Privacy', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
                       TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const Text('Community', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
                       TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const Text('Refund', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                      TextButton(onPressed: () => Navigator.pushNamed(context, '/health-disclaimer'), child: const Text('Health', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
                       TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const Text('Delete Account', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
                     ],
                   ),
@@ -725,6 +739,75 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ================= DRAWER MENU - ALL POLICIES IN ONE PLACE - PLAY STORE =================
+// Google tester taps ☰ top-left and sees EVERY policy without searching.
+// All 6 policies + Home + Get Started + SOS.
+class _LoveCareDrawer extends StatelessWidget {
+  const _LoveCareDrawer();
+  void _go(BuildContext context, String route) {
+    Navigator.pop(context);
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (context.mounted) Navigator.pushNamed(context, route);
+    });
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: const Color(0xFFFCE4EC),
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(color: Color(0xFF880E4F)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('💜', style: TextStyle(fontSize: 36)),
+                SizedBox(height: 6),
+                Text('LOVE CARE GLOBAL', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                SizedBox(height: 4),
+                Text('Trusted Care, With Love\nAccra, Ghana', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
+            ),
+          ),
+          _tile(context, Icons.home, 'Home', () => _go(context, '/home')),
+          _tile(context, Icons.rocket_launch, 'Get Started', () => _go(context, '/auth-choice')),
+          _tile(context, Icons.medical_services, 'Book a Nurse', () => _go(context, '/book-nurse')),
+          _tile(context, Icons.sos, 'SOS / Emergency', () => _go(context, '/sos')),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Text('📋 POLICIES & LEGAL', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          _tile(context, Icons.description, 'Terms & Conditions', () => _go(context, '/terms')),
+          _tile(context, Icons.privacy_tip, 'Privacy Policy', () => _go(context, '/privacy')),
+          _tile(context, Icons.groups, 'Community Guidelines', () => _go(context, '/community')),
+          _tile(context, Icons.money_off, 'Refund Policy', () => _go(context, '/refund')),
+          _tile(context, Icons.health_and_safety, 'Health Disclaimer', () => _go(context, '/health-disclaimer')),
+          _tile(context, Icons.delete_forever, 'Delete Account Policy', () => _go(context, '/delete-account')),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Text('⚠️ EMERGENCY: This app is NOT ambulance. For emergency, call 112 immediately.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Text('© 2026 Love Care Global\nlovecareglobal@gmail.com', style: TextStyle(color: Colors.grey, fontSize: 11)),
+          ),
+        ],
+      ),
+    );
+  }
+  static Widget _tile(BuildContext context, IconData icon, String title, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: const Color(0xFF880E4F)),
+      title: Text(title, style: const TextStyle(color: Color(0xFF4A0A26), fontWeight: FontWeight.w600, fontSize: 14)),
+      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF880E4F)),
+      onTap: onTap,
     );
   }
 }
