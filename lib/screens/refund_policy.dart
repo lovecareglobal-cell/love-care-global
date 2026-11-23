@@ -5,29 +5,34 @@ class RefundPolicyPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Refund Policy')),
-      body: ListView(
+      backgroundColor: const Color(0xFFFCE4EC),
+      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, title: const Text('Refund Policy')),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        children: const [
-          Text('1. Full Refund (100%)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('If Client cancels BEFORE Nurse accepts, full refund in 3-5 working days to same MoMo / Card. If Nurse does not show up, full refund + Nurse penalized.'),
-          SizedBox(height: 16),
-          Text('2. Partial Refund (80%)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('If Client cancels AFTER Nurse accepts but BEFORE Nurse arrives, 20% cancellation fee applies for Nurse transport / time.'),
-          SizedBox(height: 16),
-          Text('3. No Refund', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('If Nurse already arrived and started work, no refund. If Client gives false location or refuses service on arrival, no refund.'),
-          SizedBox(height: 16),
-          Text('4. Nurse / Client Complaint Refund', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('If service was poor, Client must report within 24 hours with photos / proof. CEO reviews within 48 hours. If approved, partial or full refund.'),
-          SizedBox(height: 16),
-          Text('5. How Refund Is Paid', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('Refunds go to same Mobile Money or Card used. Processing 3-7 working days. Contact: refunds@lovecareglobal.com'),
-          SizedBox(height: 16),
-          Text('6. Nurse Withdrawal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('Nurse can withdraw earnings every Monday. Minimum withdrawal GHS 50. Withdrawal fee may apply. Fraudulent earnings will be held.'),
-        ],
+        child: Column(
+          children: [
+            _header('💜 Love Care Global - Refund Policy\nLast Updated: 23 Nov 2026'),
+            _section('1. What Can Be Refunded?'),
+            _card('Only the 20% booking fee paid INSIDE the App can be refunded by Love Care Global.\nThe 80% paid directly to Nurse after work is NOT held by Love Care - if Nurse already worked, that 80% is not refundable by us.'),
+            _section('2. Nurse Did Not Show Up - Full 20% Refund'),
+            _card('If Nurse does not show up and does not inform you, report within 24 hours. CEO will verify. If confirmed, you get 100% of your 20% booking fee back.'),
+            _section('3. Client Cancels Early - Partial Refund'),
+            _card('If you cancel more than 24 hours before start time, you get 50% of your 20% booking fee back.\nIf you cancel less than 24 hours before start, no refund - Nurse already reserved that time.'),
+            _section('4. Nurse Cancels - Full 20% Refund'),
+            _card('If Nurse cancels before work starts, you get 100% of your 20% booking fee back.'),
+            _section('5. How To Request Refund'),
+            _card('Go to: My Bookings > Refund Query, OR Settings > Refund Query.\nProvide booking ID, reason, and proof (chat screenshot). CEO reviews within 3 working days. Approved refunds are paid to your original payment method within 3-5 working days.'),
+            _section('6. Nurse Earnings - NO Withdrawal'),
+            _card('Nurse receives 80% directly from Client AFTER work is finished (cash or MoMo). Love Care Global does NOT hold Nurse earnings, so there is NO withdrawal, NO Monday payout, NO minimum balance. If Client refuses to pay 80% after work, Nurse should report immediately with proof for CEO action.'),
+            _section('7. No Refund Cases'),
+            _card('• Work already completed and Client is satisfied\n• Client gave wrong address / phone and Nurse could not find them\n• Fake complaint to get refund - account may be penalised'),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
+  static Widget _header(String t) => Container(width: double.infinity, padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF880E4F))));
+  static Widget _section(String t) => Padding(padding: const EdgeInsets.only(top: 16, bottom: 6), child: Align(alignment: Alignment.centerLeft, child: Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF880E4F)))));
+  static Widget _card(String t) => Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Text(t, style: const TextStyle(fontSize: 13, height: 1.5)));
 }
