@@ -228,6 +228,12 @@ class LoveCareApp extends StatelessWidget {
         title: 'Love Care Global',
         debugShowCheckedModeBanner: false,
         locale: lang.locale,
+        supportedLocales: LanguageService.languages.map((l) => Locale(l['code']!, l['country']!)).toList(),
+        // Arabic = right-to-left, others = left-to-right
+        builder: (context, child) => Directionality(
+          textDirection: lang.code == 'ar' ? TextDirection.rtl : TextDirection.ltr,
+          child: child!,
+        ),
         theme: ThemeData(
           useMaterial3: true,
           brightness: Brightness.dark,
