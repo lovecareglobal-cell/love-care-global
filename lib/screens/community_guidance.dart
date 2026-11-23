@@ -1,40 +1,514 @@
-import 'package:flutter/material.dart';
+// community_guidance_translations.dart
+// FILE - Community Guidance - ONLY SCREEN WORDS - ALL 22 LANGUAGES
+// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
+// ONE FILE - Drop in lib/screens
 
-class CommunityGuidelinesPage extends StatelessWidget {
-  const CommunityGuidelinesPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFCE4EC),
-      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, title: const Text('Community Guidelines')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _header('💜 Love Care Global - Community Guidelines\nLast Updated: 23 Nov 2026'),
-            _section('1. Be Honest'),
-            _card('Nurses: Only upload your REAL photo, video, ID and certificate. No fake identity.\nClients: Use your real name and phone. Fake accounts will be banned.'),
-            _section('2. Payment - 20/80 Rule (READ CAREFULLY)'),
-            _card('THIS IS THE ONLY PAYMENT RULE:\n• Pay 20% booking fee INSIDE the App to confirm booking.\n• Pay remaining 80% to Nurse AFTER work is finished - in cash or MoMo, only after Nurse finishes.\n• NEVER pay full amount before work starts.\n• NEVER pay Nurse outside a confirmed booking.\n• If a Nurse asks for full payment before work, or asks you to cancel in-app booking to pay outside, REPORT immediately. That is fraud.'),
-            _section('3. Be Respectful'),
-            _card('No insults, no threats, no harassment, no sexual messages, no discrimination. Nurses and Clients must respect each other, respect homes, respect privacy.'),
-            _section('4. No Fake Complaints / No Fake Reviews'),
-            _card('Do not file fake complaints to get refund. Do not leave fake 1-star to punish Nurse. Fake reports = account penalty.'),
-            _section('5. Penalties'),
-            _card('1st Offence: Warning\n2nd Offence: 7-day suspension\n3rd Offence: Permanent Ban + account deleted\nSerious offences (fraud, theft, violence, sexual misconduct) = Immediate Permanent Ban.'),
-            _section('6. Child Safety - ZERO TOLERANCE'),
-            _card('We have ZERO tolerance for any sexual content involving minors, or any attempt to exploit a child.\n• Never post, send, or request sexual content involving anyone under 18.\n• Never ask a minor for photos, videos, or meeting.\n• If you see such content, REPORT immediately.\nAccount will be PERMANENTLY banned and reported to Ghana Police / authorities.\nThis applies to photos, videos, chats, and profiles.'),
-            _section('7. How to Report / Block (User-Generated Content)'),
-            _card('To REPORT a user, photo, video or message:\nChat > Tap user name > Report > Choose reason > Submit. CEO reviews within 24 hours.\nTo BLOCK a user:\nChat > Tap user name > Block. Blocked user cannot message you again.\nTo report serious abuse: Email lovecareglobal@gmail.com with screenshots.\nWe review all reports. Content that breaks these rules is removed.'),
-            _section('8. No Sharing Personal Data in Chat'),
-            _card('Do not share bank PIN, OTP, password, or ID number in chat. CEO / Love Care will NEVER ask for your password or OTP.'),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
+class CommunityGuidanceTranslations {
+  static const Map<String, Map<String, String>> all = {
+
+    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
+    "en": {
+      "title": "Community Guidelines",
+      "header": "💜 Love Care Global - Community Guidelines\nLast Updated: 23 Nov 2026",
+      "s1": "1. Be Honest",
+      "c1": "Nurses: Only upload your REAL photo, video, ID and certificate. No fake identity.\nClients: Use your real name and phone. Fake accounts will be banned.",
+      "s2": "2. Payment - 20/80 Rule (READ CAREFULLY)",
+      "c2": "THIS IS THE ONLY PAYMENT RULE:\n• Pay 20% booking fee INSIDE the App to confirm booking.\n• Pay remaining 80% to Nurse AFTER work is finished - in cash or MoMo, only after Nurse finishes.\n• NEVER pay full amount before work starts.\n• NEVER pay Nurse outside a confirmed booking.\n• If a Nurse asks for full payment before work, or asks you to cancel in-app booking to pay outside, REPORT immediately. That is fraud.",
+      "s3": "3. Be Respectful",
+      "c3": "No insults, no threats, no harassment, no sexual messages, no discrimination. Nurses and Clients must respect each other, respect homes, respect privacy.",
+      "s4": "4. No Fake Complaints / No Fake Reviews",
+      "c4": "Do not file fake complaints to get refund. Do not leave fake 1-star to punish Nurse. Fake reports = account penalty.",
+      "s5": "5. Penalties",
+      "c5": "1st Offence: Warning\n2nd Offence: 7-day suspension\n3rd Offence: Permanent Ban + account deleted\nSerious offences (fraud, theft, violence, sexual misconduct) = Immediate Permanent Ban.",
+      "s6": "6. Child Safety - ZERO TOLERANCE",
+      "c6": "We have ZERO tolerance for any sexual content involving minors, or any attempt to exploit a child.\n• Never post, send, or request sexual content involving anyone under 18.\n• Never ask a minor for photos, videos, or meeting.\n• If you see such content, REPORT immediately.\nAccount will be PERMANENTLY banned and reported to Ghana Police / authorities.\nThis applies to photos, videos, chats, and profiles.",
+      "s7": "7. How to Report / Block (User-Generated Content)",
+      "c7": "To REPORT a user, photo, video or message:\nChat > Tap user name > Report > Choose reason > Submit. CEO reviews within 24 hours.\nTo BLOCK a user:\nChat > Tap user name > Block. Blocked user cannot message you again.\nTo report serious abuse: Email lovecareglobal@gmail.com with screenshots.\nWe review all reports. Content that breaks these rules is removed.",
+      "s8": "8. No Sharing Personal Data in Chat",
+      "c8": "Do not share bank PIN, OTP, password, or ID number in chat. CEO / Love Care will NEVER ask for your password or OTP.",
+    },
+
+    // 2. TWI - CLIENT + NURSE ONLY
+    "tw": {
+      "title": "Ɔman Mmara",
+      "header": "💜 Love Care Global - Ɔman Mmara\nWɔyɛɛ no foforo: 23 Nov 2026",
+      "s1": "1. Yɛ Nokware",
+      "c1": "Nɛɛse: Fa wo Mfonini, video, ID ne certificate a ɛyɛ NOKWARE nko. Mma wɔn nni atorɔ din.\nƆkra: Fa wo din a ɛyɛ nokware ne phone. Wɔbɛgyae account atorɔ.",
+      "s2": "2. Sika Tua - 20/80 Mmara (KENKAN YI YIYE)",
+      "c2": "YI NE SIKA TUA MMARA KORO:\n• Tua 20% booking fee WƆ APP MU na hyɛ booking mu.\n• Tua 80% a aka no ma Nɛɛse WO ADWUMA AWIEI - sika anaa MoMo, nɛɛse wie a nko.\n• MMA WONTUA sika nyinaa ansa na adwuma mfi ase.\n• MMA WONTUA Nɛɛse wɔ booking a wɔahyɛ mu akyi.\n• Sɛ Nɛɛse bisa sika nyinaa ansa na adwuma, anaa bisa wo na gyae booking wɔ app mu na tua wɔ akyi, REPORT mprempren. Ɛyɛ nsisi.",
+      "s3": "3. Bu Obi",
+      "c3": "Ntawawa biara, ahunahuna biara, ɔhaw biara, nsɛm fi biara, nyiyimu biara. Nɛɛse ne Ɔkra ɛsɛ sɛ wobu wɔn ho wɔn ho, bu fie, bu privacy.",
+      "s4": "4. Mma Asɛm Atorɔ / Mma Review Atorɔ",
+      "c4": "Mma fa asɛm atorɔ na nya refund. Mma mfa 1-star atorɔ na twɛn Nɛɛse aso. Asɛm atorɔ = wɔbɛtwe wo account aso.",
+      "s5": "5. Asotwe",
+      "c5": "1st: Kɔkɔbɔ\n2nd: 7-nna suspension\n3rd: Wɔbɛgyae wo daa + wɔbɛyi account fi hɔ\nAsɛm kɛse (nsisi, awow, ntɔkwa, nsɛm fi) = Wɔbɛgyae wo daa mprempren.",
+      "s6": "6. Mmofra Ahobammɔ - ZERO TOLERANCE",
+      "c6": "Yɛnni ahotɔ biara ma nsɛm fi a ɛfa mmofra ho, anaa mmɔden a wɔbɔ sɛ wɔbɛfa mmofra so.\n• Mma mfa, mma mfa, mma mmisa nsɛm fi a ɛfa obi a onnii 18.\n• Mma mmisa mmofra mfonini, video, anaa nhyiam.\n• Sɛ wohu saa nsɛm, REPORT mprempren.\nWɔbɛgyae account daa na wɔabɔ Ghana Police / aban amanneɛ.\nƐfa mfonini, video, chat, ne profile ho.",
+      "s7": "7. Sɛnea Wɔbɔ Amaneɛ / Siw (User-Generated Content)",
+      "c7": "Sɛ wopɛ sɛ wobɔ obi, mfonini, video anaa nkrasɛm amaneɛ:\nChat > Tap obi din > Report > Yi nti > Fa kɔ. CEO hwɛ mu wɔ 24 hours mu.\nSɛ wopɛ sɛ wosiw obi:\nChat > Tap obi din > Block. Obi a wosiw no ntumi mmisa wo bio.\nSɛ wopɛ sɛ wobɔ nsɛm kɛse amaneɛ: Email lovecareglobal@gmail.com ne screenshots.\nYɛhwɛ amaneɛ nyinaa mu. Nsɛm a ɛbɔ mmara yi, wɔyi fi hɔ.",
+      "s8": "8. Mma Mfa Wo Ho Nsɛm Wɔ Chat Mu",
+      "c8": "Mma mfa bank PIN, OTP, password, anaa ID number wɔ chat mu. CEO / Love Care RENBISA wo password anaa OTP da.",
+    },
+
+    // 3. GA
+    "ga": {
+      "title": "Maŋ Sane",
+      "header": "💜 Love Care Global - Maŋ Sane\nAtsake: 23 Nov 2026",
+      "s1": "1. Fee Anɔkwale",
+      "c1": "Nɛɛse: Woo o foto, video, ID kɛ certificate a fee ANƆKWALE kɛkɛ. Ka atorɔ gbɛi.\nMɔ: Tsu o gbɛi anɔkwale kɛ phone. Wɔbɛfo account atorɔ.",
+      "s2": "2. Shika Tua - 20/80 Mmara (KANƐ YI KƐ SHISHI)",
+      "c2": "YI NE SHIKA TUA MMARA KORO:\n• Tua 20% booking fee YƐ APP MLI koni owo booking mli.\n• Tua 80% a shwe ma Nɛɛse NITSUMƆ EGbo - shika anaa MoMo, nɛɛse gbo a nko.\n• KA TUA shika fɛɛ dani nitsumɔ shishi.\n• KA TUA Nɛɛse yɛ booking a awo mli sɛɛ.\n• Kɛ Nɛɛse bisa shika fɛɛ dani nitsumɔ, anaa bisa bo koni ofo booking yɛ app mli koni otua yɛ sɛɛ, REPORT sane. Ɛyɛ sisii.",
+      "s3": "3. Bu Mɔ",
+      "c3": "Ntawawa ko, hetsɛmɔ ko, haw ko, sane fɔŋ ko, yitso ko. Nɛɛse kɛ Mɔ esaaa wɔbu wɔn he, bu shia, bu privacy.",
+      "s4": "4. Ka Sane Atorɔ / Ka Review Atorɔ",
+      "c4": "Ka fa sane atorɔ koni onya refund. Ka ŋmɛ 1-star atorɔ koni owa Nɛɛse. Sane atorɔ = wɔbɛtwe o account.",
+      "s5": "5. Asotwe",
+      "c5": "1st: Kɔkɔbɔ\n2nd: 7-gbi suspension\n3rd: Afo bo daa + wɔbɛjee account mli\nSane kɛse (sisii, julɔ, ntɔkwa, sane fɔŋ) = Afo bo daa sane.",
+      "s6": "6. Gbekɛ Ahobammɔ - ZERO TOLERANCE",
+      "c6": "Wɔnni ahotɔ ko ma sane fɔŋ a kɛ gbekɛ, anaa mmɔden a wɔbɔ koni wɔfa gbekɛ.\n• Ka fa, ka ŋmɛ, ka bisa sane fɔŋ a kɛ mɔ a eenyɛ 18.\n• Ka bisa gbekɛ foto, video, anaa kpeemɔ.\n• Kɛ ona saa sane, REPORT sane.\nWɔbɛfo account daa na wɔbɔ Ghana Police / aban amaneɛ.\nƐkɛ foto, video, chat, kɛ profile.",
+      "s7": "7. Bɔɔ Nɔ Wɔbɔ Amaneɛ / Siw (User-Generated Content)",
+      "c7": "Koni obɔ mɔ, foto, video anaa sane amaneɛ:\nChat > Tap mɔ gbɛi > Report > Hala hewɔ > Ŋmɛ. CEO kwɛ mli yɛ 24 hours mli.\nKoni osi mɔ:\nChat > Tap mɔ gbɛi > Block. Mɔ a osi lɛ entumi ŋmɛ bo eko.\nKoni obɔ sane kɛse amaneɛ: Email lovecareglobal@gmail.com kɛ screenshots.\nWɔkwɛ amaneɛ fɛɛ. Sane a bɔ mmara yi, wɔjee mli.",
+      "s8": "8. Ka Fa O He Sane Yɛ Chat Mli",
+      "c8": "Ka fa bank PIN, OTP, password, anaa ID number yɛ chat mli. CEO / Love Care RENBISA o password anaa OTP da.",
+    },
+
+    // 4. EWE
+    "ee": {
+      "title": "Habɔbɔ Sewo",
+      "header": "💜 Love Care Global - Habɔbɔ Sewo\nWotrɔ: 23 Nov 2026",
+      "s1": "1. Nɔ Nyateƒe",
+      "c1": "Nɔnɔvia: De wò foto, video, ID kple certificate si nye NYATEƑE ɖeɖe ko. Ðeŋgbe atorɔ ŋkɔ.\nAme: Zã wò ŋkɔ nyateƒe kple phone. Woɖe account atorɔ ɖa.",
+      "s2": "2. Ga Xexe - 20/80 Se (XLẼ YI NYUIE)",
+      "c2": "YI ÐEÐE KO NYE GA XEXE SE:\n• Xe 20% booking fee LE APP ME be nàɖo booking ɖe te.\n• Xe 80% si susɔ na Nɔnɔvia DƆ WU MEG be — ga alo MoMo, ne nɔnɔvia wu dɔ ko.\n• MEGAXE ga bliboa hafi dɔ nadze o.\n• MEGAXE Nɔnɔvia le booking si woɖo ɖe te megbe o.\n• Ne Nɔnɔvia bia ga bliboa hafi dɔ, alo bia be nàɖe booking le app me ɖa be nàxe le godo, ÐO EÐE afima. Enye fefewɔwɔ.",
+      "s3": "3. Bu Ame",
+      "c3": "Nya vɔ̃ aɖeke, vɔvɔ̃ aɖeke, teteɖeame aɖeke, nya vɔ̃ aɖeke, mama aɖeke. Nɔnɔvia kple Ame ɖe be wobu wo nɔewo, bu aƒe, bu privacy.",
+      "s4": "4. Megawɔ Nya Atorɔ / Megawɔ Review Atorɔ",
+      "c4": "Megawɔ nya atorɔ be nàxɔ refund o. Megade 1-star atorɔ be nàhe nɔnɔvia te o. Nyatorɔ = account tohehe.",
+      "s5": "5. Tohehe",
+      "c5": "Gbanzã: Nuxlɔ̃ame\n2lia: Ŋkeke 7 suspension\n3lia: Ðe Ða Tegbee + wode account ɖa\nNya gã (fefewɔwɔ, fifi, aʋawɔ, nya vɔ̃) = Ðe Ða Tegbee afima.",
+      "s6": "6. Ðeviwo ƒe Dedie - ZERO TOLERANCE",
+      "c6": "Mieli nɔnɔme aɖeke na nya vɔ̃ si ku ɖe ɖeviwo ŋu o, alo agbagbadzedze be woaɖe ɖeviwo dzi.\n• Megade, meɖo, mebebi nya vɔ̃ si ku ɖe ame aɖe si mexɔ ƒe 18 o.\n• Mebebi ɖevi foto, video, alo dodokpɔ o.\n• Ne èkpɔ nya siawo, ÐO EÐE afima.\nWoɖe account ɖa tegbee eye woaɖo Ghana Police / dziɖuɖu.\nEku ɖe foto, video, chat, kple profile ŋu.",
+      "s7": "7. Ale Si Nàɖo Ame Ðe Ðe / Tu Ame (User-Generated Content)",
+      "c7": "Be nàɖo ame, foto, video alo gbede Ðe Ðe:\nChat > Zi ame ƒe ŋkɔ > Report > Tia nusita > Ðo. CEO kpɔe me le gaƒoƒo 24 me.\nBe nàtu ame:\nChat > Zi ame ƒe ŋkɔ > Block. Ame si wotu la mate ŋu aŋlɔ na wò gbugbɔ o.\nBe nàɖo aʋawɔ gã Ðe Ðe: Email lovecareglobal@gmail.com kple screenshots.\nMíekpɔa nyawo katã. Nya si da se siawo, wodee ɖa.",
+      "s8": "8. Megama Wò Ŋutɔ Nyatakakawo Le Chat Me",
+      "c8": "Megama bank PIN, OTP, password, alo ID number le chat me o. CEO / Love Care MABIA wò password alo OTP gbeɖe o.",
+    },
+
+    // 5. DUTCH
+    "nl": {
+      "title": "Community Richtlijnen",
+      "header": "💜 Love Care Global - Community Richtlijnen\nLaatst Bijgewerkt: 23 Nov 2026",
+      "s1": "1. Wees Eerlijk",
+      "c1": "Verpleegkundigen: Upload alleen je ECHTE foto, video, ID en certificaat. Geen valse identiteit.\nKlanten: Gebruik je echte naam en telefoon. Valse accounts worden gebanned.",
+      "s2": "2. Betaling - 20/80 Regel (LEES ZORGVULDIG)",
+      "c2": "DIT IS DE ENIGE BETAALREGEL:\n• Betaal 20% boekingskosten BINNEN de App om boeking te bevestigen.\n• Betaal resterende 80% aan Verpleegkundige NADAT werk klaar is - contant of MoMo, alleen nadat Verpleegkundige klaar is.\n• Betaal NOOIT volledig bedrag voordat werk begint.\n• Betaal NOOIT Verpleegkundige buiten een bevestigde boeking.\n• Als een Verpleegkundige vraagt om volledige betaling voor werk, of vraagt om in-app boeking te annuleren om buiten te betalen, RAPPORTEER onmiddellijk. Dat is fraude.",
+      "s3": "3. Wees Respectvol",
+      "c3": "Geen beledigingen, geen bedreigingen, geen intimidatie, geen seksuele berichten, geen discriminatie. Verpleegkundigen en Klanten moeten elkaar respecteren, huizen respecteren, privacy respecteren.",
+      "s4": "4. Geen Valse Klachten / Geen Valse Reviews",
+      "c4": "Dien geen valse klachten in om refund te krijgen. Laat geen valse 1-ster achter om Verpleegkundige te straffen. Valse rapporten = account straf.",
+      "s5": "5. Straffen",
+      "c5": "1e Overtreding: Waarschuwing\n2e Overtreding: 7-dagen schorsing\n3e Overtreding: Permanente Ban + account verwijderd\nErnstige overtredingen (fraude, diefstal, geweld, seksueel wangedrag) = Onmiddellijke Permanente Ban.",
+      "s6": "6. Kinderveiligheid - ZERO TOLERANTIE",
+      "c6": "Wij hebben ZERO tolerantie voor seksuele inhoud met minderjarigen, of elke poging om een kind uit te buiten.\n• Post, stuur of vraag nooit seksuele inhoud met iemand onder 18.\n• Vraag nooit een minderjarige om foto's, video's of ontmoeting.\n• Als je zulke inhoud ziet, RAPPORTEER onmiddellijk.\nAccount wordt PERMANENT gebanned en gemeld aan Ghana Police / autoriteiten.\nDit geldt voor foto's, video's, chats en profielen.",
+      "s7": "7. Hoe Te Rapporteren / Blokkeren (User-Generated Content)",
+      "c7": "Om een gebruiker, foto, video of bericht te RAPPORTEREN:\nChat > Tik gebruikersnaam > Rapporteren > Kies reden > Verzenden. CEO beoordeelt binnen 24 uur.\nOm een gebruiker te BLOKKEREN:\nChat > Tik gebruikersnaam > Blokkeren. Geblokkeerde gebruiker kan je niet meer berichten.\nOm ernstig misbruik te rapporteren: E-mail lovecareglobal@gmail.com met screenshots.\nWe beoordelen alle rapporten. Inhoud die deze regels breekt wordt verwijderd.",
+      "s8": "8. Deel Geen Persoonlijke Gegevens In Chat",
+      "c8": "Deel geen bank PIN, OTP, wachtwoord of ID nummer in chat. CEO / Love Care zal NOOIT om je wachtwoord of OTP vragen.",
+    },
+
+    // 6. FRENCH
+    "fr": {
+      "title": "Règles De La Communauté",
+      "header": "💜 Love Care Global - Règles De La Communauté\nDernière Mise à Jour: 23 Nov 2026",
+      "s1": "1. Soyez Honnête",
+      "c1": "Infirmières: Téléchargez uniquement votre VRAIE photo, vidéo, ID et certificat. Pas de fausse identité.\nClients: Utilisez votre vrai nom et téléphone. Les faux comptes seront bannis.",
+      "s2": "2. Paiement - Règle 20/80 (LIRE ATTENTIVEMENT)",
+      "c2": "CECI EST LA SEULE RÈGLE DE PAIEMENT:\n• Payez 20% de frais de réservation DANS l'App pour confirmer la réservation.\n• Payez les 80% restants à l'Infirmière APRÈS que le travail soit terminé - en espèces ou MoMo, seulement après que l'Infirmière ait terminé.\n• Ne payez JAMAIS le montant total avant le début du travail.\n• Ne payez JAMAIS l'Infirmière en dehors d'une réservation confirmée.\n• Si une Infirmière demande le paiement complet avant le travail, ou vous demande d'annuler la réservation in-app pour payer dehors, SIGNALEZ immédiatement. C'est de la fraude.",
+      "s3": "3. Soyez Respectueux",
+      "c3": "Pas d'insultes, pas de menaces, pas de harcèlement, pas de messages sexuels, pas de discrimination. Infirmières et Clients doivent se respecter, respecter les maisons, respecter la vie privée.",
+      "s4": "4. Pas De Fausses Plaintes / Pas De Faux Avis",
+      "c4": "Ne déposez pas de fausses plaintes pour obtenir un remboursement. Ne laissez pas de faux 1-étoile pour punir l'Infirmière. Faux rapports = pénalité de compte.",
+      "s5": "5. Pénalités",
+      "c5": "1ère Infraction: Avertissement\n2ème Infraction: Suspension de 7 jours\n3ème Infraction: Bannissement Permanent + compte supprimé\nInfractions graves (fraude, vol, violence, inconduite sexuelle) = Bannissement Permanent Immédiat.",
+      "s6": "6. Sécurité Des Enfants - TOLÉRANCE ZÉRO",
+      "c6": "Nous avons une TOLÉRANCE ZÉRO pour tout contenu sexuel impliquant des mineurs, ou toute tentative d'exploiter un enfant.\n• Ne postez, n'envoyez, ne demandez jamais de contenu sexuel impliquant une personne de moins de 18 ans.\n• Ne demandez jamais à un mineur des photos, vidéos ou rendez-vous.\n• Si vous voyez un tel contenu, SIGNALEZ immédiatement.\nLe compte sera banni DÉFINITIVEMENT et signalé à la Police du Ghana / autorités.\nCeci s'applique aux photos, vidéos, chats et profils.",
+      "s7": "7. Comment Signaler / Bloquer (Contenu Généré Par L'Utilisateur)",
+      "c7": "Pour SIGNALER un utilisateur, photo, vidéo ou message:\nChat > Appuyez sur le nom d'utilisateur > Signaler > Choisissez raison > Envoyer. CEO examine sous 24 heures.\nPour BLOQUER un utilisateur:\nChat > Appuyez sur le nom d'utilisateur > Bloquer. L'utilisateur bloqué ne peut plus vous envoyer de message.\nPour signaler un abus grave: Email lovecareglobal@gmail.com avec captures d'écran.\nNous examinons tous les signalements. Le contenu qui enfreint ces règles est supprimé.",
+      "s8": "8. Ne Partagez Pas De Données Personnelles Dans Le Chat",
+      "c8": "Ne partagez pas de PIN bancaire, OTP, mot de passe ou numéro d'ID dans le chat. CEO / Love Care ne vous demandera JAMAIS votre mot de passe ou OTP.",
+    },
+
+    // 7. GERMAN
+    "de": {
+      "title": "Community Richtlinien",
+      "header": "💜 Love Care Global - Community Richtlinien\nZuletzt Aktualisiert: 23 Nov 2026",
+      "s1": "1. Sei Ehrlich",
+      "c1": "Krankenschwestern: Lade nur dein ECHTES Foto, Video, ID und Zertifikat hoch. Keine falsche Identität.\nKunden: Nutze deinen echten Namen und Telefon. Falsche Konten werden gebannt.",
+      "s2": "2. Zahlung - 20/80 Regel (SORGFÄLTIG LESEN)",
+      "c2": "DIES IST DIE EINZIGE ZAHLUNGSREGEL:\n• Zahle 20% Buchungsgebühr INNERHALB der App, um Buchung zu bestätigen.\n• Zahle restliche 80% an Krankenschwester NACHDEM Arbeit fertig ist - bar oder MoMo, nur nachdem Krankenschwester fertig ist.\n• Zahle NIEMALS vollen Betrag bevor Arbeit beginnt.\n• Zahle NIEMALS Krankenschwester außerhalb einer bestätigten Buchung.\n• Wenn eine Krankenschwester volle Zahlung vor Arbeit verlangt, oder bittet, In-App Buchung zu stornieren, um draußen zu zahlen, MELDE sofort. Das ist Betrug.",
+      "s3": "3. Sei Respektvoll",
+      "c3": "Keine Beleidigungen, keine Drohungen, keine Belästigung, keine sexuellen Nachrichten, keine Diskriminierung. Krankenschwestern und Kunden müssen sich gegenseitig respektieren, Häuser respektieren, Privatsphäre respektieren.",
+      "s4": "4. Keine Falschen Beschwerden / Keine Falschen Bewertungen",
+      "c4": "Reiche keine falschen Beschwerden ein, um Erstattung zu bekommen. Hinterlasse keine falschen 1-Stern, um Krankenschwester zu bestrafen. Falsche Meldungen = Konto-Strafe.",
+      "s5": "5. Strafen",
+      "c5": "1. Verstoß: Warnung\n2. Verstoß: 7-Tage Sperre\n3. Verstoß: Permanenter Bann + Konto gelöscht\nSchwere Verstöße (Betrug, Diebstahl, Gewalt, sexuelles Fehlverhalten) = Sofortiger Permanenter Bann.",
+      "s6": "6. Kindersicherheit - NULL TOLERANZ",
+      "c6": "Wir haben NULL Toleranz für sexuelle Inhalte mit Minderjährigen, oder jeden Versuch, ein Kind auszubeuten.\n• Poste, sende oder fordere niemals sexuelle Inhalte mit jemandem unter 18.\n• Frage niemals einen Minderjährigen nach Fotos, Videos oder Treffen.\n• Wenn du solche Inhalte siehst, MELDE sofort.\nKonto wird PERMANENT gebannt und an Ghana Police / Behörden gemeldet.\nDies gilt für Fotos, Videos, Chats und Profile.",
+      "s7": "7. Wie Man Meldet / Blockiert (User-Generated Content)",
+      "c7": "Um einen Nutzer, Foto, Video oder Nachricht zu MELDEN:\nChat > Tippe Nutzername > Melden > Grund wählen > Senden. CEO prüft innerhalb von 24 Stunden.\nUm einen Nutzer zu BLOCKIEREN:\nChat > Tippe Nutzername > Blockieren. Blockierter Nutzer kann dir nicht mehr schreiben.\nUm schweren Missbrauch zu melden: E-Mail lovecareglobal@gmail.com mit Screenshots.\nWir prüfen alle Meldungen. Inhalte, die diese Regeln brechen, werden entfernt.",
+      "s8": "8. Keine Persönlichen Daten Im Chat Teilen",
+      "c8": "Teile keine Bank PIN, OTP, Passwort oder ID Nummer im Chat. CEO / Love Care wird NIEMALS nach deinem Passwort oder OTP fragen.",
+    },
+
+    // 8. SPANISH
+    "es": {
+      "title": "Pautas De La Comunidad",
+      "header": "💜 Love Care Global - Pautas De La Comunidad\nÚltima Actualización: 23 Nov 2026",
+      "s1": "1. Sé Honesto",
+      "c1": "Enfermeras: Sube solo tu foto, video, ID y certificado REALES. Sin identidad falsa.\nClientes: Usa tu nombre real y teléfono. Las cuentas falsas serán baneadas.",
+      "s2": "2. Pago - Regla 20/80 (LEER CON ATENCIÓN)",
+      "c2": "ESTA ES LA ÚNICA REGLA DE PAGO:\n• Paga el 20% de tarifa de reserva DENTRO de la App para confirmar la reserva.\n• Paga el 80% restante a la Enfermera DESPUÉS de que el trabajo termine - en efectivo o MoMo, solo después de que la Enfermera termine.\n• NUNCA pagues el monto total antes de que empiece el trabajo.\n• NUNCA pagues a la Enfermera fuera de una reserva confirmada.\n• Si una Enfermera pide pago completo antes del trabajo, o te pide cancelar la reserva in-app para pagar fuera, REPORTA de inmediato. Eso es fraude.",
+      "s3": "3. Sé Respetuoso",
+      "c3": "Sin insultos, sin amenazas, sin acoso, sin mensajes sexuales, sin discriminación. Enfermeras y Clientes deben respetarse, respetar hogares, respetar privacidad.",
+      "s4": "4. Sin Quejas Falsas / Sin Reseñas Falsas",
+      "c4": "No presentes quejas falsas para obtener reembolso. No dejes un falso 1-estrella para castigar a la Enfermera. Reportes falsos = penalización de cuenta.",
+      "s5": "5. Sanciones",
+      "c5": "1ª Infracción: Advertencia\n2ª Infracción: Suspensión de 7 días\n3ª Infracción: Baneo Permanente + cuenta eliminada\nInfracciones graves (fraude, robo, violencia, mala conducta sexual) = Baneo Permanente Inmediato.",
+      "s6": "6. Seguridad Infantil - TOLERANCIA CERO",
+      "c6": "Tenemos TOLERANCIA CERO para cualquier contenido sexual que involucre menores, o cualquier intento de explotar a un niño.\n• Nunca publiques, envíes o solicites contenido sexual con alguien menor de 18 años.\n• Nunca pidas a un menor fotos, videos o reunión.\n• Si ves tal contenido, REPORTA de inmediato.\nLa cuenta será baneada PERMANENTEMENTE y reportada a la Policía de Ghana / autoridades.\nEsto aplica a fotos, videos, chats y perfiles.",
+      "s7": "7. Cómo Reportar / Bloquear (Contenido Generado Por El Usuario)",
+      "c7": "Para REPORTAR un usuario, foto, video o mensaje:\nChat > Toca nombre de usuario > Reportar > Elige motivo > Enviar. CEO revisa en 24 horas.\nPara BLOQUEAR un usuario:\nChat > Toca nombre de usuario > Bloquear. El usuario bloqueado no puede enviarte mensajes de nuevo.\nPara reportar abuso grave: Correo lovecareglobal@gmail.com con capturas de pantalla.\nRevisamos todos los reportes. El contenido que rompe estas reglas se elimina.",
+      "s8": "8. No Compartas Datos Personales En El Chat",
+      "c8": "No compartas PIN bancario, OTP, contraseña o número de ID en el chat. CEO / Love Care NUNCA te pedirá tu contraseña o OTP.",
+    },
+
+    // 9. ITALIAN
+    "it": {
+      "title": "Linee Guida Della Comunità",
+      "header": "💜 Love Care Global - Linee Guida Della Comunità\nUltimo Aggiornamento: 23 Nov 2026",
+      "s1": "1. Sii Onesto",
+      "c1": "Infermiere: Carica solo la tua foto, video, ID e certificato REALI. Nessuna identità falsa.\nClienti: Usa il tuo nome reale e telefono. Gli account falsi saranno bannati.",
+      "s2": "2. Pagamento - Regola 20/80 (LEGGERE ATTENTAMENTE)",
+      "c2": "QUESTA È L'UNICA REGOLA DI PAGAMENTO:\n• Paga il 20% di commissione di prenotazione DENTRO l'App per confermare la prenotazione.\n• Paga il restante 80% all'Infermiera DOPO che il lavoro è finito - in contanti o MoMo, solo dopo che l'Infermiera ha finito.\n• Non pagare MAI l'importo totale prima che il lavoro inizi.\n• Non pagare MAI l'Infermiera fuori da una prenotazione confermata.\n• Se un'Infermiera chiede il pagamento completo prima del lavoro, o ti chiede di annullare la prenotazione in-app per pagare fuori, SEGNALA immediatamente. È frode.",
+      "s3": "3. Sii Rispettoso",
+      "c3": "Nessun insulto, nessuna minaccia, nessuna molestia, nessun messaggio sessuale, nessuna discriminazione. Infermiere e Clienti devono rispettarsi, rispettare le case, rispettare la privacy.",
+      "s4": "4. Nessun Reclamo Falso / Nessuna Recensione Falsa",
+      "c4": "Non presentare reclami falsi per ottenere rimborso. Non lasciare un falso 1-stella per punire l'Infermiera. Segnalazioni false = penalità account.",
+      "s5": "5. Penalità",
+      "c5": "1ª Infrazione: Avvertimento\n2ª Infrazione: Sospensione di 7 giorni\n3ª Infrazione: Ban Permanente + account eliminato\nInfrazioni gravi (frode, furto, violenza, cattiva condotta sessuale) = Ban Permanente Immediato.",
+      "s6": "6. Sicurezza Dei Bambini - TOLLERANZA ZERO",
+      "c6": "Abbiamo TOLLERANZA ZERO per qualsiasi contenuto sessuale che coinvolge minori, o qualsiasi tentativo di sfruttare un bambino.\n• Non postare, inviare o richiedere mai contenuti sessuali con chiunque sotto i 18 anni.\n• Non chiedere mai a un minore foto, video o incontro.\n• Se vedi tali contenuti, SEGNALA immediatamente.\nL'account sarà bannato PERMANENTEMENTE e segnalato alla Polizia del Ghana / autorità.\nQuesto vale per foto, video, chat e profili.",
+      "s7": "7. Come Segnalare / Bloccare (Contenuto Generato Dall'Utente)",
+      "c7": "Per SEGNALARE un utente, foto, video o messaggio:\nChat > Tocca nome utente > Segnala > Scegli motivo > Invia. CEO esamina entro 24 ore.\nPer BLOCCARE un utente:\nChat > Tocca nome utente > Blocca. L'utente bloccato non può più inviarti messaggi.\nPer segnalare abuso grave: Email lovecareglobal@gmail.com con screenshot.\nEsaminiamo tutte le segnalazioni. Il contenuto che viola queste regole viene rimosso.",
+      "s8": "8. Non Condividere Dati Personali In Chat",
+      "c8": "Non condividere PIN bancario, OTP, password o numero ID in chat. CEO / Love Care non ti chiederà MAI la tua password o OTP.",
+    },
+
+    // 10. PORTUGUESE
+    "pt": {
+      "title": "Diretrizes Da Comunidade",
+      "header": "💜 Love Care Global - Diretrizes Da Comunidade\nÚltima Atualização: 23 Nov 2026",
+      "s1": "1. Seja Honesto",
+      "c1": "Enfermeiras: Envie apenas sua foto, vídeo, ID e certificado REAIS. Sem identidade falsa.\nClientes: Use seu nome real e telefone. Contas falsas serão banidas.",
+      "s2": "2. Pagamento - Regra 20/80 (LEIA COM ATENÇÃO)",
+      "c2": "ESTA É A ÚNICA REGRA DE PAGAMENTO:\n• Pague 20% de taxa de reserva DENTRO do App para confirmar a reserva.\n• Pague os 80% restantes à Enfermeira DEPOIS que o trabalho terminar - em dinheiro ou MoMo, somente depois que a Enfermeira terminar.\n• NUNCA pague o valor total antes do trabalho começar.\n• NUNCA pague a Enfermeira fora de uma reserva confirmada.\n• Se uma Enfermeira pedir pagamento total antes do trabalho, ou pedir para cancelar a reserva in-app para pagar fora, DENUNCIE imediatamente. Isso é fraude.",
+      "s3": "3. Seja Respeitoso",
+      "c3": "Sem insultos, sem ameaças, sem assédio, sem mensagens sexuais, sem discriminação. Enfermeiras e Clientes devem respeitar-se, respeitar lares, respeitar privacidade.",
+      "s4": "4. Sem Reclamações Falsas / Sem Avaliações Falsas",
+      "c4": "Não apresente reclamações falsas para obter reembolso. Não deixe um falso 1-estrela para punir a Enfermeira. Relatórios falsos = penalidade de conta.",
+      "s5": "5. Penalidades",
+      "c5": "1ª Infração: Advertência\n2ª Infração: Suspensão de 7 dias\n3ª Infração: Banimento Permanente + conta excluída\nInfrações graves (fraude, roubo, violência, má conduta sexual) = Banimento Permanente Imediato.",
+      "s6": "6. Segurança Infantil - TOLERÂNCIA ZERO",
+      "c6": "Temos TOLERÂNCIA ZERO para qualquer conteúdo sexual envolvendo menores, ou qualquer tentativa de explorar uma criança.\n• Nunca poste, envie ou solicite conteúdo sexual envolvendo alguém menor de 18 anos.\n• Nunca peça a um menor fotos, vídeos ou encontro.\n• Se vir tal conteúdo, DENUNCIE imediatamente.\nA conta será banida PERMANENTEMENTE e reportada à Polícia de Gana / autoridades.\nIsso aplica-se a fotos, vídeos, chats e perfis.",
+      "s7": "7. Como Denunciar / Bloquear (Conteúdo Gerado Pelo Usuário)",
+      "c7": "Para DENUNCIAR um usuário, foto, vídeo ou mensagem:\nChat > Toque no nome do usuário > Denunciar > Escolha motivo > Enviar. CEO revisa em 24 horas.\nPara BLOQUEAR um usuário:\nChat > Toque no nome do usuário > Bloquear. O usuário bloqueado não pode enviar mensagem novamente.\nPara denunciar abuso grave: E-mail lovecareglobal@gmail.com com capturas de tela.\nRevisamos todos os relatórios. O conteúdo que quebra estas regras é removido.",
+      "s8": "8. Não Compartilhe Dados Pessoais No Chat",
+      "c8": "Não compartilhe PIN bancário, OTP, senha ou número de ID no chat. CEO / Love Care NUNCA pedirá sua senha ou OTP.",
+    },
+
+    // 11. ARABIC
+    "ar": {
+      "title": "إرشادات المجتمع",
+      "header": "💜 Love Care Global - إرشادات المجتمع\nآخر تحديث: 23 نوفمبر 2026",
+      "s1": "1. كن صادقاً",
+      "c1": "الممرضات: ارفعي صورتك وفيديو وهويتك وشهادتك الحقيقية فقط. لا هوية مزيفة.\nالعملاء: استخدم اسمك الحقيقي وهاتفك. سيتم حظر الحسابات المزيفة.",
+      "s2": "2. الدفع - قاعدة 20/80 (اقرأ بعناية)",
+      "c2": "هذه هي قاعدة الدفع الوحيدة:\n• ادفع 20% رسوم حجز داخل التطبيق لتأكيد الحجز.\n• ادفع 80% المتبقية للممرضة بعد انتهاء العمل - نقداً أو MoMo، فقط بعد أن تنتهي الممرضة.\n• لا تدفع أبداً المبلغ الكامل قبل بدء العمل.\n• لا تدفع أبداً للممرضة خارج حجز مؤكد.\n• إذا طلبت ممرضة الدفع الكامل قبل العمل، أو طلبت منك إلغاء الحجز داخل التطبيق للدفع خارجاً، أبلغ فوراً. هذا احتيال.",
+      "s3": "3. كن محترماً",
+      "c3": "لا إهانات، لا تهديدات، لا تحرش، لا رسائل جنسية، لا تمييز. يجب على الممرضات والعملاء احترام بعضهم، احترام المنازل، احترام الخصوصية.",
+      "s4": "4. لا شكاوى مزيفة / لا تقييمات مزيفة",
+      "c4": "لا تقدم شكاوى مزيفة للحصول على استرداد. لا تترك نجمة واحدة مزيفة لمعاقبة الممرضة. التقارير المزيفة = عقوبة الحساب.",
+      "s5": "5. العقوبات",
+      "c5": "المخالفة الأولى: تحذير\nالمخالفة الثانية: تعليق 7 أيام\nالمخالفة الثالثة: حظر دائم + حذف الحساب\nالمخالفات الخطيرة (احتيال، سرقة، عنف، سوء سلوك جنسي) = حظر دائم فوري.",
+      "s6": "6. سلامة الأطفال - عدم التسامح مطلقاً",
+      "c6": "لدينا عدم تسامح مطلقاً مع أي محتوى جنسي يتضمن قاصرين، أو أي محاولة لاستغلال طفل.\n• لا تنشر أو ترسل أو تطلب أبداً محتوى جنسياً يتضمن أي شخص دون 18 عاماً.\n• لا تطلب أبداً من قاصر صوراً أو فيديوهات أو لقاء.\n• إذا رأيت مثل هذا المحتوى، أبلغ فوراً.\nسيتم حظر الحساب نهائياً والإبلاغ عنه لشرطة غانا / السلطات.\nهذا ينطبق على الصور والفيديوهات والمحادثات والملفات الشخصية.",
+      "s7": "7. كيفية الإبلاغ / الحظر (محتوى من إنشاء المستخدم)",
+      "c7": "للإبلاغ عن مستخدم أو صورة أو فيديو أو رسالة:\nمحادثة > اضغط على اسم المستخدم > إبلاغ > اختر السبب > إرسال. يراجع المدير خلال 24 ساعة.\nلحظر مستخدم:\nمحادثة > اضغط على اسم المستخدم > حظر. لا يمكن للمستخدم المحظور مراسلتك مرة أخرى.\nللإبلاغ عن إساءة خطيرة: البريد الإلكتروني lovecareglobal@gmail.com مع لقطات شاشة.\nنراجع جميع التقارير. يتم إزالة المحتوى الذي يخرق هذه القواعد.",
+      "s8": "8. لا تشارك بيانات شخصية في الدردشة",
+      "c8": "لا تشارك رقم PIN البنكي أو OTP أو كلمة المرور أو رقم الهوية في الدردشة. لن يطلب منك المدير / Love Care أبداً كلمة المرور أو OTP.",
+    },
+
+    // 12. CHINESE
+    "zh": {
+      "title": "社区准则",
+      "header": "💜 Love Care Global - 社区准则\n最后更新: 2026年11月23日",
+      "s1": "1. 诚实",
+      "c1": "护士: 仅上传您的真实照片、视频、身份证和证书。不要虚假身份。\n客户: 使用您的真实姓名和电话。虚假账户将被封禁。",
+      "s2": "2. 付款 - 20/80 规则 (请仔细阅读)",
+      "c2": "这是唯一的付款规则:\n• 在 App 内支付 20% 预订费以确认预订。\n• 工作完成后向护士支付剩余 80% - 现金或 MoMo，仅在护士完成后。\n• 切勿在工作开始前支付全额。\n• 切勿在已确认预订之外向护士付款。\n• 如果护士在工作前要求全额付款，或要求您取消应用内预订以在外部付款，请立即举报。这是欺诈。",
+      "s3": "3. 尊重他人",
+      "c3": "不侮辱、不威胁、不骚扰、不发送性信息、不歧视。护士和客户必须互相尊重，尊重家庭，尊重隐私。",
+      "s4": "4. 没有虚假投诉 / 没有虚假评论",
+      "c4": "不要提交虚假投诉以获得退款。不要留下虚假 1 星来惩罚护士。虚假报告 = 账户处罚。",
+      "s5": "5. 处罚",
+      "c5": "第 1 次违规: 警告\n第 2 次违规: 停用 7 天\n第 3 次违规: 永久封禁 + 删除账户\n严重违规 (欺诈、盗窃、暴力、性不当行为) = 立即永久封禁。",
+      "s6": "6. 儿童安全 - 零容忍",
+      "c6": "我们对任何涉及未成年人的性内容，或任何企图剥削儿童的行为零容忍。\n• 切勿发布、发送或索取涉及 18 岁以下任何人的性内容。\n• 切勿向未成年人索要照片、视频或见面。\n• 如果您看到此类内容，请立即举报。\n账户将被永久封禁并报告给加纳警方 / 当局。\n这适用于照片、视频、聊天和个人资料。",
+      "s7": "7. 如何举报 / 屏蔽 (用户生成内容)",
+      "c7": "举报用户、照片、视频或消息:\n聊天 > 点击用户名 > 举报 > 选择原因 > 提交。CEO 在 24 小时内审核。\n屏蔽用户:\n聊天 > 点击用户名 > 屏蔽。被屏蔽的用户无法再向您发送消息。\n举报严重虐待: 发送电子邮件至 lovecareglobal@gmail.com 并附截图。\n我们会审核所有举报。违反这些规则的内容将被删除。",
+      "s8": "8. 不要在聊天中分享个人数据",
+      "c8": "不要在聊天中分享银行 PIN、OTP、密码或身份证号码。CEO / Love Care 绝不会向您索要密码或 OTP。",
+    },
+
+    // 13. HINDI
+    "hi": {
+      "title": "समुदाय दिशानिर्देश",
+      "header": "💜 Love Care Global - समुदाय दिशानिर्देश\nअंतिम अद्यतन: 23 नवंबर 2026",
+      "s1": "1. ईमानदार रहें",
+      "c1": "नर्स: केवल अपनी असली फोटो, वीडियो, ID और प्रमाणपत्र अपलोड करें। कोई नकली पहचान नहीं।\nग्राहक: अपने असली नाम और फ़ोन का उपयोग करें। नकली खातों पर प्रतिबंध लगाया जाएगा।",
+      "s2": "2. भुगतान - 20/80 नियम (ध्यान से पढ़ें)",
+      "c2": "यह एकमात्र भुगतान नियम है:\n• बुकिंग की पुष्टि करने के लिए ऐप के अंदर 20% बुकिंग शुल्क का भुगतान करें।\n• काम समाप्त होने के बाद नर्स को शेष 80% का भुगतान करें - नकद या MoMo में, केवल नर्स के समाप्त करने के बाद।\n• काम शुरू होने से पहले कभी भी पूरी राशि का भुगतान न करें।\n• पुष्ट बुकिंग के बाहर कभी भी नर्स को भुगतान न करें।\n• यदि कोई नर्स काम से पहले पूर्ण भुगतान मांगती है, या आपसे बाहर भुगतान करने के लिए इन-ऐप बुकिंग रद्द करने के लिए कहती है, तो तुरंत रिपोर्ट करें। यह धोखाधड़ी है।",
+      "s3": "3. सम्मानजनक रहें",
+      "c3": "कोई अपमान नहीं, कोई धमकी नहीं, कोई उत्पीड़न नहीं, कोई यौन संदेश नहीं, कोई भेदभाव नहीं। नर्स और ग्राहकों को एक-दूसरे का सम्मान करना चाहिए, घरों का सम्मान करना चाहिए, गोपनीयता का सम्मान करना चाहिए।",
+      "s4": "4. कोई नकली शिकायत नहीं / कोई नकली समीक्षा नहीं",
+      "c4": "रिफंड पाने के लिए नकली शिकायतें दर्ज न करें। नर्स को दंडित करने के लिए नकली 1-स्टार न छोड़ें। नकली रिपोर्ट = खाता दंड।",
+      "s5": "5. दंड",
+      "c5": "पहला अपराध: चेतावनी\nदूसरा अपराध: 7-दिन का निलंबन\nतीसरा अपराध: स्थायी प्रतिबंध + खाता हटाया गया\nगंभीर अपराध (धोखाधड़ी, चोरी, हिंसा, यौन दुर्व्यवहार) = तत्काल स्थायी प्रतिबंध।",
+      "s6": "6. बाल सुरक्षा - शून्य सहनशीलता",
+      "c6": "नाबालिगों से जुड़ी किसी भी यौन सामग्री, या बच्चे का शोषण करने के किसी भी प्रयास के लिए हमारी शून्य सहनशीलता है।\n• 18 वर्ष से कम आयु के किसी भी व्यक्ति से जुड़ी यौन सामग्री कभी भी पोस्ट, भेजें या अनुरोध न करें।\n• किसी नाबालिग से कभी भी फोटो, वीडियो या मिलने के लिए न कहें।\n• यदि आप ऐसी सामग्री देखते हैं, तो तुरंत रिपोर्ट करें।\nखाते पर स्थायी रूप से प्रतिबंध लगाया जाएगा और घाना पुलिस / अधिकारियों को सूचित किया जाएगा।\nयह फोटो, वीडियो, चैट और प्रोफाइल पर लागू होता है।",
+      "s7": "7. रिपोर्ट / ब्लॉक कैसे करें (उपयोगकर्ता-जनित सामग्री)",
+      "c7": "किसी उपयोगकर्ता, फोटो, वीडियो या संदेश को रिपोर्ट करने के लिए:\nचैट > उपयोगकर्ता नाम पर टैप करें > रिपोर्ट > कारण चुनें > सबमिट करें। CEO 24 घंटों के भीतर समीक्षा करता है।\nकिसी उपयोगकर्ता को ब्लॉक करने के लिए:\nचैट > उपयोगकर्ता नाम पर टैप करें > ब्लॉक करें। ब्लॉक किया गया उपयोगकर्ता आपको फिर से संदेश नहीं भेज सकता।\nगंभीर दुर्व्यवहार की रिपोर्ट करने के लिए: स्क्रीनशॉट के साथ lovecareglobal@gmail.com पर ईमेल करें।\nहम सभी रिपोर्ट की समीक्षा करते हैं। इन नियमों को तोड़ने वाली सामग्री हटा दी जाती है।",
+      "s8": "8. चैट में व्यक्तिगत डेटा साझा न करें",
+      "c8": "चैट में बैंक PIN, OTP, पासवर्ड या ID नंबर साझा न करें। CEO / Love Care कभी भी आपसे आपका पासवर्ड या OTP नहीं मांगेगा।",
+    },
+
+    // 14. SWAHILI
+    "sw": {
+      "title": "Miongozo Ya Jamii",
+      "header": "💜 Love Care Global - Miongozo Ya Jamii\nImesasishwa Mwisho: 23 Nov 2026",
+      "s1": "1. Kuwa Mkweli",
+      "c1": "Wauguzi: Pakia picha, video, kitambulisho na cheti chako HALISI tu. Hakuna utambulisho wa uongo.\nWateja: Tumia jina lako halisi na simu. Akaunti za uongo zitafungiwa.",
+      "s2": "2. Malipo - Kanuni Ya 20/80 (SOMA KWA MAKINI)",
+      "c2": "HII NDIO KANUNI PEKEE YA MALIPO:\n• Lipa 20% ada ya booking NDANI ya App ili kuthibitisha booking.\n• Lipa 80% iliyobaki kwa Muuguzi BAADA ya kazi kumalizika - kwa pesa taslimu au MoMo, tu baada ya Muuguzi kumaliza.\n• KAMWE usilipe kiasi kamili kabla kazi haijaanza.\n• KAMWE usimlipe Muuguzi nje ya booking iliyothibitishwa.\n• Ikiwa Muuguzi anaomba malipo kamili kabla ya kazi, au anakuomba ughairi booking ya ndani ya app ili kulipa nje, RIPOTI mara moja. Hiyo ni ulaghai.",
+      "s3": "3. Kuwa Na Heshima",
+      "c3": "Hakuna matusi, hakuna vitisho, hakuna unyanyasaji, hakuna ujumbe wa kingono, hakuna ubaguzi. Wauguzi na Wateja lazima waheshimiane, waheshimu nyumba, waheshimu faragha.",
+      "s4": "4. Hakuna Malalamiko Ya Uongo / Hakuna Mapitio Ya Uongo",
+      "c4": "Usiwasilishe malalamiko ya uongo ili kupata marejesho. Usiache nyota 1 ya uongo ili kumwadhibu Muuguzi. Ripoti za uongo = adhabu ya akaunti.",
+      "s5": "5. Adhabu",
+      "c5": "Kosa La 1: Onyo\nKosa La 2: Kusimamishwa siku 7\nKosa La 3: Kufungiwa Kudumu + akaunti imefutwa\nMakosa makubwa (ulaghai, wizi, vurugu, tabia mbaya ya kingono) = Kufungiwa Kudumu Mara Moja.",
+      "s6": "6. Usalama Wa Watoto - UVUMILIVU SIFURI",
+      "c6": "Tuna UVUMILIVU SIFURI kwa maudhui yoyote ya kingono yanayohusisha watoto, au jaribio lolote la kumnyonya mtoto.\n• Kamwe usichapishe, kutuma au kuomba maudhui ya kingono yanayohusisha mtu yeyote chini ya miaka 18.\n• Kamwe usimuombe mtoto picha, video au mkutano.\n• Ukiona maudhui kama hayo, RIPOTI mara moja.\nAkaunti itafungiwa KUDUMU na kuripotiwa kwa Polisi wa Ghana / mamlaka.\nHii inatumika kwa picha, video, gumzo na wasifu.",
+      "s7": "7. Jinsi Ya Kuripoti / Kuzuia (Maudhui Yanayotengenezwa Na Mtumiaji)",
+      "c7": "KURIPOTI mtumiaji, picha, video au ujumbe:\nGumzo > Gusa jina la mtumiaji > Ripoti > Chagua sababu > Tuma. CEO hukagua ndani ya masaa 24.\nKUZUIA mtumiaji:\nGumzo > Gusa jina la mtumiaji > Zuia. Mtumiaji aliyezuiwa hawezi kukutumia ujumbe tena.\nKuripoti unyanyasaji mkubwa: Barua pepe lovecareglobal@gmail.com na picha za skrini.\nTunakagua ripoti zote. Maudhui yanayovunja sheria hizi huondolewa.",
+      "s8": "8. Usishiriki Data Binafsi Kwenye Gumzo",
+      "c8": "Usishiriki PIN ya benki, OTP, nenosiri au namba ya kitambulisho kwenye gumzo. CEO / Love Care HATAKUULIZA kamwe nenosiri lako au OTP.",
+    },
+
+    // 15. YORUBA
+    "yo": {
+      "title": "Itọsọna Agbegbe",
+      "header": "💜 Love Care Global - Itọsọna Agbegbe\nImudojuiwọn Kẹhin: 23 Nov 2026",
+      "s1": "1. Jẹ Otitọ",
+      "c1": "Nọọsi: Gbe fọto, fidio, ID ati ijẹrisi RẸ OTITỌ nikan soke. Ko si idanimọ eke.\nAlabara: Lo orukọ otitọ ati foonu rẹ. A o dina account eke.",
+      "s2": "2. Isanwo - Ofin 20/80 (KA A KIIYESE)",
+      "c2": "ELEYI NI OFIN ISANWO KANṢOṢO:\n• San 20% owo booking NINU App lati jẹrisi booking.\n• San 80% ti o ku fun Nọọsi LẸHIN ti iṣẹ ba pari - ni owo tabi MoMo, lẹhin ti Nọọsi ba pari nikan.\n• MAA SAN owo kikun rara ṣaaju ki iṣẹ to bẹrẹ.\n• MAA SAN Nọọsi ni ita booking ti a jẹrisi rara.\n• Ti Nọọsi ba beere isanwo kikun ṣaaju iṣẹ, tabi beere pe ki o fagile booking in-app lati san ni ita, JABỌ lẹsẹkẹsẹ. Iyẹn jẹ ẹtan.",
+      "s3": "3. Bọwọ Fun Ara Ẹni",
+      "c3": "Ko si ẹgan, ko si ihalẹ, ko si inilara, ko si ifiranṣẹ ibalopọ, ko si iyasọtọ. Nọọsi ati Alabara gbọdọ bọwọ fun ara wọn, bọwọ fun ile, bọwọ fun ìpamọ.",
+      "s4": "4. Ko Si Ẹbẹ Eke / Ko Si Atunwo Eke",
+      "c4": "Maṣe fi ẹbẹ eke silẹ lati gba agbapada. Maṣe fi 1-star eke silẹ lati jiya Nọọsi. Ijabọ eke = ijiya account.",
+      "s5": "5. Ijiya",
+      "c5": "Ẹṣẹ 1st: Ikilọ\nẸṣẹ 2nd: Idaduro ọjọ 7\nẸṣẹ 3rd: Dina Titilai + account paarẹ\nẸṣẹ nla (ẹtan, ole, iwa-ipa, iwa ibalopọ buburu) = Dina Titilai Lẹsẹkẹsẹ.",
+      "s6": "6. Aabo Ọmọde - IFARADA ODO",
+      "c6": "A ni IFARADA ODO fun eyikeyi akoonu ibalopọ ti o kan awọn ọmọde, tabi igbiyanju eyikeyi lati lo ọmọde.\n• Maṣe fi, fi ranṣẹ, tabi beere akoonu ibalopọ ti o kan ẹnikẹni ti o wa labẹ ọdun 18 rara.\n• Maṣe beere ọmọde fun fọto, fidio, tabi ipade rara.\n• Ti o ba ri akoonu bẹẹ, JABỌ lẹsẹkẹsẹ.\nA o dina account TITILAI ati jabo si Ọlọpaa Ghana / awọn alaṣẹ.\nEyi kan fọto, fidio, iwiregbe, ati profaili.",
+      "s7": "7. Bii O Ṣe Le Jabọ / Dina (Akoonu Ti Olumulo Ṣe)",
+      "c7": "Lati JABỌ olumulo, fọto, fidio tabi ifiranṣẹ:\nIwiregbe > Tẹ orukọ olumulo > Jabọ > Yan idi > Fi Ranṣẹ. CEO ṣayẹwo laarin wakati 24.\nLati DINA olumulo:\nIwiregbe > Tẹ orukọ olumulo > Dina. Olumulo ti a dina ko le fi ifiranṣẹ ranṣẹ si ọ mọ.\nLati jabọ ilokulo nla: Imeeli lovecareglobal@gmail.com pẹlu awọn sikirinṣọti.\nA ṣayẹwo gbogbo ijabọ. Akoonu ti o fọ awọn ofin wọnyi ni a yọ kuro.",
+      "s8": "8. Maṣe Pin Data Ti Ara Ẹni Ninu Iwiregbe",
+      "c8": "Maṣe pin PIN banki, OTP, ọrọ igbaniwọle, tabi nọmba ID ninu iwiregbe. CEO / Love Care KO NI BEERE ọrọ igbaniwọle tabi OTP rẹ rara.",
+    },
+
+    // 16. IGBO
+    "ig": {
+      "title": "Ntuziaka Obodo",
+      "header": "💜 Love Care Global - Ntuziaka Obodo\nEmelitere Ikpeazụ: 23 Nov 2026",
+      "s1": "1. Bụrụ Onye Eziokwu",
+      "c1": "Nọọsụ: Bulite naanị foto, vidio, ID na asambodo gị EZIOKWU. Enweghị njirimara ụgha.\nOnye Ahịa: Jiri ezigbo aha gị na ekwentị. A ga-amachibido akaụntụ ụgha.",
+      "s2": "2. Ịkwụ Ụgwọ - Iwu 20/80 (GỤỌ NKE ỌMA)",
+      "c2": "NKE A BỤ NANỊ IWU ỊKWỤ ỤGWỌ:\n• Kwụọ 20% ego booking N'IME App iji kwado booking.\n• Kwụọ 80% fọdụrụ nye Nọọsụ MGBE ọrụ gwụchara - na ego ma ọ bụ MoMo, naanị mgbe Nọọsụ gwụchara.\n• AGHỊ kwụọ ego zuru ezu tupu ọrụ amalite.\n• AGHỊ kwụọ Nọọsụ na mpụga booking akwadoro.\n• Ọ bụrụ na Nọọsụ rịọ maka ịkwụ ụgwọ zuru ezu tupu ọrụ, ma ọ bụ rịọ gị ka ị kagbuo booking n'ime app iji kwụọ ụgwọ na mpụga, KPỌSAA ozugbo. Nke ahụ bụ aghụghọ.",
+      "s3": "3. Na-asọpụrụ",
+      "c3": "Enweghị mkparị, enweghị iyi egwu, enweghị mmekpa ahụ, enweghị ozi mmekọahụ, enweghị ịkpa ókè. Nọọsụ na Onye Ahịa ga-asọpụrụ ibe ha, na-asọpụrụ ụlọ, na-asọpụrụ nzuzo.",
+      "s4": "4. Enweghị Mkpesa Ụgha / Enweghị Nyocha Ụgha",
+      "c4": "Edebala mkpesa ụgha iji nweta nkwụghachi. Ahapụla 1-star ụgha iji taa Nọọsụ ahụhụ. Akụkọ ụgha = ntaramahụhụ akaụntụ.",
+      "s5": "5. Ntaramahụhụ",
+      "c5": "Mmebi Iwu Nke 1: Ịdọ Aka Ná Ntị\nMmebi Iwu Nke 2: Nkwusioru ụbọchị 7\nMmebi Iwu Nke 3: Machibido Na-adịgide Adịgide + ehichapụ akaụntụ\nMmebi iwu dị njọ (aghụghọ, izu ohi, ime ihe ike, omume mmekọahụ ọjọọ) = Machibido Na-adịgide Adịgide Ozugbo.",
+      "s6": "6. Nchekwa Ụmụaka - ENWEGHỊ NDIDI",
+      "c6": "Anyị enweghị NDIDI maka ọdịnaya mmekọahụ ọ bụla metụtara ụmụaka, ma ọ bụ mbọ ọ bụla iji rite nwatakịrị uru.\n• Abịanyela, ezigala, ma ọ bụ rịọọ ọdịnaya mmekọahụ metụtara onye ọ bụla na-erubeghị afọ 18.\n• Arịọla nwatakịrị foto, vidio, ma ọ bụ nzute.\n• Ọ bụrụ na ị hụ ọdịnaya dị otú ahụ, KPỌSAA ozugbo.\nA ga-amachibido akaụntụ ahụ NA-ADỊGIDE ADỊGIDE wee kọọrọ ya ndị uwe ojii Ghana / ndị ọchịchị.\nNke a metụtara foto, vidio, nkata, na profaịlụ.",
+      "s7": "7. Otu E Si Akọsa / Gbochie (Ọdịnaya Onye Ọrụ Mepụtara)",
+      "c7": "Iji KỌỌ onye ọrụ, foto, vidio ma ọ bụ ozi:\nNkata > Pịa aha onye ọrụ > Kọọ > Họrọ ihe kpatara > Nyefee. CEO na-enyocha n'ime awa 24.\nIji GBOCHIE onye ọrụ:\nNkata > Pịa aha onye ọrụ > Gbochie. Onye ọrụ egbochiri enweghị ike iziga gị ozi ọzọ.\nIji kọọ mmetọ dị njọ: Email lovecareglobal@gmail.com na nseta ihuenyo.\nAnyị na-enyocha akụkọ niile. A na-ewepụ ọdịnaya na-emebi iwu ndị a.",
+      "s8": "8. Ekekọrịtala Data Nkeonwe Na Nkata",
+      "c8": "Ekekọrịtala PIN ụlọ akụ, OTP, paswọọdụ, ma ọ bụ nọmba ID na nkata. CEO / Love Care AGHỊ ajụ gị paswọọdụ gị ma ọ bụ OTP.",
+    },
+
+    // 17. HAUSA
+    "ha": {
+      "title": "Jagororin Al'umma",
+      "header": "💜 Love Care Global - Jagororin Al'umma\nSabuntawa Na Ƙarshe: 23 Nov 2026",
+      "s1": "1. Ka Zama Mai Gaskiya",
+      "c1": "Nurse: Loda hotonka na GASKIYA, bidiyo, ID da takardar shaidarka kawai. Babu ainihin ƙarya.\nAbokin Ciniki: Yi amfani da sunanka na gaskiya da wayarka. Za a dakatar da asusun ƙarya.",
+      "s2": "2. Biya - Dokar 20/80 (KARANTA A HANKALI)",
+      "c2": "WANNAN ITA CE KAƊAI DOKAR BIYA:\n• Biya 20% kuɗin booking A CIKIN App don tabbatar da booking.\n• Biya sauran 80% ga Nurse BAYAN aiki ya ƙare - da kuɗi ko MoMo, kawai bayan Nurse ta gama.\n• KADA ka biya cikakken kuɗi kafin aiki ya fara.\n• KADA ka biya Nurse a wajen booking da aka tabbatar.\n• Idan Nurse ta nemi cikakken biya kafin aiki, ko ta nemi ka soke booking na cikin app don biya a waje, KA YI RAHOTO nan da nan. Wannan zamba ne.",
+      "s3": "3. Ka Zama Mai Girmamawa",
+      "c3": "Babu zagi, babu barazana, babu tsangwama, babu saƙon batsa, babu wariya. Nurse da Abokin Ciniki dole su girmama juna, su girmama gidaje, su girmama sirri.",
+      "s4": "4. Babu Korafi Na Ƙarya / Babu Bita Na Ƙarya",
+      "c4": "Kada ka shigar da korafi na ƙarya don samun kuɗi. Kada ka bar tauraro 1 na ƙarya don hukunta Nurse. Rahotanni na ƙarya = hukuncin asusu.",
+      "s5": "5. Hukunci",
+      "c5": "Laifi Na 1: Gargaɗi\nLaifi Na 2: Dakatarwa na kwanaki 7\nLaifi Na 3: Haramtawa Ta Dindindin + share asusu\nLaifuka masu tsanani (zamba, sata, tashin hankali, ɗabi'ar batsa) = Haramtawa Ta Dindindin Nan Da Nan.",
+      "s6": "6. Tsaron Yara - BABU HAƘURI",
+      "c6": "Muna da BABU HAƘURI ga duk wani abun batsa da ya shafi yara, ko duk wani ƙoƙari na cin zarafin yaro.\n• Kada ka buga, aika, ko nemi abun batsa da ya shafi duk wanda bai kai shekara 18 ba.\n• Kada ka nemi yaro hotuna, bidiyo, ko taro.\n• Idan ka ga irin wannan abun, KA YI RAHOTO nan da nan.\nZa a haramta asusun DA DINDINDIN kuma a kai rahoto ga 'Yan Sandan Ghana / hukumomi.\nWannan ya shafi hotuna, bidiyo, hira, da bayanan martaba.",
+      "s7": "7. Yadda Ake Yin Rahoto / Toshewa (Abun Ciki Da Mai Amfani Ya Ƙirƙira)",
+      "c7": "Don YIN RAHOTO kan mai amfani, hoto, bidiyo ko saƙo:\nHira > Taɓa sunan mai amfani > Rahoto > Zaɓi dalili > Aika. CEO yana duba cikin sa'o'i 24.\nDon TOSE mai amfani:\nHira > Taɓa sunan mai amfani > Toshe. Mai amfani da aka toshe ba zai iya aika maka saƙo ba kuma.\nDon yin rahoto kan cin zarafi mai tsanani: Imel lovecareglobal@gmail.com tare da hotunan allo.\nMuna duba duk rahotanni. Ana cire abun ciki da ya karya waɗannan dokokin.",
+      "s8": "8. Kada Ka Raba Bayanan Sirri A Hira",
+      "c8": "Kada ka raba PIN na banki, OTP, kalmar sirri, ko lambar ID a hira. CEO / Love Care BAZA su taɓa tambayar kalmar sirrinka ko OTP ba.",
+    },
+
+    // 18. RUSSIAN
+    "ru": {
+      "title": "Правила Сообщества",
+      "header": "💜 Love Care Global - Правила Сообщества\nПоследнее Обновление: 23 Ноя 2026",
+      "s1": "1. Будьте Честны",
+      "c1": "Медсёстры: Загружайте только ваше НАСТОЯЩЕЕ фото, видео, ID и сертификат. Никакой фальшивой личности.\nКлиенты: Используйте ваше настоящее имя и телефон. Фальшивые аккаунты будут забанены.",
+      "s2": "2. Оплата - Правило 20/80 (ЧИТАЙТЕ ВНИМАТЕЛЬНО)",
+      "c2": "ЭТО ЕДИНСТВЕННОЕ ПРАВИЛО ОПЛАТЫ:\n• Оплатите 20% комиссии за бронирование ВНУТРИ Приложения, чтобы подтвердить бронирование.\n• Оплатите оставшиеся 80% Медсестре ПОСЛЕ завершения работы - наличными или MoMo, только после того, как Медсестра закончит.\n• НИКОГДА не платите полную сумму до начала работы.\n• НИКОГДА не платите Медсестре вне подтверждённого бронирования.\n• Если Медсестра просит полную оплату до работы, или просит вас отменить бронирование в приложении, чтобы платить снаружи, СООБЩИТЕ немедленно. Это мошенничество.",
+      "s3": "3. Будьте Уважительны",
+      "c3": "Никаких оскорблений, угроз, домогательств, сексуальных сообщений, дискриминации. Медсёстры и Клиенты должны уважать друг друга, уважать дома, уважать конфиденциальность.",
+      "s4": "4. Никаких Фальшивых Жалоб / Никаких Фальшивых Отзывов",
+      "c4": "Не подавайте фальшивые жалобы, чтобы получить возврат. Не оставляйте фальшивую 1-звезду, чтобы наказать Медсестру. Фальшивые отчёты = штраф аккаунта.",
+      "s5": "5. Штрафы",
+      "c5": "1-е Нарушение: Предупреждение\n2-е Нарушение: Блокировка на 7 дней\n3-е Нарушение: Постоянный Бан + аккаунт удалён\nСерьёзные нарушения (мошенничество, кража, насилие, сексуальное домогательство) = Немедленный Постоянный Бан.",
+      "s6": "6. Безопасность Детей - НУЛЕВАЯ ТЕРПИМОСТЬ",
+      "c6": "У нас НУЛЕВАЯ терпимость к любому сексуальному контенту с участием несовершеннолетних, или любой попытке эксплуатировать ребёнка.\n• Никогда не публикуйте, не отправляйте и не запрашивайте сексуальный контент с участием лиц младше 18 лет.\n• Никогда не просите несовершеннолетнего о фото, видео или встрече.\n• Если вы видите такой контент, СООБЩИТЕ немедленно.\nАккаунт будет забанен НАВСЕГДА и сообщён в Полицию Ганы / властям.\nЭто относится к фото, видео, чатам и профилям.",
+      "s7": "7. Как Сообщить / Заблокировать (Пользовательский Контент)",
+      "c7": "Чтобы СООБЩИТЬ о пользователе, фото, видео или сообщении:\nЧат > Нажмите имя пользователя > Сообщить > Выберите причину > Отправить. CEO рассматривает в течение 24 часов.\nЧтобы ЗАБЛОКИРОВАТЬ пользователя:\nЧат > Нажмите имя пользователя > Заблокировать. Заблокированный пользователь больше не сможет писать вам.\nЧтобы сообщить о серьёзном насилии: Эл. почта lovecareglobal@gmail.com со скриншотами.\nМы рассматриваем все отчёты. Контент, нарушающий эти правила, удаляется.",
+      "s8": "8. Не Делитесь Личными Данными В Чате",
+      "c8": "Не делитесь банковским PIN, OTP, паролем или номером ID в чате. CEO / Love Care НИКОГДА не попросит ваш пароль или OTP.",
+    },
+
+    // 19. TURKISH
+    "tr": {
+      "title": "Topluluk Kuralları",
+      "header": "💜 Love Care Global - Topluluk Kuralları\nSon Güncelleme: 23 Kas 2026",
+      "s1": "1. Dürüst Olun",
+      "c1": "Hemşireler: Sadece GERÇEK fotoğrafınızı, videonuzu, kimliğinizi ve sertifikanızı yükleyin. Sahte kimlik yok.\nMüşteriler: Gerçek adınızı ve telefonunuzu kullanın. Sahte hesaplar yasaklanacak.",
+      "s2": "2. Ödeme - 20/80 Kuralı (DİKKATLİCE OKUYUN)",
+      "c2": "BU TEK ÖDEME KURALIDIR:\n• Rezervasyonu onaylamak için Uygulama İÇİNDE %20 rezervasyon ücreti ödeyin.\n• Kalan %80'i Hemşireye iş bittikten SONRA ödeyin - nakit veya MoMo ile, yalnızca Hemşire bitirdikten sonra.\n• İş başlamadan önce ASLA tam tutarı ödemeyin.\n• Onaylanmış bir rezervasyon dışında Hemşireye ASLA ödeme yapmayın.\n• Bir Hemşire işten önce tam ödeme isterse veya uygulama içi rezervasyonu iptal edip dışarıda ödemenizi isterse, HEMEN BİLDİRİN. Bu dolandırıcılıktır.",
+      "s3": "3. Saygılı Olun",
+      "c3": "Hakaret yok, tehdit yok, taciz yok, cinsel mesaj yok, ayrımcılık yok. Hemşireler ve Müşteriler birbirine saygı duymalı, evlere saygı duymalı, gizliliğe saygı duymalı.",
+      "s4": "4. Sahte Şikayet Yok / Sahte Yorum Yok",
+      "c4": "İade almak için sahte şikayet vermeyin. Hemşireyi cezalandırmak için sahte 1 yıldız bırakmayın. Sahte raporlar = hesap cezası.",
+      "s5": "5. Cezalar",
+      "c5": "1. İhlal: Uyarı\n2. İhlal: 7 gün askıya alma\n3. İhlal: Kalıcı Yasak + hesap silindi\nCiddi ihlaller (dolandırıcılık, hırsızlık, şiddet, cinsel suistimal) = Anında Kalıcı Yasak.",
+      "s6": "6. Çocuk Güvenliği - SIFIR TOLERANS",
+      "c6": "Küçükleri içeren herhangi bir cinsel içerik veya bir çocuğu istismar etme girişimine karşı SIFIR toleransımız var.\n• 18 yaşın altındaki herhangi birini içeren cinsel içeriği asla yayınlamayın, göndermeyin veya istemeyin.\n• Bir küçükten asla fotoğraf, video veya buluşma istemeyin.\n• Böyle bir içerik görürseniz, HEMEN BİLDİRİN.\nHesap KALICI olarak yasaklanacak ve Gana Polisine / yetkililere bildirilecek.\nBu fotoğraflar, videolar, sohbetler ve profiller için geçerlidir.",
+      "s7": "7. Nasıl Bildirilir / Engellenir (Kullanıcı Tarafından Oluşturulan İçerik)",
+      "c7": "Bir kullanıcıyı, fotoğrafı, videoyu veya mesajı BİLDİRMEK için:\nSohbet > Kullanıcı adına dokunun > Bildir > Neden seçin > Gönderin. CEO 24 saat içinde inceler.\nBir kullanıcıyı ENGELLEMEK için:\nSohbet > Kullanıcı adına dokunun > Engelle. Engellenen kullanıcı size tekrar mesaj gönderemez.\nCiddi istismarı bildirmek için: Ekran görüntüleriyle lovecareglobal@gmail.com adresine e-posta gönderin.\nTüm raporları inceliyoruz. Bu kuralları ihlal eden içerik kaldırılır.",
+      "s8": "8. Sohbette Kişisel Veri Paylaşmayın",
+      "c8": "Sohbette banka PIN'i, OTP, şifre veya kimlik numarası paylaşmayın. CEO / Love Care şifrenizi veya OTP'nizi ASLA istemeyecek.",
+    },
+
+    // 20. KOREAN
+    "ko": {
+      "title": "커뮤니티 가이드라인",
+      "header": "💜 Love Care Global - 커뮤니티 가이드라인\n마지막 업데이트: 2026년 11월 23일",
+      "s1": "1. 정직하세요",
+      "c1": "간호사: 실제 사진, 비디오, ID 및 인증서만 업로드하세요. 가짜 신분은 안 됩니다.\n고객: 실제 이름과 전화를 사용하세요. 가짜 계정은 차단됩니다.",
+      "s2": "2. 결제 - 20/80 규칙 (주의 깊게 읽으세요)",
+      "c2": "이것이 유일한 결제 규칙입니다:\n• 예약을 확인하려면 앱 안에서 20% 예약 수수료를 지불하세요.\n• 작업이 끝난 후 간호사에게 나머지 80%를 지불하세요 - 현금 또는 MoMo로, 간호사가 끝낸 후에만.\n• 작업이 시작되기 전에 전액을 지불하지 마세요.\n• 확인된 예약 외부에서 간호사에게 지불하지 마세요.\n• 간호사가 작업 전에 전액 결제를 요구하거나, 외부에서 결제하기 위해 앱 내 예약을 취소하도록 요구하면 즉시 신고하세요. 그것은 사기입니다.",
+      "s3": "3. 존중하세요",
+      "c3": "모욕, 위협, 괴롭힘, 성적 메시지, 차별 금지. 간호사와 고객은 서로를 존중하고, 가정을 존중하고, 프라이버시를 존중해야 합니다.",
+      "s4": "4. 가짜 불만 없음 / 가짜 리뷰 없음",
+      "c4": "환불을 받기 위해 가짜 불만을 제기하지 마세요. 간호사를 처벌하기 위해 가짜 1점을 남기지 마세요. 가짜 보고 = 계정 처벌.",
+      "s5": "5. 처벌",
+      "c5": "1차 위반: 경고\n2차 위반: 7일 정지\n3차 위반: 영구 차단 + 계정 삭제\n심각한 위반 (사기, 절도, 폭력, 성적 비행) = 즉시 영구 차단.",
+      "s6": "6. 아동 안전 - 무관용",
+      "c6": "우리는 미성년자를 포함한 성적 콘텐츠나 아동을 착취하려는 시도에 대해 무관용입니다.\n• 18세 미만의 사람을 포함한 성적 콘텐츠를 게시, 전송 또는 요청하지 마세요.\n• 미성년자에게 사진, 비디오 또는 만남을 요청하지 마세요.\n• 그러한 콘텐츠를 보면 즉시 신고하세요.\n계정은 영구적으로 차단되고 가나 경찰 / 당국에 보고됩니다.\n이는 사진, 비디오, 채팅 및 프로필에 적용됩니다.",
+      "s7": "7. 신고 / 차단 방법 (사용자 생성 콘텐츠)",
+      "c7": "사용자, 사진, 비디오 또는 메시지를 신고하려면:\n채팅 > 사용자 이름 탭 > 신고 > 이유 선택 > 제출. CEO는 24시간 이내에 검토합니다.\n사용자를 차단하려면:\n채팅 > 사용자 이름 탭 > 차단. 차단된 사용자는 다시 메시지를 보낼 수 없습니다.\n심각한 학대를 신고하려면: 스크린샷과 함께 lovecareglobal@gmail.com으로 이메일을 보내세요.\n모든 보고를 검토합니다. 이 규칙을 위반하는 콘텐츠는 제거됩니다.",
+      "s8": "8. 채팅에서 개인 데이터를 공유하지 마세요",
+      "c8": "채팅에서 은행 PIN, OTP, 비밀번호 또는 ID 번호를 공유하지 마세요. CEO / Love Care는 절대 비밀번호나 OTP를 묻지 않습니다.",
+    },
+
+    // 21. JAPANESE
+    "ja": {
+      "title": "コミュニティ ガイドライン",
+      "header": "💜 Love Care Global - コミュニティ ガイドライン\n最終更新: 2026年11月23日",
+      "s1": "1. 正直であること",
+      "c1": "看護師: 本物の写真、ビデオ、ID、証明書のみをアップロードしてください。偽の身分は禁止です。\nクライアント: 本名と電話を使用してください。偽のアカウントは禁止されます。",
+      "s2": "2. 支払い - 20/80 ルール (よく読んでください)",
+      "c2": "これが唯一の支払いルールです:\n• 予約を確認するために、アプリ内で 20% の予約料を支払ってください。\n• 仕事が終わった後、看護師に残りの 80% を支払ってください - 現金または MoMo で、看護師が終わった後にのみ。\n• 仕事が始まる前に全額を支払わないでください。\n• 確認された予約以外で看護師に支払わないでください。\n• 看護師が仕事前に全額支払いを求めたり、外部で支払うためにアプリ内予約をキャンセルするよう求めたりした場合は、すぐに報告してください。それは詐欺です。",
+      "s3": "3. 敬意を払うこと",
+      "c3": "侮辱、脅迫、嫌がらせ、性的なメッセージ、差別は禁止です。看護師とクライアントはお互いを尊重し、家庭を尊重し、プライバシーを尊重しなければなりません。",
+      "s4": "4. 偽の苦情なし / 偽のレビューなし",
+      "c4": "返金を受けるために偽の苦情を提出しないでください。看護師を罰するために偽の 1 つ星を残さないでください。偽の報告 = アカウントのペナルティ。",
+      "s5": "5. ペナルティ",
+      "c5": "1回目の違反: 警告\n2回目の違反: 7日間の停止\n3回目の違反: 永久禁止 + アカウント削除\n重大な違反 (詐欺、窃盗、暴力、性的不正行為) = 即時の永久禁止。",
+      "s6": "6. 子どもの安全 - 許容ゼロ",
+      "c6": "未成年者を含む性的なコンテンツや、子どもを搾取しようとする試みに対して、私たちは許容ゼロです。\n• 18歳未満の人を含む性的なコンテンツを投稿、送信、要求しないでください。\n• 未成年者に写真、ビデオ、面会を求めないでください。\n• そのようなコンテンツを見たら、すぐに報告してください。\nアカウントは永久に禁止され、ガーナ警察 / 当局に報告されます。\nこれは写真、ビデオ、チャット、プロフィールに適用されます。",
+      "s7": "7. 報告 / ブロックする方法 (ユーザー生成コンテンツ)",
+      "c7": "ユーザー、写真、ビデオ、メッセージを報告するには:\nチャット > ユーザー名をタップ > 報告 > 理由を選択 > 送信。CEOは24時間以内に確認します。\nユーザーをブロックするには:\nチャット > ユーザー名をタップ > ブロック。ブロックされたユーザーは再度メッセージを送信できません。\n重大な虐待を報告するには: スクリーンショット付きで lovecareglobal@gmail.com にメールしてください。\nすべての報告を確認します。これらのルールに違反するコンテンツは削除されます。",
+      "s8": "8. チャットで個人データを共有しないこと",
+      "c8": "チャットで銀行の PIN、OTP、パスワード、ID 番号を共有しないでください。CEO / Love Care がパスワードや OTP を尋ねることは決してありません。",
+    },
+
+    // 22. POLISH
+    "pl": {
+      "title": "Wytyczne Społeczności",
+      "header": "💜 Love Care Global - Wytyczne Społeczności\nOstatnia Aktualizacja: 23 Lis 2026",
+      "s1": "1. Bądź Uczciwy",
+      "c1": "Pielęgniarki: Prześlij tylko swoje PRAWDZIWE zdjęcie, wideo, ID i certyfikat. Żadnej fałszywej tożsamości.\nKlienci: Używaj swojego prawdziwego imienia i telefonu. Fałszywe konta zostaną zbanowane.",
+      "s2": "2. Płatność - Zasada 20/80 (PRZECZYTAJ UWAŻNIE)",
+      "c2": "TO JEDYNA ZASADA PŁATNOŚCI:\n• Zapłać 20% opłaty rezerwacyjnej WEWNĄTRZ Aplikacji, aby potwierdzić rezerwację.\n• Zapłać pozostałe 80% Pielęgniarce PO zakończeniu pracy - gotówką lub MoMo, dopiero po zakończeniu pracy przez Pielęgniarkę.\n• NIGDY nie płać pełnej kwoty przed rozpoczęciem pracy.\n• NIGDY nie płać Pielęgniarce poza potwierdzoną rezerwacją.\n• Jeśli Pielęgniarka prosi o pełną płatność przed pracą lub prosi o anulowanie rezerwacji w aplikacji, aby zapłacić na zewnątrz, ZGŁOŚ natychmiast. To oszustwo.",
+      "s3": "3. Bądź Pełen Szacunku",
+      "c3": "Żadnych obelg, gróźb, nękania, wiadomości seksualnych, dyskryminacji. Pielęgniarki i Klienci muszą szanować się nawzajem, szanować domy, szanować prywatność.",
+      "s4": "4. Żadnych Fałszywych Skarg / Żadnych Fałszywych Recenzji",
+      "c4": "Nie składaj fałszywych skarg, aby uzyskać zwrot. Nie zostawiaj fałszywej 1-gwiazdki, aby ukarać Pielęgniarkę. Fałszywe raporty = kara konta.",
+      "s5": "5. Kary",
+      "c5": "1. Wykroczenie: Ostrzeżenie\n2. Wykroczenie: Zawieszenie na 7 dni\n3. Wykroczenie: Stały Ban + konto usunięte\nPoważne wykroczenia (oszustwo, kradzież, przemoc, niewłaściwe zachowanie seksualne) = Natychmiastowy Stały Ban.",
+      "s6": "6. Bezpieczeństwo Dzieci - ZERO TOLERANCJI",
+      "c6": "Mamy ZERO tolerancji dla wszelkich treści seksualnych z udziałem nieletnich lub jakichkolwiek prób wykorzystania dziecka.\n• Nigdy nie publikuj, nie wysyłaj ani nie żądaj treści seksualnych z udziałem osób poniżej 18 roku życia.\n• Nigdy nie proś nieletniego o zdjęcia, filmy lub spotkanie.\n• Jeśli zobaczysz takie treści, ZGŁOŚ natychmiast.\nKonto zostanie zbanowane NA STAŁE i zgłoszone do Policji Ghany / władz.\nDotyczy to zdjęć, filmów, czatów i profili.",
+      "s7": "7. Jak Zgłosić / Zablokować (Treści Generowane Przez Użytkownika)",
+      "c7": "Aby ZGŁOSIĆ użytkownika, zdjęcie, wideo lub wiadomość:\nCzat > Dotknij nazwy użytkownika > Zgłoś > Wybierz powód > Wyślij. CEO przegląda w ciągu 24 godzin.\nAby ZABLOKOWAĆ użytkownika:\nCzat > Dotknij nazwy użytkownika > Zablokuj. Zablokowany użytkownik nie może ponownie wysłać Ci wiadomości.\nAby zgłosić poważne nadużycie: E-mail lovecareglobal@gmail.com ze zrzutami ekranu.\nPrzeglądamy wszystkie raporty. Treści łamiące te zasady są usuwane.",
+      "s8": "8. Nie Udostępniaj Danych Osobowych Na Czacie",
+      "c8": "Nie udostępniaj PIN-u bankowego, OTP, hasła ani numeru ID na czacie. CEO / Love Care NIGDY nie poprosi Cię o hasło ani OTP.",
+    },
+  };
+
+  // ---------- THE RULE ----------
+  // CEO = English ONLY. Nurse + Client = chosen language.
+  static String get(String lang, String key) {
+    return all[lang]?[key] ?? all['en']?[key] ?? key;
   }
-  static Widget _header(String t) => Container(width: double.infinity, padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF880E4F))));
-  static Widget _section(String t) => Padding(padding: const EdgeInsets.only(top: 16, bottom: 6), child: Align(alignment: Alignment.centerLeft, child: Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF880E4F)))));
-  static Widget _card(String t) => Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Text(t, style: const TextStyle(fontSize: 13, height: 1.5, color: Color(0xFF333333))));
+
+  static String getForRole(String role, String lang, String key) {
+    if (role.toLowerCase() == 'ceo') {
+      return all['en']?[key] ?? key;
+    }
+    return all[lang]?[key] ?? all['en']?[key] ?? key;
+  }
+
+  static String getWith(String role, String lang, String key, Map<String, String> params) {
+    String raw = getForRole(role, lang, key);
+    params.forEach((k, v) {
+      raw = raw.replaceAll('{$k}', v);
+    });
+    return raw;
+  }
 }
