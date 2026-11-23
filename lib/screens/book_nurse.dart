@@ -1,627 +1,1868 @@
-import 'dart:async';
-import 'dart:math' as math;
-import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:geolocator/geolocator.dart';
-// NO EMBEDDED GoogleMap widget - it crashes on some phones even with key.
-// Map now opens in Google Maps app / browser via url_launcher - can NEVER crash the app.
-// NEW: UberLiveMap from live_nurse_map.dart uses flutter_map / OpenStreetMap - NO API KEY, NO CRASH, photo MOVES like Uber
-import 'package:url_launcher/url_launcher.dart';
-import 'package:video_player/video_player.dart';
-// DELETED: import 'book_nurse_50.dart'; - file deleted, 50% DELETED. 20/80 ONLY.
-import 'live_nurse_map.dart';
+// book_nurse_translations.dart
+// FILE 2 - Book Nurse - ONLY SCREEN WORDS - ALL 22 LANGUAGES
+// ONE FILE - Drop in lib/screens - Works with book_nurse.dart patched
 
-/// Book Nurse - 20/80 RULE - Flutter version of book-nurse.html
-/// - ONLY ONLINE NURSES show (onlineNurses + nursePresence + nurseLocations)
-/// - CEO Live Rates: config/rates, ceoPricing, pricing -> GHS hourly / USD hourly
-/// - Booking: Start 08:00 End 17:00 = 9 hrs/day, Care Mode Daily x1 / Weekly x7 / Monthly x30
-/// - Client auto-filled + Patient (can be different place) + Map + GPS
-/// - 20/80: Client pays ONLY 20% CEO fee now via Paystack. Nurse cash 80% = client -> nurse CASH after work.
-///   CEO NEVER pays nurse. 50% DELETED. Full 100% DELETED.
-/// - Saves to bookings + bookingsByClient + bookingsByNurse + nurseBookings (same as HTML)
-///   + ceoFee, nurseCash, totalAmount, refundCeoFee=false, refundStatus=none
-///   Nurse rejects = full 20% refund. Client cancels = CEO keeps 20%.
-/// - UBER LIVE MAP: selected nurse photo blinks + moves live on map
+class BookNurseTranslations {
+  static const Map<String, Map<String, String>> all = {
 
-class BookNurseScreen extends StatefulWidget {
-  const BookNurseScreen({super.key});
-  @override
-  State<BookNurseScreen> createState() => _BookNurseScreenState();
-}
+    // 1. ENGLISH
+    "en": {
+      "bookNurseTitle": "Book Nurse — Pay 20% Only — ONLY ONLINE NURSES",
+      "ceoLive": "CEO Live: {currency} {rate} /hr — Pay 20% Only — LIVE — ONLY ONLINE NURSES",
+      "bookingTitle": "⏱️ Booking — Pay 20% Only",
+      "startTime": "START TIME *",
+      "endTime": "END TIME *",
+      "hoursDay": "HOURS/DAY",
+      "hrs": "{h} hrs",
+      "careMode": "CARE MODE",
+      "daily": "Daily",
+      "weekly": "Weekly (x7)",
+      "monthly": "Monthly (x30)",
+      "quantity": "QUANTITY",
+      "countryCurrency": "COUNTRY — CURRENCY",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "TRANSPORT",
+      "careCost": "Care Cost",
+      "transport": "Transport",
+      "total": "TOTAL",
+      "payNow20": "Pay Now (20% CEO Fee)",
+      "payNurseCash80": "Pay Nurse CASH Later (80%)",
+      "clientTitle": "👤 CLIENT — Payer (Auto-filled)",
+      "clientName": "CLIENT NAME *",
+      "clientPhone": "CLIENT PHONE *",
+      "clientEmail": "CLIENT EMAIL *",
+      "patientTitle": "🏥 PATIENT — Who needs care",
+      "patientName": "PATIENT NAME *",
+      "patientPhone": "PATIENT PHONE",
+      "relationship": "RELATIONSHIP",
+      "self": "Self",
+      "parent": "Parent",
+      "child": "Child",
+      "spouse": "Spouse",
+      "other": "Other",
+      "patientLocText": "PATIENT LOCATION TEXT",
+      "sameLocation": "Same location as Client",
+      "onlineTitle": "🟢 ONLINE Nurses within {km}km — Only online show • {count} nurses",
+      "autoPicked": "🤖 SYSTEM AUTO-PICKED NEAREST ONLINE NURSE FOR YOU",
+      "watchPhotoVideo": "📷🎥 Watch Her Photo + Video",
+      "continueWithHer": "✅ Continue With Her",
+      "lookAnother": "👀 Look At Another One",
+      "searchingOnline": "🔍 System is searching for ONLINE nurses near the patient... Keep this page open - nearest nurse will be auto-picked as soon as she goes ONLINE.",
+      "systemFind": "System will find nearby ONLINE nurses for you",
+      "systemPickBtn": "🤖 System Pick Nearest Nurse For Me - Watch Photo + Video",
+      "systemShows": "System shows nearest nurse first - Watch her photo + video - Continue with her OR Look at another one",
+      "selected": "✅ Selected: {name}",
+      "payOnly20Now": "You pay ONLY 20% now. Pay nurse 80% CASH after work.",
+      "pay20Explainer": "Pay 20% CEO Fee now in Paystack • Give 80% cash to nurse later • CEO never pays nurse • Nurse rejects = FULL 20% refund",
+      "pay20Btn": "💳 Pay 20% Only — {currency} {amount}",
+      "processing": "Processing Paystack...",
+      "selectNurseFirst": "Select an ONLINE nurse first",
+      "fillDetails": "Fill Client + Patient details",
+      "pay20OnlyDialog": "Pay 20% Only",
+      "payNowQ": "Pay {currency} {payNow} now?\nTotal: {currency} {total}\nPay 20% CEO Fee now\nPay Nurse {currency} {cash} CASH after work\nNurse: {name}",
+      "cancel": "Cancel",
+      "payNowBtn": "Pay Now",
+      "paymentFailed": "Payment failed: {e}",
+      "bookingCreated": "✅ Booking created! {id} - Nurse will Accept/Reject",
+      "continueScroll": "✅ Continue with {name} - scroll down to pay",
+      "noOtherNurse": "No other ONLINE nurse nearby yet - system is still searching...",
+      "autoPickedToast": "🤖 System auto-picked nearest ONLINE nurse: {name} ({km} km) - Watch her photo + video below",
+      "waitingGps": "Waiting for your GPS location...",
+      "yourLocation": "Your location: {lat}, {lng}",
+      "waitingGps2": "Waiting for your GPS... try again in a second",
+      "youChose": "✅ You chose {name} - now pay 20% Paystack below, 80% cash to nurse later",
+      "nurseDefault": "Nurse",
+      "homeNursing": "Home Nursing",
+      "kmFromPatient": "{km} km from patient • 🟢 ONLINE",
+      "kmAway": "{km} km away",
+      "verifiedOnline": "⭐ {rating} • Verified ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Verified ✅ • 🟢 ONLINE NOW",
+      "photoReg": "📷 Photo she uploaded during registration",
+      "noPhoto": "No photo uploaded",
+      "videoReg": "🎥 Video she uploaded during registration",
+      "noVideo": "No video found for this nurse - she may not have uploaded one during registration. Ask her to upload one in Nurse Settings.",
+      "pauseVideo": "Pause Video",
+      "playVideo": "▶️ Play Video",
+      "openVideoOutside": "▶️ Open Video Outside App",
+      "continueWithName": "✅ Continue With {name}",
+      "loadError": "Could not load nurses: {e}. Pull to try again - offline nurses are hidden.",
+    },
 
-class _BookNurseScreenState extends State<BookNurseScreen> {
-  // Client
-  final _clientNameCtrl = TextEditingController();
-  final _clientPhoneCtrl = TextEditingController();
-  final _clientEmailCtrl = TextEditingController();
-  // Patient
-  final _patientNameCtrl = TextEditingController();
-  final _patientPhoneCtrl = TextEditingController();
-  final _patientLocCtrl = TextEditingController();
-  String patientRelationship = 'Self';
-  bool sameLocation = true;
-  // Booking
-  String startTime = '08:00';
-  String endTime = '17:00';
-  String careMode = 'Daily';
-  int quantity = 1;
-  double transport = 100;
-  String currency = 'GHS';
-  double ceoRateGHS = 0;
-  double ceoRateUSD = 0;
-  // Nurses
-  List<Map> onlineNurses = [];
-  String? selectedNurseId;
-  String selectedNurseName = '';
-  String selectedNursePhone = '';
-  double? clientLat, clientLng, patientLat, patientLng;
-  double searchRadius = 20;
-  bool isPaying = false;
-  final List<StreamSubscription<DatabaseEvent>> _rateSubs = [];
-  bool _disposed = false;
-  bool _mapFailed = false;
-  bool _showMap = false;
-  String _loadError = '';
+    // 2. TWI
+    "tw": {
+      "bookNurseTitle": "Kra Nɛɛse — Tua 20% Nko — NƐƐSE A WƆYƐ ONLINE NKO",
+      "ceoLive": "CEO Live: {currency} {rate} /dɔn — Tua 20% Nko — LIVE — NƐƐSE A WƆYƐ ONLINE NKO",
+      "bookingTitle": "⏱️ Booking — Tua 20% Nko",
+      "startTime": "BERE A ƐHYƐ ASE *",
+      "endTime": "BERE A ƐBA AWIE *",
+      "hoursDay": "DƆN / DA",
+      "hrs": "{h} dɔn",
+      "careMode": "ƆHWƐ MODE",
+      "daily": "Da Biara",
+      "weekly": "Dapɛn (x7)",
+      "monthly": "Bosome (x30)",
+      "quantity": "DODOƆ",
+      "countryCurrency": "ƆMAN — SIKA",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "KAR AKA",
+      "careCost": "Ɔhwɛ Bo",
+      "transport": "Kar Aka",
+      "total": "NYINA",
+      "payNow20": "Tua Mprempren (20% CEO Fee)",
+      "payNurseCash80": "Tua Nɛɛse SIKA Akyiri (80%)",
+      "clientTitle": "👤 ƆKRA — Deɛ Otua (Wɔahyɛ Ma Daa)",
+      "clientName": "ƆKRA DIN *",
+      "clientPhone": "ƆKRA FON *",
+      "clientEmail": "ƆKRA EMAIL *",
+      "patientTitle": "🏥 ƆYARENI — Hwan Na Ɔhia Ɔhwɛ",
+      "patientName": "ƆYARENI DIN *",
+      "patientPhone": "ƆYARENI FON",
+      "relationship": "ABUSUA",
+      "self": "Me Ankasa",
+      "parent": "Awofo",
+      "child": "Ba",
+      "spouse": "Awarefo",
+      "other": "Foforo",
+      "patientLocText": "ƆYARENI BEAEƐ",
+      "sameLocation": "Beaeɛ koro sɛ Ɔkra",
+      "onlineTitle": "🟢 Nɛɛse A Wɔyɛ ONLINE wɔ {km}km mu — Online nko na ɛda adi • Nɛɛse {count}",
+      "autoPicked": "🤖 SYSTEM AYI NƐƐSE A ƆBƐN PAARA A ƆYƐ ONLINE AMA WO",
+      "watchPhotoVideo": "📷🎥 Hwɛ Ne Foto + Video",
+      "continueWithHer": "✅ Kɔ So Ne Ne",
+      "lookAnother": "👀 Hwɛ Foforo",
+      "searchingOnline": "🔍 System rehwehwɛ Nɛɛse a wɔyɛ ONLINE a wɔbɛn ɔyareni... Gyae krataa yi mu - wɔbɛyi nɛɛse a ɔbɛn paara bere a ɔbɛyɛ ONLINE.",
+      "systemFind": "System bɛhwehwɛ Nɛɛse a wɔyɛ ONLINE a wɔbɛn wo ama wo",
+      "systemPickBtn": "🤖 System Yi Nɛɛse A Ɔbɛn Paara Ma Me - Hwɛ Foto + Video",
+      "systemShows": "System da nɛɛse a ɔbɛn paara adi kan - Hwɛ ne foto + video - Kɔ so ne ne ANAASƐ Hwɛ foforo",
+      "selected": "✅ Wɔayi: {name}",
+      "payOnly20Now": "Wotua 20% NKO mprempren. Tua nɛɛse 80% SIKA bere a adwuma wie.",
+      "pay20Explainer": "Tua 20% CEO Fee mprempren wɔ Paystack • Fa 80% sika ma nɛɛse akyiri • CEO ntua nɛɛse da • Nɛɛse po a = FULL 20% san",
+      "pay20Btn": "💳 Tua 20% Nko — {currency} {amount}",
+      "processing": "Paystack Reyɛ Adwuma...",
+      "selectNurseFirst": "Yi Nɛɛse a ɔyɛ ONLINE kan",
+      "fillDetails": "Hyɛ Ɔkra + Ɔyareni ho nsɛm mu",
+      "pay20OnlyDialog": "Tua 20% Nko",
+      "payNowQ": "Tua {currency} {payNow} mprempren?\nNyina: {currency} {total}\nTua 20% CEO Fee mprempren\nTua Nɛɛse {currency} {cash} SIKA bere a adwuma wie\nNɛɛse: {name}",
+      "cancel": "Gyae",
+      "payNowBtn": "Tua Mprempren",
+      "paymentFailed": "Sika tua antumi: {e}",
+      "bookingCreated": "✅ Wɔayɛ Booking! {id} - Nɛɛse bɛpene so / apo",
+      "continueScroll": "✅ Kɔ so ne {name} - twam kɔ fam tua",
+      "noOtherNurse": "Nɛɛse foforo a ɔyɛ ONLINE nni hɔ da - system rehwehwɛ...",
+      "autoPickedToast": "🤖 System ayi nɛɛse a ɔbɛn paara a ɔyɛ ONLINE: {name} ({km} km) - Hwɛ ne foto + video wɔ fam",
+      "waitingGps": "Rɛtwɛn wo GPS beaeɛ...",
+      "yourLocation": "Wo beaeɛ: {lat}, {lng}",
+      "waitingGps2": "Rɛtwɛn wo GPS... san bɔ mmɔden sekond bi",
+      "youChose": "✅ Wayi {name} - mprempren tua 20% Paystack wɔ fam, 80% sika ma nɛɛse akyiri",
+      "nurseDefault": "Nɛɛse",
+      "homeNursing": "Fie Nɛɛse",
+      "kmFromPatient": "{km} km fi ɔyareni • 🟢 ONLINE",
+      "kmAway": "{km} km akyiri",
+      "verifiedOnline": "⭐ {rating} • Wɔagye ato mu ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Wɔagye ato mu ✅ • 🟢 ONLINE Mprempren",
+      "photoReg": "📷 Foto a ɔde too mu bere a ɔkyerɛw din",
+      "noPhoto": "Foto biara nni hɔ",
+      "videoReg": "🎥 Video a ɔde too mu bere a ɔkyerɛw din",
+      "noVideo": "Video biara nni hɔ ma nɛɛse yi - ebia wamfa nto mu bere a ɔkyerɛw din. Ka kyerɛ no na ɔmfa nto mu wɔ Nurse Settings.",
+      "pauseVideo": "Gyae Video",
+      "playVideo": "▶️ Bɔ Video",
+      "openVideoOutside": "▶️ Bue Video Wɔ App Akyi",
+      "continueWithName": "✅ Kɔ So Ne {name}",
+      "loadError": "Antumi anhwehwɛ nɛɛse: {e}. Twe san bɔ mmɔden - nɛɛse a wɔnyɛ online no ahintaw.",
+    },
 
-  @override
-  void initState() {
-    super.initState();
-    _loadClientData();
-    _loadCEORates();
-    _autoCaptureLocation();
+    // 3. GA
+    "ga": {
+      "bookNurseTitle": "Hala Nɛɛse — Haa 20% Kɛkɛ — NƐƐSE NƆ YƐ ONLINE KƐKƐ",
+      "ceoLive": "CEO Live: {currency} {rate} /hr — Haa 20% Kɛkɛ — LIVE — NƐƐSE NƆ YƐ ONLINE KƐKƐ",
+      "bookingTitle": "⏱️ Booking — Haa 20% Kɛkɛ",
+      "startTime": "BE NƆ SHI *",
+      "endTime": "BE NƆ GBO *",
+      "hoursDay": "TSU / GBII",
+      "hrs": "{h} tsu",
+      "careMode": "NƆKWƐMƆ MODE",
+      "daily": "Gbii Fɛɛ",
+      "weekly": "Otsukpɔ (x7)",
+      "monthly": "Nyɔŋ (x30)",
+      "quantity": "YIBƆ",
+      "countryCurrency": "MAŊ — SHIKA",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "KAA SHIKA",
+      "careCost": "Nɔkwɛmɔ Hii",
+      "transport": "Kaa Shika",
+      "total": "FƐƐ",
+      "payNow20": "Haa Sane (20% CEO Fee)",
+      "payNurseCash80": "Haa Nɛɛse SHIKA Amlotso (80%)",
+      "clientTitle": "👤 MƆ — Mɔ Nɔ Haa (Ato Daa)",
+      "clientName": "MƆ GBƐI *",
+      "clientPhone": "MƆ TELEFON *",
+      "clientEmail": "MƆ EMAIL *",
+      "patientTitle": "🏥 MƆ NƆ HE MIIHIA — Namɔ Hia Nɔkwɛmɔ",
+      "patientName": "MƆ NƆ HE MIIHIA GBƐI *",
+      "patientPhone": "MƆ NƆ HE MIIHIA TELEFON",
+      "relationship": "WEKUMƆ",
+      "self": "Mi Nitsumɔ",
+      "parent": "Fɔlɔ",
+      "child": "Bi",
+      "spouse": "Ŋaa",
+      "other": "Kroko",
+      "patientLocText": "MƆ NƆ HE MIIHIA HE",
+      "sameLocation": "He kome kɛ Mɔ",
+      "onlineTitle": "🟢 Nɛɛse NƆ YƐ ONLINE yɛ {km}km mli — Online kɛkɛ baa — Nɛɛse {count}",
+      "autoPicked": "🤖 SYSTEM EHALA NƐƐSE NƆ BƐŊKƐ PAARA NƆ YƐ ONLINE HÃ BO",
+      "watchPhotoVideo": "📷🎥 Kwɛ E Foto + Video",
+      "continueWithHer": "✅ Ya Nɔ Kɛ Lɛ",
+      "lookAnother": "👀 Kwɛ Kroko",
+      "searchingOnline": "🔍 System miihala Nɛɛse nɔ yɛ ONLINE nɔ bɛŋkɛ mɔ nɔ he miihia... Joo page nɛɛ mli - aaahala nɛɛse nɔ bɛŋkɛ paara kɛji eya ONLINE.",
+      "systemFind": "System baahala Nɛɛse nɔ yɛ ONLINE nɔ bɛŋkɛ bo hã bo",
+      "systemPickBtn": "🤖 System Hala Nɛɛse Nɔ Bɛŋkɛ Paara Hã Mi - Kwɛ Foto + Video",
+      "systemShows": "System tsɔɔ nɛɛse nɔ bɛŋkɛ paara klɛŋklɛŋ - Kwɛ e foto + video - Ya nɔ kɛ lɛ ANAA Kwɛ kroko",
+      "selected": "✅ Ahalo: {name}",
+      "payOnly20Now": "Ohaa 20% KƐKƐ sane. Haa nɛɛse 80% SHIKA nitsumɔ sɛɛ.",
+      "pay20Explainer": "Haa 20% CEO Fee sane yɛ Paystack • Haa 80% shika hã nɛɛse amlotso • CEO ehaa nɛɛse gbɛɛŋ • Nɛɛse ekoo = FULL 20% tsɔɔ",
+      "pay20Btn": "💳 Haa 20% Kɛkɛ — {currency} {amount}",
+      "processing": "Paystack Miiyɛ Nitsumɔ...",
+      "selectNurseFirst": "Hala Nɛɛse nɔ yɛ ONLINE klɛŋklɛŋ",
+      "fillDetails": "Woo Mɔ + Mɔ Nɔ He Miihia he sane",
+      "pay20OnlyDialog": "Haa 20% Kɛkɛ",
+      "payNowQ": "Haa {currency} {payNow} sane?\nFɛɛ: {currency} {total}\nHaa 20% CEO Fee sane\nHaa Nɛɛse {currency} {cash} SHIKA nitsumɔ sɛɛ\nNɛɛse: {name}",
+      "cancel": "Fo",
+      "payNowBtn": "Haa Sane",
+      "paymentFailed": "Haa efo: {e}",
+      "bookingCreated": "✅ Afee Booking! {id} - Nɛɛse baahee / baakoo",
+      "continueScroll": "✅ Ya nɔ kɛ {name} - gbɔɔ shi haa",
+      "noOtherNurse": "Nɛɛse kroko nɔ yɛ ONLINE bɛŋkɛ bɛ da - system mihala...",
+      "autoPickedToast": "🤖 System ehala nɛɛse nɔ bɛŋkɛ paara nɔ yɛ ONLINE: {name} ({km} km) - Kwɛ e foto + video yɛ shishi",
+      "waitingGps": "Miihwɛ o GPS he...",
+      "yourLocation": "O he: {lat}, {lng}",
+      "waitingGps2": "Miihwɛ o GPS... san ka sekond ko",
+      "youChose": "✅ Ohalo {name} - sane haa 20% Paystack yɛ shishi, 80% shika hã nɛɛse amlotso",
+      "nurseDefault": "Nɛɛse",
+      "homeNursing": "Shia Nɛɛse",
+      "kmFromPatient": "{km} km kɛjɛ mɔ nɔ he miihia • 🟢 ONLINE",
+      "kmAway": "{km} km ko",
+      "verifiedOnline": "⭐ {rating} • Ahe mli ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Ahe mli ✅ • 🟢 ONLINE Sane",
+      "photoReg": "📷 Foto nɔ eŋmɛ too mli be nɔ ekɛkɛ din",
+      "noPhoto": "Foto ko bɛ",
+      "videoReg": "🎥 Video nɔ eŋmɛ too mli be nɔ ekɛkɛ din",
+      "noVideo": "Video ko bɛ hã nɛɛse nɛɛ - ebia eŋmɛ too mli be nɔ ekɛkɛ din. Kɛɛ lɛ eŋmɛ to mli yɛ Nurse Settings.",
+      "pauseVideo": "Joo Video",
+      "playVideo": "▶️ Gbee Video",
+      "openVideoOutside": "▶️ Gbee Video Wɔ App Sɛɛ",
+      "continueWithName": "✅ Ya Nɔ Kɛ {name}",
+      "loadError": "Enyɛɛŋ ahala nɛɛse: {e}. Shwɛɛ san ka - nɛɛse nɔ nyɛ online ko ahintaw.",
+    },
+
+    // 4. EWE
+    "ee": {
+      "bookNurseTitle": "Bia Nɔnɔvia — Xe 20% Ðeɖe — NƆNƆVIA SI LE ONLINE ÐEɖE",
+      "ceoLive": "CEO Live: {currency} {rate} /hr — Xe 20% Ðeɖe — LIVE — NƆNƆVIA SI LE ONLINE ÐEɖE",
+      "bookingTitle": "⏱️ Booking — Xe 20% Ðeɖe",
+      "startTime": "GEMAÐEÐE GAÐE *",
+      "endTime": "NUWU GAÐE *",
+      "hoursDay": "GAÐE / ŊKEKE",
+      "hrs": "{h} gaɖe",
+      "careMode": "KPƆKPLI MODE",
+      "daily": "Ŋkekeke",
+      "weekly": "Kwasiɖa (x7)",
+      "monthly": "Ɣleti (x30)",
+      "quantity": "ÐEÐE",
+      "countryCurrency": "DUKƆ — GA",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "AGBƆNƆ GA",
+      "careCost": "Kpɔkpli Ga",
+      "transport": "Agbɔnɔ Ga",
+      "total": "KATA",
+      "payNow20": "Xe Fifi (20% CEO Fee)",
+      "payNurseCash80": "Xe Nɔnɔvia GA Kple Emegbe (80%)",
+      "clientTitle": "👤 AME — Ame Xe (Wodzi Ðo Ði)",
+      "clientName": "AME ŊKƆ *",
+      "clientPhone": "AME TELEFON *",
+      "clientEmail": "AME EMAIL *",
+      "patientTitle": "🏥 DƆLÉLÁ — Ameka Hia Kpɔkpli",
+      "patientName": "DƆLÉLÁ ŊKƆ *",
+      "patientPhone": "DƆLÉLÁ TELEFON",
+      "relationship": "HENYI",
+      "self": "Ðeɖe",
+      "parent": "Dzila",
+      "child": "Vi",
+      "spouse": "Srɔ̃",
+      "other": "Bubu",
+      "patientLocText": "DƆLÉLÁ TEƑE",
+      "sameLocation": "Teƒe ɖeka kple Ame",
+      "onlineTitle": "🟢 Nɔnɔvia Si Le ONLINE le {km}km me — Online Ðeɖe Ðe Fia • Nɔnɔvia {count}",
+      "autoPicked": "🤖 SYSTEM TIA NƆNƆVIA SI ÐE KPLE ÐE WU SI LE ONLINE NA WÒ",
+      "watchPhotoVideo": "📷🎥 Kpɔ E Foto + Video",
+      "continueWithHer": "✅ Yi Ðe Edzi Kple E",
+      "lookAnother": "👀 Kpɔ Bubu",
+      "searchingOnline": "🔍 System le Nɔnɔvia si le ONLINE dim ɖe dɔlélá gbɔ... Gble page sia dzi - woatia nɔnɔvia si ɖe kple ɖe wu ne eva ONLINE.",
+      "systemFind": "System adim Nɔnɔvia si le ONLINE ɖe gbɔ na wò",
+      "systemPickBtn": "🤖 System Tia Nɔnɔvia Si Ðe Kple Ðe Wu Nam - Kpɔ Foto + Video",
+      "systemShows": "System fia nɔnɔvia si ɖe kple ɖe wu gbã - Kpɔ e foto + video - Yi Ðe Edzi Kple E ALO Kpɔ bubu",
+      "selected": "✅ Wotia: {name}",
+      "payOnly20Now": "Woxe 20% ÐEÐE fifi. Xe nɔnɔvia 80% GA ne dɔ wu.",
+      "pay20Explainer": "Xe 20% CEO Fee fifi le Paystack • Na 80% ga nɔnɔvia emegbe • CEO mexe nɔnɔvia gbede • Nɔnɔvia gbe = FULL 20% trɔ",
+      "pay20Btn": "💳 Xe 20% Ðeɖe — {currency} {amount}",
+      "processing": "Paystack Le Dɔ Wɔm...",
+      "selectNurseFirst": "Tia Nɔnɔvia si le ONLINE gbã",
+      "fillDetails": "De Ame + Dɔlélá ŋuti nyatakaka",
+      "pay20OnlyDialog": "Xe 20% Ðeɖe",
+      "payNowQ": "Xe {currency} {payNow} fifi?\nKata: {currency} {total}\nXe 20% CEO Fee fifi\nXe Nɔnɔvia {currency} {cash} GA ne dɔ wu\nNɔnɔvia: {name}",
+      "cancel": "Ðe Ða",
+      "payNowBtn": "Xe Fifi",
+      "paymentFailed": "Ga xe medze o: {e}",
+      "bookingCreated": "✅ Wodzi Booking! {id} - Nɔnɔvia alɔ̃ / agbe",
+      "continueScroll": "✅ Yi Ðe Edzi kple {name} - yi anyi xe",
+      "noOtherNurse": "Nɔnɔvia bubu si le ONLINE ɖe gbɔ meli o - system le dim...",
+      "autoPickedToast": "🤖 System tia nɔnɔvia si ɖe kple ɖe wu si le ONLINE: {name} ({km} km) - Kpɔ e foto + video le ete",
+      "waitingGps": "Le lalam na wò GPS teƒe...",
+      "yourLocation": "Wò teƒe: {lat}, {lng}",
+      "waitingGps2": "Le lalam na wò GPS... gbugbɔ dze sekond ɖeka",
+      "youChose": "✅ Etia {name} - fifi xe 20% Paystack le ete, 80% ga na nɔnɔvia emegbe",
+      "nurseDefault": "Nɔnɔvia",
+      "homeNursing": "Aƒe Me Nɔnɔvia",
+      "kmFromPatient": "{km} km tso dɔlélá gbɔ • 🟢 ONLINE",
+      "kmAway": "{km} km didi",
+      "verifiedOnline": "⭐ {rating} • Wokpɔe Ða ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Wokpɔe Ða ✅ • 🟢 ONLINE FIFI",
+      "photoReg": "📷 Foto eŋlɔ ɖo esime eŋlɔ ŋkɔ",
+      "noPhoto": "Foto aɖeke meli o",
+      "videoReg": "🎥 Video eŋlɔ ɖo esime eŋlɔ ŋkɔ",
+      "noVideo": "Video aɖeke meli o na nɔnɔvia sia - ebia meŋlɔe ɖo o esime eŋlɔ ŋkɔ. Gblɔ nɛ wòatsɔe ɖo le Nurse Settings.",
+      "pauseVideo": "Dzudzɔ Video",
+      "playVideo": "▶️ Fo Video",
+      "openVideoOutside": "▶️ Ʋu Video Le App Ðe Godo",
+      "continueWithName": "✅ Yi Ðe Edzi Kple {name}",
+      "loadError": "Mete ŋu kpɔ nɔnɔvia o: {e}. He gbugbɔ dze - nɔnɔvia si mele ONLINE o la woglae.",
+    },
+
+    // 5. DUTCH
+    "nl": {
+      "bookNurseTitle": "Boek Verpleegkundige — Betaal Slechts 20% — ALLEEN ONLINE VERPLEEGKUNDIGEN",
+      "ceoLive": "CEO Live: {currency} {rate} /uur — Betaal Slechts 20% — LIVE — ALLEEN ONLINE VERPLEEGKUNDIGEN",
+      "bookingTitle": "⏱️ Boeking — Betaal Slechts 20%",
+      "startTime": "STARTTIJD *",
+      "endTime": "EINDTIJD *",
+      "hoursDay": "UREN/DAG",
+      "hrs": "{h} uur",
+      "careMode": "ZORGMODUS",
+      "daily": "Dagelijks",
+      "weekly": "Wekelijks (x7)",
+      "monthly": "Maandelijks (x30)",
+      "quantity": "AANTAL",
+      "countryCurrency": "LAND — VALUTA",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "VERVOER",
+      "careCost": "Zorgkosten",
+      "transport": "Vervoer",
+      "total": "TOTAAL",
+      "payNow20": "Betaal Nu (20% CEO Kosten)",
+      "payNurseCash80": "Betaal Verpleegkundige CONTANT Later (80%)",
+      "clientTitle": "👤 KLANT — Betaler (Automatisch ingevuld)",
+      "clientName": "KLANT NAAM *",
+      "clientPhone": "KLANT TELEFOON *",
+      "clientEmail": "KLANT EMAIL *",
+      "patientTitle": "🏥 PATIËNT — Wie heeft zorg nodig",
+      "patientName": "PATIËNT NAAM *",
+      "patientPhone": "PATIËNT TELEFOON",
+      "relationship": "RELATIE",
+      "self": "Zelf",
+      "parent": "Ouder",
+      "child": "Kind",
+      "spouse": "Partner",
+      "other": "Anders",
+      "patientLocText": "PATIËNT LOCATIE TEKST",
+      "sameLocation": "Zelfde locatie als Klant",
+      "onlineTitle": "🟢 ONLINE Verpleegkundigen binnen {km}km — Alleen online tonen • {count} verpleegkundigen",
+      "autoPicked": "🤖 SYSTEEM HEEFT DICHTSTBIJZIJNDE ONLINE VERPLEEGKUNDIGE VOOR U GEKOZEN",
+      "watchPhotoVideo": "📷🎥 Bekijk Haar Foto + Video",
+      "continueWithHer": "✅ Ga Verder Met Haar",
+      "lookAnother": "👀 Bekijk Een Andere",
+      "searchingOnline": "🔍 Systeem zoekt naar ONLINE verpleegkundigen bij de patiënt... Houd deze pagina open - dichtstbijzijnde verpleegkundige wordt automatisch gekozen zodra ze ONLINE gaat.",
+      "systemFind": "Systeem vindt nabijgelegen ONLINE verpleegkundigen voor u",
+      "systemPickBtn": "🤖 Systeem Kies Dichtstbijzijnde Verpleegkundige Voor Mij - Bekijk Foto + Video",
+      "systemShows": "Systeem toont dichtstbijzijnde verpleegkundige eerst - Bekijk haar foto + video - Ga verder met haar OF Bekijk een andere",
+      "selected": "✅ Geselecteerd: {name}",
+      "payOnly20Now": "U betaalt NU SLECHTS 20%. Betaal verpleegkundige 80% CONTANT na werk.",
+      "pay20Explainer": "Betaal 20% CEO Kosten nu in Paystack • Geef 80% contant aan verpleegkundige later • CEO betaalt verpleegkundige nooit • Verpleegkundige weigert = VOLLEDIGE 20% terugbetaling",
+      "pay20Btn": "💳 Betaal Slechts 20% — {currency} {amount}",
+      "processing": "Paystack Verwerken...",
+      "selectNurseFirst": "Selecteer eerst een ONLINE verpleegkundige",
+      "fillDetails": "Vul Klant + Patiënt details in",
+      "pay20OnlyDialog": "Betaal Slechts 20%",
+      "payNowQ": "Betaal {currency} {payNow} nu?\nTotaal: {currency} {total}\nBetaal 20% CEO Kosten nu\nBetaal Verpleegkundige {currency} {cash} CONTANT na werk\nVerpleegkundige: {name}",
+      "cancel": "Annuleren",
+      "payNowBtn": "Betaal Nu",
+      "paymentFailed": "Betaling mislukt: {e}",
+      "bookingCreated": "✅ Boeking aangemaakt! {id} - Verpleegkundige zal Accepteren/Weigeren",
+      "continueScroll": "✅ Ga verder met {name} - scroll naar beneden om te betalen",
+      "noOtherNurse": "Nog geen andere ONLINE verpleegkundige in de buurt - systeem zoekt nog...",
+      "autoPickedToast": "🤖 Systeem heeft dichtstbijzijnde ONLINE verpleegkundige gekozen: {name} ({km} km) - Bekijk haar foto + video hieronder",
+      "waitingGps": "Wachten op uw GPS-locatie...",
+      "yourLocation": "Uw locatie: {lat}, {lng}",
+      "waitingGps2": "Wachten op uw GPS... probeer over een seconde opnieuw",
+      "youChose": "✅ U koos {name} - betaal nu 20% Paystack hieronder, 80% contant aan verpleegkundige later",
+      "nurseDefault": "Verpleegkundige",
+      "homeNursing": "Thuiszorg",
+      "kmFromPatient": "{km} km van patiënt • 🟢 ONLINE",
+      "kmAway": "{km} km ver",
+      "verifiedOnline": "⭐ {rating} • Geverifieerd ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Geverifieerd ✅ • 🟢 NU ONLINE",
+      "photoReg": "📷 Foto die ze uploadde tijdens registratie",
+      "noPhoto": "Geen foto geüpload",
+      "videoReg": "🎥 Video die ze uploadde tijdens registratie",
+      "noVideo": "Geen video gevonden voor deze verpleegkundige - ze heeft er misschien geen geüpload tijdens registratie. Vraag haar er een te uploaden in Verpleegkundige Instellingen.",
+      "pauseVideo": "Video Pauzeren",
+      "playVideo": "▶️ Video Afspelen",
+      "openVideoOutside": "▶️ Video Buiten App Openen",
+      "continueWithName": "✅ Ga Verder Met {name}",
+      "loadError": "Verpleegkundigen konden niet laden: {e}. Trek om opnieuw te proberen - offline verpleegkundigen zijn verborgen.",
+    },
+
+    // 6. FRENCH
+    "fr": {
+      "bookNurseTitle": "Réserver Infirmière — Payer 20% Seulement — INFIRMIÈRES EN LIGNE SEULEMENT",
+      "ceoLive": "CEO Live: {currency} {rate} /h — Payer 20% Seulement — LIVE — INFIRMIÈRES EN LIGNE SEULEMENT",
+      "bookingTitle": "⏱️ Réservation — Payer 20% Seulement",
+      "startTime": "HEURE DE DÉBUT *",
+      "endTime": "HEURE DE FIN *",
+      "hoursDay": "HEURES/JOUR",
+      "hrs": "{h} h",
+      "careMode": "MODE DE SOIN",
+      "daily": "Quotidien",
+      "weekly": "Hebdomadaire (x7)",
+      "monthly": "Mensuel (x30)",
+      "quantity": "QUANTITÉ",
+      "countryCurrency": "PAYS — DEVISE",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "TRANSPORT",
+      "careCost": "Coût Des Soins",
+      "transport": "Transport",
+      "total": "TOTAL",
+      "payNow20": "Payer Maintenant (20% Frais CEO)",
+      "payNurseCash80": "Payer Infirmière EN ESPÈCES Plus Tard (80%)",
+      "clientTitle": "👤 CLIENT — Payeur (Rempli Auto)",
+      "clientName": "NOM DU CLIENT *",
+      "clientPhone": "TÉLÉPHONE DU CLIENT *",
+      "clientEmail": "EMAIL DU CLIENT *",
+      "patientTitle": "🏥 PATIENT — Qui a besoin de soins",
+      "patientName": "NOM DU PATIENT *",
+      "patientPhone": "TÉLÉPHONE DU PATIENT",
+      "relationship": "RELATION",
+      "self": "Soi-même",
+      "parent": "Parent",
+      "child": "Enfant",
+      "spouse": "Conjoint",
+      "other": "Autre",
+      "patientLocText": "TEXTE LIEU DU PATIENT",
+      "sameLocation": "Même lieu que le Client",
+      "onlineTitle": "🟢 Infirmières EN LIGNE à moins de {km}km — Seules en ligne affichées • {count} infirmières",
+      "autoPicked": "🤖 SYSTÈME A CHOISI L'INFIRMIÈRE EN LIGNE LA PLUS PROCHE POUR VOUS",
+      "watchPhotoVideo": "📷🎥 Voir Sa Photo + Vidéo",
+      "continueWithHer": "✅ Continuer Avec Elle",
+      "lookAnother": "👀 Voir Une Autre",
+      "searchingOnline": "🔍 Le système recherche des infirmières EN LIGNE près du patient... Gardez cette page ouverte - l'infirmière la plus proche sera choisie dès qu'elle se connecte.",
+      "systemFind": "Le système trouvera des infirmières EN LIGNE à proximité pour vous",
+      "systemPickBtn": "🤖 Système Choisir L'Infirmière La Plus Proche Pour Moi - Voir Photo + Vidéo",
+      "systemShows": "Le système montre l'infirmière la plus proche d'abord - Voir sa photo + vidéo - Continuer avec elle OU Voir une autre",
+      "selected": "✅ Sélectionnée: {name}",
+      "payOnly20Now": "Vous payez SEULEMENT 20% maintenant. Payez l'infirmière 80% EN ESPÈCES après le travail.",
+      "pay20Explainer": "Payez 20% Frais CEO maintenant dans Paystack • Donnez 80% espèces à l'infirmière plus tard • CEO ne paie jamais l'infirmière • Infirmière refuse = remboursement COMPLET 20%",
+      "pay20Btn": "💳 Payer 20% Seulement — {currency} {amount}",
+      "processing": "Traitement Paystack...",
+      "selectNurseFirst": "Sélectionnez d'abord une infirmière EN LIGNE",
+      "fillDetails": "Remplir Client + Patient détails",
+      "pay20OnlyDialog": "Payer 20% Seulement",
+      "payNowQ": "Payer {currency} {payNow} maintenant?\nTotal: {currency} {total}\nPayer 20% Frais CEO maintenant\nPayer Infirmière {currency} {cash} EN ESPÈCES après le travail\nInfirmière: {name}",
+      "cancel": "Annuler",
+      "payNowBtn": "Payer Maintenant",
+      "paymentFailed": "Paiement échoué: {e}",
+      "bookingCreated": "✅ Réservation créée! {id} - L'infirmière va Accepter/Refuser",
+      "continueScroll": "✅ Continuer avec {name} - faites défiler vers le bas pour payer",
+      "noOtherNurse": "Pas encore d'autre infirmière EN LIGNE à proximité - le système cherche encore...",
+      "autoPickedToast": "🤖 Le système a choisi l'infirmière EN LIGNE la plus proche: {name} ({km} km) - Voir sa photo + vidéo ci-dessous",
+      "waitingGps": "En attente de votre position GPS...",
+      "yourLocation": "Votre position: {lat}, {lng}",
+      "waitingGps2": "En attente de votre GPS... réessayez dans une seconde",
+      "youChose": "✅ Vous avez choisi {name} - payez maintenant 20% Paystack ci-dessous, 80% espèces à l'infirmière plus tard",
+      "nurseDefault": "Infirmière",
+      "homeNursing": "Soins à Domicile",
+      "kmFromPatient": "{km} km du patient • 🟢 EN LIGNE",
+      "kmAway": "{km} km",
+      "verifiedOnline": "⭐ {rating} • Vérifiée ✅ • EN LIGNE",
+      "onlineNow": "⭐ 5 • Vérifiée ✅ • 🟢 EN LIGNE MAINTENANT",
+      "photoReg": "📷 Photo qu'elle a téléchargée lors de l'inscription",
+      "noPhoto": "Aucune photo téléchargée",
+      "videoReg": "🎥 Vidéo qu'elle a téléchargée lors de l'inscription",
+      "noVideo": "Aucune vidéo trouvée pour cette infirmière - elle n'en a peut-être pas téléchargée lors de l'inscription. Demandez-lui d'en télécharger une dans Paramètres Infirmière.",
+      "pauseVideo": "Pause Vidéo",
+      "playVideo": "▶️ Lire Vidéo",
+      "openVideoOutside": "▶️ Ouvrir Vidéo Hors App",
+      "continueWithName": "✅ Continuer Avec {name}",
+      "loadError": "Impossible de charger les infirmières: {e}. Tirez pour réessayer - les infirmières hors ligne sont masquées.",
+    },
+
+    // 7. GERMAN
+    "de": {
+      "bookNurseTitle": "Krankenschwester Buchen — Nur 20% Zahlen — NUR ONLINE-KRANKENSCHWESTERN",
+      "ceoLive": "CEO Live: {currency} {rate} /Std — Nur 20% Zahlen — LIVE — NUR ONLINE-KRANKENSCHWESTERN",
+      "bookingTitle": "⏱️ Buchung — Nur 20% Zahlen",
+      "startTime": "STARTZEIT *",
+      "endTime": "ENDZEIT *",
+      "hoursDay": "STD/TAG",
+      "hrs": "{h} Std",
+      "careMode": "PFLEGEMODUS",
+      "daily": "Täglich",
+      "weekly": "Wöchentlich (x7)",
+      "monthly": "Monatlich (x30)",
+      "quantity": "MENGE",
+      "countryCurrency": "LAND — WÄHRUNG",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "TRANSPORT",
+      "careCost": "Pflegekosten",
+      "transport": "Transport",
+      "total": "GESAMT",
+      "payNow20": "Jetzt Zahlen (20% CEO-Gebühr)",
+      "payNurseCash80": "Krankenschwester Später BAR Zahlen (80%)",
+      "clientTitle": "👤 KUNDE — Zahler (Auto-ausgefüllt)",
+      "clientName": "KUNDENNAME *",
+      "clientPhone": "KUNDENTELEFON *",
+      "clientEmail": "KUNDEN-EMAIL *",
+      "patientTitle": "🏥 PATIENT — Wer braucht Pflege",
+      "patientName": "PATIENTENNAME *",
+      "patientPhone": "PATIENTENTELEFON",
+      "relationship": "BEZIEHUNG",
+      "self": "Selbst",
+      "parent": "Elternteil",
+      "child": "Kind",
+      "spouse": "Ehepartner",
+      "other": "Andere",
+      "patientLocText": "PATIENTENORT TEXT",
+      "sameLocation": "Gleicher Ort wie Kunde",
+      "onlineTitle": "🟢 ONLINE Krankenschwestern innerhalb {km}km — Nur online zeigen • {count} Krankenschwestern",
+      "autoPicked": "🤖 SYSTEM HAT NÄCHSTE ONLINE-KRANKENSCHWESTER FÜR SIE GEWÄHLT",
+      "watchPhotoVideo": "📷🎥 Ihr Foto + Video Ansehen",
+      "continueWithHer": "✅ Mit Ihr Weitermachen",
+      "lookAnother": "👀 Eine Andere Ansehen",
+      "searchingOnline": "🔍 System sucht nach ONLINE-Krankenschwestern beim Patienten... Halten Sie diese Seite offen - nächste Krankenschwester wird automatisch gewählt sobald sie ONLINE geht.",
+      "systemFind": "System findet nahe ONLINE-Krankenschwestern für Sie",
+      "systemPickBtn": "🤖 System Wähle Nächste Krankenschwester Für Mich - Foto + Video Ansehen",
+      "systemShows": "System zeigt nächste Krankenschwester zuerst - Ihr Foto + Video ansehen - Mit ihr weitermachen ODER Eine andere ansehen",
+      "selected": "✅ Ausgewählt: {name}",
+      "payOnly20Now": "Sie zahlen JETZT NUR 20%. Zahlen Sie Krankenschwester 80% BAR nach der Arbeit.",
+      "pay20Explainer": "Zahlen Sie 20% CEO-Gebühr jetzt in Paystack • Geben Sie 80% bar an Krankenschwester später • CEO zahlt Krankenschwester nie • Krankenschwester lehnt ab = VOLLE 20% Erstattung",
+      "pay20Btn": "💳 Nur 20% Zahlen — {currency} {amount}",
+      "processing": "Paystack Verarbeiten...",
+      "selectNurseFirst": "Wählen Sie zuerst eine ONLINE-Krankenschwester",
+      "fillDetails": "Kunde + Patient Details ausfüllen",
+      "pay20OnlyDialog": "Nur 20% Zahlen",
+      "payNowQ": "{currency} {payNow} jetzt zahlen?\nGesamt: {currency} {total}\n20% CEO-Gebühr jetzt zahlen\nKrankenschwester {currency} {cash} BAR nach der Arbeit zahlen\nKrankenschwester: {name}",
+      "cancel": "Abbrechen",
+      "payNowBtn": "Jetzt Zahlen",
+      "paymentFailed": "Zahlung fehlgeschlagen: {e}",
+      "bookingCreated": "✅ Buchung erstellt! {id} - Krankenschwester wird Annehmen/Ablehnen",
+      "continueScroll": "✅ Mit {name} weitermachen - nach unten scrollen zum Zahlen",
+      "noOtherNurse": "Noch keine andere ONLINE-Krankenschwester in der Nähe - System sucht noch...",
+      "autoPickedToast": "🤖 System hat nächste ONLINE-Krankenschwester gewählt: {name} ({km} km) - Ihr Foto + Video unten ansehen",
+      "waitingGps": "Warten auf Ihren GPS-Standort...",
+      "yourLocation": "Ihr Standort: {lat}, {lng}",
+      "waitingGps2": "Warten auf Ihr GPS... in einer Sekunde erneut versuchen",
+      "youChose": "✅ Sie wählten {name} - jetzt 20% Paystack unten zahlen, 80% bar an Krankenschwester später",
+      "nurseDefault": "Krankenschwester",
+      "homeNursing": "Häusliche Pflege",
+      "kmFromPatient": "{km} km vom Patienten • 🟢 ONLINE",
+      "kmAway": "{km} km entfernt",
+      "verifiedOnline": "⭐ {rating} • Verifiziert ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Verifiziert ✅ • 🟢 JETZT ONLINE",
+      "photoReg": "📷 Foto, das sie bei Registrierung hochgeladen hat",
+      "noPhoto": "Kein Foto hochgeladen",
+      "videoReg": "🎥 Video, das sie bei Registrierung hochgeladen hat",
+      "noVideo": "Kein Video für diese Krankenschwester gefunden - sie hat vielleicht keines bei Registrierung hochgeladen. Bitten Sie sie, eines in Krankenschwester-Einstellungen hochzuladen.",
+      "pauseVideo": "Video Pausieren",
+      "playVideo": "▶️ Video Abspielen",
+      "openVideoOutside": "▶️ Video Außerhalb App Öffnen",
+      "continueWithName": "✅ Weitermachen Mit {name}",
+      "loadError": "Krankenschwestern konnten nicht geladen werden: {e}. Ziehen zum Erneut Versuchen - Offline-Krankenschwestern sind ausgeblendet.",
+    },
+
+    // 8. SPANISH
+    "es": {
+      "bookNurseTitle": "Reservar Enfermera — Pagar Solo 20% — SOLO ENFERMERAS EN LÍNEA",
+      "ceoLive": "CEO Live: {currency} {rate} /h — Pagar Solo 20% — EN VIVO — SOLO ENFERMERAS EN LÍNEA",
+      "bookingTitle": "⏱️ Reserva — Pagar Solo 20%",
+      "startTime": "HORA DE INICIO *",
+      "endTime": "HORA DE FIN *",
+      "hoursDay": "HORAS/DÍA",
+      "hrs": "{h} h",
+      "careMode": "MODO DE CUIDADO",
+      "daily": "Diario",
+      "weekly": "Semanal (x7)",
+      "monthly": "Mensual (x30)",
+      "quantity": "CANTIDAD",
+      "countryCurrency": "PAÍS — MONEDA",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "TRANSPORTE",
+      "careCost": "Costo De Cuidado",
+      "transport": "Transporte",
+      "total": "TOTAL",
+      "payNow20": "Pagar Ahora (20% Tarifa CEO)",
+      "payNurseCash80": "Pagar Enfermera EN EFECTIVO Después (80%)",
+      "clientTitle": "👤 CLIENTE — Pagador (Auto-llenado)",
+      "clientName": "NOMBRE DEL CLIENTE *",
+      "clientPhone": "TELÉFONO DEL CLIENTE *",
+      "clientEmail": "EMAIL DEL CLIENTE *",
+      "patientTitle": "🏥 PACIENTE — Quién necesita cuidado",
+      "patientName": "NOMBRE DEL PACIENTE *",
+      "patientPhone": "TELÉFONO DEL PACIENTE",
+      "relationship": "RELACIÓN",
+      "self": "Yo mismo",
+      "parent": "Padre",
+      "child": "Hijo",
+      "spouse": "Cónyuge",
+      "other": "Otro",
+      "patientLocText": "TEXTO UBICACIÓN PACIENTE",
+      "sameLocation": "Misma ubicación que Cliente",
+      "onlineTitle": "🟢 Enfermeras EN LÍNEA dentro de {km}km — Solo en línea • {count} enfermeras",
+      "autoPicked": "🤖 SISTEMA ELIGIÓ LA ENFERMERA EN LÍNEA MÁS CERCANA PARA TI",
+      "watchPhotoVideo": "📷🎥 Ver Su Foto + Video",
+      "continueWithHer": "✅ Continuar Con Ella",
+      "lookAnother": "👀 Ver Otra",
+      "searchingOnline": "🔍 El sistema busca enfermeras EN LÍNEA cerca del paciente... Mantén esta página abierta - la enfermera más cercana será elegida tan pronto como se conecte.",
+      "systemFind": "El sistema encontrará enfermeras EN LÍNEA cercanas para ti",
+      "systemPickBtn": "🤖 Sistema Elige La Enfermera Más Cercana Para Mí - Ver Foto + Video",
+      "systemShows": "El sistema muestra la enfermera más cercana primero - Ver su foto + video - Continuar con ella O Ver otra",
+      "selected": "✅ Seleccionada: {name}",
+      "payOnly20Now": "Pagas SOLO 20% ahora. Paga a la enfermera 80% EN EFECTIVO después del trabajo.",
+      "pay20Explainer": "Paga 20% Tarifa CEO ahora en Paystack • Da 80% en efectivo a la enfermera después • CEO nunca paga a la enfermera • Enfermera rechaza = reembolso COMPLETO 20%",
+      "pay20Btn": "💳 Pagar Solo 20% — {currency} {amount}",
+      "processing": "Procesando Paystack...",
+      "selectNurseFirst": "Selecciona primero una enfermera EN LÍNEA",
+      "fillDetails": "Llenar Cliente + Paciente detalles",
+      "pay20OnlyDialog": "Pagar Solo 20%",
+      "payNowQ": "¿Pagar {currency} {payNow} ahora?\nTotal: {currency} {total}\nPagar 20% Tarifa CEO ahora\nPagar Enfermera {currency} {cash} EN EFECTIVO después del trabajo\nEnfermera: {name}",
+      "cancel": "Cancelar",
+      "payNowBtn": "Pagar Ahora",
+      "paymentFailed": "Pago fallido: {e}",
+      "bookingCreated": "✅ ¡Reserva creada! {id} - La enfermera Aceptará/Rechazará",
+      "continueScroll": "✅ Continuar con {name} - desplázate hacia abajo para pagar",
+      "noOtherNurse": "Aún no hay otra enfermera EN LÍNEA cerca - el sistema sigue buscando...",
+      "autoPickedToast": "🤖 El sistema eligió la enfermera EN LÍNEA más cercana: {name} ({km} km) - Ver su foto + video abajo",
+      "waitingGps": "Esperando tu ubicación GPS...",
+      "yourLocation": "Tu ubicación: {lat}, {lng}",
+      "waitingGps2": "Esperando tu GPS... intenta de nuevo en un segundo",
+      "youChose": "✅ Elegiste {name} - ahora paga 20% Paystack abajo, 80% en efectivo a la enfermera después",
+      "nurseDefault": "Enfermera",
+      "homeNursing": "Enfermería En Casa",
+      "kmFromPatient": "{km} km del paciente • 🟢 EN LÍNEA",
+      "kmAway": "{km} km",
+      "verifiedOnline": "⭐ {rating} • Verificada ✅ • EN LÍNEA",
+      "onlineNow": "⭐ 5 • Verificada ✅ • 🟢 EN LÍNEA AHORA",
+      "photoReg": "📷 Foto que subió durante el registro",
+      "noPhoto": "Sin foto subida",
+      "videoReg": "🎥 Video que subió durante el registro",
+      "noVideo": "No se encontró video para esta enfermera - puede que no haya subido uno durante el registro. Pídele que suba uno en Configuración Enfermera.",
+      "pauseVideo": "Pausar Video",
+      "playVideo": "▶️ Reproducir Video",
+      "openVideoOutside": "▶️ Abrir Video Fuera De La App",
+      "continueWithName": "✅ Continuar Con {name}",
+      "loadError": "No se pudieron cargar enfermeras: {e}. Desliza para intentar de nuevo - las enfermeras fuera de línea están ocultas.",
+    },
+
+    // 9. ITALIAN
+    "it": {
+      "bookNurseTitle": "Prenota Infermiera — Paga Solo 20% — SOLO INFERMIERE ONLINE",
+      "ceoLive": "CEO Live: {currency} {rate} /h — Paga Solo 20% — LIVE — SOLO INFERMIERE ONLINE",
+      "bookingTitle": "⏱️ Prenotazione — Paga Solo 20%",
+      "startTime": "ORA INIZIO *",
+      "endTime": "ORA FINE *",
+      "hoursDay": "ORE/GIORNO",
+      "hrs": "{h} ore",
+      "careMode": "MODALITÀ CURA",
+      "daily": "Giornaliero",
+      "weekly": "Settimanale (x7)",
+      "monthly": "Mensile (x30)",
+      "quantity": "QUANTITÀ",
+      "countryCurrency": "PAESE — VALUTA",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "TRASPORTO",
+      "careCost": "Costo Cura",
+      "transport": "Trasporto",
+      "total": "TOTALE",
+      "payNow20": "Paga Ora (20% Commissione CEO)",
+      "payNurseCash80": "Paga Infermiera IN CONTANTI Dopo (80%)",
+      "clientTitle": "👤 CLIENTE — Pagatore (Auto-compilato)",
+      "clientName": "NOME CLIENTE *",
+      "clientPhone": "TELEFONO CLIENTE *",
+      "clientEmail": "EMAIL CLIENTE *",
+      "patientTitle": "🏥 PAZIENTE — Chi ha bisogno di cura",
+      "patientName": "NOME PAZIENTE *",
+      "patientPhone": "TELEFONO PAZIENTE",
+      "relationship": "RELAZIONE",
+      "self": "Me stesso",
+      "parent": "Genitore",
+      "child": "Figlio",
+      "spouse": "Coniuge",
+      "other": "Altro",
+      "patientLocText": "TESTO LUOGO PAZIENTE",
+      "sameLocation": "Stessa posizione del Cliente",
+      "onlineTitle": "🟢 Infermiere ONLINE entro {km}km — Solo online • {count} infermiere",
+      "autoPicked": "🤖 SISTEMA HA SCELTO L'INFERMIERA ONLINE PIÙ VICINA PER TE",
+      "watchPhotoVideo": "📷🎥 Guarda Sua Foto + Video",
+      "continueWithHer": "✅ Continua Con Lei",
+      "lookAnother": "👀 Guarda Un'Altra",
+      "searchingOnline": "🔍 Il sistema cerca infermiere ONLINE vicino al paziente... Tieni aperta questa pagina - l'infermiera più vicina sarà scelta appena va ONLINE.",
+      "systemFind": "Il sistema troverà infermiere ONLINE vicine per te",
+      "systemPickBtn": "🤖 Sistema Scegli L'Infermiera Più Vicina Per Me - Guarda Foto + Video",
+      "systemShows": "Il sistema mostra l'infermiera più vicina per prima - Guarda sua foto + video - Continua con lei O Guarda un'altra",
+      "selected": "✅ Selezionata: {name}",
+      "payOnly20Now": "Paghi SOLO 20% ora. Paga l'infermiera 80% IN CONTANTI dopo il lavoro.",
+      "pay20Explainer": "Paga 20% Commissione CEO ora in Paystack • Dai 80% contanti all'infermiera dopo • CEO non paga mai l'infermiera • Infermiera rifiuta = rimborso COMPLETO 20%",
+      "pay20Btn": "💳 Paga Solo 20% — {currency} {amount}",
+      "processing": "Elaborazione Paystack...",
+      "selectNurseFirst": "Seleziona prima un'infermiera ONLINE",
+      "fillDetails": "Compila Cliente + Paziente dettagli",
+      "pay20OnlyDialog": "Paga Solo 20%",
+      "payNowQ": "Pagare {currency} {payNow} ora?\nTotale: {currency} {total}\nPaga 20% Commissione CEO ora\nPaga Infermiera {currency} {cash} IN CONTANTI dopo il lavoro\nInfermiera: {name}",
+      "cancel": "Annulla",
+      "payNowBtn": "Paga Ora",
+      "paymentFailed": "Pagamento fallito: {e}",
+      "bookingCreated": "✅ Prenotazione creata! {id} - L'infermiera Accetterà/Rifiuterà",
+      "continueScroll": "✅ Continua con {name} - scorri in basso per pagare",
+      "noOtherNurse": "Ancora nessun'altra infermiera ONLINE nelle vicinanze - il sistema sta ancora cercando...",
+      "autoPickedToast": "🤖 Il sistema ha scelto l'infermiera ONLINE più vicina: {name} ({km} km) - Guarda sua foto + video sotto",
+      "waitingGps": "In attesa della tua posizione GPS...",
+      "yourLocation": "La tua posizione: {lat}, {lng}",
+      "waitingGps2": "In attesa del tuo GPS... riprova tra un secondo",
+      "youChose": "✅ Hai scelto {name} - ora paga 20% Paystack sotto, 80% contanti all'infermiera dopo",
+      "nurseDefault": "Infermiera",
+      "homeNursing": "Assistenza Domiciliare",
+      "kmFromPatient": "{km} km dal paziente • 🟢 ONLINE",
+      "kmAway": "{km} km",
+      "verifiedOnline": "⭐ {rating} • Verificata ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Verificata ✅ • 🟢 ONLINE ORA",
+      "photoReg": "📷 Foto che ha caricato durante la registrazione",
+      "noPhoto": "Nessuna foto caricata",
+      "videoReg": "🎥 Video che ha caricato durante la registrazione",
+      "noVideo": "Nessun video trovato per questa infermiera - potrebbe non averne caricato uno durante la registrazione. Chiedile di caricarne uno in Impostazioni Infermiera.",
+      "pauseVideo": "Metti In Pausa Video",
+      "playVideo": "▶️ Riproduci Video",
+      "openVideoOutside": "▶️ Apri Video Fuori Dall'App",
+      "continueWithName": "✅ Continua Con {name}",
+      "loadError": "Impossibile caricare le infermiere: {e}. Scorri per riprovare - le infermiere offline sono nascoste.",
+    },
+
+    // 10. PORTUGUESE
+    "pt": {
+      "bookNurseTitle": "Reservar Enfermeira — Pagar Apenas 20% — SOMENTE ENFERMEIRAS ONLINE",
+      "ceoLive": "CEO Live: {currency} {rate} /h — Pagar Apenas 20% — AO VIVO — SOMENTE ENFERMEIRAS ONLINE",
+      "bookingTitle": "⏱️ Reserva — Pagar Apenas 20%",
+      "startTime": "HORA DE INÍCIO *",
+      "endTime": "HORA DE FIM *",
+      "hoursDay": "HORAS/DIA",
+      "hrs": "{h} h",
+      "careMode": "MODO DE CUIDADO",
+      "daily": "Diário",
+      "weekly": "Semanal (x7)",
+      "monthly": "Mensal (x30)",
+      "quantity": "QUANTIDADE",
+      "countryCurrency": "PAÍS — MOEDA",
+      "ghanaGhs": "🇬🇭 Gana — GHS",
+      "usaUsd": "🇺🇸 EUA — USD",
+      "transportLabel": "TRANSPORTE",
+      "careCost": "Custo Do Cuidado",
+      "transport": "Transporte",
+      "total": "TOTAL",
+      "payNow20": "Pagar Agora (20% Taxa CEO)",
+      "payNurseCash80": "Pagar Enfermeira EM DINHEIRO Depois (80%)",
+      "clientTitle": "👤 CLIENTE — Pagador (Preenchido Auto)",
+      "clientName": "NOME DO CLIENTE *",
+      "clientPhone": "TELEFONE DO CLIENTE *",
+      "clientEmail": "EMAIL DO CLIENTE *",
+      "patientTitle": "🏥 PACIENTE — Quem precisa de cuidado",
+      "patientName": "NOME DO PACIENTE *",
+      "patientPhone": "TELEFONE DO PACIENTE",
+      "relationship": "RELAÇÃO",
+      "self": "Eu mesmo",
+      "parent": "Pai/Mãe",
+      "child": "Filho",
+      "spouse": "Cônjuge",
+      "other": "Outro",
+      "patientLocText": "TEXTO LOCAL DO PACIENTE",
+      "sameLocation": "Mesma localização que Cliente",
+      "onlineTitle": "🟢 Enfermeiras ONLINE dentro de {km}km — Só online • {count} enfermeiras",
+      "autoPicked": "🤖 SISTEMA ESCOLHEU A ENFERMEIRA ONLINE MAIS PRÓXIMA PARA VOCÊ",
+      "watchPhotoVideo": "📷🎥 Ver Sua Foto + Vídeo",
+      "continueWithHer": "✅ Continuar Com Ela",
+      "lookAnother": "👀 Ver Outra",
+      "searchingOnline": "🔍 O sistema procura enfermeiras ONLINE perto do paciente... Mantenha esta página aberta - a enfermeira mais próxima será escolhida assim que ficar ONLINE.",
+      "systemFind": "O sistema encontrará enfermeiras ONLINE próximas para você",
+      "systemPickBtn": "🤖 Sistema Escolher Enfermeira Mais Próxima Para Mim - Ver Foto + Vídeo",
+      "systemShows": "O sistema mostra a enfermeira mais próxima primeiro - Ver sua foto + vídeo - Continuar com ela OU Ver outra",
+      "selected": "✅ Selecionada: {name}",
+      "payOnly20Now": "Você paga APENAS 20% agora. Pague à enfermeira 80% EM DINHEIRO após o trabalho.",
+      "pay20Explainer": "Pague 20% Taxa CEO agora no Paystack • Dê 80% em dinheiro à enfermeira depois • CEO nunca paga à enfermeira • Enfermeira recusa = reembolso TOTAL 20%",
+      "pay20Btn": "💳 Pagar Apenas 20% — {currency} {amount}",
+      "processing": "Processando Paystack...",
+      "selectNurseFirst": "Selecione primeiro uma enfermeira ONLINE",
+      "fillDetails": "Preencher Cliente + Paciente detalhes",
+      "pay20OnlyDialog": "Pagar Apenas 20%",
+      "payNowQ": "Pagar {currency} {payNow} agora?\nTotal: {currency} {total}\nPagar 20% Taxa CEO agora\nPagar Enfermeira {currency} {cash} EM DINHEIRO após o trabalho\nEnfermeira: {name}",
+      "cancel": "Cancelar",
+      "payNowBtn": "Pagar Agora",
+      "paymentFailed": "Pagamento falhou: {e}",
+      "bookingCreated": "✅ Reserva criada! {id} - A enfermeira vai Aceitar/Recusar",
+      "continueScroll": "✅ Continuar com {name} - role para baixo para pagar",
+      "noOtherNurse": "Ainda nenhuma outra enfermeira ONLINE por perto - o sistema ainda procura...",
+      "autoPickedToast": "🤖 O sistema escolheu a enfermeira ONLINE mais próxima: {name} ({km} km) - Ver sua foto + vídeo abaixo",
+      "waitingGps": "Aguardando sua localização GPS...",
+      "yourLocation": "Sua localização: {lat}, {lng}",
+      "waitingGps2": "Aguardando seu GPS... tente de novo em um segundo",
+      "youChose": "✅ Você escolheu {name} - agora pague 20% Paystack abaixo, 80% em dinheiro à enfermeira depois",
+      "nurseDefault": "Enfermeira",
+      "homeNursing": "Enfermagem Domiciliar",
+      "kmFromPatient": "{km} km do paciente • 🟢 ONLINE",
+      "kmAway": "{km} km",
+      "verifiedOnline": "⭐ {rating} • Verificada ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Verificada ✅ • 🟢 ONLINE AGORA",
+      "photoReg": "📷 Foto que ela enviou durante o cadastro",
+      "noPhoto": "Nenhuma foto enviada",
+      "videoReg": "🎥 Vídeo que ela enviou durante o cadastro",
+      "noVideo": "Nenhum vídeo encontrado para esta enfermeira - ela pode não ter enviado um durante o cadastro. Peça para ela enviar um em Configurações Enfermeira.",
+      "pauseVideo": "Pausar Vídeo",
+      "playVideo": "▶️ Reproduzir Vídeo",
+      "openVideoOutside": "▶️ Abrir Vídeo Fora Do App",
+      "continueWithName": "✅ Continuar Com {name}",
+      "loadError": "Não foi possível carregar enfermeiras: {e}. Puxe para tentar de novo - enfermeiras offline estão ocultas.",
+    },
+
+    // 11. ARABIC
+    "ar": {
+      "bookNurseTitle": "حجز ممرضة — دفع 20% فقط — ممرضات متصلات فقط",
+      "ceoLive": "CEO مباشر: {currency} {rate} /ساعة — دفع 20% فقط — مباشر — ممرضات متصلات فقط",
+      "bookingTitle": "⏱️ حجز — دفع 20% فقط",
+      "startTime": "وقت البدء *",
+      "endTime": "وقت الانتهاء *",
+      "hoursDay": "ساعات/يوم",
+      "hrs": "{h} ساعة",
+      "careMode": "وضع الرعاية",
+      "daily": "يومي",
+      "weekly": "أسبوعي (x7)",
+      "monthly": "شهري (x30)",
+      "quantity": "الكمية",
+      "countryCurrency": "الدولة — العملة",
+      "ghanaGhs": "🇬🇭 غانا — GHS",
+      "usaUsd": "🇺🇸 أمريكا — USD",
+      "transportLabel": "النقل",
+      "careCost": "تكلفة الرعاية",
+      "transport": "النقل",
+      "total": "المجموع",
+      "payNow20": "ادفع الآن (20% رسوم المدير)",
+      "payNurseCash80": "ادفع للممرضة نقداً لاحقاً (80%)",
+      "clientTitle": "👤 العميل — الدافع (يُملأ تلقائياً)",
+      "clientName": "اسم العميل *",
+      "clientPhone": "هاتف العميل *",
+      "clientEmail": "بريد العميل *",
+      "patientTitle": "🏥 المريض — من يحتاج رعاية",
+      "patientName": "اسم المريض *",
+      "patientPhone": "هاتف المريض",
+      "relationship": "العلاقة",
+      "self": "نفسي",
+      "parent": "والد",
+      "child": "طفل",
+      "spouse": "زوج",
+      "other": "آخر",
+      "patientLocText": "نص موقع المريض",
+      "sameLocation": "نفس موقع العميل",
+      "onlineTitle": "🟢 ممرضات متصلات خلال {km}كم — المتصلات فقط • {count} ممرضة",
+      "autoPicked": "🤖 النظام اختار أقرب ممرضة متصلة لك",
+      "watchPhotoVideo": "📷🎥 شاهد صورتها + فيديو",
+      "continueWithHer": "✅ تابع معها",
+      "lookAnother": "👀 انظر لأخرى",
+      "searchingOnline": "🔍 النظام يبحث عن ممرضات متصلات قرب المريض... أبق هذه الصفحة مفتوحة - سيتم اختيار أقرب ممرضة بمجرد اتصالها.",
+      "systemFind": "النظام سيجد ممرضات متصلات قريبات لك",
+      "systemPickBtn": "🤖 النظام يختار أقرب ممرضة لي - شاهد صورة + فيديو",
+      "systemShows": "النظام يعرض أقرب ممرضة أولاً - شاهد صورتها + فيديو - تابع معها أو انظر لأخرى",
+      "selected": "✅ تم الاختيار: {name}",
+      "payOnly20Now": "تدفع 20% فقط الآن. ادفع للممرضة 80% نقداً بعد العمل.",
+      "pay20Explainer": "ادفع 20% رسوم المدير الآن في Paystack • أعط 80% نقداً للممرضة لاحقاً • المدير لا يدفع للممرضة أبداً • الممرضة ترفض = استرداد كامل 20%",
+      "pay20Btn": "💳 ادفع 20% فقط — {currency} {amount}",
+      "processing": "معالجة Paystack...",
+      "selectNurseFirst": "اختر ممرضة متصلة أولاً",
+      "fillDetails": "املأ تفاصيل العميل + المريض",
+      "pay20OnlyDialog": "ادفع 20% فقط",
+      "payNowQ": "ادفع {currency} {payNow} الآن؟\nالمجموع: {currency} {total}\nادفع 20% رسوم المدير الآن\nادفع للممرضة {currency} {cash} نقداً بعد العمل\nالممرضة: {name}",
+      "cancel": "إلغاء",
+      "payNowBtn": "ادفع الآن",
+      "paymentFailed": "فشل الدفع: {e}",
+      "bookingCreated": "✅ تم إنشاء الحجز! {id} - الممرضة ستقبل/ترفض",
+      "continueScroll": "✅ تابع مع {name} - مرر للأسفل للدفع",
+      "noOtherNurse": "لا ممرضة متصلة أخرى قريبة بعد - النظام لا يزال يبحث...",
+      "autoPickedToast": "🤖 النظام اختار أقرب ممرضة متصلة: {name} ({km} كم) - شاهد صورتها + فيديو بالأسفل",
+      "waitingGps": "بانتظار موقع GPS الخاص بك...",
+      "yourLocation": "موقعك: {lat}, {lng}",
+      "waitingGps2": "بانتظار GPS... حاول بعد ثانية",
+      "youChose": "✅ اخترت {name} - الآن ادفع 20% Paystack بالأسفل، 80% نقداً للممرضة لاحقاً",
+      "nurseDefault": "ممرضة",
+      "homeNursing": "تمريض منزلي",
+      "kmFromPatient": "{km} كم من المريض • 🟢 متصلة",
+      "kmAway": "{km} كم بعيداً",
+      "verifiedOnline": "⭐ {rating} • موثقة ✅ • متصلة",
+      "onlineNow": "⭐ 5 • موثقة ✅ • 🟢 متصلة الآن",
+      "photoReg": "📷 الصورة التي رفعتها أثناء التسجيل",
+      "noPhoto": "لم يتم رفع صورة",
+      "videoReg": "🎥 الفيديو الذي رفعته أثناء التسجيل",
+      "noVideo": "لم يتم العثور على فيديو لهذه الممرضة - قد لا تكون قد رفعت واحداً أثناء التسجيل. اطلب منها رفعه في إعدادات الممرضة.",
+      "pauseVideo": "إيقاف الفيديو",
+      "playVideo": "▶️ تشغيل الفيديو",
+      "openVideoOutside": "▶️ فتح الفيديو خارج التطبيق",
+      "continueWithName": "✅ تابع مع {name}",
+      "loadError": "تعذر تحميل الممرضات: {e}. اسحب للمحاولة مرة أخرى - الممرضات غير المتصلات مخفية.",
+    },
+
+    // 12. CHINESE
+    "zh": {
+      "bookNurseTitle": "预订护士 — 仅付 20% — 仅在线护士",
+      "ceoLive": "CEO 实时: {currency} {rate} /小时 — 仅付 20% — 实时 — 仅在线护士",
+      "bookingTitle": "⏱️ 预订 — 仅付 20%",
+      "startTime": "开始时间 *",
+      "endTime": "结束时间 *",
+      "hoursDay": "小时/天",
+      "hrs": "{h} 小时",
+      "careMode": "护理模式",
+      "daily": "每日",
+      "weekly": "每周 (x7)",
+      "monthly": "每月 (x30)",
+      "quantity": "数量",
+      "countryCurrency": "国家 — 货币",
+      "ghanaGhs": "🇬🇭 加纳 — GHS",
+      "usaUsd": "🇺🇸 美国 — USD",
+      "transportLabel": "交通",
+      "careCost": "护理费用",
+      "transport": "交通",
+      "total": "总计",
+      "payNow20": "现在支付 (20% CEO 费用)",
+      "payNurseCash80": "之后现金支付护士 (80%)",
+      "clientTitle": "👤 客户 — 付款人 (自动填写)",
+      "clientName": "客户姓名 *",
+      "clientPhone": "客户电话 *",
+      "clientEmail": "客户邮箱 *",
+      "patientTitle": "🏥 患者 — 谁需要护理",
+      "patientName": "患者姓名 *",
+      "patientPhone": "患者电话",
+      "relationship": "关系",
+      "self": "本人",
+      "parent": "父母",
+      "child": "孩子",
+      "spouse": "配偶",
+      "other": "其他",
+      "patientLocText": "患者位置文本",
+      "sameLocation": "与客户相同位置",
+      "onlineTitle": "🟢 {km}km 内在线护士 — 仅显示在线 • {count} 名护士",
+      "autoPicked": "🤖 系统已为您自动选择最近的在线护士",
+      "watchPhotoVideo": "📷🎥 观看她的照片 + 视频",
+      "continueWithHer": "✅ 继续与她",
+      "lookAnother": "👀 看另一位",
+      "searchingOnline": "🔍 系统正在搜索患者附近的在线护士... 保持此页面打开 - 一旦她上线，最近的护士将被自动选择。",
+      "systemFind": "系统将为您找到附近的在线护士",
+      "systemPickBtn": "🤖 系统为我选择最近的护士 - 观看照片 + 视频",
+      "systemShows": "系统首先显示最近的护士 - 观看她的照片 + 视频 - 继续与她或看另一位",
+      "selected": "✅ 已选择: {name}",
+      "payOnly20Now": "您现在仅付 20%。工作后现金支付护士 80%。",
+      "pay20Explainer": "现在在 Paystack 支付 20% CEO 费用 • 之后给护士 80% 现金 • CEO 从不支付护士 • 护士拒绝 = 全额退还 20%",
+      "pay20Btn": "💳 仅付 20% — {currency} {amount}",
+      "processing": "正在处理 Paystack...",
+      "selectNurseFirst": "先选择一位在线护士",
+      "fillDetails": "填写客户 + 患者详情",
+      "pay20OnlyDialog": "仅付 20%",
+      "payNowQ": "现在支付 {currency} {payNow} 吗？\n总计: {currency} {total}\n现在支付 20% CEO 费用\n工作后现金支付护士 {currency} {cash}\n护士: {name}",
+      "cancel": "取消",
+      "payNowBtn": "现在支付",
+      "paymentFailed": "支付失败: {e}",
+      "bookingCreated": "✅ 预订已创建！{id} - 护士将接受/拒绝",
+      "continueScroll": "✅ 继续与 {name} - 向下滚动支付",
+      "noOtherNurse": "附近暂无其他在线护士 - 系统仍在搜索...",
+      "autoPickedToast": "🤖 系统自动选择了最近的在线护士: {name} ({km} km) - 在下面观看她的照片 + 视频",
+      "waitingGps": "正在等待您的 GPS 位置...",
+      "yourLocation": "您的位置: {lat}, {lng}",
+      "waitingGps2": "正在等待您的 GPS... 一秒后再试",
+      "youChose": "✅ 您选择了 {name} - 现在在下面支付 20% Paystack，之后现金支付护士 80%",
+      "nurseDefault": "护士",
+      "homeNursing": "居家护理",
+      "kmFromPatient": "距患者 {km} km • 🟢 在线",
+      "kmAway": "{km} km 远",
+      "verifiedOnline": "⭐ {rating} • 已验证 ✅ • 在线",
+      "onlineNow": "⭐ 5 • 已验证 ✅ • 🟢 现在在线",
+      "photoReg": "📷 她注册时上传的照片",
+      "noPhoto": "未上传照片",
+      "videoReg": "🎥 她注册时上传的视频",
+      "noVideo": "未找到该护士的视频 - 她可能在注册时未上传。请让她在护士设置中上传。",
+      "pauseVideo": "暂停视频",
+      "playVideo": "▶️ 播放视频",
+      "openVideoOutside": "▶️ 在应用外打开视频",
+      "continueWithName": "✅ 继续与 {name}",
+      "loadError": "无法加载护士: {e}。拉取重试 - 离线护士已隐藏。",
+    },
+
+    // 13. HINDI
+    "hi": {
+      "bookNurseTitle": "नर्स बुक करें — केवल 20% भुगतान करें — केवल ऑनलाइन नर्स",
+      "ceoLive": "CEO लाइव: {currency} {rate} /घंटा — केवल 20% भुगतान करें — लाइव — केवल ऑनलाइन नर्स",
+      "bookingTitle": "⏱️ बुकिंग — केवल 20% भुगतान करें",
+      "startTime": "शुरू का समय *",
+      "endTime": "समाप्ति का समय *",
+      "hoursDay": "घंटे/दिन",
+      "hrs": "{h} घंटे",
+      "careMode": "देखभाल मोड",
+      "daily": "दैनिक",
+      "weekly": "साप्ताहिक (x7)",
+      "monthly": "मासिक (x30)",
+      "quantity": "मात्रा",
+      "countryCurrency": "देश — मुद्रा",
+      "ghanaGhs": "🇬🇭 घाना — GHS",
+      "usaUsd": "🇺🇸 अमेरिका — USD",
+      "transportLabel": "परिवहन",
+      "careCost": "देखभाल लागत",
+      "transport": "परिवहन",
+      "total": "कुल",
+      "payNow20": "अभी भुगतान करें (20% CEO शुल्क)",
+      "payNurseCash80": "नर्स को बाद में नकद भुगतान करें (80%)",
+      "clientTitle": "👤 क्लाइंट — भुगतानकर्ता (ऑटो-भरा)",
+      "clientName": "क्लाइंट का नाम *",
+      "clientPhone": "क्लाइंट का फोन *",
+      "clientEmail": "क्लाइंट का ईमेल *",
+      "patientTitle": "🏥 मरीज — किसे देखभाल चाहिए",
+      "patientName": "मरीज का नाम *",
+      "patientPhone": "मरीज का फोन",
+      "relationship": "रिश्ता",
+      "self": "स्वयं",
+      "parent": "माता-पिता",
+      "child": "बच्चा",
+      "spouse": "पति/पत्नी",
+      "other": "अन्य",
+      "patientLocText": "मरीज के स्थान का टेक्स्ट",
+      "sameLocation": "क्लाइंट जैसा ही स्थान",
+      "onlineTitle": "🟢 {km}km के भीतर ऑनलाइन नर्स — केवल ऑनलाइन दिखती हैं • {count} नर्स",
+      "autoPicked": "🤖 सिस्टम ने आपके लिए निकटतम ऑनलाइन नर्स को ऑटो-चुना",
+      "watchPhotoVideo": "📷🎥 उसकी फोटो + वीडियो देखें",
+      "continueWithHer": "✅ उसके साथ जारी रखें",
+      "lookAnother": "👀 दूसरी देखें",
+      "searchingOnline": "🔍 सिस्टम मरीज के पास ऑनलाइन नर्स खोज रहा है... इस पेज को खुला रखें - जैसे ही वह ऑनलाइन जाएगी, निकटतम नर्स ऑटो-चुनी जाएगी।",
+      "systemFind": "सिस्टम आपके लिए पास की ऑनलाइन नर्स ढूंढेगा",
+      "systemPickBtn": "🤖 सिस्टम मेरे लिए निकटतम नर्स चुनें - फोटो + वीडियो देखें",
+      "systemShows": "सिस्टम पहले निकटतम नर्स दिखाता है - उसकी फोटो + वीडियो देखें - उसके साथ जारी रखें या दूसरी देखें",
+      "selected": "✅ चयनित: {name}",
+      "payOnly20Now": "आप अभी केवल 20% भुगतान करते हैं। काम के बाद नर्स को 80% नकद भुगतान करें।",
+      "pay20Explainer": "Paystack में अभी 20% CEO शुल्क भुगतान करें • बाद में नर्स को 80% नकद दें • CEO कभी नर्स को भुगतान नहीं करता • नर्स अस्वीकार करती है = पूरा 20% रिफंड",
+      "pay20Btn": "💳 केवल 20% भुगतान करें — {currency} {amount}",
+      "processing": "Paystack प्रोसेस हो रहा है...",
+      "selectNurseFirst": "पहले एक ऑनलाइन नर्स चुनें",
+      "fillDetails": "क्लाइंट + मरीज विवरण भरें",
+      "pay20OnlyDialog": "केवल 20% भुगतान करें",
+      "payNowQ": "क्या {currency} {payNow} अभी भुगतान करें?\nकुल: {currency} {total}\nअभी 20% CEO शुल्क भुगतान करें\nकाम के बाद नर्स को {currency} {cash} नकद भुगतान करें\nनर्स: {name}",
+      "cancel": "रद्द करें",
+      "payNowBtn": "अभी भुगतान करें",
+      "paymentFailed": "भुगतान विफल: {e}",
+      "bookingCreated": "✅ बुकिंग बन गई! {id} - नर्स स्वीकार/अस्वीकार करेगी",
+      "continueScroll": "✅ {name} के साथ जारी रखें - भुगतान के लिए नीचे स्क्रॉल करें",
+      "noOtherNurse": "पास में अभी कोई अन्य ऑनलाइन नर्स नहीं है - सिस्टम अभी खोज रहा है...",
+      "autoPickedToast": "🤖 सिस्टम ने निकटतम ऑनलाइन नर्स को ऑटो-चुना: {name} ({km} km) - नीचे उसकी फोटो + वीडियो देखें",
+      "waitingGps": "आपके GPS स्थान की प्रतीक्षा हो रही है...",
+      "yourLocation": "आपका स्थान: {lat}, {lng}",
+      "waitingGps2": "आपके GPS की प्रतीक्षा हो रही है... एक सेकंड में फिर प्रयास करें",
+      "youChose": "✅ आपने {name} को चुना - अब नीचे 20% Paystack भुगतान करें, बाद में नर्स को 80% नकद",
+      "nurseDefault": "नर्स",
+      "homeNursing": "होम नर्सिंग",
+      "kmFromPatient": "मरीज से {km} km • 🟢 ऑनलाइन",
+      "kmAway": "{km} km दूर",
+      "verifiedOnline": "⭐ {rating} • सत्यापित ✅ • ऑनलाइन",
+      "onlineNow": "⭐ 5 • सत्यापित ✅ • 🟢 अभी ऑनलाइन",
+      "photoReg": "📷 फोटो जो उसने पंजीकरण के दौरान अपलोड की",
+      "noPhoto": "कोई फोटो अपलोड नहीं",
+      "videoReg": "🎥 वीडियो जो उसने पंजीकरण के दौरान अपलोड किया",
+      "noVideo": "इस नर्स के लिए कोई वीडियो नहीं मिला - उसने पंजीकरण के दौरान अपलोड नहीं किया होगा। उसे नर्स सेटिंग्स में अपलोड करने के लिए कहें।",
+      "pauseVideo": "वीडियो रोकें",
+      "playVideo": "▶️ वीडियो चलाएं",
+      "openVideoOutside": "▶️ ऐप के बाहर वीडियो खोलें",
+      "continueWithName": "✅ {name} के साथ जारी रखें",
+      "loadError": "नर्स लोड नहीं हो सकीं: {e}। पुनः प्रयास के लिए खींचें - ऑफलाइन नर्स छिपी हुई हैं।",
+    },
+
+    // 14. SWAHILI
+    "sw": {
+      "bookNurseTitle": "Weka Muuguzi — Lipa 20% Tu — MUUGUZI WALIO MTANDAONI TU",
+      "ceoLive": "CEO Live: {currency} {rate} /saa — Lipa 20% Tu — LIVE — MUUGUZI WALIO MTANDAONI TU",
+      "bookingTitle": "⏱️ Booking — Lipa 20% Tu",
+      "startTime": "MUDA WA KUANZA *",
+      "endTime": "MUDA WA KUMALIZA *",
+      "hoursDay": "SAA/SIKU",
+      "hrs": "Saa {h}",
+      "careMode": "AINA YA HUDUMA",
+      "daily": "Kila Siku",
+      "weekly": "Kila Wiki (x7)",
+      "monthly": "Kila Mwezi (x30)",
+      "quantity": "IDADI",
+      "countryCurrency": "NCHI — SARAFU",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 Marekani — USD",
+      "transportLabel": "USAFIRI",
+      "careCost": "Gharama Ya Huduma",
+      "transport": "Usafiri",
+      "total": "JUMLA",
+      "payNow20": "Lipa Sasa (20% Ada Ya CEO)",
+      "payNurseCash80": "Lipa Muuguzi PESA TASLIMU Baadaye (80%)",
+      "clientTitle": "👤 MTEJA — Mlipa (Imejazwa Auto)",
+      "clientName": "JINA LA MTEJA *",
+      "clientPhone": "SIMU YA MTEJA *",
+      "clientEmail": "BARUA PEPE YA MTEJA *",
+      "patientTitle": "🏥 MGONJWA — Nani Anahitaji Huduma",
+      "patientName": "JINA LA MGONJWA *",
+      "patientPhone": "SIMU YA MGONJWA",
+      "relationship": "UHUSIANO",
+      "self": "Mimi Mwenyewe",
+      "parent": "Mzazi",
+      "child": "Mtoto",
+      "spouse": "Mwenzi",
+      "other": "Mwingine",
+      "patientLocText": "MAANDISHI YA MAHALI PA MGONJWA",
+      "sameLocation": "Mahali palepale na Mteja",
+      "onlineTitle": "🟢 Wauguzi WALIO MTANDAONI ndani ya {km}km — Wale mtandaoni tu • Wauguzi {count}",
+      "autoPicked": "🤖 MFUMO UMECHAGUA MUUGUZI ALIYE MTANDAONI ALIYE KARIBU ZAIDI KWAKO",
+      "watchPhotoVideo": "📷🎥 Tazama Picha + Video Yake",
+      "continueWithHer": "✅ Endelea Naye",
+      "lookAnother": "👀 Tazama Mwingine",
+      "searchingOnline": "🔍 Mfumo unatafuta wauguzi WALIO MTANDAONI karibu na mgonjwa... Weka ukurasa huu wazi - muuguzi wa karibu zaidi atachaguliwa mara tu akingia MTANDAONI.",
+      "systemFind": "Mfumo utapata wauguzi WALIO MTANDAONI walio karibu kwako",
+      "systemPickBtn": "🤖 Mfumo Nichagulie Muuguzi Aliye Karibu Zaidi - Tazama Picha + Video",
+      "systemShows": "Mfumo unaonyesha muuguzi wa karibu zaidi kwanza - Tazama picha + video yake - Endelea naye AU Tazama mwingine",
+      "selected": "✅ Umechaguliwa: {name}",
+      "payOnly20Now": "Unalipa 20% TU sasa. Lipa muuguzi 80% PESA TASLIMU baada ya kazi.",
+      "pay20Explainer": "Lipa 20% Ada Ya CEO sasa kwa Paystack • Mpe 80% pesa taslimu muuguzi baadaye • CEO hamlipi muuguzi kamwe • Muuguzi akikataa = Marejesho KAMILI 20%",
+      "pay20Btn": "💳 Lipa 20% Tu — {currency} {amount}",
+      "processing": "Inachakata Paystack...",
+      "selectNurseFirst": "Chagua muuguzi ALIYE MTANDAONI kwanza",
+      "fillDetails": "Jaza Maelezo Ya Mteja + Mgonjwa",
+      "pay20OnlyDialog": "Lipa 20% Tu",
+      "payNowQ": "Lipa {currency} {payNow} sasa?\nJumla: {currency} {total}\nLipa 20% Ada Ya CEO sasa\nLipa Muuguzi {currency} {cash} PESA TASLIMU baada ya kazi\nMuuguzi: {name}",
+      "cancel": "Ghairi",
+      "payNowBtn": "Lipa Sasa",
+      "paymentFailed": "Malipo yameshindwa: {e}",
+      "bookingCreated": "✅ Booking imeundwa! {id} - Muuguzi Atakubali/Kukataa",
+      "continueScroll": "✅ Endelea na {name} - teleza chini kulipa",
+      "noOtherNurse": "Bado hakuna muuguzi mwingine ALIYE MTANDAONI karibu - mfumo bado unatafuta...",
+      "autoPickedToast": "🤖 Mfumo umechagua muuguzi ALIYE MTANDAONI aliye karibu zaidi: {name} ({km} km) - Tazama picha + video yake hapa chini",
+      "waitingGps": "Inasubiri eneo lako la GPS...",
+      "yourLocation": "Eneo lako: {lat}, {lng}",
+      "waitingGps2": "Inasubiri GPS yako... jaribu tena baada ya sekunde",
+      "youChose": "✅ Umechagua {name} - sasa lipa 20% Paystack hapa chini, 80% pesa taslimu kwa muuguzi baadaye",
+      "nurseDefault": "Muuguzi",
+      "homeNursing": "Uuguzi Nyumbani",
+      "kmFromPatient": "{km} km kutoka kwa mgonjwa • 🟢 MTANDAONI",
+      "kmAway": "{km} km mbali",
+      "verifiedOnline": "⭐ {rating} • Imethibitishwa ✅ • MTANDAONI",
+      "onlineNow": "⭐ 5 • Imethibitishwa ✅ • 🟢 MTANDAONI SASA",
+      "photoReg": "📷 Picha aliyopakia wakati wa usajili",
+      "noPhoto": "Hakuna picha iliyopakiwa",
+      "videoReg": "🎥 Video aliyopakia wakati wa usajili",
+      "noVideo": "Hakuna video iliyopatikana kwa muuguzi huyu - huenda hakupakia moja wakati wa usajili. Mwambie apakie moja katika Mipangilio Ya Muuguzi.",
+      "pauseVideo": "Sitisha Video",
+      "playVideo": "▶️ Cheza Video",
+      "openVideoOutside": "▶️ Fungua Video Nje Ya App",
+      "continueWithName": "✅ Endelea Na {name}",
+      "loadError": "Imeshindwa kupakia wauguzi: {e}. Vuta kujaribu tena - wauguzi wasio mtandaoni wamefichwa.",
+    },
+
+    // 15. YORUBA
+    "yo": {
+      "bookNurseTitle": "Gba Nọọsi — San 20% Nikan — NỌỌSI TI O WA ONLINE NIKAN",
+      "ceoLive": "CEO Live: {currency} {rate} /wakati — San 20% Nikan — LIVE — NỌỌSI TI O WA ONLINE NIKAN",
+      "bookingTitle": "⏱️ Booking — San 20% Nikan",
+      "startTime": "AKOKO IBẸRẸ *",
+      "endTime": "AKOKO IPARI *",
+      "hoursDay": "WAKATI/OJỌ",
+      "hrs": "Wakati {h}",
+      "careMode": "IṢE ITOJU",
+      "daily": "Lojoojumọ",
+      "weekly": "Lọsọsẹ (x7)",
+      "monthly": "Loṣooṣu (x30)",
+      "quantity": "IYE",
+      "countryCurrency": "ORILẸ-EDE — OWO",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "ỌKỌ",
+      "careCost": "Iye Itoju",
+      "transport": "Ọkọ",
+      "total": "LAPAPỌ",
+      "payNow20": "San Bayi (20% Owo CEO)",
+      "payNurseCash80": "San Nọọsi OWO NI ỌWỌ Lẹyin (80%)",
+      "clientTitle": "👤 ALABARA — Ẹni Nsan (A Kun Kán)",
+      "clientName": "ORUKỌ ALABARA *",
+      "clientPhone": "FOONU ALABARA *",
+      "clientEmail": "EMAIL ALABARA *",
+      "patientTitle": "🏥 ALAISAN — Tani Nilo Itoju",
+      "patientName": "ORUKỌ ALAISAN *",
+      "patientPhone": "FOONU ALAISAN",
+      "relationship": "IBATAN",
+      "self": "Emi",
+      "parent": "Obi",
+      "child": "Ọmọ",
+      "spouse": "Tọkọtaya",
+      "other": "Miiran",
+      "patientLocText": "ỌRỌ IBI ALAISAN",
+      "sameLocation": "Ibi kanna pẹlu Alabara",
+      "onlineTitle": "🟢 Nọọsi TI O WA ONLINE laarin {km}km — Online nikan • Nọọsi {count}",
+      "autoPicked": "🤖 SYSTEM TI YAN NỌỌSI TI O WA ONLINE TI O SUNMỌ JULO FUN Ọ",
+      "watchPhotoVideo": "📷🎥 Wo Fọto + Video Rẹ",
+      "continueWithHer": "✅ Tẹsiwaju Pẹlu Rẹ",
+      "lookAnother": "👀 Wo Omiiran",
+      "searchingOnline": "🔍 System n wa Nọọsi ti o wa ONLINE nitosi alaisan... Fi oju-iwe yi silẹ - a o yan nọọsi ti o sunmọ julo ni kete ti o ba wa ONLINE.",
+      "systemFind": "System yoo ri Nọọsi ti o wa ONLINE ti o sunmọ fun ọ",
+      "systemPickBtn": "🤖 System Yan Nọọsi Ti O Sunmọ Julo Fun Mi - Wo Fọto + Video",
+      "systemShows": "System fi nọọsi ti o sunmọ julo han ni akọkọ - Wo fọto + video rẹ - Tẹsiwaju pẹlu rẹ TABI Wo omiiran",
+      "selected": "✅ Ti Yan: {name}",
+      "payOnly20Now": "O n san 20% NIKAN bayi. San nọọsi 80% OWO NI ỌWỌ lẹyin iṣẹ.",
+      "pay20Explainer": "San 20% Owo CEO bayi ni Paystack • Fun nọọsi ni 80% owo ni ọwọ lẹyin • CEO ko san nọọsi rárá • Nọọsi kọ = FULL 20% pada",
+      "pay20Btn": "💳 San 20% Nikan — {currency} {amount}",
+      "processing": "Paystack Nṣiṣẹ...",
+      "selectNurseFirst": "Yan Nọọsi ti o wa ONLINE ni akọkọ",
+      "fillDetails": "Kun Alabara + Alaisan alaye",
+      "pay20OnlyDialog": "San 20% Nikan",
+      "payNowQ": "San {currency} {payNow} bayi?\nLapapọ: {currency} {total}\nSan 20% Owo CEO bayi\nSan Nọọsi {currency} {cash} OWO NI ỌWỌ lẹyin iṣẹ\nNọọsi: {name}",
+      "cancel": "Fagile",
+      "payNowBtn": "San Bayi",
+      "paymentFailed": "Isanwo kuna: {e}",
+      "bookingCreated": "✅ A ti Ṣe Booking! {id} - Nọọsi yoo Gba/Kọ",
+      "continueScroll": "✅ Tẹsiwaju pẹlu {name} - yi lọ si isalẹ lati san",
+      "noOtherNurse": "Ko si Nọọsi miiran ti o wa ONLINE nitosi sibẹsibẹ - system n wa...",
+      "autoPickedToast": "🤖 System ti yan nọọsi ti o wa ONLINE ti o sunmọ julo: {name} ({km} km) - Wo fọto + video rẹ ni isalẹ",
+      "waitingGps": "Nduro fun ibi GPS rẹ...",
+      "yourLocation": "Ibi rẹ: {lat}, {lng}",
+      "waitingGps2": "Nduro fun GPS rẹ... tun gbiyanju ni iṣẹju kan",
+      "youChose": "✅ O yan {name} - bayi san 20% Paystack ni isalẹ, 80% owo ni ọwọ fun nọọsi lẹyin",
+      "nurseDefault": "Nọọsi",
+      "homeNursing": "Nọọsi Ile",
+      "kmFromPatient": "{km} km lati alaisan • 🟢 ONLINE",
+      "kmAway": "{km} km jina",
+      "verifiedOnline": "⭐ {rating} • Ti jẹrisi ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Ti jẹrisi ✅ • 🟢 ONLINE BAYI",
+      "photoReg": "📷 Fọto ti o gbe soke nigbati o forukọsilẹ",
+      "noPhoto": "Ko si fọto ti a gbe soke",
+      "videoReg": "🎥 Video ti o gbe soke nigbati o forukọsilẹ",
+      "noVideo": "Ko si video fun nọọsi yi - boya ko gbe ọkan soke nigbati o forukọsilẹ. Sọ fun un lati gbe ọkan soke ni Eto Nọọsi.",
+      "pauseVideo": "Daduro Video",
+      "playVideo": "▶️ Mu Video",
+      "openVideoOutside": "▶️ Ṣi Video Ni Ita App",
+      "continueWithName": "✅ Tẹsiwaju Pẹlu {name}",
+      "loadError": "Ko le gbe nọọsi: {e}. Fa lati tun gbiyanju - nọọsi ti ko wa online ti farapamọ.",
+    },
+
+    // 16. IGBO
+    "ig": {
+      "bookNurseTitle": "Debanye Nọọsụ — Kwụọ Naanị 20% — NỌỌSỤ NỌ N'ỊNTANETỊ NANỊ",
+      "ceoLive": "CEO Live: {currency} {rate} /awa — Kwụọ Naanị 20% — LIVE — NỌỌSỤ NỌ N'ỊNTANETỊ NANỊ",
+      "bookingTitle": "⏱️ Booking — Kwụọ Naanị 20%",
+      "startTime": "OGE MMALITE *",
+      "endTime": "OGE ỌGWỤGWỤ *",
+      "hoursDay": "AWA / ỤBỌCHỊ",
+      "hrs": "Awa {h}",
+      "careMode": "ỤDỊ NLEKỌTA",
+      "daily": "Kwa Ụbọchị",
+      "weekly": "Kwa Izu (x7)",
+      "monthly": "Kwa Ọnwa (x30)",
+      "quantity": "ỌNỤỌGỤ",
+      "countryCurrency": "MBA — EGO",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "ỤGBỌALA",
+      "careCost": "Ọnụ Nlekọta",
+      "transport": "Ụgbọala",
+      "total": "MKPOLA",
+      "payNow20": "Kwụọ Ugbu A (20% Ego CEO)",
+      "payNurseCash80": "Kwụọ Nọọsụ EGO N'AKA Emechara (80%)",
+      "clientTitle": "👤 ONYE AHỊA — Onye Na-akwụ (Ejula Auto)",
+      "clientName": "AHA ONYE AHỊA *",
+      "clientPhone": "EKWENTI ONYE AHỊA *",
+      "clientEmail": "EMAIL ONYE AHỊA *",
+      "patientTitle": "🏥 ONYE ỌRỊA — Onye Chọrọ Nlekọta",
+      "patientName": "AHA ONYE ỌRỊA *",
+      "patientPhone": "EKWENTI ONYE ỌRỊA",
+      "relationship": "MMEKỌRỊTA",
+      "self": "Onwe M",
+      "parent": "Nne na Nna",
+      "child": "Nwa",
+      "spouse": "Di/Nwunye",
+      "other": "Ọzọ",
+      "patientLocText": "EDEBE EBE ONYE ỌRỊA",
+      "sameLocation": "Otu ebe na Onye Ahịa",
+      "onlineTitle": "🟢 Nọọsụ NỌ N'ỊNTANETỊ n'ime {km}km — Naanị online na-egosi • Nọọsụ {count}",
+      "autoPicked": "🤖 SYSTEM AHỌRỌLA NỌỌSỤ NỌ N'ỊNTANETỊ KACHA NỌ N'AKỤKỤ MAKA GỊ",
+      "watchPhotoVideo": "📷🎥 Lee Foto + Video Ya",
+      "continueWithHer": "✅ Gaa N'ihu Na Ya",
+      "lookAnother": "👀 Lee Ọzọ",
+      "searchingOnline": "🔍 System na-achọ Nọọsụ nọ n'ịntanetị nso onye ọria... Hapụ ibe a mepere - a ga-ahọrọ nọọsụ kacha nọ n'akụkụ ozugbo ọ banyere n'ịntanetị.",
+      "systemFind": "System ga-achọta Nọọsụ nọ n'ịntanetị dị nso maka gị",
+      "systemPickBtn": "🤖 System Họrọ Nọọsụ Kacha Nọ N'akụkụ Maka M - Lee Foto + Video",
+      "systemShows": "System na-egosi nọọsụ kacha nọ n'akụkụ mbụ - Lee foto + video ya - Gaa n'ihu na ya MAỌBỤ Lee ọzọ",
+      "selected": "✅ Ahọrọla: {name}",
+      "payOnly20Now": "Ị na-akwụ Naanị 20% ugbu a. Kwụọ nọọsụ 80% EGO N'AKA mgbe ọrụ gasịrị.",
+      "pay20Explainer": "Kwụọ 20% Ego CEO ugbu a na Paystack • Nye nọọsụ 80% ego n'aka emechara • CEO anaghị akwụ nọọsụ mgbe ọ bụla • Nọọsụ jụrụ = Nkwụghachi FULL 20%",
+      "pay20Btn": "💳 Kwụọ Naanị 20% — {currency} {amount}",
+      "processing": "Paystack Na-arụ Ọrụ...",
+      "selectNurseFirst": "Họrọ Nọọsụ nọ n'ịntanetị mbụ",
+      "fillDetails": "Dejupụta Onye Ahịa + Onye Ọria nkọwa",
+      "pay20OnlyDialog": "Kwụọ Naanị 20%",
+      "payNowQ": "Kwụọ {currency} {payNow} ugbu a?\nMkpokọta: {currency} {total}\nKwụọ 20% Ego CEO ugbu a\nKwụọ Nọọsụ {currency} {cash} EGO N'AKA mgbe ọrụ gasịrị\nNọọsụ: {name}",
+      "cancel": "Kagbuo",
+      "payNowBtn": "Kwụọ Ugbu A",
+      "paymentFailed": "Ịkwụ ụgwọ adaala: {e}",
+      "bookingCreated": "✅ Emeela Booking! {id} - Nọọsụ ga-Anabata / Ajụ",
+      "continueScroll": "✅ Gaa n'ihu na {name} - pịgharịa ala kwụọ",
+      "noOtherNurse": "Enweghị Nọọsụ ọzọ nọ n'ịntanetị nso ọzọ - system ka na-achọ...",
+      "autoPickedToast": "🤖 System ahọrọla nọọsụ nọ n'ịntanetị kacha nọ n'akụkụ: {name} ({km} km) - Lee foto + video ya n'okpuru",
+      "waitingGps": "Na-echere ebe GPS gị...",
+      "yourLocation": "Ebe gị: {lat}, {lng}",
+      "waitingGps2": "Na-echere GPS gị... nwaa ọzọ n'otu sekọnd",
+      "youChose": "✅ Ị họọrọ {name} - ugbu a kwụọ 20% Paystack n'okpuru, 80% ego n'aka nye nọọsụ emechara",
+      "nurseDefault": "Nọọsụ",
+      "homeNursing": "Nlekọta Ụlọ",
+      "kmFromPatient": "{km} km site na onye ọria • 🟢 N'ỊNTANETỊ",
+      "kmAway": "{km} km n'ebe dị anya",
+      "verifiedOnline": "⭐ {rating} • Enyochala ✅ • N'ỊNTANETỊ",
+      "onlineNow": "⭐ 5 • Enyochala ✅ • 🟢 N'ỊNTANETỊ UGBU A",
+      "photoReg": "📷 Foto o tinyere mgbe ndebanye aha",
+      "noPhoto": "Enweghị foto etinyere",
+      "videoReg": "🎥 Video o tinyere mgbe ndebanye aha",
+      "noVideo": "Enweghị video maka nọọsụ a - ọ nwere ike ọ tinyeghị otu mgbe ndebanye aha. Gwa ya ka o tinye otu na Ntọala Nọọsụ.",
+      "pauseVideo": "Kwụsị Video",
+      "playVideo": "▶️ Kpọọ Video",
+      "openVideoOutside": "▶️ Mepee Video N'èzí App",
+      "continueWithName": "✅ Gaa N'ihu Na {name}",
+      "loadError": "Enweghị ike ibu nọọsụ: {e}. Dọrọ nwaa ọzọ - nọọsụ anọghị n'ịntanetị ezoro ezo.",
+    },
+
+    // 17. HAUSA
+    "ha": {
+      "bookNurseTitle": "Yi Booking Na Nurse — Biya 20% Kawai — NURSE DA SUKE ONLINE KAWAI",
+      "ceoLive": "CEO Live: {currency} {rate} /awa — Biya 20% Kawai — LIVE — NURSE DA SUKE ONLINE KAWAI",
+      "bookingTitle": "⏱️ Booking — Biya 20% Kawai",
+      "startTime": "LOKACIN FARAWA *",
+      "endTime": "LOKACIN ƘAREWA *",
+      "hoursDay": "AWA/RANA",
+      "hrs": "Awa {h}",
+      "careMode": "YANAYIN KULAWA",
+      "daily": "Kullum",
+      "weekly": "Kowane Mako (x7)",
+      "monthly": "Kowane Wata (x30)",
+      "quantity": "YAWA",
+      "countryCurrency": "ƘASA — KUƊI",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 Amurka — USD",
+      "transportLabel": "SUFURI",
+      "careCost": "Kuɗin Kulawa",
+      "transport": "Sufuri",
+      "total": "JUMLA",
+      "payNow20": "Biya Yanzu (20% Kuɗin CEO)",
+      "payNurseCash80": "Biya Nurse KUƊI NA HANNU Daga Baya (80%)",
+      "clientTitle": "👤 ABOKIN CINIKI — Mai Biya (An Cika Auto)",
+      "clientName": "SUNAN ABOKIN CINIKI *",
+      "clientPhone": "WAYAR ABOKIN CINIKI *",
+      "clientEmail": "EMAIL NA ABOKIN CINIKI *",
+      "patientTitle": "🏥 MAI CIWO — Wane Ne Ke Bukatar Kulawa",
+      "patientName": "SUNAN MAI CIWO *",
+      "patientPhone": "WAYAR MAI CIWO",
+      "relationship": "DANGANTaka",
+      "self": "Kaina",
+      "parent": "Iyaye",
+      "child": "Yaro",
+      "spouse": "Miji/Matа",
+      "other": "Wani",
+      "patientLocText": "RUBUTUN WURIN MAI CIWO",
+      "sameLocation": "Wuri ɗaya da Abokin Ciniki",
+      "onlineTitle": "🟢 Nurse DA SUKE ONLINE cikin {km}km — Online kawai • Nurse {count}",
+      "autoPicked": "🤖 SYSTEM YA ZAƁI NURSE DA TAKE ONLINE MAFI KUSA MAKA",
+      "watchPhotoVideo": "📷🎥 Kalli Hotonta + Bidiyo",
+      "continueWithHer": "✅ Ci Gaba Da Ita",
+      "lookAnother": "👀 Kalli Wata",
+      "searchingOnline": "🔍 System na neman Nurse da suke ONLINE kusa da mai ciwo... Bar wannan shafin a buɗe - za a zaɓi nurse mafi kusa da zarar ta shiga ONLINE.",
+      "systemFind": "System zai nemo Nurse da suke ONLINE kusa da kai",
+      "systemPickBtn": "🤖 System Zaɓi Nurse Mafi Kusa Mini - Kalli Hoto + Bidiyo",
+      "systemShows": "System yana nuna nurse mafi kusa da farko - Kalli hotonta + bidiyo - Ci gaba da ita KO Kalli wata",
+      "selected": "✅ An Zaɓa: {name}",
+      "payOnly20Now": "Kana biya 20% KAWAI yanzu. Biya nurse 80% KUƊI NA HANNU bayan aiki.",
+      "pay20Explainer": "Biya 20% Kuɗin CEO yanzu a Paystack • Ba nurse 80% kuɗi na hannu daga baya • CEO ba ya biya nurse • Nurse ta ƙi = FULL 20% maidowa",
+      "pay20Btn": "💳 Biya 20% Kawai — {currency} {amount}",
+      "processing": "Paystack Yana Aiki...",
+      "selectNurseFirst": "Zaɓi Nurse da take ONLINE da farko",
+      "fillDetails": "Cika Abokin Ciniki + Mai Ciwo bayani",
+      "pay20OnlyDialog": "Biya 20% Kawai",
+      "payNowQ": "Biya {currency} {payNow} yanzu?\nJumla: {currency} {total}\nBiya 20% Kuɗin CEO yanzu\nBiya Nurse {currency} {cash} KUƊI NA HANNU bayan aiki\nNurse: {name}",
+      "cancel": "Soke",
+      "payNowBtn": "Biya Yanzu",
+      "paymentFailed": "Biya ya gaza: {e}",
+      "bookingCreated": "✅ An Yi Booking! {id} - Nurse Za Ta Karɓa/Ki",
+      "continueScroll": "✅ Ci gaba da {name} - gungura ƙasa biya",
+      "noOtherNurse": "Babu wata Nurse da take ONLINE kusa tukuna - system na neman...",
+      "autoPickedToast": "🤖 System ya zaɓi nurse da take ONLINE mafi kusa: {name} ({km} km) - Kalli hotonta + bidiyo a ƙasa",
+      "waitingGps": "Jiran wurin GPS naka...",
+      "yourLocation": "Wurin ka: {lat}, {lng}",
+      "waitingGps2": "Jiran GPS naka... sake gwadawa a cikin daƙiƙa",
+      "youChose": "✅ Ka zaɓi {name} - yanzu biya 20% Paystack a ƙasa, 80% kuɗi na hannu ga nurse daga baya",
+      "nurseDefault": "Nurse",
+      "homeNursing": "Kulawar Gida",
+      "kmFromPatient": "{km} km daga mai ciwo • 🟢 ONLINE",
+      "kmAway": "{km} km nesa",
+      "verifiedOnline": "⭐ {rating} • An Tabbatar ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • An Tabbatar ✅ • 🟢 ONLINE YANZU",
+      "photoReg": "📷 Hoton da ta ɗora lokacin rajista",
+      "noPhoto": "Ba a ɗora hoto ba",
+      "videoReg": "🎥 Bidiyon da ta ɗora lokacin rajista",
+      "noVideo": "Ba a sami bidiyo ga wannan nurse ba - watakila ba ta ɗora ɗaya ba lokacin rajista. Faɗa mata ta ɗora ɗaya a Saitunan Nurse.",
+      "pauseVideo": "Dakatar Da Bidiyo",
+      "playVideo": "▶️ Kunna Bidiyo",
+      "openVideoOutside": "▶️ Buɗe Bidiyo Waje Da App",
+      "continueWithName": "✅ Ci Gaba Da {name}",
+      "loadError": "Ba a iya loda nurse ba: {e}. Jawo sake gwadawa - nurse da ba su online an ɓoye su.",
+    },
+
+    // 18. RUSSIAN
+    "ru": {
+      "bookNurseTitle": "Забронировать Медсестру — Платить Только 20% — ТОЛЬКО ОНЛАЙН-МЕДСЕСТРЫ",
+      "ceoLive": "CEO Live: {currency} {rate} /час — Платить Только 20% — LIVE — ТОЛЬКО ОНЛАЙН-МЕДСЕСТРЫ",
+      "bookingTitle": "⏱️ Бронирование — Платить Только 20%",
+      "startTime": "ВРЕМЯ НАЧАЛА *",
+      "endTime": "ВРЕМЯ ОКОНЧАНИЯ *",
+      "hoursDay": "ЧАСОВ/ДЕНЬ",
+      "hrs": "{h} ч",
+      "careMode": "РЕЖИМ УХОДА",
+      "daily": "Ежедневно",
+      "weekly": "Еженедельно (x7)",
+      "monthly": "Ежемесячно (x30)",
+      "quantity": "КОЛИЧЕСТВО",
+      "countryCurrency": "СТРАНА — ВАЛЮТА",
+      "ghanaGhs": "🇬🇭 Гана — GHS",
+      "usaUsd": "🇺🇸 США — USD",
+      "transportLabel": "ТРАНСПОРТ",
+      "careCost": "Стоимость Ухода",
+      "transport": "Транспорт",
+      "total": "ИТОГО",
+      "payNow20": "Оплатить Сейчас (20% Комиссия CEO)",
+      "payNurseCash80": "Оплатить Медсестре НАЛИЧНЫМИ Позже (80%)",
+      "clientTitle": "👤 КЛИЕНТ — Плательщик (Авто-заполнено)",
+      "clientName": "ИМЯ КЛИЕНТА *",
+      "clientPhone": "ТЕЛЕФОН КЛИЕНТА *",
+      "clientEmail": "EMAIL КЛИЕНТА *",
+      "patientTitle": "🏥 ПАЦИЕНТ — Кому нужен уход",
+      "patientName": "ИМЯ ПАЦИЕНТА *",
+      "patientPhone": "ТЕЛЕФОН ПАЦИЕНТА",
+      "relationship": "ОТНОШЕНИЕ",
+      "self": "Сам",
+      "parent": "Родитель",
+      "child": "Ребенок",
+      "spouse": "Супруг",
+      "other": "Другое",
+      "patientLocText": "ТЕКСТ МЕСТА ПАЦИЕНТА",
+      "sameLocation": "То же место, что и у Клиента",
+      "onlineTitle": "🟢 ОНЛАЙН-Медсестры в радиусе {km}км — Только онлайн • {count} медсестер",
+      "autoPicked": "🤖 СИСТЕМА ВЫБРАЛА БЛИЖАЙШУЮ ОНЛАЙН-МЕДСЕСТРУ ДЛЯ ВАС",
+      "watchPhotoVideo": "📷🎥 Смотреть Ее Фото + Видео",
+      "continueWithHer": "✅ Продолжить С Ней",
+      "lookAnother": "👀 Посмотреть Другую",
+      "searchingOnline": "🔍 Система ищет ОНЛАЙН-медсестер рядом с пациентом... Держите эту страницу открытой - ближайшая медсестра будет выбрана как только она выйдет ОНЛАЙН.",
+      "systemFind": "Система найдет близкие ОНЛАЙН-медсестры для вас",
+      "systemPickBtn": "🤖 Система Выбери Ближайшую Медсестру Для Меня - Смотреть Фото + Видео",
+      "systemShows": "Система сначала показывает ближайшую медсестру - Смотреть ее фото + видео - Продолжить с ней ИЛИ Посмотреть другую",
+      "selected": "✅ Выбрана: {name}",
+      "payOnly20Now": "Вы платите ТОЛЬКО 20% сейчас. Оплатите медсестре 80% НАЛИЧНЫМИ после работы.",
+      "pay20Explainer": "Оплатите 20% Комиссию CEO сейчас в Paystack • Отдайте 80% наличными медсестре позже • CEO никогда не платит медсестре • Медсестра отказывается = ПОЛНЫЙ возврат 20%",
+      "pay20Btn": "💳 Платить Только 20% — {currency} {amount}",
+      "processing": "Обработка Paystack...",
+      "selectNurseFirst": "Выберите сначала ОНЛАЙН-медсестру",
+      "fillDetails": "Заполните Клиент + Пациент детали",
+      "pay20OnlyDialog": "Платить Только 20%",
+      "payNowQ": "Оплатить {currency} {payNow} сейчас?\nИтого: {currency} {total}\nОплатить 20% Комиссию CEO сейчас\nОплатить Медсестре {currency} {cash} НАЛИЧНЫМИ после работы\nМедсестра: {name}",
+      "cancel": "Отмена",
+      "payNowBtn": "Оплатить Сейчас",
+      "paymentFailed": "Оплата не удалась: {e}",
+      "bookingCreated": "✅ Бронирование создано! {id} - Медсестра Примет/Отклонит",
+      "continueScroll": "✅ Продолжить с {name} - прокрутите вниз для оплаты",
+      "noOtherNurse": "Пока нет другой ОНЛАЙН-медсестры поблизости - система еще ищет...",
+      "autoPickedToast": "🤖 Система выбрала ближайшую ОНЛАЙН-медсестру: {name} ({km} км) - Смотреть ее фото + видео ниже",
+      "waitingGps": "Ожидание вашего GPS-местоположения...",
+      "yourLocation": "Ваше местоположение: {lat}, {lng}",
+      "waitingGps2": "Ожидание вашего GPS... попробуйте через секунду",
+      "youChose": "✅ Вы выбрали {name} - теперь оплатите 20% Paystack ниже, 80% наличными медсестре позже",
+      "nurseDefault": "Медсестра",
+      "homeNursing": "Уход На Дому",
+      "kmFromPatient": "{km} км от пациента • 🟢 ОНЛАЙН",
+      "kmAway": "{km} км",
+      "verifiedOnline": "⭐ {rating} • Проверена ✅ • ОНЛАЙН",
+      "onlineNow": "⭐ 5 • Проверена ✅ • 🟢 СЕЙЧАС ОНЛАЙН",
+      "photoReg": "📷 Фото, которое она загрузила при регистрации",
+      "noPhoto": "Фото не загружено",
+      "videoReg": "🎥 Видео, которое она загрузила при регистрации",
+      "noVideo": "Видео для этой медсестры не найдено - возможно, она не загружала его при регистрации. Попросите ее загрузить его в Настройках Медсестры.",
+      "pauseVideo": "Пауза Видео",
+      "playVideo": "▶️ Играть Видео",
+      "openVideoOutside": "▶️ Открыть Видео Вне Приложения",
+      "continueWithName": "✅ Продолжить С {name}",
+      "loadError": "Не удалось загрузить медсестер: {e}. Потяните для повтора - офлайн-медсестры скрыты.",
+    },
+
+    // 19. TURKISH
+    "tr": {
+      "bookNurseTitle": "Hemşire Ayırt — Sadece %20 Öde — SADECE ÇEVRİMİÇİ HEMŞİRELER",
+      "ceoLive": "CEO Canlı: {currency} {rate} /saat — Sadece %20 Öde — CANLI — SADECE ÇEVRİMİÇİ HEMŞİRELER",
+      "bookingTitle": "⏱️ Rezervasyon — Sadece %20 Öde",
+      "startTime": "BAŞLANGIÇ SAATİ *",
+      "endTime": "BİTİŞ SAATİ *",
+      "hoursDay": "SAAT/GÜN",
+      "hrs": "{h} saat",
+      "careMode": "BAKIM MODU",
+      "daily": "Günlük",
+      "weekly": "Haftalık (x7)",
+      "monthly": "Aylık (x30)",
+      "quantity": "MİKTAR",
+      "countryCurrency": "ÜLKE — PARA BİRİMİ",
+      "ghanaGhs": "🇬🇭 Gana — GHS",
+      "usaUsd": "🇺🇸 ABD — USD",
+      "transportLabel": "ULAŞIM",
+      "careCost": "Bakım Maliyeti",
+      "transport": "Ulaşım",
+      "total": "TOPLAM",
+      "payNow20": "Şimdi Öde (%20 CEO Ücreti)",
+      "payNurseCash80": "Hemşireye Sonra NAKİT Öde (%80)",
+      "clientTitle": "👤 MÜŞTERİ — Ödeyen (Otomatik Dolduruldu)",
+      "clientName": "MÜŞTERİ ADI *",
+      "clientPhone": "MÜŞTERİ TELEFONU *",
+      "clientEmail": "MÜŞTERİ E-POSTA *",
+      "patientTitle": "🏥 HASTA — Kimin Bakıma İhtiyacı Var",
+      "patientName": "HASTA ADI *",
+      "patientPhone": "HASTA TELEFONU",
+      "relationship": "İLİŞKİ",
+      "self": "Kendim",
+      "parent": "Ebeveyn",
+      "child": "Çocuk",
+      "spouse": "Eş",
+      "other": "Diğer",
+      "patientLocText": "HASTA KONUM METNİ",
+      "sameLocation": "Müşteri İle Aynı Konum",
+      "onlineTitle": "🟢 {km}km İçinde ÇEVRİMİÇİ Hemşireler — Sadece çevrimiçi • {count} hemşire",
+      "autoPicked": "🤖 SİSTEM SİZİN İÇİN EN YAKIN ÇEVRİMİÇİ HEMŞİREYİ OTOMATİK SEÇTİ",
+      "watchPhotoVideo": "📷🎥 Onun Fotoğraf + Videosunu İzle",
+      "continueWithHer": "✅ Onunla Devam Et",
+      "lookAnother": "👀 Başkasına Bak",
+      "searchingOnline": "🔍 Sistem hastanın yakınında ÇEVRİMİÇİ hemşire arıyor... Bu sayfayı açık tutun - o ÇEVRİMİÇİ olur olmaz en yakın hemşire otomatik seçilecek.",
+      "systemFind": "Sistem sizin için yakındaki ÇEVRİMİÇİ hemşireleri bulacak",
+      "systemPickBtn": "🤖 Sistem Benim İçin En Yakın Hemşireyi Seç - Fotoğraf + Video İzle",
+      "systemShows": "Sistem önce en yakın hemşireyi gösterir - Onun fotoğraf + videosunu izle - Onunla devam et VEYA Başkasına bak",
+      "selected": "✅ Seçildi: {name}",
+      "payOnly20Now": "Şimdi SADECE %20 ödüyorsunuz. İşten sonra hemşireye %80 NAKİT ödeyin.",
+      "```dart
+      "pay20Explainer": "Şimdi Paystack'te %20 CEO Ücreti öde • Sonra hemşireye %80 nakit ver • CEO hemşireye asla ödemez • Hemşire reddederse = TAM %20 iade",
+      "pay20Btn": "💳 Sadece %20 Öde — {currency} {amount}",
+      "processing": "Paystack İşleniyor...",
+      "selectNurseFirst": "Önce ÇEVRİMİÇİ bir hemşire seçin",
+      "fillDetails": "Müşteri + Hasta detaylarını doldurun",
+      "pay20OnlyDialog": "Sadece %20 Öde",
+      "payNowQ": "Şimdi {currency} {payNow} öde?\nToplam: {currency} {total}\nŞimdi %20 CEO Ücreti öde\nİşten sonra Hemşireye {currency} {cash} NAKİT öde\nHemşire: {name}",
+      "cancel": "İptal",
+      "payNowBtn": "Şimdi Öde",
+      "paymentFailed": "Ödeme başarısız: {e}",
+      "bookingCreated": "✅ Rezervasyon oluşturuldu! {id} - Hemşire Kabul Edecek/Reddedecek",
+      "continueScroll": "✅ {name} ile devam et - ödemek için aşağı kaydır",
+      "noOtherNurse": "Yakında başka ÇEVRİMİÇİ hemşire yok - sistem hala arıyor...",
+      "autoPickedToast": "🤖 Sistem en yakın ÇEVRİMİÇİ hemşireyi seçti: {name} ({km} km) - Aşağıda onun fotoğraf + videosunu izle",
+      "waitingGps": "GPS konumunuz bekleniyor...",
+      "yourLocation": "Konumunuz: {lat}, {lng}",
+      "waitingGps2": "GPS'iniz bekleniyor... bir saniye sonra tekrar deneyin",
+      "youChose": "✅ {name} seçtiniz - şimdi aşağıda %20 Paystack öde, sonra hemşireye %80 nakit",
+      "nurseDefault": "Hemşire",
+      "homeNursing": "Evde Bakım",
+      "kmFromPatient": "Hastadan {km} km • 🟢 ÇEVRİMİÇİ",
+      "kmAway": "{km} km uzakta",
+      "verifiedOnline": "⭐ {rating} • Doğrulandı ✅ • ÇEVRİMİÇİ",
+      "onlineNow": "⭐ 5 • Doğrulandı ✅ • 🟢 ŞİMDİ ÇEVRİMİÇİ",
+      "photoReg": "📷 Kayıt sırasında yüklediği fotoğraf",
+      "noPhoto": "Fotoğraf yüklenmedi",
+      "videoReg": "🎥 Kayıt sırasında yüklediği video",
+      "noVideo": "Bu hemşire için video bulunamadı - kayıt sırasında yüklememiş olabilir. Hemşire Ayarları'nda yüklemesini isteyin.",
+      "pauseVideo": "Videoyu Duraklat",
+      "playVideo": "▶️ Videoyu Oynat",
+      "openVideoOutside": "▶️ Videoyu Uygulama Dışında Aç",
+      "continueWithName": "✅ {name} İle Devam Et",
+      "loadError": "Hemşireler yüklenemedi: {e}. Tekrar denemek için çekin - çevrimdışı hemşireler gizli.",
+    },
+
+    // 20. KOREAN
+    "ko": {
+      "bookNurseTitle": "간호사 예약 — 20%만 지불 — 온라인 간호사만",
+      "ceoLive": "CEO 실시간: {currency} {rate} /시간 — 20%만 지불 — 실시간 — 온라인 간호사만",
+      "bookingTitle": "⏱️ 예약 — 20%만 지불",
+      "startTime": "시작 시간 *",
+      "endTime": "종료 시간 *",
+      "hoursDay": "시간/일",
+      "hrs": "{h} 시간",
+      "careMode": "돌봄 모드",
+      "daily": "매일",
+      "weekly": "매주 (x7)",
+      "monthly": "매월 (x30)",
+      "quantity": "수량",
+      "countryCurrency": "국가 — 통화",
+      "ghanaGhs": "🇬🇭 가나 — GHS",
+      "usaUsd": "🇺🇸 미국 — USD",
+      "transportLabel": "교통",
+      "careCost": "돌봄 비용",
+      "transport": "교통",
+      "total": "합계",
+      "payNow20": "지금 지불 (20% CEO 수수료)",
+      "payNurseCash80": "나중에 간호사에게 현금 지불 (80%)",
+      "clientTitle": "👤 고객 — 지불자 (자동 입력)",
+      "clientName": "고객 이름 *",
+      "clientPhone": "고객 전화 *",
+      "clientEmail": "고객 이메일 *",
+      "patientTitle": "🏥 환자 — 누가 돌봄이 필요한가",
+      "patientName": "환자 이름 *",
+      "patientPhone": "환자 전화",
+      "relationship": "관계",
+      "self": "본인",
+      "parent": "부모",
+      "child": "자녀",
+      "spouse": "배우자",
+      "other": "기타",
+      "patientLocText": "환자 위치 텍스트",
+      "sameLocation": "고객과 같은 위치",
+      "onlineTitle": "🟢 {km}km 내 온라인 간호사 — 온라인만 표시 • 간호사 {count}명",
+      "autoPicked": "🤖 시스템이 가장 가까운 온라인 간호사를 자동으로 선택했습니다",
+      "watchPhotoVideo": "📷🎥 그녀의 사진 + 비디오 보기",
+      "continueWithHer": "✅ 그녀와 계속하기",
+      "lookAnother": "👀 다른 분 보기",
+      "searchingOnline": "🔍 시스템이 환자 근처의 온라인 간호사를 검색 중입니다... 이 페이지를 열어 두세요 - 그녀가 온라인이 되면 가장 가까운 간호사가 자동 선택됩니다.",
+      "systemFind": "시스템이 근처의 온라인 간호사를 찾아드립니다",
+      "systemPickBtn": "🤖 시스템이 가장 가까운 간호사를 선택해 주세요 - 사진 + 비디오 보기",
+      "systemShows": "시스템이 가장 가까운 간호사를 먼저 표시합니다 - 그녀의 사진 + 비디오 보기 - 그녀와 계속하기 또는 다른 분 보기",
+      "selected": "✅ 선택됨: {name}",
+      "payOnly20Now": "지금 20%만 지불합니다. 일한 후 간호사에게 80% 현금으로 지불하세요.",
+      "pay20Explainer": "지금 Paystack에서 20% CEO 수수료 지불 • 나중에 간호사에게 80% 현금 주기 • CEO는 간호사에게 절대 지불하지 않음 • 간호사 거부 = 20% 전액 환불",
+      "pay20Btn": "💳 20%만 지불 — {currency} {amount}",
+      "processing": "Paystack 처리 중...",
+      "selectNurseFirst": "먼저 온라인 간호사를 선택하세요",
+      "fillDetails": "고객 + 환자 세부정보 입력",
+      "pay20OnlyDialog": "20%만 지불",
+      "payNowQ": "지금 {currency} {payNow} 지불하시겠습니까?\n합계: {currency} {total}\n지금 20% CEO 수수료 지불\n일한 후 간호사에게 {currency} {cash} 현금 지불\n간호사: {name}",
+      "cancel": "취소",
+      "payNowBtn": "지금 지불",
+      "paymentFailed": "결제 실패: {e}",
+      "bookingCreated": "✅ 예약 생성됨! {id} - 간호사가 수락/거절할 것입니다",
+      "continueScroll": "✅ {name}와 계속하기 - 아래로 스크롤하여 지불",
+      "noOtherNurse": "근처에 다른 온라인 간호사가 아직 없습니다 - 시스템이 계속 검색 중...",
+      "autoPickedToast": "🤖 시스템이 가장 가까운 온라인 간호사를 자동 선택했습니다: {name} ({km} km) - 아래에서 그녀의 사진 + 비디오 보기",
+      "waitingGps": "GPS 위치를 기다리는 중...",
+      "yourLocation": "귀하의 위치: {lat}, {lng}",
+      "waitingGps2": "GPS를 기다리는 중... 잠시 후 다시 시도하세요",
+      "youChose": "✅ {name}를 선택했습니다 - 이제 아래에서 20% Paystack 지불, 나중에 간호사에게 80% 현금",
+      "nurseDefault": "간호사",
+      "homeNursing": "가정 간호",
+      "kmFromPatient": "환자로부터 {km} km • 🟢 온라인",
+      "kmAway": "{km} km 떨어짐",
+      "verifiedOnline": "⭐ {rating} • 검증됨 ✅ • 온라인",
+      "onlineNow": "⭐ 5 • 검증됨 ✅ • 🟢 지금 온라인",
+      "photoReg": "📷 등록 시 업로드한 사진",
+      "noPhoto": "업로드된 사진 없음",
+      "videoReg": "🎥 등록 시 업로드한 비디오",
+      "noVideo": "이 간호사의 비디오가 없습니다 - 등록 시 업로드하지 않았을 수 있습니다. 간호사 설정에서 업로드하도록 요청하세요.",
+      "pauseVideo": "비디오 일시 정지",
+      "playVideo": "▶️ 비디오 재생",
+      "openVideoOutside": "▶️ 앱 외부에서 비디오 열기",
+      "continueWithName": "✅ {name}와 계속하기",
+      "loadError": "간호사를 불러올 수 없습니다: {e}. 다시 시도하려면 당기세요 - 오프라인 간호사는 숨겨져 있습니다.",
+    },
+
+    // 21. JAPANESE
+    "ja": {
+      "bookNurseTitle": "看護師を予約 — 20%のみ支払い — オンライン看護師のみ",
+      "ceoLive": "CEOライブ: {currency} {rate} /時間 — 20%のみ支払い — ライブ — オンライン看護師のみ",
+      "bookingTitle": "⏱️ 予約 — 20%のみ支払い",
+      "startTime": "開始時間 *",
+      "endTime": "終了時間 *",
+      "hoursDay": "時間/日",
+      "hrs": "{h} 時間",
+      "careMode": "ケアモード",
+      "daily": "毎日",
+      "weekly": "毎週 (x7)",
+      "monthly": "毎月 (x30)",
+      "quantity": "数量",
+      "countryCurrency": "国 — 通貨",
+      "ghanaGhs": "🇬🇭 ガーナ — GHS",
+      "usaUsd": "🇺🇸 アメリカ — USD",
+      "transportLabel": "交通",
+      "careCost": "ケア費用",
+      "transport": "交通",
+      "total": "合計",
+      "payNow20": "今支払う (20% CEO手数料)",
+      "payNurseCash80": "後で看護師に現金で支払う (80%)",
+      "clientTitle": "👤 クライアント — 支払者 (自動入力)",
+      "clientName": "クライアント名 *",
+      "clientPhone": "クライアント電話 *",
+      "clientEmail": "クライアントメール *",
+      "patientTitle": "🏥 患者 — 誰がケアを必要とするか",
+      "patientName": "患者名 *",
+      "patientPhone": "患者電話",
+      "relationship": "関係",
+      "self": "本人",
+      "parent": "親",
+      "child": "子",
+      "spouse": "配偶者",
+      "other": "その他",
+      "patientLocText": "患者の場所テキスト",
+      "sameLocation": "クライアントと同じ場所",
+      "onlineTitle": "🟢 {km}km以内のオンライン看護師 — オンラインのみ • 看護師 {count}人",
+      "autoPicked": "🤖 システムが最も近いオンライン看護師を自動選択しました",
+      "watchPhotoVideo": "📷🎥 彼女の写真 + ビデオを見る",
+      "continueWithHer": "✅ 彼女と続ける",
+      "lookAnother": "👀 別の方を見る",
+      "searchingOnline": "🔍 システムが患者近くのオンライン看護師を検索中です... このページを開いたままにしてください - 彼女がオンラインになると最も近い看護師が自動選択されます。",
+      "systemFind": "システムが近くのオンライン看護師を見つけます",
+      "systemPickBtn": "🤖 システムが最も近い看護師を選んでください - 写真 + ビデオを見る",
+      "systemShows": "システムは最も近い看護師を最初に表示します - 彼女の写真 + ビデオを見る - 彼女と続けるか別の方を見る",
+      "selected": "✅ 選択済み: {name}",
+      "payOnly20Now": "今は20%のみ支払います。仕事の後、看護師に80%現金で支払ってください。",
+      "pay20Explainer": "今Paystackで20% CEO手数料を支払う • 後で看護師に80%現金を渡す • CEOは看護師に決して支払わない • 看護師が拒否 = 20%全額返金",
+      "pay20Btn": "💳 20%のみ支払う — {currency} {amount}",
+      "processing": "Paystack処理中...",
+      "selectNurseFirst": "まずオンライン看護師を選択してください",
+      "fillDetails": "クライアント + 患者の詳細を入力",
+      "pay20OnlyDialog": "20%のみ支払う",
+      "payNowQ": "今 {currency} {payNow} を支払いますか？\n合計: {currency} {total}\n今20% CEO手数料を支払う\n仕事の後、看護師に {currency} {cash} を現金で支払う\n看護師: {name}",
+      "cancel": "キャンセル",
+      "payNowBtn": "今支払う",
+      "paymentFailed": "支払いに失敗しました: {e}",
+      "bookingCreated": "✅ 予約が作成されました！{id} - 看護師が承認/拒否します",
+      "continueScroll": "✅ {name}と続ける - 下にスクロールして支払う",
+      "noOtherNurse": "近くに他のオンライン看護師はまだいません - システムはまだ検索中です...",
+      "autoPickedToast": "🤖 システムが最も近いオンライン看護師を自動選択しました: {name} ({km} km) - 下で彼女の写真 + ビデオを見る",
+      "waitingGps": "GPS位置を待っています...",
+      "yourLocation": "あなたの位置: {lat}, {lng}",
+      "waitingGps2": "GPSを待っています... 1秒後にもう一度お試しください",
+      "youChose": "✅ {name}を選びました - 今下で20% Paystackを支払い、後で看護師に80%現金",
+      "nurseDefault": "看護師",
+      "homeNursing": "在宅看護",
+      "kmFromPatient": "患者から {km} km • 🟢 オンライン",
+      "kmAway": "{km} km離れた",
+      "verifiedOnline": "⭐ {rating} • 認証済み ✅ • オンライン",
+      "onlineNow": "⭐ 5 • 認証済み ✅ • 🟢 現在オンライン",
+      "photoReg": "📷 登録時にアップロードした写真",
+      "noPhoto": "写真がアップロードされていません",
+      "videoReg": "🎥 登録時にアップロードしたビデオ",
+      "noVideo": "この看護師のビデオが見つかりません - 登録時にアップロードしなかった可能性があります。看護師設定でアップロードするよう依頼してください。",
+      "pauseVideo": "ビデオを一時停止",
+      "playVideo": "▶️ ビデオを再生",
+      "openVideoOutside": "▶️ アプリ外でビデオを開く",
+      "continueWithName": "✅ {name}と続ける",
+      "loadError": "看護師を読み込めませんでした: {e}。引っ張って再試行してください - オフラインの看護師は非表示です。",
+    },
+
+    // 22. POLISH
+    "pl": {
+      "bookNurseTitle": "Zarezerwuj Pielęgniarkę — Płać Tylko 20% — TYLKO PIELĘGNIARKI ONLINE",
+      "ceoLive": "CEO Live: {currency} {rate} /godz — Płać Tylko 20% — LIVE — TYLKO PIELĘGNIARKI ONLINE",
+      "bookingTitle": "⏱️ Rezerwacja — Płać Tylko 20%",
+      "startTime": "GODZINA ROZPOCZĘCIA *",
+      "endTime": "GODZINA ZAKOŃCZENIA *",
+      "hoursDay": "GODZIN/DZIEŃ",
+      "hrs": "{h} godz",
+      "careMode": "TRYB OPIEKI",
+      "daily": "Codziennie",
+      "weekly": "Co Tydzień (x7)",
+      "monthly": "Co Miesiąc (x30)",
+      "quantity": "ILOŚĆ",
+      "countryCurrency": "KRAJ — WALUTA",
+      "ghanaGhs": "🇬🇭 Ghana — GHS",
+      "usaUsd": "🇺🇸 USA — USD",
+      "transportLabel": "TRANSPORT",
+      "careCost": "Koszt Opieki",
+      "transport": "Transport",
+      "total": "RAZEM",
+      "payNow20": "Zapłać Teraz (20% Opłata CEO)",
+      "payNurseCash80": "Zapłać Pielęgniarce GOTÓWKĄ Później (80%)",
+      "clientTitle": "👤 KLIENT — Płatnik (Wypełniono Auto)",
+      "clientName": "IMIĘ KLIENTA *",
+      "clientPhone": "TELEFON KLIENTA *",
+      "clientEmail": "EMAIL KLIENTA *",
+      "patientTitle": "🏥 PACJENT — Kto potrzebuje opieki",
+      "patientName": "IMIĘ PACJENTA *",
+      "patientPhone": "TELEFON PACJENTA",
+      "relationship": "RELACJA",
+      "self": "Ja",
+      "parent": "Rodzic",
+      "child": "Dziecko",
+      "spouse": "Małżonek",
+      "other": "Inne",
+      "patientLocText": "TEKST LOKALIZACJI PACJENTA",
+      "sameLocation": "Ta sama lokalizacja co Klient",
+      "onlineTitle": "🟢 Pielęgniarki ONLINE w promieniu {km}km — Tylko online • {count} pielęgniarek",
+      "autoPicked": "🤖 SYSTEM AUTOMATYCZNIE WYBRAŁ NAJBLIŻSZĄ PIELĘGNIARKĘ ONLINE DLA CIEBIE",
+      "watchPhotoVideo": "📷🎥 Obejrzyj Jej Zdjęcie + Wideo",
+      "continueWithHer": "✅ Kontynuuj Z Nią",
+      "lookAnother": "👀 Zobacz Inną",
+      "searchingOnline": "🔍 System szuka Pielęgniarek ONLINE w pobliżu pacjenta... Trzymaj tę stronę otwartą - najbliższa pielęgniarka zostanie automatycznie wybrana, gdy tylko przejdzie ONLINE.",
+      "systemFind": "System znajdzie pobliskie Pielęgniarki ONLINE dla Ciebie",
+      "systemPickBtn": "🤖 System Wybierz Najbliższą Pielęgniarkę Dla Mnie - Obejrzyj Zdjęcie + Wideo",
+      "systemShows": "System najpierw pokazuje najbliższą pielęgniarkę - Obejrzyj jej zdjęcie + wideo - Kontynuuj z nią LUB Zobacz inną",
+      "selected": "✅ Wybrana: {name}",
+      "payOnly20Now": "Płacisz TERAZ TYLKO 20%. Zapłać pielęgniarce 80% GOTÓWKĄ po pracy.",
+      "pay20Explainer": "Zapłać 20% Opłaty CEO teraz w Paystack • Daj 80% gotówką pielęgniarce później • CEO nigdy nie płaci pielęgniarce • Pielęgniarka odmawia = PEŁNY zwrot 20%",
+      "pay20Btn": "💳 Płać Tylko 20% — {currency} {amount}",
+      "processing": "Przetwarzanie Paystack...",
+      "selectNurseFirst": "Wybierz najpierw Pielęgniarkę ONLINE",
+      "fillDetails": "Wypełnij Klient + Pacjent szczegóły",
+      "pay20OnlyDialog": "Płać Tylko 20%",
+      "payNowQ": "Zapłacić {currency} {payNow} teraz?\nRazem: {currency} {total}\nZapłać 20% Opłaty CEO teraz\nZapłać Pielęgniarce {currency} {cash} GOTÓWKĄ po pracy\nPielęgniarka: {name}",
+      "cancel": "Anuluj",
+      "payNowBtn": "Zapłać Teraz",
+      "paymentFailed": "Płatność nie powiodła się: {e}",
+      "bookingCreated": "✅ Rezerwacja utworzona! {id} - Pielęgniarka Zaakceptuje/Odrzuci",
+      "continueScroll": "✅ Kontynuuj z {name} - przewiń w dół, aby zapłacić",
+      "noOtherNurse": "Brak jeszcze innej Pielęgniarki ONLINE w pobliżu - system wciąż szuka...",
+      "autoPickedToast": "🤖 System automatycznie wybrał najbliższą Pielęgniarkę ONLINE: {name} ({km} km) - Obejrzyj jej zdjęcie + wideo poniżej",
+      "waitingGps": "Oczekiwanie na Twoją lokalizację GPS...",
+      "yourLocation": "Twoja lokalizacja: {lat}, {lng}",
+      "waitingGps2": "Oczekiwanie na Twój GPS... spróbuj ponownie za sekundę",
+      "youChose": "✅ Wybrałeś {name} - teraz zapłać 20% Paystack poniżej, 80% gotówką pielęgniarce później",
+      "nurseDefault": "Pielęgniarka",
+      "homeNursing": "Opieka Domowa",
+      "kmFromPatient": "{km} km od pacjenta • 🟢 ONLINE",
+      "kmAway": "{km} km",
+      "verifiedOnline": "⭐ {rating} • Zweryfikowana ✅ • ONLINE",
+      "onlineNow": "⭐ 5 • Zweryfikowana ✅ • 🟢 TERAZ ONLINE",
+      "photoReg": "📷 Zdjęcie, które przesłała podczas rejestracji",
+      "noPhoto": "Nie przesłano zdjęcia",
+      "videoReg": "🎥 Wideo, które przesłała podczas rejestracji",
+      "noVideo": "Nie znaleziono wideo dla tej pielęgniarki - mogła go nie przesłać podczas rejestracji. Poproś ją o przesłanie go w Ustawieniach Pielęgniarki.",
+      "pauseVideo": "Wstrzymaj Wideo",
+      "playVideo": "▶️ Odtwórz Wideo",
+      "openVideoOutside": "▶️ Otwórz Wideo Poza Aplikacją",
+      "continueWithName": "✅ Kontynuuj Z {name}",
+      "loadError": "Nie można załadować pielęgniarek: {e}. Pociągnij, aby spróbować ponownie - pielęgniarki offline są ukryte.",
+    },
+  };
+
+  static String get(String lang, String key) {
+    return all[lang]?[key] ?? all['en']?[key] ?? key;
   }
 
-  @override
-  void dispose() {
-    _disposed = true;
-    for (final sub in _rateSubs) { sub.cancel(); }
-    _clientNameCtrl.dispose();
-    _clientPhoneCtrl.dispose();
-    _clientEmailCtrl.dispose();
-    _patientNameCtrl.dispose();
-    _patientPhoneCtrl.dispose();
-    _patientLocCtrl.dispose();
-    super.dispose();
-  }
-
-  void _safeSet(void Function() fn) { if (!_disposed && mounted) setState(fn); }
-
-  Map<String, dynamic> _asMap(dynamic v) {
-    if (v == null) return {};
-    if (v is Map) return Map<String, dynamic>.from(v);
-    return {};
-  }
-
-  double _asDouble(dynamic v, [double fallback = 0]) {
-    if (v == null) return fallback;
-    if (v is double) return v;
-    if (v is int) return v.toDouble();
-    if (v is num) return v.toDouble();
-    return double.tryParse(v.toString()) ?? fallback;
-  }
-
-  Future<void> _loadClientData() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (_disposed || !mounted) return;
-    setState(() {
-      _clientNameCtrl.text = prefs.getString('clientName') ?? prefs.getString('fullName') ?? '';
-      _clientPhoneCtrl.text = prefs.getString('clientPhone') ?? prefs.getString('phone') ?? '';
-      _clientEmailCtrl.text = prefs.getString('clientEmail') ?? prefs.getString('email') ?? '';
-    });
-  }
-
-  void _loadCEORates() {
-    for (final path in ['config/rates', 'ceoPricing', 'pricing']) {
-      final sub = FirebaseDatabase.instance.ref(path).onValue.listen((e) {
-        try {
-          if (_disposed || !mounted) return;
-          if (e.snapshot.value == null) return;
-          final v = _asMap(e.snapshot.value);
-          if (v.isEmpty) return;
-          double ghs = 0, usd = 0;
-          if (v['GHS'] is Map) { ghs = _asDouble((v['GHS'] as Map)['hourly']); } else { ghs = _asDouble(v['GHS']); }
-          if (v['USD'] is Map) { usd = _asDouble((v['USD'] as Map)['hourly']); } else { usd = _asDouble(v['USD']); }
-          if (ghs == 0) ghs = _asDouble(v['cedis'] ?? v['ghs']);
-          if (usd == 0) usd = _asDouble(v['dollars'] ?? v['usd']);
-          if (ghs > 0) ceoRateGHS = ghs;
-          if (usd > 0) ceoRateUSD = usd;
-          _safeSet(() {});
-        } catch (_) {}
-      }, onError: (_) {});
-      _rateSubs.add(sub);
-    }
-  }
-
-  Future<void> _autoCaptureLocation() async {
-    try {
-      final perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) return;
-      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      if (_disposed || !mounted) return;
-      setState(() { clientLat = pos.latitude; clientLng = pos.longitude; patientLat = pos.latitude; patientLng = pos.longitude; });
-      _searchNearbyNurses();
-    } catch (_) {}
-  }
-
-  double _haversine(double lat1, double lon1, double lat2, double lon2) {
-    const R = 6371;
-    final dLat = (lat2 - lat1) * math.pi / 180;
-    final dLon = (lon2 - lon1) * math.pi / 180;
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.cos(lat1 * math.pi / 180) * math.cos(lat2 * math.pi / 180) * math.sin(dLon / 2) * math.sin(dLon / 2);
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-  }
-
-  Future<void> _enableMap() async {
-    if (clientLat == null || clientLng == null) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Waiting for your GPS location...')));
-      return;
-    }
-    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$clientLat,$clientLng');
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Your location: $clientLat, $clientLng')));
-      }
-    } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Your location: $clientLat, $clientLng')));
-    }
-  }
-
-  Future<void> _openNurseOnMap(Map n) async {
-    final lat = _asDouble(n['lat']);
-    final lng = _asDouble(n['lng']);
-    if (lat == 0 && lng == 0) return;
-    final url = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
-    try {
-      if (await canLaunchUrl(url)) await launchUrl(url, mode: LaunchMode.externalApplication);
-    } catch (_) {}
-  }
-
-  Future<void> _searchNearbyNurses() async {
-    if (clientLat == null || clientLng == null) return;
-    try {
-      final snap = await FirebaseDatabase.instance.ref('onlineNurses').get();
-      final nurseSnap = await FirebaseDatabase.instance.ref('nurses').get();
-      final locSnap = await FirebaseDatabase.instance.ref('nurseLocations').get();
-      if (_disposed || !mounted) return;
-      final Set<String> onlineIds = {};
-      if (snap.exists && snap.value != null) {
-        if (snap.value is Map) { onlineIds.addAll((snap.value as Map).keys.map((k) => k.toString())); }
-        else if (snap.value is List) { for (final x in (snap.value as List)) { if (x != null) onlineIds.add(x.toString()); } }
-      }
-      final nursesMap = _asMap(nurseSnap.exists ? nurseSnap.value : null);
-      final locMap = _asMap(locSnap.exists ? locSnap.value : null);
-      List<Map> list = [];
-      for (final entry in nursesMap.entries) {
-        try {
-          final uid = entry.key.toString();
-          if (!onlineIds.contains(uid)) continue;
-          if (entry.value is! Map) continue;
-          final n = Map<String, dynamic>.from(entry.value as Map);
-          final locRaw = locMap[uid];
-          final loc = locRaw is Map ? Map<String, dynamic>.from(locRaw) : <String, dynamic>{};
-          final lat = _asDouble(loc['lat'] ?? loc['latitude'] ?? loc['gpsLat'] ?? n['lat'] ?? n['latitude'] ?? n['gpsLat'] ?? n['locationLat']);
-          final lng = _asDouble(loc['lng'] ?? loc['longitude'] ?? loc['gpsLng'] ?? n['lng'] ?? n['longitude'] ?? n['gpsLng'] ?? n['locationLng']);
-          if (lat == 0 && lng == 0) continue;
-          final dist = _haversine(clientLat!, clientLng!, lat, lng);
-          if (dist > searchRadius) continue;
-          list.add({'uid': uid, ...n, 'lat': lat, 'lng': lng, 'distance': dist, 'isOnline': true});
-        } catch (_) { continue; }
-      }
-      list.sort((a, b) => _asDouble(a['distance']).compareTo(_asDouble(b['distance'])));
-      if (_disposed || !mounted) return;
-      final bool hadSelection = selectedNurseId != null;
-      setState(() { onlineNurses = List<Map>.from(list); _loadError = ''; });
-      if (!hadSelection) _autoSelectNearest();
-    } catch (e) {
-      if (!_disposed && mounted) setState(() => _loadError = 'Could not load nurses: $e. Pull to try again - offline nurses are hidden.');
-    }
-  }
-
-  double calcHours(String s, String e) {
-    final sp = s.split(':').map(int.parse).toList();
-    final ep = e.split(':').map(int.parse).toList();
-    double h = (ep[0] + ep[1] / 60) - (sp[0] + sp[1] / 60);
-    if (h < 0) h += 24;
-    return h;
-  }
-
-  // 20/80 MATH - ONLY CHANGE: payNow = 20%, payLater = 80% cash
-  Map<String, dynamic> calcTotal() {
-    final hrs = calcHours(startTime, endTime);
-    final mult = careMode == 'Weekly' ? 7 : careMode == 'Monthly' ? 30 : 1;
-    final rate = currency == 'USD' ? ceoRateUSD : ceoRateGHS;
-    final totalHours = hrs * mult * quantity;
-    final careCost = totalHours * rate;
-    final total = careCost + transport;
-    final ceoFee = total * 0.20;
-    final nurseCash = total * 0.80;
-    final payNow = ceoFee;
-    final payLater = nurseCash;
-    return {'hrsPerDay': hrs, 'totalHours': totalHours, 'rate': rate, 'careCost': careCost, 'total': total, 'payNow': payNow, 'payLater': payLater, 'mult': mult, 'ceoFee': ceoFee, 'nurseCash': nurseCash, 'totalAmount': total};
-  }
-
-  Future<void> _pickTime(bool isStart) async {
-    final parts = (isStart ? startTime : endTime).split(':');
-    final init = TimeOfDay(hour: int.tryParse(parts.isNotEmpty ? parts[0] : '8') ?? 8, minute: int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0);
-    final picked = await showTimePicker(context: context, initialTime: init);
-    if (picked != null) {
-      setState(() { final v = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}'; if (isStart) startTime = v; else endTime = v; });
-    }
-  }
-
-  String _pickUrl(dynamic v) {
-    if (v == null) return '';
-    if (v is String) { final t = v.trim(); if (t.startsWith('http') || t.startsWith('gs://')) return t; return ''; }
-    if (v is List) { for (final x in v) { final u = _pickUrl(x); if (u.isNotEmpty) return u; } return ''; }
-    if (v is Map) {
-      for (final k in ['url','downloadUrl','downloadURL','videoUrl','videoURL','link','href','path']) { final u = _pickUrl(v[k]); if (u.isNotEmpty) return u; }
-      return '';
-    }
-    return '';
-  }
-
-  String _mediaFromMap(Map n, bool isVideo) {
-    final videoKeys = ['videoUrl','videoURL','video','introVideoUrl','introVideo','registrationVideoUrl','registrationVideo','nurseVideoUrl','nurseVideo','profileVideoUrl','profileVideo','introVideoURL','selfieVideoUrl','videoLink','video_url'];
-    final photoKeys = ['photoUrl','photoURL','photo','profilePhoto','imageUrl','imageURL','profilePhotoUrl','profilePic','profilePicture','avatar','picture'];
-    final keys = isVideo ? videoKeys : photoKeys;
-    for (final k in keys) { final u = _pickUrl(n[k]); if (u.isNotEmpty) return u; }
-    for (final k in ['video','media','files','registration','documents','uploads','profile']) {
-      final v = n[k];
-      if (v is Map) { final u = _mediaFromMap(Map<String,dynamic>.from(v), isVideo); if (u.isNotEmpty) return u; }
-    }
-    for (final k in ['videos','videoUrls','photos','photoUrls','media','files','attachments']) {
-      final u = _pickUrl(n[k]); if (u.isNotEmpty) return u;
-    }
-    return '';
-  }
-
-  Future<Map<String,dynamic>> _fetchFullNurse(String uid) async {
-    final merged = <String,dynamic>{};
-    try { final snap = await FirebaseDatabase.instance.ref('nurses/$uid').get(); if (snap.exists && snap.value is Map) merged.addAll(Map<String,dynamic>.from(snap.value as Map)); } catch (_) {}
-    try { final snap = await FirebaseDatabase.instance.ref('approved_nurses/$uid').get(); if (snap.exists && snap.value is Map) merged.addAll(Map<String,dynamic>.from(snap.value as Map)); } catch (_) {}
-    try { final doc = await FirebaseFirestore.instance.collection('nurses').doc(uid).get(); if (doc.exists && doc.data() != null) merged.addAll(doc.data()!); } catch (_) {}
-    try { final doc = await FirebaseFirestore.instance.collection('approved_nurses').doc(uid).get(); if (doc.exists && doc.data() != null) merged.addAll(doc.data()!); } catch (_) {}
-    try { final doc = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get(); if (doc.exists && doc.data() != null) merged.addAll(doc.data()!); } catch (_) {}
-    return merged;
-  }
-
-  Future<void> _showNursePhotoVideoAuto(Map n) async {
-    final uid = (n['uid'] ?? '').toString();
-    Map<String,dynamic> full = Map<String,dynamic>.from(n);
-    if (uid.isNotEmpty) {
-      final fetched = await _fetchFullNurse(uid);
-      if (fetched.isNotEmpty) { full = {...fetched, ...full}; for (final k in fetched.keys) { if ((full[k] == null || full[k].toString().isEmpty) && fetched[k] != null) full[k] = fetched[k]; } }
-    }
-    final photo = _mediaFromMap(full, false);
-    final video = _mediaFromMap(full, true);
-    if (!mounted) return;
-    showModalBottomSheet(context: context, isScrollControlled: true, backgroundColor: const Color(0xFF1C1238),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => _AutoNurseProfileSheet(nurse: full, photo: photo, video: video, name: (full['name'] ?? full['fullName'] ?? 'Nurse').toString(), spec: (full['specialty'] ?? 'Home Nursing').toString(), distance: _asDouble(full['distance']),
-        onSelect: () { Navigator.pop(context); setState(() { selectedNurseId = full['uid']; selectedNurseName = (full['name'] ?? '').toString(); selectedNursePhone = (full['phone'] ?? '').toString(); }); },
-      ));
-  }
-
-  void _autoSelectNearest() {
-    if (onlineNurses.isEmpty) return;
-    if (selectedNurseId != null) return;
-    final n = onlineNurses.first;
-    setState(() { selectedNurseId = n['uid']; selectedNurseName = (n['name'] ?? '').toString(); selectedNursePhone = (n['phone'] ?? '').toString(); });
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ðŸ¤– System auto-picked nearest ONLINE nurse: $selectedNurseName (${_asDouble(n['distance']).toStringAsFixed(1)} km) - Watch her photo + video below')));
-  }
-
-  void _pickAnotherOne() {
-    if (onlineNurses.length < 2) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No other ONLINE nurse nearby yet - system is still searching...'))); return; }
-    final idx = onlineNurses.indexWhere((x) => x['uid'] == selectedNurseId);
-    final next = onlineNurses[(idx + 1) % onlineNurses.length];
-    setState(() { selectedNurseId = next['uid']; selectedNurseName = (next['name'] ?? '').toString(); selectedNursePhone = (next['phone'] ?? '').toString(); });
-  }
-
-  Map<String,dynamic>? get _autoPickedNurse {
-    if (selectedNurseId == null) return null;
-    try { return Map<String,dynamic>.from(onlineNurses.firstWhere((x) => x['uid'] == selectedNurseId)); } catch (_) { return null; }
-  }
-
-  Future<void> _payWithPaystack() async {
-    if (selectedNurseId == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Select an ONLINE nurse first'))); return; }
-    if (_clientNameCtrl.text.isEmpty || _clientPhoneCtrl.text.isEmpty || _patientNameCtrl.text.isEmpty) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fill Client + Patient details'))); return; }
-    final calc = calcTotal();
-    final payNow = calc['payNow'] as double;
-    final total = calc['total'] as double;
-    final nurseCash = calc['nurseCash'] as double;
-    setState(() => isPaying = true);
-    try {
-      final confirmed = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
-        title: const Text('Pay 20% Only'),
-        content: Text('Pay $currency ${payNow.toStringAsFixed(2)} now?\nTotal: $currency ${total.toStringAsFixed(2)}\nPay 20% CEO Fee now\nPay Nurse $currency ${nurseCash.toStringAsFixed(2)} CASH after work\nNurse: $selectedNurseName'),
-        actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Pay Now'))],
-      ));
-      if (confirmed != true) { setState(() => isPaying = false); return; }
-      final ref = 'PSK_${DateTime.now().millisecondsSinceEpoch}';
-      await _saveBooking(ref, calc);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment failed: $e')));
-    } finally {
-      if (mounted) setState(() => isPaying = false);
-    }
-  }
-
-  Future<void> _saveBooking(String paystackRef, Map calc) async {
-    final bookingId = 'BK_${DateTime.now().millisecondsSinceEpoch}';
-    final booking = {
-      'bookingId': bookingId, 'id': bookingId,
-      'clientName': _clientNameCtrl.text.trim(), 'clientFullName': _clientNameCtrl.text.trim(),
-      'clientPhone': _clientPhoneCtrl.text.trim(), 'clientEmail': _clientEmailCtrl.text.trim(),
-      'clientLat': clientLat, 'clientLng': clientLng,
-      'patientName': _patientNameCtrl.text.trim(), 'patientPhone': _patientPhoneCtrl.text.trim(),
-      'patientLocation': _patientLocCtrl.text.trim(), 'patientLocationText': _patientLocCtrl.text.trim(),
-      'patientLat': patientLat, 'patientLng': patientLng, 'patientLatLng': {'lat': patientLat, 'lng': patientLng},
-      'patientRelationship': patientRelationship,
-      'nurseId': selectedNurseId, 'nurseName': selectedNurseName, 'nursePhone': selectedNursePhone, 'nurseWasOnline': true, 'nurseOnlineAt': DateTime.now().millisecondsSinceEpoch,
-      'amount': calc['total'], 'totalAmount': calc['total'], 'total': calc['total'], 'totalGHS': calc['total'],
-      'ceoFee': calc['ceoFee'], 'ceoFeeGHS': calc['ceoFee'],
-      'nurseCash': calc['nurseCash'], 'nurseCashAmount': calc['nurseCash'], 'amountYouWillCollectCash': calc['nurseCash'],
-      'amountPaidNow': calc['payNow'], 'amountBalance': calc['payLater'], 'payNow': calc['payNow'], 'payLater': calc['payLater'],
-      'currency': currency, 'paymentMethod': 'paystack_20', 'paymentType': '20_percent_ceo_fee', 'paystackRef': paystackRef,
-      'status': 'pending', 'time': DateTime.now().millisecondsSinceEpoch, 'createdAt': DateTime.now().millisecondsSinceEpoch,
-      'totalHours': calc['totalHours'], 'hrsPerDay': calc['hrsPerDay'], 'startTime': startTime, 'endTime': endTime, 'careMode': careMode, 'quantity': quantity, 'transport': transport,
-      'hourlyRateUsed': calc['rate'], 'service': careMode,
-      'amountSplit': {'nurse': calc['nurseCash'], 'ceo': calc['ceoFee']},
-      'refundCeoFee': false, 'refundStatus': 'none', 'refundPaid': false,
-      'paid': true, 'isPaid': true, 'paymentStatus': 'paid',
-    };
-    final db = FirebaseDatabase.instance;
-    final emailKey = _clientEmailCtrl.text.trim().toLowerCase().replaceAll(RegExp(r'[.#\$\@\[\]]'), '_');
-    await db.ref('bookings/$bookingId').set(booking);
-    await db.ref('bookingsByClient/$emailKey/$bookingId').set(booking);
-    await db.ref('bookingsByNurse/$selectedNurseId/$bookingId').set(booking);
-    await db.ref('nurseBookings/$selectedNurseId/$bookingId').set(booking);
-    await db.ref('clientBookings/$emailKey/$bookingId').set(booking);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('âœ… Booking created! $bookingId - Nurse will Accept/Reject')));
-    Navigator.pushNamed(context, '/my-bookings');
-  }
-
-  Future<void> _openSystemPick() async {
-    if (patientLat == null || clientLat == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Waiting for your GPS... try again in a second')));
-      return;
-    }
-    final selected = await Navigator.push<Map<String, dynamic>>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => LiveNurseMap(
-          patientLat: patientLat,
-          patientLng: patientLng,
-          clientLat: clientLat,
-          clientLng: clientLng,
-          searchRadiusKm: 20,
-          autoPickNearest: true,
-        ),
-      ),
-    );
-    if (selected != null && mounted) {
-      setState(() {
-        selectedNurseId = selected['uid']?.toString();
-        selectedNurseName = (selected['name'] ?? selected['fullName'] ?? '').toString();
-        selectedNursePhone = (selected['phone'] ?? '').toString();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('âœ… You chose $selectedNurseName - now pay 20% Paystack below, 80% cash to nurse later')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final calc = calcTotal();
-    return Scaffold(
-      backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: const Text('Book Nurse â€” Pay 20% Only â€” ONLY ONLINE NURSES', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Row(children: [const Icon(Icons.info, color: Colors.amber), const SizedBox(width: 8), Expanded(child: Text('CEO Live: $currency ${calc['rate']} /hr â€” Pay 20% Only â€” LIVE â€” ONLY ONLINE NURSES', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))) ])),
-          const SizedBox(height: 12),
-          _sectionTitle('â±ï¸ Booking â€” Pay 20% Only'),
-          Row(children: [
-            Expanded(child: _timeField('START TIME *', startTime, () => _pickTime(true))),
-            const SizedBox(width: 8),
-            Expanded(child: _timeField('END TIME *', endTime, () => _pickTime(false))),
-            const SizedBox(width: 8),
-            Expanded(child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12)), child: Column(children: [const Text('HOURS/DAY', style: TextStyle(fontSize: 9, color: Colors.white60)), Text('${calc['hrsPerDay'].toStringAsFixed(1)} hrs', style: const TextStyle(fontWeight: FontWeight.bold))]))),
-          ]),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(child: DropdownButtonFormField<String>(value: careMode, decoration: const InputDecoration(labelText: 'CARE MODE', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Daily', child: Text('Daily')), DropdownMenuItem(value: 'Weekly', child: Text('Weekly (x7)')), DropdownMenuItem(value: 'Monthly', child: Text('Monthly (x30)'))], onChanged: (v) => setState(() => careMode = v ?? 'Daily'))),
-            const SizedBox(width: 8),
-            Expanded(child: TextField(decoration: const InputDecoration(labelText: 'QUANTITY', border: OutlineInputBorder()), keyboardType: TextInputType.number, controller: TextEditingController(text: quantity.toString()), onChanged: (v) => quantity = int.tryParse(v) ?? 1)),
-          ]),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(child: DropdownButtonFormField<String>(value: currency, decoration: const InputDecoration(labelText: 'COUNTRY â€” CURRENCY', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'GHS', child: Text('ðŸ‡¬ðŸ‡­ Ghana â€” GHS')), DropdownMenuItem(value: 'USD', child: Text('ðŸ‡ºðŸ‡¸ USA â€” USD'))], onChanged: (v) => setState(() => currency = v ?? 'GHS'))),
-            const SizedBox(width: 8),
-            Expanded(child: TextField(decoration: const InputDecoration(labelText: 'TRANSPORT', border: OutlineInputBorder()), keyboardType: TextInputType.number, controller: TextEditingController(text: transport.toString()), onChanged: (v) => transport = double.tryParse(v) ?? 0)),
-          ]),
-          const SizedBox(height: 12),
-          Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFA855F7))), child: Column(children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Care Cost'), Text('$currency ${calc['careCost'].toStringAsFixed(2)}')]),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Transport'), Text('$currency ${transport.toStringAsFixed(2)}')]),
-            const Divider(),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('TOTAL', style: TextStyle(fontWeight: FontWeight.bold)), Text('$currency ${calc['total'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))]),
-            const SizedBox(height: 6),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('Pay Now (20% CEO Fee)', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)), Text('$currency ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold))]),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Pay Nurse CASH Later (80%)'), Text('$currency ${calc['payLater'].toStringAsFixed(2)}')]),
-          ])),
-          const SizedBox(height: 16),
-          _sectionTitle('ðŸ‘¤ CLIENT â€” Payer (Auto-filled)'),
-          TextField(controller: _clientNameCtrl, decoration: const InputDecoration(labelText: 'CLIENT NAME *', border: OutlineInputBorder())),
-          const SizedBox(height: 8),
-          Row(children: [Expanded(child: TextField(controller: _clientPhoneCtrl, decoration: const InputDecoration(labelText: 'CLIENT PHONE *', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: TextField(controller: _clientEmailCtrl, decoration: const InputDecoration(labelText: 'CLIENT EMAIL *', border: OutlineInputBorder())))]),
-          const SizedBox(height: 16),
-          _sectionTitle('ðŸ¥ PATIENT â€” Who needs care'),
-          TextField(controller: _patientNameCtrl, decoration: const InputDecoration(labelText: 'PATIENT NAME *', border: OutlineInputBorder())),
-          const SizedBox(height: 8),
-          Row(children: [Expanded(child: TextField(controller: _patientPhoneCtrl, decoration: const InputDecoration(labelText: 'PATIENT PHONE', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: DropdownButtonFormField<String>(value: patientRelationship, decoration: const InputDecoration(labelText: 'RELATIONSHIP', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Self', child: Text('Self')), DropdownMenuItem(value: 'Parent', child: Text('Parent')), DropdownMenuItem(value: 'Child', child: Text('Child')), DropdownMenuItem(value: 'Spouse', child: Text('Spouse')), DropdownMenuItem(value: 'Other', child: Text('Other'))], onChanged: (v) => setState(() => patientRelationship = v ?? 'Self')))]),
-          const SizedBox(height: 8),
-          TextField(controller: _patientLocCtrl, decoration: const InputDecoration(labelText: 'PATIENT LOCATION TEXT', border: OutlineInputBorder())),
-          const SizedBox(height: 8),
-          SwitchListTile(title: const Text('Same location as Client'), value: sameLocation, onChanged: (v) => setState(() { sameLocation = v; if (v) { patientLat = clientLat; patientLng = clientLng; } })),
-          const SizedBox(height: 16),
-          _sectionTitle('ðŸŸ¢ ONLINE Nurses within ${searchRadius.toInt()}km â€” Only online show â€¢ ${onlineNurses.length} nurses'),
-          if (onlineNurses.isNotEmpty && _autoPickedNurse != null)
-            Container(
-              width: double.infinity, padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.12), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF22C55E).withOpacity(0.5))),
-              child: Column(children: [
-                const Text('ðŸ¤– SYSTEM AUTO-PICKED NEAREST ONLINE NURSE FOR YOU', textAlign: TextAlign.center, style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13)),
-                const SizedBox(height: 8),
-                Row(children: [
-                  CircleAvatar(radius: 30, backgroundImage: _mediaFromMap(_autoPickedNurse!, false).isNotEmpty ? NetworkImage(_mediaFromMap(_autoPickedNurse!, false)) : null, child: _mediaFromMap(_autoPickedNurse!, false).isEmpty ? const Text('ðŸ‘©') : null),
-                  const SizedBox(width: 10),
-                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(_autoPickedNurse!['name']?.toString() ?? 'Nurse', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                    Text('${_autoPickedNurse!['specialty'] ?? 'Home Nursing'} â€¢ ${_asDouble(_autoPickedNurse!['distance']).toStringAsFixed(1)} km from patient â€¢ ðŸŸ¢ ONLINE', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                  ])),
-                ]),
-                const SizedBox(height: 10),
-                SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () => _showNursePhotoVideoAuto(_autoPickedNurse!), icon: const Icon(Icons.play_circle_fill), label: const Text('ðŸ“·ðŸŽ¥ Watch Her Photo + Video'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA855F7)))),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(child: ElevatedButton(onPressed: () { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('âœ… Continue with $selectedNurseName - scroll down to pay'))); }, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: const Text('âœ… Continue With Her', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-                  const SizedBox(width: 8),
-                  Expanded(child: OutlinedButton(onPressed: _pickAnotherOne, style: OutlinedButton.styleFrom(foregroundColor: Colors.white, side: const BorderSide(color: Colors.white38)), child: const Text('ðŸ‘€ Look At Another One'))),
-                ]),
-                // === UBER LIVE MAP - ONLY NEW PART - photo moves like Uber car ===
-                const SizedBox(height: 10),
-                if (_autoPickedNurse != null && patientLat != null && patientLng != null)
-                  UberLiveMap(
-                    nurseId: selectedNurseId ?? '',
-                    nurseName: selectedNurseName,
-                    nursePhoto: _mediaFromMap(_autoPickedNurse!, false),
-                    patientLat: patientLat!,
-                    patientLng: patientLng!,
-                  ),
-              ]),
-            ),
-          if (onlineNurses.isEmpty)
-            Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)), child: const Text('ðŸ” System is searching for ONLINE nurses near the patient... Keep this page open - nearest nurse will be auto-picked as soon as she goes ONLINE.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12))),
-          if (_loadError.isNotEmpty) Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.red.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Text(_loadError, textAlign: TextAlign.center)),
-          const SizedBox(height: 12),
-          ...onlineNurses.map((n) => _nurseCard(n)),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFA855F7).withOpacity(0.12), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.4))),
-            child: Column(children: [
-              const Text('System will find nearby ONLINE nurses for you', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _openSystemPick, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA855F7), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: const Text('ðŸ¤– System Pick Nearest Nurse For Me - Watch Photo + Video', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14)))),
-              const SizedBox(height: 6),
-              const Text('System shows nearest nurse first - Watch her photo + video - Continue with her OR Look at another one', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60, fontSize: 11)),
-              if (selectedNurseId != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text('âœ… Selected: $selectedNurseName', textAlign: TextAlign.center, style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13))),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          // 20/80 EXPLAINER - REPLACES 50% BUTTON (DELETED)
-          Container(
-            width: double.infinity, padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFF00C853).withOpacity(0.12), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF00C853).withOpacity(0.4))),
-            child: Column(children: [
-              const Text('You pay ONLY 20% now. Pay nurse 80% CASH after work.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              const Text('Pay 20% CEO Fee now in Paystack â€¢ Give 80% cash to nurse later â€¢ CEO never pays nurse â€¢ Nurse rejects = FULL 20% refund', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60, fontSize: 11)),
-            ]),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: isPaying ? null : _payWithPaystack, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFA855F7), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), child: Text(isPaying ? 'Processing Paystack...' : 'ðŸ’³ Pay 20% Only â€” $currency ${calc['payNow'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)))),
-          const SizedBox(height: 20),
-        ]),
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String t) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(t, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)));
-  Widget _timeField(String label, String val, VoidCallback onTap) => GestureDetector(onTap: onTap, child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 9, color: Colors.white60)), const SizedBox(height: 4), Text(val, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14))])));
-
-  Widget _nurseCard(Map n) {
-    final isSel = selectedNurseId == n['uid'];
-    final photo = n['photoURL'] ?? n['photo'] ?? '';
-    return GestureDetector(
-      onTap: () { setState(() { selectedNurseId = n['uid']; selectedNurseName = n['name'] ?? ''; selectedNursePhone = n['phone'] ?? ''; }); _showNursePhotoVideoAuto(n); },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: isSel ? const Color(0xFFA855F7).withOpacity(0.2) : const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16), border: Border.all(color: isSel ? const Color(0xFFA855F7) : Colors.white12)),
-        child: Row(children: [
-          CircleAvatar(radius: 28, backgroundImage: (photo.toString().isNotEmpty && (photo.toString().startsWith('http://') || photo.toString().startsWith('https://'))) ? NetworkImage(photo.toString()) : null, onBackgroundImageError: (_, __) {}, child: photo.toString().isEmpty ? const Text('ðŸ‘©') : null),
-          const SizedBox(width: 10),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [Text(n['name']?.toString() ?? 'Nurse', style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 6), Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle))]),
-            Text('${n['specialty'] ?? 'Home Nursing'} â€¢ ${_asDouble(n['distance']).toStringAsFixed(1)} km away', style: const TextStyle(color: Colors.white60, fontSize: 11)),
-            Text('â­ ${n['rating'] ?? 5} â€¢ Verified âœ… â€¢ ONLINE', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-          ])),
-          IconButton(icon: const Icon(Icons.play_circle_fill, color: Colors.yellow), tooltip: 'Watch photo + video', onPressed: () => _showNursePhotoVideoAuto(n)),
-          IconButton(icon: const Icon(Icons.map, color: Colors.white70), onPressed: () => _openNurseOnMap(n)),
-          if (isSel) const Icon(Icons.check_circle, color: Colors.green),
-        ]),
-      ),
-    );
-  }
-}
-
-class _AutoNurseProfileSheet extends StatefulWidget {
-  final Map nurse; final String photo; final String video; final String name; final String spec; final double distance; final VoidCallback onSelect;
-  const _AutoNurseProfileSheet({required this.nurse, required this.photo, required this.video, required this.name, required this.spec, required this.distance, required this.onSelect});
-  @override State<_AutoNurseProfileSheet> createState() => _AutoNurseProfileSheetState();
-}
-class _AutoNurseProfileSheetState extends State<_AutoNurseProfileSheet> {
-  VideoPlayerController? _ctrl; bool _failed = false;
-  @override void initState() { super.initState(); _init(); }
-  Future<void> _init() async {
-    if (widget.video.isEmpty) return;
-    try { final c = VideoPlayerController.networkUrl(Uri.parse(widget.video)); await c.initialize(); if (mounted) setState(() => _ctrl = c); }
-    catch (_) { if (mounted) setState(() => _failed = true); }
-  }
-  @override void dispose() { _ctrl?.dispose(); super.dispose(); }
-  @override Widget build(BuildContext context) {
-    return DraggableScrollableSheet(initialChildSize: 0.85, maxChildSize: 0.95, minChildSize: 0.5, expand: false,
-      builder: (_, ctrl) => SingleChildScrollView(controller: ctrl, padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Center(child: Container(width: 40, height: 5, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)))),
-          const SizedBox(height: 12),
-          Row(children: [
-            Container(width: 92, height: 92, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.green, width: 3)), child: ClipOval(child: widget.photo.isNotEmpty ? Image.network(widget.photo, fit: BoxFit.cover) : const Icon(Icons.person, size: 50, color: Colors.white))),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(widget.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-              Text('${widget.spec} â€¢ ${widget.distance.toStringAsFixed(1)} km from patient', style: const TextStyle(color: Colors.white70)),
-              const Text('â­ 5 â€¢ Verified âœ… â€¢ ðŸŸ¢ ONLINE NOW', style: TextStyle(color: Colors.greenAccent)),
-            ])),
-          ]),
-          const SizedBox(height: 16),
-          const Text('ðŸ“· Photo she uploaded during registration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ClipRRect(borderRadius: BorderRadius.circular(14), child: widget.photo.isNotEmpty ? Image.network(widget.photo, height: 220, width: double.infinity, fit: BoxFit.cover) : Container(height: 140, color: Colors.white10, child: const Center(child: Text('No photo uploaded', style: TextStyle(color: Colors.white60))))),
-          const SizedBox(height: 16),
-          const Text('ðŸŽ¥ Video she uploaded during registration', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          if (widget.video.isEmpty) Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)), child: const Text('No video found for this nurse - she may not have uploaded one during registration. Ask her to upload one in Nurse Settings.', style: TextStyle(color: Colors.white70)))
-          else if (_ctrl == null && !_failed) Container(height: 220, decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(14)), child: const Center(child: CircularProgressIndicator(color: Colors.white)))
-          else if (_ctrl != null) Column(children: [
-            ClipRRect(borderRadius: BorderRadius.circular(14), child: AspectRatio(aspectRatio: _ctrl!.value.aspectRatio, child: VideoPlayer(_ctrl!))),
-            const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: () { setState(() { _ctrl!.value.isPlaying ? _ctrl!.pause() : _ctrl!.play(); }); }, icon: Icon(_ctrl!.value.isPlaying ? Icons.pause : Icons.play_arrow), label: Text(_ctrl!.value.isPlaying ? 'Pause Video' : 'â–¶ï¸ Play Video'))),
-          ])
-          else ElevatedButton.icon(onPressed: () async { final uri = Uri.parse(widget.video); if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication); }, icon: const Icon(Icons.play_arrow), label: const Text('â–¶ï¸ Open Video Outside App')),
-          const SizedBox(height: 20),
-          SizedBox(width: double.infinity, child: ElevatedButton(onPressed: widget.onSelect, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), padding: const EdgeInsets.symmetric(vertical: 16)), child: Text('âœ… Continue With ${widget.name}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)))),
-          const SizedBox(height: 20),
-        ])),
-    );
+  // With placeholders: t2('payNowQ', {'currency':'GHS','payNow':'10.00'})
+  static String t2(String lang, String key, Map<String, String> values) {
+    String s = get(lang, key);
+    values.forEach((k, v) { s = s.replaceAll('{$k}', v); });
+    return s;
   }
 }
