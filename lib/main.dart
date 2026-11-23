@@ -323,40 +323,46 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
   bool _obscure = true;
   String _error = '';
   Future<void> _login() async {
+    final loc = AppLocalizations.of(context)!;
     final email = _emailController.text.trim();
     final pass = _passController.text.trim();
-    if (email.isEmpty || pass.isEmpty) { setState(() => _error = 'Enter CEO Email + Password.'); return; }
-    setState(() => _error = 'Logging in as CEO...');
+    if (email.isEmpty || pass.isEmpty) { setState(() => _error = loc.enterCeoEmailPassword); return; }
+    setState(() => _error = loc.loggingInCeo);
     try {
       final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pass);
       final uid = cred.user?.uid ?? '';
-      if (uid.isEmpty) { setState(() => _error = 'Login failed. Try again.'); return; }
+      if (uid.isEmpty) { setState(() => _error = loc.loginFailedTryAgain); return; }
       bool isCeo = false;
       try { for (final col in ['ceoAccess', 'admins', 'ceos']) { final doc = await FirebaseFirestore.instance.collection(col).doc(uid).get(); if (doc.exists) { isCeo = true; break; } } } catch (_) { isCeo = true; }
-      if (!isCeo) { await FirebaseAuth.instance.signOut(); setState(() => _error = 'This account is not a CEO account. Contact admin.'); return; }
+      if (!isCeo) { await FirebaseAuth.instance.signOut(); setState(() => _error = loc.notCeoAccount); return; }
       if (!mounted) return;
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CEODashboardScreen()));
     } on FirebaseAuthException catch (e) {
-      String msg = e.message ?? 'Login failed';
-      if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') { msg = 'Wrong CEO Email or Password.'; } else if (e.code == 'too-many-requests') { msg = 'Too many tries. Wait 10 mins.'; }
+      String msg = e.message ?? loc.loginFailed;
+      if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') { msg = loc.wrongCeoEmailPassword; } else if (e.code == 'too-many-requests') { msg = loc.tooManyTries; }
       setState(() => _error = msg);
-    } catch (e) { setState(() => _error = 'CEO login failed: $e'); }
+    } catch (e) { setState(() => _error = '${loc.ceoLoginFailed} $e'); }
   }
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFFFCE4EC),
-      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, title: Text(loc.ceoDashboard), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))),
+      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, title: Text(loc.ceoAccess), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))),
       body: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(24), child: Container(constraints: const BoxConstraints(maxWidth: 400), padding: const EdgeInsets.all(24), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)), child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Text('💜', style: TextStyle(fontSize: 50)), const SizedBox(height: 8),
-        Text(loc.ceoDashboard, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), const SizedBox(height: 20),
-        TextField(controller: _emailController, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: loc.email, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.email))),
+        Text(loc.ceoOnly, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 6),
+        Text(loc.loginCeoFirebase, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        const SizedBox(height: 20),
+        TextField(controller: _emailController, keyboardType: TextInputType.emailAddress, decoration: InputDecoration(labelText: loc.ceoEmail, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.email))),
         const SizedBox(height: 12),
-        TextField(controller: _passController, obscureText: _obscure, decoration: InputDecoration(labelText: loc.password, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure))), onSubmitted: (_) => _login()),
+        TextField(controller: _passController, obscureText: _obscure, decoration: InputDecoration(labelText: loc.ceoPassword, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure))), onSubmitted: (_) => _login()),
         if (_error.isNotEmpty) ...[const SizedBox(height: 10), Text(_error, style: const TextStyle(color: Colors.red))],
         const SizedBox(height: 16),
-        SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _login, child: Text(loc.login))),
+        SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _login, child: Text(loc.enterDashboard))),
+        const SizedBox(height: 12),
+        Text(loc.forgotCeoHint, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, fontSize: 11)),
       ])))),
     );
   }
@@ -392,7 +398,9 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       content: Column(mainAxisSize: MainAxisSize.min, children: [
         Text(loc.trustedCare, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        Text(loc.emergencyDisclaimer, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
+        Text(loc.welcomeNurseVerified, textAlign: TextAlign.center, style: const TextStyle(fontSize: 13)),
+        const SizedBox(height: 12),
+        Text(loc.welcomeEmergency, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
       ]),
       actions: [Center(child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12)), child: Text(loc.start, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))],
     ));
@@ -403,13 +411,21 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(loc.howItWorksTitle, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
       content: SingleChildScrollView(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-        Text(loc.emergencyDisclaimer),
+        Text(loc.emergencyDisclaimerTitle, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+        const SizedBox(height: 4),
+        Text(loc.emergencyDisclaimerBody),
         const SizedBox(height: 10),
-        Text(loc.iAmNurse, style: const TextStyle(fontWeight: FontWeight.bold)),
-        Text(loc.nurseSub),
+        Text(loc.howNurseTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(loc.howNurseBody),
         const SizedBox(height: 10),
-        Text(loc.iAmClient, style: const TextStyle(fontWeight: FontWeight.bold)),
-        Text(loc.clientSub),
+        Text(loc.howClientTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(loc.howClientBody),
+        const SizedBox(height: 10),
+        Text(loc.howSecurityTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(loc.howSecurityBody),
+        const SizedBox(height: 10),
+        Text(loc.howCeoTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(loc.howCeoBody),
       ])),
       actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(loc.close))],
     ));
@@ -448,12 +464,12 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
           _actionCard('❤️', loc.iAmClient, loc.clientSub, () => Navigator.pushNamed(context, '/client-registration')),
           const SizedBox(height: 20),
           Wrap(alignment: WrapAlignment.center, spacing: 12, children: [
-            TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: Text(loc.terms, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-            TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: Text(loc.privacyPolicy, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-            TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: Text(loc.community, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-            TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: Text(loc.refund, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-            TextButton(onPressed: () => Navigator.pushNamed(context, '/health-disclaimer'), child: Text(loc.health, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-            TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: Text(loc.deleteAccount, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+            TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: Text(loc.termsShort, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+            TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: Text(loc.privacyShort, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+            TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: Text(loc.communityShort, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+            TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: Text(loc.refundShort, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+            TextButton(onPressed: () => Navigator.pushNamed(context, '/health-disclaimer'), child: Text(loc.healthShort, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+            TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: Text(loc.deleteAccountShort, style: const TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
           ]),
           const SizedBox(height: 10),
           const Text('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.white60, fontSize: 11)),
@@ -474,7 +490,7 @@ class _LoveCareDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context)!;
     return Drawer(backgroundColor: const Color(0xFFFCE4EC), child: ListView(padding: EdgeInsets.zero, children: [
-      DrawerHeader(decoration: const BoxDecoration(color: Color(0xFF880E4F)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text('💜', style: TextStyle(fontSize: 36)), SizedBox(height: 6), Text('LOVE CARE GLOBAL', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), SizedBox(height: 4), Text('Trusted Care, With Love\nAccra, Ghana', style: TextStyle(color: Colors.white70, fontSize: 12))])),
+      DrawerHeader(decoration: const BoxDecoration(color: Color(0xFF880E4F)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('💜', style: TextStyle(fontSize: 36)), const SizedBox(height: 6), const Text('LOVE CARE GLOBAL', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 4), Text('${loc.trustedCare}\nAccra, Ghana', style: const TextStyle(color: Colors.white70, fontSize: 12))])),
       _tile(context, Icons.home, loc.home, () => _go(context, '/home')),
       _tile(context, Icons.rocket_launch, loc.getStarted, () => _go(context, '/auth-choice')),
       _tile(context, Icons.sos, loc.sos, () => _go(context, '/sos')),
@@ -526,9 +542,9 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
   Uint8List? _base64ToBytes(String s) { try { var clean = s.trim(); if (clean.contains(',')) clean = clean.split(',').last; if (clean.length > 2000000) return null; return base64Decode(clean); } catch (_) { return null; } }
   Widget _mediaWidget(String url) {
     if (url.isEmpty) return const SizedBox.shrink();
-    if (url.startsWith('http')) { return ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.network(url, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: double.infinity, height: 120, color: Colors.black26, child: const Center(child: Text('🎥 CEO Video / Photo', style: TextStyle(color: Colors.white)))))); }
+    if (url.startsWith('http')) { return ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.network(url, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: double.infinity, height: 120, color: Colors.black26, child: Center(child: Text(AppLocalizations.of(context)!.ceoVideoPhoto, style: const TextStyle(color: Colors.white)))))); }
     if (url.startsWith('data:image')) { final bytes = _base64ToBytes(url); if (bytes != null) { return ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.memory(bytes, width: double.infinity, fit: BoxFit.cover)); } }
-    return Container(width: double.infinity, height: 120, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: const Center(child: Text('🎥 CEO Video Announcement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))));
+    return Container(width: double.infinity, height: 120, decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: Center(child: Text(AppLocalizations.of(context)!.ceoVideoAnnouncement, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))));
   }
   @override
   Widget build(BuildContext context) {
@@ -538,6 +554,7 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
     return Column(children: [for (final b in show) _onePost(b)]);
   }
   Widget _onePost(Map b) {
+    final loc = AppLocalizations.of(context)!;
     final text = (b['text'] ?? b['message'] ?? b['title'] ?? b['announcement'] ?? '').toString();
     final displayType = (b['displayType'] ?? 'marquee_slow').toString();
     final speed = (b['speed'] ?? 'slow').toString();
@@ -551,11 +568,11 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
     final isStatic = displayType == 'static';
     final isFast = speed == 'fast' || displayType == 'marquee_fast';
     return Container(width: double.infinity, margin: const EdgeInsets.fromLTRB(20, 16, 20, 0), padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white24)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [const Expanded(child: Text('📢 CEO ANNOUNCEMENT', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold))), if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white54, fontSize: 10))]),
+      Row(children: [Expanded(child: Text(loc.ceoAnnouncement, style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold))), if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white54, fontSize: 10))]),
       const SizedBox(height: 8),
       for (final url in imageUrls) ...[_mediaWidget(url), const SizedBox(height: 10)],
       if (text.isNotEmpty) isStatic ? Text(text, style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w600, height: 1.4), softWrap: true, maxLines: null, overflow: TextOverflow.visible) : _MovingText(text: text, color: textColor, fast: isFast),
-      for (final url in videoUrls) ...[const SizedBox(height: 8), Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: Text('🎥 Video attached (${videoUrls.length}) - see CEO Control', style: const TextStyle(color: Colors.white70, fontSize: 11)))],
+      for (final url in videoUrls) ...[const SizedBox(height: 8), Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: Text('🎥 ${loc.videoAttached} (${videoUrls.length}) - ${loc.seeCeoControl}', style: const TextStyle(color: Colors.white70, fontSize: 11)))],
     ]));
   }
 }
