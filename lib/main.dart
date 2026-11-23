@@ -7,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
+import 'language_service.dart';
+import 'select_language_screen.dart';
 import 'screens/auth_choice.dart';
 import 'screens/auth_choice_page.dart';
 import 'screens/client_login.dart';
@@ -53,17 +55,14 @@ import 'package:firebase_database/firebase_database.dart';
 // Client pays 20% CEO fee in app. Nurse cash 80% paid CASH by client after work. CEO never pays nurse.
 import 'screens/alert_settings.dart';
 import 'screens/book_nurse.dart';
-// import 'screens/book_nurse_50.dart'; // DELETED - old 50% booking
 import 'screens/client_complaint.dart';
 import 'screens/client_dashboard.dart';
 import 'screens/client_settings.dart';
-// import 'screens/increase_payment.dart'; // DELETED - old 50% top-up
 import 'screens/my_bookings.dart';
 import 'screens/my_job_offer.dart';
 import 'screens/nurse_complaint.dart';
 import 'screens/nurse_dashboard.dart';
 import 'screens/nurse_settings.dart';
-// import 'screens/nurse_withdrawal.dart'; // DELETED - old CEO-pays-nurse
 import 'screens/rating.dart';
 import 'screens/refund_query.dart';
 import 'screens/sos.dart';
@@ -124,9 +123,6 @@ Future<void> _setupFCM() async {
 }
 
 // ===== FIX FOR reCAPTCHA SPINNING / OTP NEVER COMES - NEW =====
-// ALSO DO IN CONSOLE (once): Firebase Console > App Check > Android > Play Integrity ON
-// + Google Cloud > Enable Play Integrity API + Android Device Verification.
-// + Keep GitHub SHAs in Firebase: SHA-1 B3:88:7A... / SHA-256 E6:D1:6A... + Play Signing SHAs.
 Future<void> _setupPhoneAuthNoRecaptcha() async {
   try {
     try {
@@ -150,7 +146,6 @@ Future<void> _setupPhoneAuthNoRecaptcha() async {
 /// Helper - use this everywhere you send OTP, instead of raw verifyPhoneNumber
 class PhoneAuthHelper {
   static bool _sending = false;
-
   static Future<void> sendOtp({
     required String phone,
     required void Function(String verificationId, int? resendToken) onCodeSent,
@@ -214,6 +209,9 @@ void main() async {
   _setupCeoAutoRing();
   await _setupFCM();
   await ApkAlerts.init();
+  // LANGUAGE: Load saved language (Client / Nurse / CEO) BEFORE app starts
+  // If user picked Yoruba before, app go start for Yoruba, no need pick again
+  try { await LanguageService.instance.loadSaved(); } catch (_) {}
   runApp(const LoveCareApp());
 }
 
@@ -221,142 +219,152 @@ class LoveCareApp extends StatelessWidget {
   const LoveCareApp({super.key});
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Love Care Global',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        primaryColor: const Color(0xFF880E4F),
-        scaffoldBackgroundColor: const Color(0xFF4A0A26),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF880E4F),
-          secondary: Color(0xFFAD1457),
-          surface: Color(0xFF4A0A26),
-          onPrimary: Colors.white,
-          onSecondary: Colors.white,
-          onSurface: Colors.white,
+    final lang = LanguageService.instance;
+    // LANGUAGE GLOBAL: When language changes, rebuild WHOLE MaterialApp
+    // That na why ALL pages change at once - Home, Book Nurse, Dashboards, Settings
+    return ListenableBuilder(
+      listenable: lang,
+      builder: (_, __) => MaterialApp(
+        title: 'Love Care Global',
+        debugShowCheckedModeBanner: false,
+        locale: lang.locale,
+        theme: ThemeData(
+          useMaterial3: true,
+          brightness: Brightness.dark,
+          primaryColor: const Color(0xFF880E4F),
+          scaffoldBackgroundColor: const Color(0xFF4A0A26),
+          colorScheme: const ColorScheme.dark(
+            primary: Color(0xFF880E4F),
+            secondary: Color(0xFFAD1457),
+            surface: Color(0xFF4A0A26),
+            onPrimary: Colors.white,
+            onSecondary: Colors.white,
+            onSurface: Colors.white,
+          ),
+          textTheme: const TextTheme(
+            bodyLarge: TextStyle(color: Colors.white),
+            bodyMedium: TextStyle(color: Colors.white),
+            bodySmall: TextStyle(color: Colors.white70),
+            titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            titleMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            titleSmall: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            labelLarge: TextStyle(color: Colors.white),
+            labelMedium: TextStyle(color: Colors.white),
+          ),
+          appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white, elevation: 0),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          ),
+          textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFFF8BBD0))),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: const Color(0xFF5C1230),
+            hintStyle: const TextStyle(color: Colors.white60),
+            labelStyle: const TextStyle(color: Color(0xFFF8BBD0)),
+            enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF8BBD0)), borderRadius: BorderRadius.circular(8)),
+            focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF8BBD0)), borderRadius: BorderRadius.circular(8)),
+          ),
+          cardTheme: const CardThemeData(color: Color(0xFF5C1230)),
+          dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF4A0A26), titleTextStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18), contentTextStyle: TextStyle(color: Colors.white)),
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white),
+          bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF4A0A26), selectedItemColor: Color(0xFFF8BBD0), unselectedItemColor: Colors.white60),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Colors.white),
-          bodyMedium: TextStyle(color: Colors.white),
-          bodySmall: TextStyle(color: Colors.white70),
-          titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          titleMedium: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          titleSmall: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-          labelLarge: TextStyle(color: Colors.white),
-          labelMedium: TextStyle(color: Colors.white),
-        ),
-        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white, elevation: 0),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, minimumSize: const Size(0, 48), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-        ),
-        textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: const Color(0xFFF8BBD0))),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF5C1230),
-          hintStyle: const TextStyle(color: Colors.white60),
-          labelStyle: const TextStyle(color: Color(0xFFF8BBD0)),
-          enabledBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF8BBD0)), borderRadius: BorderRadius.circular(8)),
-          focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Color(0xFFF8BBD0)), borderRadius: BorderRadius.circular(8)),
-        ),
-        cardTheme: const CardThemeData(color: Color(0xFF5C1230)),
-        dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF4A0A26), titleTextStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18), contentTextStyle: TextStyle(color: Colors.white)),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(backgroundColor: Color(0xFF880E4F), foregroundColor: Colors.white),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF4A0A26), selectedItemColor: Color(0xFFF8BBD0), unselectedItemColor: Colors.white60),
-        iconTheme: const IconThemeData(color: Colors.white),
+        home: const StartupGate(),
+        routes: {
+          '/auth-choice': (context) => const AuthChoicePage(),
+          '/client-login': (context) => const ClientLoginPage(),
+          '/client-registration': (context) => const ClientRegistrationPage(),
+          '/nurse-login': (context) => const NurseLoginPage(),
+          '/nurse-registration': (context) => const NurseRegistrationPage(),
+          '/community': (context) => const CommunityGuidelinesPage(),
+          '/privacy': (context) => const PrivacyPolicyPage(),
+          '/refund': (context) => const RefundPolicyPage(),
+          '/delete-account': (context) => const DeleteAccountPolicyPage(),
+          '/terms': (context) => const TermsAndConditionsPage(),
+          '/health-disclaimer': (context) => const HealthDisclaimerPage(),
+          '/home': (context) => const LoveCareHomePage(),
+          '/language': (context) => const SelectLanguageScreen(),
+          '/lc-ceo-9x7k2q-2026': (context) => const CEOPasswordGate(),
+          '/ceo-control': (context) => const CeoControlPage(),
+          '/ceo-bookings-progress': (context) => const CEOBookingProgressScreen(),
+          '/ceo-complainant': (context) => const CEOComplainantScreen(),
+          '/ceo-control-chat': (context) => const CEOControlChatScreen(),
+          '/ceo-control-pricing': (context) => const CEOControlPricingScreen(),
+          '/ceo-finance': (context) => const CEOFinanceScreen(),
+          '/ceo-notification-room': (context) => const CEONotificationRoomScreen(),
+          '/ceo-penalize': (context) => const CEOPenalizeScreen(),
+          '/ceo-refund-management': (context) => const CEORefundManagementScreen(),
+          '/ceo-registration-center': (context) => const CEORegistrationCenterScreen(),
+          '/hr-page': (context) => const HRPageScreen(),
+          '/staff-login': (context) => StaffLoginPage(),
+          '/ceo-login': (context) => StaffLoginPage(),
+          '/create-access': (context) => CEOCreateAccessPage(),
+          '/ceo-create-access': (context) => CEOCreateAccessPage(),
+          '/staff-visits': (context) => StaffVisitsMonitorPage(),
+          '/staff-visits-monitor': (context) => StaffVisitsMonitorPage(),
+          '/ceo-notifications': (context) => StaffVisitsMonitorPage(),
+          '/force-delete': (context) => CEOForceWipeEmailPage(),
+          '/sound-settings': (context) => SoundSettingsScreen(),
+          '/ceo-dashboard': (context) => const CEOPasswordGate(),
+          '/chat-room': (context) => const ChatRoomScreen(),
+          '/nurse-group-chat': (context) => const NurseGroupChatScreen(),
+          '/alert-settings': (context) => const AlertSettingsScreen(),
+          '/book-nurse': (context) => const BookNurseScreen(),
+          '/client-dashboard': (context) => ClientDashboardScreen(),
+          '/client-settings': (context) => const ClientSettingsScreen(),
+          '/my-bookings': (context) => MyBookingsScreen(),
+          '/my-job-offer': (context) => const MyJobOfferScreen(),
+          '/my-job-offers': (context) => const MyJobOfferScreen(),
+          '/nurse-settings': (context) => const NurseSettingsScreen(),
+          '/nurse-dashboard': (context) => const NurseDashboardScreen(),
+          '/rating': (context) => const RatingScreen(),
+          '/refund-query': (context) => const RefundQueryScreen(),
+          '/sos': (context) => const SOSScreen(),
+        },
+        onGenerateRoute: (settings) {
+          final args = settings.arguments;
+          final routePath = Uri.tryParse(settings.name ?? '')?.path ?? settings.name;
+          switch (routePath) {
+            case '/staff-login':
+            case '/ceo-login':
+              return MaterialPageRoute(builder: (_) => StaffLoginPage(), settings: settings);
+            case '/create-access':
+            case '/ceo-create-access':
+              return MaterialPageRoute(builder: (_) => CEOCreateAccessPage(), settings: settings);
+            case '/staff-visits':
+            case '/staff-visits-monitor':
+            case '/ceo-notifications':
+              return MaterialPageRoute(builder: (_) => StaffVisitsMonitorPage(), settings: settings);
+            case '/force-delete':
+              return MaterialPageRoute(builder: (_) => CEOForceWipeEmailPage(), settings: settings);
+            case '/sound-settings':
+              return MaterialPageRoute(builder: (_) => SoundSettingsScreen(), settings: settings);
+            case '/my-job-offer':
+            case '/my-job-offers':
+              return MaterialPageRoute(builder: (_) => const MyJobOfferScreen(), settings: settings);
+            case '/nurse-settings':
+              return MaterialPageRoute(builder: (_) => const NurseSettingsScreen(), settings: settings);
+            case '/ceo-dashboard':
+              return MaterialPageRoute(builder: (_) => const CEOPasswordGate(), settings: settings);
+            case '/ceo-live-tracking-map':
+              return MaterialPageRoute(builder: (_) => CEOLiveTrackingMapScreen(params: args is Map<String, dynamic> ? args : null));
+            case '/client-complaint':
+              return MaterialPageRoute(builder: (_) => ClientComplaintScreen(params: args is Map<String, dynamic> ? args : null));
+            case '/nurse-complaint':
+              return MaterialPageRoute(builder: (_) => NurseComplaintScreen(params: args is Map<String, dynamic> ? args : null));
+            case '/alert-settings-role':
+              return MaterialPageRoute(builder: (_) => AlertSettingsScreen(role: args is String ? args : null));
+            case '/health-disclaimer':
+              return MaterialPageRoute(builder: (_) => const HealthDisclaimerPage(), settings: settings);
+            case '/language':
+              return MaterialPageRoute(builder: (_) => const SelectLanguageScreen(), settings: settings);
+            default:
+              return null;
+          }
+        },
+        onUnknownRoute: (settings) => MaterialPageRoute(builder: (context) => const LoveCareHomePage()),
       ),
-      home: const StartupGate(),
-      routes: {
-        '/auth-choice': (context) => const AuthChoicePage(),
-        '/client-login': (context) => const ClientLoginPage(),
-        '/client-registration': (context) => const ClientRegistrationPage(),
-        '/nurse-login': (context) => const NurseLoginPage(),
-        '/nurse-registration': (context) => const NurseRegistrationPage(),
-        '/community': (context) => const CommunityGuidelinesPage(),
-        '/privacy': (context) => const PrivacyPolicyPage(),
-        '/refund': (context) => const RefundPolicyPage(),
-        '/delete-account': (context) => const DeleteAccountPolicyPage(),
-        '/terms': (context) => const TermsAndConditionsPage(),
-        '/health-disclaimer': (context) => const HealthDisclaimerPage(),
-        '/home': (context) => const LoveCareHomePage(),
-        '/lc-ceo-9x7k2q-2026': (context) => const CEOPasswordGate(),
-        '/ceo-control': (context) => const CeoControlPage(),
-        '/ceo-bookings-progress': (context) => const CEOBookingProgressScreen(),
-        '/ceo-complainant': (context) => const CEOComplainantScreen(),
-        '/ceo-control-chat': (context) => const CEOControlChatScreen(),
-        '/ceo-control-pricing': (context) => const CEOControlPricingScreen(),
-        '/ceo-finance': (context) => const CEOFinanceScreen(),
-        '/ceo-notification-room': (context) => const CEONotificationRoomScreen(),
-        '/ceo-penalize': (context) => const CEOPenalizeScreen(),
-        '/ceo-refund-management': (context) => const CEORefundManagementScreen(),
-        '/ceo-registration-center': (context) => const CEORegistrationCenterScreen(),
-        '/hr-page': (context) => const HRPageScreen(),
-        '/staff-login': (context) => StaffLoginPage(),
-        '/ceo-login': (context) => StaffLoginPage(),
-        '/create-access': (context) => CEOCreateAccessPage(),
-        '/ceo-create-access': (context) => CEOCreateAccessPage(),
-        '/staff-visits': (context) => StaffVisitsMonitorPage(),
-        '/staff-visits-monitor': (context) => StaffVisitsMonitorPage(),
-        '/ceo-notifications': (context) => StaffVisitsMonitorPage(),
-        '/force-delete': (context) => CEOForceWipeEmailPage(),
-        '/sound-settings': (context) => SoundSettingsScreen(),
-        '/ceo-dashboard': (context) => const CEOPasswordGate(),
-        '/chat-room': (context) => const ChatRoomScreen(),
-        '/nurse-group-chat': (context) => const NurseGroupChatScreen(),
-        '/alert-settings': (context) => const AlertSettingsScreen(),
-        '/book-nurse': (context) => const BookNurseScreen(),
-        '/client-dashboard': (context) => ClientDashboardScreen(),
-        '/client-settings': (context) => const ClientSettingsScreen(),
-        '/my-bookings': (context) => MyBookingsScreen(),
-        '/my-job-offer': (context) => const MyJobOfferScreen(),
-        '/my-job-offers': (context) => const MyJobOfferScreen(),
-        '/nurse-settings': (context) => const NurseSettingsScreen(),
-        '/nurse-dashboard': (context) => const NurseDashboardScreen(),
-        '/rating': (context) => const RatingScreen(),
-        '/refund-query': (context) => const RefundQueryScreen(),
-        '/sos': (context) => const SOSScreen(),
-      },
-      onGenerateRoute: (settings) {
-        final args = settings.arguments;
-        final routePath = Uri.tryParse(settings.name ?? '')?.path ?? settings.name;
-        switch (routePath) {
-          case '/staff-login':
-          case '/ceo-login':
-            return MaterialPageRoute(builder: (_) => StaffLoginPage(), settings: settings);
-          case '/create-access':
-          case '/ceo-create-access':
-            return MaterialPageRoute(builder: (_) => CEOCreateAccessPage(), settings: settings);
-          case '/staff-visits':
-          case '/staff-visits-monitor':
-          case '/ceo-notifications':
-            return MaterialPageRoute(builder: (_) => StaffVisitsMonitorPage(), settings: settings);
-          case '/force-delete':
-            return MaterialPageRoute(builder: (_) => CEOForceWipeEmailPage(), settings: settings);
-          case '/sound-settings':
-            return MaterialPageRoute(builder: (_) => SoundSettingsScreen(), settings: settings);
-          case '/my-job-offer':
-          case '/my-job-offers':
-            return MaterialPageRoute(builder: (_) => const MyJobOfferScreen(), settings: settings);
-          case '/nurse-settings':
-            return MaterialPageRoute(builder: (_) => const NurseSettingsScreen(), settings: settings);
-          case '/ceo-dashboard':
-            return MaterialPageRoute(builder: (_) => const CEOPasswordGate(), settings: settings);
-          case '/ceo-live-tracking-map':
-            return MaterialPageRoute(builder: (_) => CEOLiveTrackingMapScreen(params: args is Map<String, dynamic> ? args : null));
-          case '/client-complaint':
-            return MaterialPageRoute(builder: (_) => ClientComplaintScreen(params: args is Map<String, dynamic> ? args : null));
-          case '/nurse-complaint':
-            return MaterialPageRoute(builder: (_) => NurseComplaintScreen(params: args is Map<String, dynamic> ? args : null));
-          case '/alert-settings-role':
-            return MaterialPageRoute(builder: (_) => AlertSettingsScreen(role: args is String ? args : null));
-          case '/health-disclaimer':
-            return MaterialPageRoute(builder: (_) => const HealthDisclaimerPage(), settings: settings);
-          default:
-            return null;
-        }
-      },
-      onUnknownRoute: (settings) => MaterialPageRoute(builder: (context) => const LoveCareHomePage()),
     );
   }
 }
@@ -572,12 +580,13 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
     });
   }
   void _showWelcomePopup() {
+    final lang = LanguageService.instance;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('💜 Welcome to Love Care Global', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('💜 ${lang.t('welcome')}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -628,92 +637,107 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
   }
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF4A0A26),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF880E4F),
-        foregroundColor: Colors.white,
-        title: const Text('💜 Love Care Global', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        centerTitle: false,
-      ),
-      drawer: const _LoveCareDrawer(),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
-              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF880E4F), Color(0xFFC2185B)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: _handleSecretTap,
-                    child: const Column(children: [Text('💜', style: TextStyle(fontSize: 50)), Text('LOVE CARE GLOBAL', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))]),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('Trusted Care, With Love', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                  const SizedBox(height: 8),
-                  const Text('Tap ☰ top-left to see all Policies', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                  const SizedBox(height: 20),
-                  const Text('CEO-verified Nurses. Safe Clients. No Fake Accounts.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 13)),
-                  const SizedBox(height: 24),
-                  SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/auth-choice'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('GET STARTED →', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)))),
-                  const SizedBox(height: 12),
-                  SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _showAboutPopup, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('How It Works ❓', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
-                ],
-              ),
-            ),
-            Container(
-              width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF3E0),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFFF9800)),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('⚠️', style: TextStyle(fontSize: 18)),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'EMERGENCY DISCLAIMER: This app does NOT provide emergency medical services. For emergencies, call Ambulance / 112 or go to the nearest hospital immediately.\nLove Care Global connects you to verified nurses for non-emergency home care only.',
-                      style: TextStyle(color: Color(0xFF4E342E), fontSize: 12, fontWeight: FontWeight.w600, height: 1.4),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const _CeoAnnouncementBanner(),
-            const SizedBox(height: 20),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  _actionCard('🩺', 'I am a NURSE', 'Register / Login - CEO Approval Required', () => Navigator.pushNamed(context, '/nurse-registration')),
-                  const SizedBox(height: 12),
-                  _actionCard('❤️', 'I am a CLIENT', 'Register / Login - Verify Email, Login Immediately', () => Navigator.pushNamed(context, '/client-registration')),
-                  const SizedBox(height: 20),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 12,
-                    children: [
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: const Text('Terms', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const Text('Privacy', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const Text('Community', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const Text('Refund', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/health-disclaimer'), child: const Text('Health', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                      TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const Text('Delete Account', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  const Text('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.white60, fontSize: 11)),
-                  const SizedBox(height: 20),
-                ],
-              ),
+    final lang = LanguageService.instance;
+    return ListenableBuilder(
+      listenable: lang,
+      builder: (_, __) => Scaffold(
+        backgroundColor: const Color(0xFF4A0A26),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF880E4F),
+          foregroundColor: Colors.white,
+          title: const Text('💜 Love Care Global', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          centerTitle: false,
+          actions: [
+            // LANGUAGE BUTTON - Top right, Client / Nurse / Guest fit change am here
+            TextButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/language'),
+              icon: const Icon(Icons.language, color: Colors.white),
+              label: Text(lang.code.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
+        ),
+        drawer: const _LoveCareDrawer(),
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 30, 20, 30),
+                decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF880E4F), Color(0xFFC2185B)], begin: Alignment.topLeft, end: Alignment.bottomRight), borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30))),
+                child: Column(
+                  children: [
+                    GestureDetector(
+                      onTap: _handleSecretTap,
+                      child: const Column(children: [Text('💜', style: TextStyle(fontSize: 50)), Text('LOVE CARE GLOBAL', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))]),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Trusted Care, With Love', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                    const SizedBox(height: 8),
+                    const Text('Tap ☰ top-left to see all Policies', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 20),
+                    const Text('CEO-verified Nurses. Safe Clients. No Fake Accounts.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 13)),
+                    const SizedBox(height: 24),
+                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/auth-choice'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('GET STARTED →', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)))),
+                    const SizedBox(height: 12),
+                    SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _showAboutPopup, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('How It Works ❓', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+                    const SizedBox(height: 12),
+                    // LANGUAGE BUTTON FOR HOME TOO
+                    SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, '/language'), icon: const Icon(Icons.language, color: Colors.white), label: Text('🌐 ${lang.t('language')} - ${lang.code.toUpperCase()}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
+                  ],
+                ),
+              ),
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3E0),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFFF9800)),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('⚠️', style: TextStyle(fontSize: 18)),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'EMERGENCY DISCLAIMER: This app does NOT provide emergency medical services. For emergencies, call Ambulance / 112 or go to the nearest hospital immediately.\nLove Care Global connects you to verified nurses for non-emergency home care only.',
+                        style: TextStyle(color: Color(0xFF4E342E), fontSize: 12, fontWeight: FontWeight.w600, height: 1.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const _CeoAnnouncementBanner(),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    _actionCard('🩺', 'I am a NURSE', 'Register / Login - CEO Approval Required', () => Navigator.pushNamed(context, '/nurse-registration')),
+                    const SizedBox(height: 12),
+                    _actionCard('❤️', 'I am a CLIENT', 'Register / Login - Verify Email, Login Immediately', () => Navigator.pushNamed(context, '/client-registration')),
+                    const SizedBox(height: 20),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 12,
+                      children: [
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: const Text('Terms', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const Text('Privacy', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const Text('Community', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const Text('Refund', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/health-disclaimer'), child: const Text('Health', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const Text('Delete Account', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    const Text('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -738,9 +762,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 }
 
 // ================= DRAWER MENU - ALL POLICIES IN ONE PLACE - PLAY STORE =================
-// Google tester taps ☰ top-left and sees EVERY policy without searching.
-// All 6 policies + Home + Get Started + SOS.
-// BOOK A NURSE REMOVED FROM DRAWER - Guest must login as Client first, to guarantee booking connects to Nurse + CEO.
 class _LoveCareDrawer extends StatelessWidget {
   const _LoveCareDrawer();
   void _go(BuildContext context, String route) {
@@ -751,6 +772,7 @@ class _LoveCareDrawer extends StatelessWidget {
   }
   @override
   Widget build(BuildContext context) {
+    final lang = LanguageService.instance;
     return Drawer(
       backgroundColor: const Color(0xFFFCE4EC),
       child: ListView(
@@ -772,6 +794,13 @@ class _LoveCareDrawer extends StatelessWidget {
           _tile(context, Icons.home, 'Home', () => _go(context, '/home')),
           _tile(context, Icons.rocket_launch, 'Get Started', () => _go(context, '/auth-choice')),
           _tile(context, Icons.sos, 'SOS / Emergency', () => _go(context, '/sos')),
+          // LANGUAGE FOR DRAWER TOO - Client / Nurse fit change from anywhere
+          ListTile(
+            leading: const Icon(Icons.language, color: Color(0xFF880E4F)),
+            title: Text('🌐 ${lang.t('language')} (${lang.code.toUpperCase()})', style: const TextStyle(color: Color(0xFF4A0A26), fontWeight: FontWeight.w600, fontSize: 14)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF880E4F)),
+            onTap: () => _go(context, '/language'),
+          ),
           const Divider(),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
