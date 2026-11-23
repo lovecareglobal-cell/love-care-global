@@ -4,49 +4,41 @@ class TermsAndConditionsPage extends StatelessWidget {
   const TermsAndConditionsPage({super.key});
   @override
   Widget build(BuildContext context) {
-    return _PolicyScaffold(
-      title: 'Terms & Conditions',
-      updated: 'Last Updated: 12 November 2026',
-      sections: const [
-        _Section('1. Welcome to Love Care Global', 'By using Love Care Global App, you agree to these Terms. If you do not agree, please do not use the App. Love Care Global connects Clients who need care with verified Nurses, Caregivers and Health Workers in Ghana and beyond.'),
-        _Section('2. Who Can Use The App', 'You must be 18 years or older. Nurses must provide valid ID, Nursing Council / Health Training Certificate, and proof of qualification. Clients must provide accurate name, phone, location and care needs. Fake accounts will be deleted.'),
-        _Section('3. Services We Provide', 'Home nursing, elderly care, baby / post-natal care, hospital accompaniment, wound care, vital signs monitoring, medication reminders, and companionship. We do NOT provide emergency ambulance service. For emergencies, call 112 / 193 or go to nearest hospital.'),
-        _Section('4. Booking & Payment', 'Client books a Nurse, pays via Mobile Money, Paystack, Stripe or Flutterwave. Payment is held safely until Client confirms work is completed. Nurse is paid after Client confirmation minus Love Care Global service fee. Prices shown in GHS are final unless CEO approves a change.'),
-        _Section('5. Nurse Duties', 'Nurse must arrive on time, dress professionally, be respectful, follow care plan, NOT ask Client for extra cash outside App, NOT share Client private info, and update booking status: Accepted > On The Way > Close > Completed.'),
-        _Section('6. Client Duties', 'Client must provide safe working environment, accurate location, respect Nurse, pay only through App, and confirm completion honestly. Client must NOT harass, abuse or request services outside care scope.'),
-        _Section('7. Cancellation', 'Client can cancel before Nurse accepts for full refund. After Nurse accepts, 20% fee may apply. If Nurse cancels without reason, Nurse may be penalized. See Cancellation & Refund Policy.'),
-        _Section('8. Safety & SOS', 'Both Nurse and Client have SOS button. SOS alerts CEO, nearest Nurse and Emergency Contact with live location. Misuse of SOS is punishable.'),
-        _Section('9. Ratings & Complaints', 'After every job, Client rates Nurse 1-5 stars. Complaints are reviewed by CEO within 48 hours. CEO decision is final.'),
-        _Section('10. Account Termination', 'We may suspend or delete any account for fraud, abuse, fake documents, harassment, or breaking these Terms. See Delete Policy.'),
-        _Section('11. Liability', 'Love Care Global is a platform connecting Nurses and Clients. We verify Nurses, but we are not liable for medical outcomes beyond our control. Nurses are responsible for their professional care.'),
-        _Section('12. Changes', 'We may update these Terms. Continued use means you accept new Terms. Contact: support@lovecareglobal.com | Accra, Ghana.'),
-      ],
-    );
-  }
-}
-
-// Shared UI for all policy pages - reuse it
-class _Section { final String title; final String body; const _Section(this.title, this.body); }
-
-class _PolicyScaffold extends StatelessWidget {
-  final String title; final String updated; final List<_Section> sections;
-  const _PolicyScaffold({required this.title, required this.updated, required this.sections});
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0C0A1E),
-      appBar: AppBar(backgroundColor: const Color(0xFF0C0A1E), title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), leading: IconButton(icon: const Icon(Icons.arrow_back, color: Color(0xFFFACC15)), onPressed: () => Navigator.pop(context))),
+      backgroundColor: const Color(0xFFFCE4EC),
+      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, title: const Text('Terms & Conditions')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFFEF4444), Color(0xFFA855F7)]), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)), const SizedBox(height: 4), Text('Love Care Global • Trusted Care, With Love', style: const TextStyle(color: Colors.white70, fontSize: 12)), const SizedBox(height: 8), Text(updated, style: const TextStyle(color: Colors.white70, fontSize: 11))])),
-          const SizedBox(height: 18),
-          ...sections.map((s) => Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: const Color(0xFF1A1633), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0x14FFFFFF))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(s.title, style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold, fontSize: 14)), const SizedBox(height: 6), Text(s.body, style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5))]))),
-          const SizedBox(height: 10),
-          const Center(child: Text('© 2026 Love Care Global. All rights reserved.', style: TextStyle(color: Color(0xFF9A95B8), fontSize: 11))),
-          const SizedBox(height: 30),
-        ]),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _header('💜 Love Care Global - Terms & Conditions\nLast Updated: 23 Nov 2026'),
+            _section('1. Acceptance'),
+            _card('By using Love Care Global, you agree to these Terms, Privacy Policy, Community Guidelines, Refund Policy and Health Disclaimer. If you do not agree, do not use the app.'),
+            _section('2. Who Can Use'),
+            _card('You must be 18 years or older. Nurses must upload real Photo, Video, Phone, ID and Nursing Certificate and wait for CEO approval. Clients must verify email before login. One person cannot be both Nurse and Client with same phone / email.'),
+            _section('3. Emergency Disclaimer - IMPORTANT'),
+            _card('Love Care Global does NOT provide emergency medical services. We do NOT provide ambulance. For emergencies, call Ambulance / 112 or go to nearest hospital immediately. See full Health Disclaimer page.'),
+            _section('4. Nurses Are Independent, Not Employees'),
+            _card('Nurses are independent caregivers, not employees of Love Care Global. Love Care connects Client and Nurse. Nurse is responsible for the quality of care she / he provides. Love Care does not guarantee medical outcomes.'),
+            _section('5. Payment - 20/80 Rule'),
+            _card('Client pays 20% booking fee inside App to confirm booking. Client pays remaining 80% directly to Nurse AFTER work is finished (cash or MoMo). CEO never holds Nurse earnings. There is NO nurse withdrawal - Nurse already collects 80% from Client.'),
+            _section('6. Cancellations & Refunds'),
+            _card('See Refund Policy page. Only the 20% booking fee is handled by Love Care. 80% paid to Nurse after work is between Client and Nurse, unless Nurse did not show up or did not work - then report for CEO review.'),
+            _section('7. Your Account'),
+            _card('Keep password secret. You are responsible for all activity on your account. If your account is hacked, tell us immediately. We can suspend or delete accounts that break rules, use fake identity, or commit fraud.'),
+            _section('8. Limitation of Liability'),
+            _card('To the maximum allowed by Ghana law, Love Care Global is not liable for indirect loss, or for actions of independent Nurses / Clients. Our liability for any booking is limited to the 20% booking fee paid for that booking.'),
+            _section('9. Governing Law'),
+            _card('These Terms are governed by the laws of Ghana. Any dispute will be settled in Accra, Ghana. First, try to settle by contacting CEO. If not settled, follow Ghana law.'),
+            _section('10. Changes'),
+            _card('We may update these Terms. Updated date will be shown. Continued use means you accept new Terms.'),
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
   }
+  static Widget _header(String t) => Container(width: double.infinity, padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF880E4F))));
+  static Widget _section(String t) => Padding(padding: const EdgeInsets.only(top: 16, bottom: 6), child: Align(alignment: Alignment.centerLeft, child: Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF880E4F)))));
+  static Widget _card(String t) => Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Text(t, style: const TextStyle(fontSize: 13, height: 1.5)));
 }
