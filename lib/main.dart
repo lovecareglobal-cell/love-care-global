@@ -7,9 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
-import 'language_service.dart';
-import 'select_language_screen.dart';
-import 't_text_helper.dart';
 import 'screens/auth_choice.dart';
 import 'screens/auth_choice_page.dart';
 import 'screens/client_login.dart';
@@ -210,9 +207,6 @@ void main() async {
   _setupCeoAutoRing();
   await _setupFCM();
   await ApkAlerts.init();
-  // LANGUAGE: Load saved language (Client / Nurse / CEO) BEFORE app starts
-  // If user picked Yoruba before, app go start for Yoruba, no need pick again
-  try { await LanguageService.instance.loadSaved(); } catch (_) {}
   runApp(const LoveCareApp());
 }
 
@@ -220,27 +214,9 @@ class LoveCareApp extends StatelessWidget {
   const LoveCareApp({super.key});
   @override
   Widget build(BuildContext context) {
-    final lang = LanguageService.instance;
-    // LANGUAGE GLOBAL: When language changes, rebuild WHOLE MaterialApp
-    // That na why ALL pages change at once - Home, Book Nurse, Dashboards, Settings
-    return ListenableBuilder(
-      listenable: lang,
-      builder: (_, __) => MaterialApp(
+    return MaterialApp(
         title: 'Love Care Global',
         debugShowCheckedModeBanner: false,
-        // FIX: Keep Flutter system locale ALWAYS English.
-        // Your Twi/Yoruba/Hausa etc. are CUSTOM texts from LanguageService,
-        // NOT Flutter system locales. Setting locale to 'tw' makes Flutter
-        // look for Twi MaterialLocalizations, fail, and show blank grey screen.
-        // That's why English worked and other languages showed blank.
-        locale: const Locale('en', 'US'),
-        supportedLocales: const [Locale('en', 'US')],
-        // No localizationsDelegates needed because we stay on English.
-        // Arabic = right-to-left, others = left-to-right (for YOUR texts only)
-        builder: (context, child) => Directionality(
-          textDirection: lang.code == 'ar' ? TextDirection.rtl : TextDirection.ltr,
-          child: child!,
-        ),
         theme: ThemeData(
           useMaterial3: true,
           brightness: Brightness.dark,
@@ -297,7 +273,6 @@ class LoveCareApp extends StatelessWidget {
           '/terms': (context) => const TermsAndConditionsPage(),
           '/health-disclaimer': (context) => const HealthDisclaimerPage(),
           '/home': (context) => const LoveCareHomePage(),
-          '/language': (context) => const SelectLanguageScreen(),
           '/lc-ceo-9x7k2q-2026': (context) => const CEOPasswordGate(),
           '/ceo-control': (context) => const CeoControlPage(),
           '/ceo-bookings-progress': (context) => const CEOBookingProgressScreen(),
@@ -370,14 +345,11 @@ class LoveCareApp extends StatelessWidget {
               return MaterialPageRoute(builder: (_) => AlertSettingsScreen(role: args is String ? args : null));
             case '/health-disclaimer':
               return MaterialPageRoute(builder: (_) => const HealthDisclaimerPage(), settings: settings);
-            case '/language':
-              return MaterialPageRoute(builder: (_) => const SelectLanguageScreen(), settings: settings);
             default:
               return null;
           }
         },
         onUnknownRoute: (settings) => MaterialPageRoute(builder: (context) => const LoveCareHomePage()),
-      ),
     );
   }
 }
@@ -519,7 +491,7 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFCE4EC),
-      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, title: const TText('CEO Access'), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))),
+      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, title: const Text('CEO Access'), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -532,9 +504,9 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
               children: [
                 const Text('💜', style: TextStyle(fontSize: 50)),
                 const SizedBox(height: 8),
-                const TText('CEO Only', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                const Text('CEO Only', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                const TText('Login with your CEO Firebase account', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+                const Text('Login with your CEO Firebase account', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
                 const SizedBox(height: 20),
                 TextField(
                   controller: _emailController,
@@ -550,9 +522,9 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
                 ),
                 if (_error.isNotEmpty) ...[const SizedBox(height: 10), Text(_error, style: const TextStyle(color: Colors.red))],
                 const SizedBox(height: 16),
-                SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _login, child: const TText('Enter Dashboard'))),
+                SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _login, child: const Text('Enter Dashboard'))),
                 const SizedBox(height: 12),
-                const TText('Forgot password? Reset am for Firebase Console > Authentication.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 11)),
+                const Text('Forgot password? Reset am for Firebase Console > Authentication.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 11)),
               ],
             ),
           ),
@@ -593,25 +565,24 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
     });
   }
   void _showWelcomePopup() {
-    final lang = LanguageService.instance;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('💜 ${lang.t('welcome')}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('💜 Welcome to LoveCare', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TText('Trusted Care, With Love', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold)),
+            Text('Trusted Care, With Love', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold)),
             SizedBox(height: 12),
-            TText('Nurses are verified by CEO before they can care for you.\nClients verify email and login immediately - No CEO approval for Clients.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
+            Text('Nurses are verified by CEO before they can care for you.\nClients verify email and login immediately - No CEO approval for Clients.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
             SizedBox(height: 10),
-            TText('⚠️ Not for emergencies. For emergency, call 112 / Ambulance immediately.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
+            Text('⚠️ Not for emergencies. For emergency, call 112 / Ambulance immediately.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
-          Center(child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12)), child: const TText('Start ❤️', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+          Center(child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12)), child: const Text('Start ❤️', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
         ],
       ),
     );
@@ -621,53 +592,42 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const TText('How Love Care Works', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('How Love Care Works', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
         content: const SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              TText('⚠️ EMERGENCY DISCLAIMER:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-              TText('This app does NOT provide emergency medical services. For emergencies, call Ambulance / 112 or go to nearest hospital immediately. Love Care Global is for non-emergency home care only.'),
+              Text('⚠️ EMERGENCY DISCLAIMER:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+              Text('This app does NOT provide emergency medical services. For emergencies, call Ambulance / 112 or go to nearest hospital immediately. Love Care Global is for non-emergency home care only.'),
               SizedBox(height: 10),
-              TText('1. NURSE:', style: TextStyle(fontWeight: FontWeight.bold)),
-              TText('Registers with Photo + Video + Phone. Waits for CEO Approval. Cannot login until approved.'),
+              Text('1. NURSE:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Registers with Photo + Video + Phone. Waits for CEO Approval. Cannot login until approved.'),
               SizedBox(height: 10),
-              TText('2. CLIENT:', style: TextStyle(fontWeight: FontWeight.bold)),
-              TText('Registers with Name + Username + Email + Phone + Password. Verify email in Gmail. Once verified, you are approved and can login immediately - No CEO approval, No SMS.'),
+              Text('2. CLIENT:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Registers with Name + Username + Email + Phone + Password. Verify email in Gmail. Once verified, you are approved and can login immediately - No CEO approval, No SMS.'),
               SizedBox(height: 10),
-              TText('3. SECURITY:', style: TextStyle(fontWeight: FontWeight.bold)),
-              TText('One account cannot be both Nurse + Client. Unverified Clients are Pending. Verified Clients can login. Failed registration is deleted completely.'),
+              Text('3. SECURITY:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('One account cannot be both Nurse + Client. Unverified Clients are Pending. Verified Clients can login. Failed registration is deleted completely.'),
               SizedBox(height: 10),
-              TText('4. CEO:', style: TextStyle(fontWeight: FontWeight.bold)),
-              TText('Reviews all Nurses in CEO Control Center and Approves / Rejects. Clients do NOT need CEO approval.'),
+              Text('4. CEO:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Reviews all Nurses in CEO Control Center and Approves / Rejects. Clients do NOT need CEO approval.'),
             ],
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const TText('Close'))],
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close'))],
       ),
     );
   }
   @override
   Widget build(BuildContext context) {
-    final lang = LanguageService.instance;
-    return ListenableBuilder(
-      listenable: lang,
-      builder: (_, __) => Scaffold(
+    return Scaffold(
         backgroundColor: const Color(0xFF4A0A26),
         appBar: AppBar(
           backgroundColor: const Color(0xFF880E4F),
           foregroundColor: Colors.white,
-          title: const TText('💜 Love Care Global', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          title: const Text('💜 Love Care Global', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           centerTitle: false,
-          actions: [
-            // LANGUAGE BUTTON - Top right, Client / Nurse / Guest fit change am here
-            TextButton.icon(
-              onPressed: () => Navigator.pushNamed(context, '/language'),
-              icon: const Icon(Icons.language, color: Colors.white),
-              label: Text(lang.code.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
         ),
         drawer: const _LoveCareDrawer(),
         body: SingleChildScrollView(
@@ -680,21 +640,19 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                   children: [
                     GestureDetector(
                       onTap: _handleSecretTap,
-                      child: const Column(children: [Text('💜', style: TextStyle(fontSize: 50)), TText('LOVE CARE GLOBAL', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))]),
+                      child: const Column(children: [Text('💜', style: TextStyle(fontSize: 50)), Text('LOVE CARE GLOBAL', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))]),
                     ),
                     const SizedBox(height: 8),
-                    const TText('Trusted Care, With Love', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                    const Text('Trusted Care, With Love', style: TextStyle(color: Colors.white70, fontSize: 16)),
                     const SizedBox(height: 8),
-                    const TText('Tap ☰ top-left to see all Policies', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const Text('Tap ☰ top-left to see all Policies', style: TextStyle(color: Colors.white70, fontSize: 12)),
                     const SizedBox(height: 20),
-                    const TText('CEO-verified Nurses. Safe Clients. No Fake Accounts.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 13)),
+                    const Text('CEO-verified Nurses. Safe Clients. No Fake Accounts.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 13)),
                     const SizedBox(height: 24),
-                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/auth-choice'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const TText('GET STARTED →', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)))),
+                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/auth-choice'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('GET STARTED →', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)))),
                     const SizedBox(height: 12),
-                    SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _showAboutPopup, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const TText('How It Works ❓', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+                    SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _showAboutPopup, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('How It Works ❓', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
                     const SizedBox(height: 12),
-                    // LANGUAGE BUTTON FOR HOME TOO
-                    SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: () => Navigator.pushNamed(context, '/language'), icon: const Icon(Icons.language, color: Colors.white), label: Text('🌐 ${lang.t('language')} - ${lang.code.toUpperCase()}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))),
                   ],
                 ),
               ),
@@ -710,7 +668,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                 child: const Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TText('⚠️', style: TextStyle(fontSize: 18)),
+                    Text('⚠️', style: TextStyle(fontSize: 18)),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -735,16 +693,16 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                       alignment: WrapAlignment.center,
                       spacing: 12,
                       children: [
-                        TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: const TText('Terms', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                        TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const TText('Privacy', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                        TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const TText('Community', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                        TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const TText('Refund', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                        TextButton(onPressed: () => Navigator.pushNamed(context, '/health-disclaimer'), child: const TText('Health', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
-                        TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const TText('Delete Account', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/terms'), child: const Text('Terms', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/privacy'), child: const Text('Privacy', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/community'), child: const Text('Community', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/refund'), child: const Text('Refund', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/health-disclaimer'), child: const Text('Health', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
+                        TextButton(onPressed: () => Navigator.pushNamed(context, '/delete-account'), child: const Text('Delete Account', style: TextStyle(color: Color(0xFFF8BBD0), fontSize: 12))),
                       ],
                     ),
                     const SizedBox(height: 10),
-                    const TText('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                    const Text('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.white60, fontSize: 11)),
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -752,7 +710,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
             ],
           ),
         ),
-      ),
     );
   }
   Widget _actionCard(String emoji, String title, String subtitle, VoidCallback onTap) {
@@ -785,7 +742,6 @@ class _LoveCareDrawer extends StatelessWidget {
   }
   @override
   Widget build(BuildContext context) {
-    final lang = LanguageService.instance;
     return Drawer(
       backgroundColor: const Color(0xFFFCE4EC),
       child: ListView(
@@ -798,26 +754,20 @@ class _LoveCareDrawer extends StatelessWidget {
               children: const [
                 Text('💜', style: TextStyle(fontSize: 36)),
                 SizedBox(height: 6),
-                TText('LOVE CARE GLOBAL', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('LOVE CARE GLOBAL', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                 SizedBox(height: 4),
-                TText('Trusted Care, With Love\nAccra, Ghana', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                Text('Trusted Care, With Love\nAccra, Ghana', style: TextStyle(color: Colors.white70, fontSize: 12)),
               ],
             ),
           ),
           _tile(context, Icons.home, 'Home', () => _go(context, '/home')),
           _tile(context, Icons.rocket_launch, 'Get Started', () => _go(context, '/auth-choice')),
           _tile(context, Icons.sos, 'SOS / Emergency', () => _go(context, '/sos')),
-          // LANGUAGE FOR DRAWER TOO - Client / Nurse fit change from anywhere
-          ListTile(
-            leading: const Icon(Icons.language, color: Color(0xFF880E4F)),
-            title: Text('🌐 ${lang.t('language')} (${lang.code.toUpperCase()})', style: const TextStyle(color: Color(0xFF4A0A26), fontWeight: FontWeight.w600, fontSize: 14)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFF880E4F)),
-            onTap: () => _go(context, '/language'),
-          ),
+
           const Divider(),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: TText('📋 POLICIES & LEGAL', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 12)),
+            child: Text('📋 POLICIES & LEGAL', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 12)),
           ),
           _tile(context, Icons.description, 'Terms & Conditions', () => _go(context, '/terms')),
           _tile(context, Icons.privacy_tip, 'Privacy Policy', () => _go(context, '/privacy')),
@@ -828,11 +778,11 @@ class _LoveCareDrawer extends StatelessWidget {
           const Divider(),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: TText('⚠️ EMERGENCY: This app is NOT ambulance. For emergency, call 112 immediately.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+            child: Text('⚠️ EMERGENCY: This app is NOT ambulance. For emergency, call 112 immediately.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: TText('© 2026 Love Care Global\nlovecareglobal@gmail.com', style: TextStyle(color: Colors.grey, fontSize: 11)),
+            child: Text('© 2026 Love Care Global\nlovecareglobal@gmail.com', style: TextStyle(color: Colors.grey, fontSize: 11)),
           ),
         ],
       ),
@@ -942,7 +892,7 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
             width: double.infinity,
             height: 120,
             color: Colors.black26,
-            child: const Center(child: TText('🎥 CEO Video / Photo', style: TextStyle(color: Colors.white))),
+            child: const Center(child: Text('🎥 CEO Video / Photo', style: TextStyle(color: Colors.white))),
           ),
         ),
       );
@@ -960,7 +910,7 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
       width: double.infinity,
       height: 120,
       decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
-      child: const Center(child: TText('🎥 CEO Video Announcement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+      child: const Center(child: Text('🎥 CEO Video Announcement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
     );
   }
   @override
@@ -1000,7 +950,7 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
           Row(
             children: [
               const Expanded(
-                child: TText('📢 CEO ANNOUNCEMENT', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                child: Text('📢 CEO ANNOUNCEMENT', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
               ),
               if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white54, fontSize: 10)),
             ],
