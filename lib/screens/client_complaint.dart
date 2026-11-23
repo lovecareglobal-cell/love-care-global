@@ -67,7 +67,6 @@ class ClientComplaintTranslations {
       "appealHint": "Explain why should be removed",
       "send": "Send",
       "appealSent": "✅ Appeal sent",
-      "noUser": "Notice",
     },
 
     // 2. TWI - CLIENT + NURSE ONLY
@@ -131,7 +130,6 @@ class ClientComplaintTranslations {
       "appealHint": "Kyerɛ deɛ enti wɔmfa mfi hɔ",
       "send": "Fa Kɔ",
       "appealSent": "✅ Wɔafa srɛ",
-      "noUser": "Nsɛm",
     },
 
     // 3. GA
@@ -195,7 +193,6 @@ class ClientComplaintTranslations {
       "appealHint": "Gbee nɔ hewɔ oje mli",
       "send": "Ŋmɛ",
       "appealSent": "✅ Aŋmɛ srɛ",
-      "noUser": "Sane",
     },
 
     // 4. EWE
@@ -259,7 +256,6 @@ class ClientComplaintTranslations {
       "appealHint": "Gblɔ nusi ta wodze be woɖee ɖa",
       "send": "Ðo",
       "appealSent": "✅ Wodzi biabia",
-      "noUser": "Nya",
     },
 
     // 5. DUTCH
@@ -323,7 +319,6 @@ class ClientComplaintTranslations {
       "appealHint": "Leg uit waarom het verwijderd moet worden",
       "send": "Verzenden",
       "appealSent": "✅ Beroep verzonden",
-      "noUser": "Melding",
     },
 
     // 6. FRENCH
@@ -387,7 +382,6 @@ class ClientComplaintTranslations {
       "appealHint": "Expliquez pourquoi il doit être supprimé",
       "send": "Envoyer",
       "appealSent": "✅ Appel envoyé",
-      "noUser": "Avis",
     },
 
     // 7. GERMAN
@@ -451,7 +445,6 @@ class ClientComplaintTranslations {
       "appealHint": "Erklären Sie, warum es entfernt werden sollte",
       "send": "Senden",
       "appealSent": "✅ Einspruch gesendet",
-      "noUser": "Mitteilung",
     },
 
     // 8. SPANISH
@@ -515,7 +508,6 @@ class ClientComplaintTranslations {
       "appealHint": "Explica por qué debe eliminarse",
       "send": "Enviar",
       "appealSent": "✅ Apelación enviada",
-      "noUser": "Aviso",
     },
 
     // 9. ITALIAN
@@ -579,7 +571,6 @@ class ClientComplaintTranslations {
       "appealHint": "Spiega perché deve essere rimosso",
       "send": "Invia",
       "appealSent": "✅ Ricorso inviato",
-      "noUser": "Avviso",
     },
 
     // 10. PORTUGUESE
@@ -643,7 +634,6 @@ class ClientComplaintTranslations {
       "appealHint": "Explique por que deve ser removido",
       "send": "Enviar",
       "appealSent": "✅ Recurso enviado",
-      "noUser": "Aviso",
     },
 
     // 11. ARABIC
@@ -707,7 +697,6 @@ class ClientComplaintTranslations {
       "appealHint": "اشرح لماذا يجب إزالته",
       "send": "إرسال",
       "appealSent": "✅ تم إرسال الاستئناف",
-      "noUser": "إشعار",
     },
 
     // 12. CHINESE
@@ -771,7 +760,6 @@ class ClientComplaintTranslations {
       "appealHint": "解释为什么应删除",
       "send": "发送",
       "appealSent": "✅ 申诉已发送",
-      "noUser": "通知",
     },
 
     // 13. HINDI
@@ -835,7 +823,6 @@ class ClientComplaintTranslations {
       "appealHint": "बताएं क्यों हटाया जाना चाहिए",
       "send": "भेजें",
       "appealSent": "✅ अपील भेजी गई",
-      "noUser": "सूचना",
     },
 
     // 14. SWAHILI
@@ -899,7 +886,6 @@ class ClientComplaintTranslations {
       "appealHint": "Eleza kwa nini iondolewe",
       "send": "Tuma",
       "appealSent": "✅ Rufaa imetumwa",
-      "noUser": "Notisi",
     },
 
     // 15. YORUBA
@@ -963,7 +949,6 @@ class ClientComplaintTranslations {
       "appealHint": "Ṣalaye idi ti o yẹ ki a yọ kuro",
       "send": "Fi Ranṣẹ",
       "appealSent": "✅ A ti fi ẹbẹ ranṣẹ",
-      "noUser": "Akiyesi",
     },
 
     // 16. IGBO
@@ -1027,7 +1012,6 @@ class ClientComplaintTranslations {
       "appealHint": "Kọwa ihe kpatara e kwesịrị iwepụ ya",
       "send": "Ziga",
       "appealSent": "✅ Eziga arịrịọ",
-      "noUser": "Ọkwa",
     },
 
     // 17. HAUSA
@@ -1091,7 +1075,6 @@ class ClientComplaintTranslations {
       "appealHint": "Bayyana dalilin da ya kamata a cire shi",
       "send": "Aika",
       "appealSent": "✅ An aika roko",
-      "noUser": "Sanarwa",
     },
 
     // 18. RUSSIAN
@@ -1155,7 +1138,6 @@ class ClientComplaintTranslations {
       "appealHint": "Объясните, почему это следует удалить",
       "send": "Отправить",
       "appealSent": "✅ Апелляция отправлена",
-      "noUser": "Уведомление",
     },
 
     // 19. TURKISH
@@ -1219,7 +1201,6 @@ class ClientComplaintTranslations {
       "appealHint": "Neden kaldırılması gerektiğini açıklayın",
       "send": "Gönder",
       "appealSent": "✅ İtiraz gönderildi",
-      "noUser": "Bildirim",
     },
 
     // 20. KOREAN
@@ -1283,7 +1264,6 @@ class ClientComplaintTranslations {
       "appealHint": "삭제해야 하는 이유를 설명하세요",
       "send": "보내기",
       "appealSent": "✅ 항소가 전송되었습니다",
-      "noUser": "알림",
     },
 
     // 21. JAPANESE
@@ -1347,7 +1327,6 @@ class ClientComplaintTranslations {
       "appealHint": "削除すべき理由を説明してください",
       "send": "送信",
       "appealSent": "✅ 異議申し立てを送信しました",
-      "noUser": "通知",
     },
 
     // 22. POLISH
@@ -1411,7 +1390,6 @@ class ClientComplaintTranslations {
       "appealHint": "Wyjaśnij, dlaczego należy to usunąć",
       "send": "Wyślij",
       "appealSent": "✅ Odwołanie wysłane",
-      "noUser": "Powiadomienie",
     },
   };
 
