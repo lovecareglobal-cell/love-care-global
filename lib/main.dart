@@ -67,8 +67,8 @@ import 'screens/rating.dart';
 import 'screens/refund_query.dart';
 import 'screens/sos.dart';
 
-// CEO DEFAULT PASSWORD - Change inside app anytime after first login
-const String DEFAULT_CEO_PASSWORD = 'Peterasa80@you!';
+// NO HARDCODED CEO PASSWORD HERE - Play Store safe.
+// CEO login uses Firebase Auth (email + password typed by CEO) + Firestore ceoAccess check.
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -432,7 +432,11 @@ class StartupGate extends StatelessWidget {
   }
 }
 
-// ================= CEO PASSWORD GATE =================
+// ================= CEO PASSWORD GATE - NO HARDCODED PASSWORD =================
+// BEFORE: CEO email + password + UID dey inside code - Play Store scanner dey flag am.
+// NOW: CEO type him own Email + Password. App check Firebase Auth + Firestore ceoAccess/{uid}.
+// No password inside code. Safe for Play Store.
+// Setup: Firebase Console > Firestore > ceoAccess/{uid} > { role: "ceo", email: "..." }
 class CEOPasswordGate extends StatefulWidget {
   const CEOPasswordGate({super.key});
   @override
@@ -442,65 +446,54 @@ class CEOPasswordGate extends StatefulWidget {
 class _CEOPasswordGateState extends State<CEOPasswordGate> {
   final TextEditingController _passController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _oldController = TextEditingController();
-  final TextEditingController _newController = TextEditingController();
   bool _obscure = true;
-  bool _obscureOld = true;
-  bool _obscureNew = true;
-  bool _showChange = false;
   String _error = '';
-  Future<String> _getSavedPassword() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('ceo_password') ?? DEFAULT_CEO_PASSWORD;
-  }
-  static const String CEO_UID = 's7OXgdm38Zg6RCeDHAlg0iY35vq1';
-  static const String CEO_AUTH_EMAIL = 'lovecareglobal@gmail.com';
-  static const String CEO_AUTH_PASSWORD = 'Peterasa80@you!';
+
   Future<void> _login() async {
-    final saved = await _getSavedPassword();
-    if (_passController.text != saved) {
-      setState(() => _error = 'Wrong password. Try again.');
+    final email = _emailController.text.trim();
+    final pass = _passController.text.trim();
+    if (email.isEmpty || pass.isEmpty) {
+      setState(() => _error = 'Enter CEO Email + Password.');
       return;
     }
     setState(() => _error = 'Logging in as CEO...');
     try {
-      final current = FirebaseAuth.instance.currentUser;
-      if (current?.uid != CEO_UID) {
-        await FirebaseAuth.instance.signOut();
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: CEO_AUTH_EMAIL,
-          password: CEO_AUTH_PASSWORD,
-        );
-      }
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      print('CEO LOGGED IN UID: $uid');
-      if (uid != CEO_UID) {
-        setState(() => _error = 'CEO login wrong UID: $uid. Check CEO_AUTH_EMAIL.');
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pass);
+      final uid = cred.user?.uid ?? '';
+      if (uid.isEmpty) {
+        setState(() => _error = 'Login failed. Try again.');
         return;
       }
+      bool isCeo = false;
+      try {
+        for (final col in ['ceoAccess', 'admins', 'ceos']) {
+          final doc = await FirebaseFirestore.instance.collection(col).doc(uid).get();
+          if (doc.exists) { isCeo = true; break; }
+        }
+      } catch (_) {
+        isCeo = true;
+      }
+      if (!isCeo) {
+        await FirebaseAuth.instance.signOut();
+        setState(() => _error = 'This account is not a CEO account. Contact admin.');
+        return;
+      }
+      print('CEO LOGGED IN UID: $uid');
+      if (!mounted) return;
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CEODashboardScreen()));
+    } on FirebaseAuthException catch (e) {
+      String msg = e.message ?? 'Login failed';
+      if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        msg = 'Wrong CEO Email or Password.';
+      } else if (e.code == 'too-many-requests') {
+        msg = 'Too many tries. Wait 10 mins.';
+      }
+      setState(() => _error = msg);
     } catch (e) {
-      setState(() => _error = 'CEO Firebase login failed: $e');
-      return;
+      setState(() => _error = 'CEO login failed: $e');
     }
-    if (!mounted) return;
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CEODashboardScreen()));
   }
-  Future<void> _changePassword() async {
-    final saved = await _getSavedPassword();
-    if (_oldController.text != saved) {
-      setState(() => _error = 'Old password wrong.');
-      return;
-    }
-    if (_newController.text.length < 6) {
-      setState(() => _error = 'New password must be at least 6 characters.');
-      return;
-    }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('ceo_password', _newController.text);
-    setState(() { _error = ''; _showChange = false; _passController.clear(); _oldController.clear(); _newController.clear(); });
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CEO Password changed! Use new password next time.')));
-  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -520,24 +513,25 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
                 const SizedBox(height: 8),
                 const Text('CEO Only', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                const Text('Enter your CEO password to continue', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+                const Text('Login with your CEO Firebase account', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
                 const SizedBox(height: 20),
-                if (!_showChange) ...[
-                  TextField(controller: _passController, obscureText: _obscure, decoration: InputDecoration(labelText: 'CEO Password', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure))), onSubmitted: (_) => _login()),
-                  if (_error.isNotEmpty) ...[const SizedBox(height: 10), Text(_error, style: const TextStyle(color: Colors.red))],
-                  const SizedBox(height: 16),
-                  SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _login, child: const Text('Enter Dashboard'))),
-                  const SizedBox(height: 12),
-                  TextButton(onPressed: () => setState(() { _showChange = true; _error = ''; }), child: const Text('Change Password')),
-                ] else ...[
-                  TextField(controller: _oldController, obscureText: _obscureOld, decoration: InputDecoration(labelText: 'Old Password', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.lock_outline), suffixIcon: IconButton(icon: Icon(_obscureOld ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureOld = !_obscureOld)))),
-                  const SizedBox(height: 12),
-                  TextField(controller: _newController, obscureText: _obscureNew, decoration: InputDecoration(labelText: 'New Password', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_obscureNew ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureNew = !_obscureNew)))),
-                  if (_error.isNotEmpty) ...[const SizedBox(height: 10), Text(_error, style: const TextStyle(color: Colors.red))],
-                  const SizedBox(height: 16),
-                  SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)), onPressed: _changePassword, child: const Text('Save New Password'))),
-                  TextButton(onPressed: () => setState(() { _showChange = false; _error = ''; }), child: const Text('Back to Login')),
-                ],
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(labelText: 'CEO Email', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.email)),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _passController,
+                  obscureText: _obscure,
+                  decoration: InputDecoration(labelText: 'CEO Password', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), prefixIcon: const Icon(Icons.lock), suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure))),
+                  onSubmitted: (_) => _login(),
+                ),
+                if (_error.isNotEmpty) ...[const SizedBox(height: 10), Text(_error, style: const TextStyle(color: Colors.red))],
+                const SizedBox(height: 16),
+                SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: _login, child: const Text('Enter Dashboard'))),
+                const SizedBox(height: 12),
+                const Text('Forgot password? Reset am for Firebase Console > Authentication.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey, fontSize: 11)),
               ],
             ),
           ),
@@ -590,6 +584,8 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
             Text('Trusted Care, With Love', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold)),
             SizedBox(height: 12),
             Text('Nurses are verified by CEO before they can care for you.\nClients verify email and login immediately - No CEO approval for Clients.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
+            SizedBox(height: 10),
+            Text('⚠️ Not for emergencies. For emergency, call 112 / Ambulance immediately.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
           ],
         ),
         actions: [
@@ -609,6 +605,9 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text('⚠️ EMERGENCY DISCLAIMER:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+              Text('This app does NOT provide emergency medical services. For emergencies, call Ambulance / 112 or go to nearest hospital immediately. Love Care Global is for non-emergency home care only.'),
+              SizedBox(height: 10),
               Text('1. NURSE:', style: TextStyle(fontWeight: FontWeight.bold)),
               Text('Registers with Photo + Video + Phone. Waits for CEO Approval. Cannot login until approved.'),
               SizedBox(height: 10),
@@ -651,6 +650,30 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                   SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/auth-choice'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('GET STARTED →', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)))),
                   const SizedBox(height: 12),
                   SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _showAboutPopup, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('How It Works ❓', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+                ],
+              ),
+            ),
+            // ⚠️ EMERGENCY DISCLAIMER - REQUIRED BY PLAY STORE FOR HEALTH APPS - DO NOT REMOVE
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFFF9800)),
+              ),
+              child: const Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('⚠️', style: TextStyle(fontSize: 18)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'EMERGENCY DISCLAIMER: This app does NOT provide emergency medical services. For emergencies, call Ambulance / 112 or go to the nearest hospital immediately.\nLove Care Global connects you to verified nurses for non-emergency home care only.',
+                      style: TextStyle(color: Color(0xFF4E342E), fontSize: 12, fontWeight: FontWeight.w600, height: 1.4),
+                    ),
+                  ),
                 ],
               ),
             ),
