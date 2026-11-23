@@ -128,8 +128,6 @@ Future<void> _setupFCM() async {
 // + Keep GitHub SHAs in Firebase: SHA-1 B3:88:7A... / SHA-256 E6:D1:6A... + Play Signing SHAs.
 Future<void> _setupPhoneAuthNoRecaptcha() async {
   try {
-    // Warm up App Check token BEFORE any OTP request - this is the key fix.
-    // If token is ready, Firebase uses silent Play Integrity check, NO reCAPTCHA page.
     try {
       await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
       final token = await FirebaseAppCheck.instance.getToken(false);
@@ -137,7 +135,6 @@ Future<void> _setupPhoneAuthNoRecaptcha() async {
     } catch (e) {
       debugPrint('AppCheck warmup failed (will fallback): $e');
     }
-    // Tell Firebase Auth: do NOT force reCAPTCHA. Use Play Integrity first.
     try {
       await FirebaseAuth.instance.setSettings(
         appVerificationDisabledForTesting: false,
@@ -160,7 +157,7 @@ class PhoneAuthHelper {
     void Function()? onAutoVerified,
     int? forceResendingToken,
   }) async {
-    if (_sending) return; // prevent double-tap -> double reCAPTCHA -> spinning
+    if (_sending) return;
     _sending = true;
     try {
       try {
@@ -188,7 +185,6 @@ class PhoneAuthHelper {
           onFailed(msg);
         },
         codeSent: (String verificationId, int? resendToken) {
-          // ONLY here is OTP truly sent. Never show "OTP sent" before this.
           onCodeSent(verificationId, resendToken);
         },
         codeAutoRetrievalTimeout: (String verificationId) {},
@@ -210,7 +206,6 @@ void main() async {
     } catch (e) {
       debugPrint('App Check activate failed: $e');
     }
-    // NEW: Warm up AppCheck + disable forced reCAPTCHA BEFORE runApp
     await _setupPhoneAuthNoRecaptcha();
   } catch (e) {
     debugPrint('Firebase init failed (web/demo mode): $e');
@@ -270,7 +265,6 @@ class LoveCareApp extends StatelessWidget {
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF4A0A26), selectedItemColor: Color(0xFFF8BBD0), unselectedItemColor: Colors.white60),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      // NEW: StartupGate decides where to go on app open - fixes "app went back to fresh"
       home: const StartupGate(),
       routes: {
         '/auth-choice': (context) => const AuthChoicePage(),
@@ -310,7 +304,6 @@ class LoveCareApp extends StatelessWidget {
         '/nurse-group-chat': (context) => const NurseGroupChatScreen(),
         '/alert-settings': (context) => const AlertSettingsScreen(),
         '/book-nurse': (context) => const BookNurseScreen(),
-        // '/book-nurse-50': (context) => const BookNurse50Screen(), // DELETED - old 50%
         '/client-dashboard': (context) => ClientDashboardScreen(),
         '/client-settings': (context) => const ClientSettingsScreen(),
         '/my-bookings': (context) => MyBookingsScreen(),
@@ -318,7 +311,6 @@ class LoveCareApp extends StatelessWidget {
         '/my-job-offers': (context) => const MyJobOfferScreen(),
         '/nurse-settings': (context) => const NurseSettingsScreen(),
         '/nurse-dashboard': (context) => const NurseDashboardScreen(),
-        // '/nurse-withdrawal': (context) => const NurseWithdrawalScreen(), // DELETED - CEO never pays nurse
         '/rating': (context) => const RatingScreen(),
         '/refund-query': (context) => const RefundQueryScreen(),
         '/sos': (context) => const SOSScreen(),
@@ -354,8 +346,6 @@ class LoveCareApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => ClientComplaintScreen(params: args is Map<String, dynamic> ? args : null));
           case '/nurse-complaint':
             return MaterialPageRoute(builder: (_) => NurseComplaintScreen(params: args is Map<String, dynamic> ? args : null));
-          // case '/increase-payment': // DELETED - old 50% top-up
-          //   return MaterialPageRoute(builder: (_) => IncreasePaymentScreen(bookingKey: args is String ? args : null));
           case '/alert-settings-role':
             return MaterialPageRoute(builder: (_) => AlertSettingsScreen(role: args is String ? args : null));
           default:
@@ -367,47 +357,27 @@ class LoveCareApp extends StatelessWidget {
   }
 }
 
-// ================= STARTUP GATE - NEW FIX FOR "APP WENT BACK TO FRESH" =================
-// Rules:
-// CLIENT: Pending = NOT verified email ONLY. CEO does NOT approve Client.
-//   - If pending verification flag == true + user exists -> go back to ClientRegistrationPage (it will resume waiting page, NOT Home)
-//   - If user exists + emailVerified == true + clients doc exists -> go Client Dashboard straight, NO Home, NO re-login
-//   - If user exists + NOT verified -> go Client Login (it will show "I HAVE VERIFIED" help)
-// NURSE: CEO approval still required. Verified email alone NO fit login.
-//   - If nurse doc exists + isApproved == true -> Nurse Dashboard
-//   - Else -> Home (must login / wait approval)
-// NEVER signOut here - signing out on startup na wetin dey kill Michael's session when e come back from Gmail.
+// ================= STARTUP GATE =================
 class StartupGate extends StatelessWidget {
   const StartupGate({super.key});
-
   Future<Widget> _decide() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final prefs = await SharedPreferences.getInstance();
       final clientPending = prefs.getBool('client_pending_verification') == true;
       final nursePending = prefs.getBool('nurse_pending_verification') == true;
-
       if (user == null) return const LoveCareHomePage();
-
-      // If user was in middle of client verification when app was killed, resume there
       if (clientPending) return const ClientRegistrationPage();
       if (nursePending) return const NurseRegistrationPage();
-
-      // Reload to get TRUE verified status from server, not cached false
       try { await user.reload(); } catch (_) {}
       final fresh = FirebaseAuth.instance.currentUser ?? user;
       final uid = fresh.uid;
       final email = (fresh.email ?? '').toLowerCase();
-
-      // Check role: clients first, then nurses
-      // 1. Is this a CLIENT?
       try {
         final cDoc = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
         if (cDoc.exists) {
           final d = cDoc.data() ?? {};
-          // CLIENT GATE: only emailVerified matters. If verified, auto-approve + go dashboard.
           if (fresh.emailVerified) {
-            // Auto-fix: if old doc still says pending, update to approved so CEO list + login agree
             if (d['isApproved'] != true) {
               await FirebaseFirestore.instance.collection('clients').doc(uid).set({
                 'emailVerified': true, 'verifiedByEmail': true,
@@ -420,20 +390,16 @@ class StartupGate extends StatelessWidget {
                 await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').update({'emailVerified': true, 'isApproved': true, 'status': 'approved', 'canLogin': true, 'updatedAt': now});
               } catch (_) {}
             }
-            // Save prefs so Dashboard reads them instantly
             await prefs.setString('clientEmail', email);
             await prefs.setString('lcg_client_uid', uid);
             await prefs.setString('clientUid', uid);
             await prefs.setBool('client_pending_verification', false);
             return ClientDashboardScreen();
           } else {
-            // Not verified yet -> Client Login will show "I HAVE VERIFIED" help. Do NOT go Home.
             return const ClientLoginPage();
           }
         }
       } catch (_) {}
-
-      // 2. Is this a NURSE? Nurse still needs CEO approval.
       try {
         final nDoc = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
         final pDoc = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
@@ -442,23 +408,15 @@ class StartupGate extends StatelessWidget {
           if (fresh.emailVerified && d['isApproved'] == true) {
             return const NurseDashboardScreen();
           }
-          // Nurse not approved yet -> go Nurse Login (it will show pending message)
           return const NurseLoginPage();
         }
       } catch (_) {}
-
-      // 3. Auth exists but no doc in either collection = orphan (old bug).
-      // If verified, treat as Client (most orphans are clients) and let Client Login auto-recover + auto-approve.
-      // Do NOT delete, do NOT go Home and lose am.
       if (fresh.emailVerified) return const ClientLoginPage();
-
-      // Not verified + no doc -> go Home, user can choose Register/Login
       return const LoveCareHomePage();
     } catch (_) {
       return const LoveCareHomePage();
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Widget>(
@@ -491,31 +449,19 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
   bool _obscureNew = true;
   bool _showChange = false;
   String _error = '';
-
   Future<String> _getSavedPassword() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('ceo_password') ?? DEFAULT_CEO_PASSWORD;
   }
-
-    // === CEO FIREBASE LOGIN - PATCHED ===
-  // CEO UID: s7OXgdm38Zg6RCeDHAlg0iY35vq1
-  // Go Firebase Console -> Authentication -> Search this UID -> copy its EMAIL
-  // Put that EMAIL + its Auth password here.
-  // This is NOT your dashboard password Peterasa80@you!
-  // Dashboard password = to enter gate. Auth password = to login to Firebase as CEO.
   static const String CEO_UID = 's7OXgdm38Zg6RCeDHAlg0iY35vq1';
-  static const String CEO_AUTH_EMAIL = 'lovecareglobal@gmail.com'; // e.g. ceo@lovecare.com
-  static const String CEO_AUTH_PASSWORD = 'Peterasa80@you!'; // password for that Auth user
-
+  static const String CEO_AUTH_EMAIL = 'lovecareglobal@gmail.com';
+  static const String CEO_AUTH_PASSWORD = 'Peterasa80@you!';
   Future<void> _login() async {
     final saved = await _getSavedPassword();
     if (_passController.text != saved) {
       setState(() => _error = 'Wrong password. Try again.');
       return;
     }
-
-    // 1. Dashboard password correct - now login to Firebase as CEO
-    // So Storage Rules go see request.auth.uid == s7OXgdm38Zg6RCeDHAlg0iY35vq1
     setState(() => _error = 'Logging in as CEO...');
     try {
       final current = FirebaseAuth.instance.currentUser;
@@ -536,12 +482,9 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
       setState(() => _error = 'CEO Firebase login failed: $e');
       return;
     }
-
-    // 2. Now go Dashboard - Storage go allow CEO now
     if (!mounted) return;
     Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CEODashboardScreen()));
   }
-
   Future<void> _changePassword() async {
     final saved = await _getSavedPassword();
     if (_oldController.text != saved) {
@@ -558,7 +501,6 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CEO Password changed! Use new password next time.')));
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -614,7 +556,6 @@ class LoveCareHomePage extends StatefulWidget {
 class _LoveCareHomePageState extends State<LoveCareHomePage> {
   int _secretTaps = 0;
   DateTime _lastTap = DateTime.now();
-
   void _handleSecretTap() {
     final now = DateTime.now();
     if (now.difference(_lastTap).inSeconds > 2) _secretTaps = 0;
@@ -625,7 +566,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       Navigator.pushNamed(context, '/lc-ceo-9x7k2q-2026');
     }
   }
-
   @override
   void initState() {
     super.initState();
@@ -637,7 +577,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       }
     });
   }
-
   void _showWelcomePopup() {
     showDialog(
       context: context,
@@ -650,7 +589,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
           children: [
             Text('Trusted Care, With Love', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold)),
             SizedBox(height: 12),
-            // FIXED TEXT - NEW CLIENT RULE
             Text('Nurses are verified by CEO before they can care for you.\nClients verify email and login immediately - No CEO approval for Clients.', textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
           ],
         ),
@@ -660,7 +598,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       ),
     );
   }
-
   void _showAboutPopup() {
     showDialog(
       context: context,
@@ -690,7 +627,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -718,7 +654,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                 ],
               ),
             ),
-            // NEW: CEO ANNOUNCEMENT BANNER - listens LIVE, shows EVERYTHING CEO posts
+            // CEO ANNOUNCEMENT BANNER - shows EVERYTHING + MOVES
             const _CeoAnnouncementBanner(),
             const SizedBox(height: 20),
             Padding(
@@ -751,7 +687,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
       ),
     );
   }
-
   Widget _actionCard(String emoji, String title, String subtitle, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
@@ -771,13 +706,10 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
   }
 }
 
-// ================= CEO ANNOUNCEMENT BANNER - DISPLAY EVERYTHING =================
-// CEO Control Chat writes to:
-//   ceoHomePageAnnouncements/{id} (MAIN - all posts, last 20)
-//   homePageBanner/current (fallback)
-//   ceoHomePageCurrent (fallback)
-// Before: only current (1 post) + marquee 1 line = cut.
-// Now: show ALL posts, newest first. Each post: FULL text wrapped, FULL photos/videos, no cut, no marquee.
+// ================= CEO ANNOUNCEMENT BANNER - DISPLAY EVERYTHING + MOVE =================
+// Show ALL posts (last 20), newest first. Each post MOVES - true marquee.
+// Before: static = no move. Old marquee = only 200px, restart early.
+// Now: measure FULL text width, move screenW -> -textW, restart only after last word pass.
 class _CeoAnnouncementBanner extends StatefulWidget {
   const _CeoAnnouncementBanner();
   @override
@@ -787,7 +719,6 @@ class _CeoAnnouncementBanner extends StatefulWidget {
 class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
   List<Map<String, dynamic>> _posts = [];
   Map<String, dynamic>? _current;
-
   @override
   void initState() {
     super.initState();
@@ -824,7 +755,6 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
       }
     });
   }
-
   Color _parseColor(dynamic v, Color fallback) {
     try {
       final s = (v ?? '').toString().trim();
@@ -835,7 +765,6 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
     } catch (_) {}
     return fallback;
   }
-
   List<String> _allMediaUrls(Map m, String key) {
     final urls = <String>[];
     final list = m[key];
@@ -851,7 +780,6 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
     }
     return urls;
   }
-
   Uint8List? _base64ToBytes(String s) {
     try {
       var clean = s.trim();
@@ -862,7 +790,6 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
       return null;
     }
   }
-
   Widget _mediaWidget(String url) {
     if (url.isEmpty) return const SizedBox.shrink();
     if (url.startsWith('http')) {
@@ -876,7 +803,7 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
             width: double.infinity,
             height: 120,
             color: Colors.black26,
-            child: const Center(child: Text('🎥 CEO Video / Photo - Tap CEO Control to view', style: TextStyle(color: Colors.white))),
+            child: const Center(child: Text('🎥 CEO Video / Photo', style: TextStyle(color: Colors.white))),
           ),
         ),
       );
@@ -897,32 +824,28 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
       child: const Center(child: Text('🎥 CEO Video Announcement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     List<Map<String, dynamic>> show = _posts;
-    if (show.isEmpty && _current != null) {
-      show = [_current!];
-    }
+    if (show.isEmpty && _current != null) show = [_current!];
     if (show.isEmpty) return const SizedBox.shrink();
     return Column(
-      children: [
-        for (final b in show) _onePost(b),
-      ],
+      children: [for (final b in show) _onePost(b)],
     );
   }
-
   Widget _onePost(Map b) {
     final text = (b['text'] ?? b['message'] ?? b['title'] ?? b['announcement'] ?? '').toString();
+    final displayType = (b['displayType'] ?? 'marquee_slow').toString();
+    final speed = (b['speed'] ?? 'slow').toString();
     final textColor = _parseColor(b['textColor'], Colors.white);
     final bgColor = _parseColor(b['bgColor'], const Color(0xFF191531));
     final imageUrls = _allMediaUrls(b, 'images');
     final videoUrls = _allMediaUrls(b, 'videos');
     final createdAt = int.tryParse('${b['createdAt'] ?? 0}') ?? 0;
     final timeStr = createdAt > 0 ? DateTime.fromMillisecondsSinceEpoch(createdAt).toString().substring(0, 16) : '';
-    if (text.isEmpty && imageUrls.isEmpty && videoUrls.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    if (text.isEmpty && imageUrls.isEmpty && videoUrls.isEmpty) return const SizedBox.shrink();
+    final isStatic = displayType == 'static';
+    final isFast = speed == 'fast' || displayType == 'marquee_fast';
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -938,13 +861,9 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
           Row(
             children: [
               const Expanded(
-                child: Text(
-                  '📢 CEO ANNOUNCEMENT',
-                  style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
-                ),
+                child: Text('📢 CEO ANNOUNCEMENT', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
               ),
-              if (timeStr.isNotEmpty)
-                Text(timeStr, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+              if (timeStr.isNotEmpty) Text(timeStr, style: const TextStyle(color: Colors.white54, fontSize: 10)),
             ],
           ),
           const SizedBox(height: 8),
@@ -953,27 +872,100 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
             const SizedBox(height: 10),
           ],
           if (text.isNotEmpty)
-            Text(
-              text,
-              style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w600, height: 1.4),
-              softWrap: true,
-              maxLines: null,
-              overflow: TextOverflow.visible,
-            ),
+            isStatic
+                ? Text(text, style: TextStyle(color: textColor, fontSize: 14, fontWeight: FontWeight.w600, height: 1.4), softWrap: true, maxLines: null, overflow: TextOverflow.visible)
+                : _MovingText(text: text, color: textColor, fast: isFast),
           for (final url in videoUrls) ...[
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
-              child: Text(
-                '🎥 Video attached (${videoUrls.length} video${videoUrls.length > 1 ? 's' : ''}) - see CEO Control',
-                style: const TextStyle(color: Colors.white70, fontSize: 11),
-              ),
+              child: Text('🎥 Video attached (${videoUrls.length}) - see CEO Control', style: const TextStyle(color: Colors.white70, fontSize: 11)),
             ),
           ],
         ],
       ),
+    );
+  }
+}
+
+// TRUE MOVING TEXT - measures FULL text, moves screen -> -text, restart only after last word
+class _MovingText extends StatefulWidget {
+  final String text;
+  final Color color;
+  final bool fast;
+  const _MovingText({required this.text, required this.color, required this.fast});
+  @override
+  State<_MovingText> createState() => _MovingTextState();
+}
+
+class _MovingTextState extends State<_MovingText> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  @override
+  void initState() {
+    super.initState();
+    final base = widget.text.length * 150;
+    final millis = widget.fast ? base ~/ 2 : base;
+    _ctrl = AnimationController(
+      duration: Duration(milliseconds: millis.clamp(8000, 30000)),
+      vsync: this,
+    )..repeat();
+  }
+  @override
+  void didUpdateWidget(covariant _MovingText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text || oldWidget.fast != widget.fast) {
+      final base = widget.text.length * 150;
+      final millis = widget.fast ? base ~/ 2 : base;
+      _ctrl.duration = Duration(milliseconds: millis.clamp(8000, 30000));
+      _ctrl.reset();
+      _ctrl.repeat();
+    }
+  }
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+  double _measure(String text) {
+    final p = TextPainter(
+      text: TextSpan(text: text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout();
+    return p.width;
+  }
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        final screenW = c.maxWidth;
+        final textW = _measure(widget.text);
+        final total = screenW + textW;
+        return SizedBox(
+          width: screenW,
+          height: 22,
+          child: ClipRect(
+            child: AnimatedBuilder(
+              animation: _ctrl,
+              builder: (_, __) {
+                final dx = screenW - (_ctrl.value * total);
+                return Transform.translate(
+                  offset: Offset(dx, 0),
+                  child: Text(
+                    widget.text,
+                    style: TextStyle(color: widget.color, fontSize: 14, fontWeight: FontWeight.w600),
+                    softWrap: false,
+                    maxLines: 1,
+                    overflow: TextOverflow.visible,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
