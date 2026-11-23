@@ -437,10 +437,6 @@ class StartupGate extends StatelessWidget {
 }
 
 // ================= CEO PASSWORD GATE - NO HARDCODED PASSWORD =================
-// BEFORE: CEO email + password + UID dey inside code - Play Store scanner dey flag am.
-// NOW: CEO type him own Email + Password. App check Firebase Auth + Firestore ceoAccess/{uid}.
-// No password inside code. Safe for Play Store.
-// Setup: Firebase Console > Firestore > ceoAccess/{uid} > { role: "ceo", email: "..." }
 class CEOPasswordGate extends StatefulWidget {
   const CEOPasswordGate({super.key});
   @override
@@ -666,7 +662,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                 ],
               ),
             ),
-            // ⚠️ EMERGENCY DISCLAIMER - REQUIRED BY PLAY STORE FOR HEALTH APPS - DO NOT REMOVE
             Container(
               width: double.infinity,
               margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -690,7 +685,6 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                 ],
               ),
             ),
-            // CEO ANNOUNCEMENT BANNER - shows EVERYTHING + MOVES
             const _CeoAnnouncementBanner(),
             const SizedBox(height: 20),
             Padding(
@@ -746,6 +740,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 // ================= DRAWER MENU - ALL POLICIES IN ONE PLACE - PLAY STORE =================
 // Google tester taps ☰ top-left and sees EVERY policy without searching.
 // All 6 policies + Home + Get Started + SOS.
+// BOOK A NURSE REMOVED FROM DRAWER - Guest must login as Client first, to guarantee booking connects to Nurse + CEO.
 class _LoveCareDrawer extends StatelessWidget {
   const _LoveCareDrawer();
   void _go(BuildContext context, String route) {
@@ -776,7 +771,6 @@ class _LoveCareDrawer extends StatelessWidget {
           ),
           _tile(context, Icons.home, 'Home', () => _go(context, '/home')),
           _tile(context, Icons.rocket_launch, 'Get Started', () => _go(context, '/auth-choice')),
-          _tile(context, Icons.medical_services, 'Book a Nurse', () => _go(context, '/book-nurse')),
           _tile(context, Icons.sos, 'SOS / Emergency', () => _go(context, '/sos')),
           const Divider(),
           const Padding(
@@ -813,9 +807,6 @@ class _LoveCareDrawer extends StatelessWidget {
 }
 
 // ================= CEO ANNOUNCEMENT BANNER - DISPLAY EVERYTHING + MOVE =================
-// Show ALL posts (last 20), newest first. Each post MOVES - true marquee.
-// Before: static = no move. Old marquee = only 200px, restart early.
-// Now: measure FULL text width, move screenW -> -textW, restart only after last word pass.
 class _CeoAnnouncementBanner extends StatefulWidget {
   const _CeoAnnouncementBanner();
   @override
