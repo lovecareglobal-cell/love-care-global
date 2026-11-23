@@ -1,4 +1,5 @@
-// alert_settings.dart - FULL PATCHED - ONLY SCREEN WORDS - 22 LANGUAGES
+// alert_settings.dart - PATCHED WITH RULE - CEO ENGLISH ONLY
+// RULE: CEO = English ONLY. Nurse + Client = 22 languages from main.dart
 // Works with: alert_translations.dart (same folder)
 
 import 'dart:convert';
@@ -20,11 +21,41 @@ class AlertSettingsScreen extends StatefulWidget {
 }
 
 class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
-  // ---------- LANGUAGE - FROM MAIN.DART ----------
+  // ---------- LANGUAGE - THE RULE ----------
+  // savedLang = wetin user pick for main.dart (fr, tw, ga, etc)
+  // lang = wetin screen go actually show
+  // CEO -> lang is ALWAYS 'en', no matter wetin user pick
   String lang = 'en';
+  String savedLang = 'en';
 
+  // ---------- STATE - must be above t() because t() checks isCEO ----------
+  String selectedRole = 'Nurse';
+  bool soundOn = true;
+  String selectedSong = 'default'; // default, song1, song2, custom
+  Uint8List? customSongBytes;
+  String? customSongName;
+  List<Map<String, dynamic>> alerts = [];
+  final AudioPlayer _player = AudioPlayer();
+
+  bool get isCEO => selectedRole == 'CEO';
+  bool get isNurse => selectedRole == 'Nurse';
+  bool get isClient => selectedRole == 'Client';
+
+  String get roleKey => selectedRole.toLowerCase();
+
+  // THE RULE - single place, every Text() uses this
   String t(String key) {
+    if (isCEO) return AlertTranslations.get('en', key);
     return AlertTranslations.get(lang, key);
+  }
+
+  // Apply rule after role changes or lang loads
+  void _applyLangForRole() {
+    if (isCEO) {
+      lang = 'en';
+    } else {
+      lang = savedLang;
+    }
   }
 
   Future<void> _loadLang() async {
@@ -43,24 +74,17 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
     if (raw == 'yoruba') raw = 'yo';
     if (raw == 'igbo') raw = 'ig';
     if (raw == 'hausa') raw = 'ha';
-    if (AlertTranslations.all.containsKey(raw)) lang = raw;
+    if (AlertTranslations.all.containsKey(raw)) savedLang = raw;
+    _applyLangForRole(); // CEO -> en, Nurse/Client -> savedLang
     if (mounted) setState(() {});
   }
 
-  // ---------- STATE ----------
-  String selectedRole = 'Nurse';
-  bool soundOn = true;
-  String selectedSong = 'default'; // default, song1, song2, custom
-  Uint8List? customSongBytes;
-  String? customSongName;
-  List<Map<String, dynamic>> alerts = [];
-  final AudioPlayer _player = AudioPlayer();
-
-  bool get isCEO => selectedRole == 'CEO';
-  bool get isNurse => selectedRole == 'Nurse';
-  bool get isClient => selectedRole == 'Client';
-
-  String get roleKey => selectedRole.toLowerCase();
+  Future<void> _switchRole(String newRole) async {
+    selectedRole = newRole;
+    _applyLangForRole(); // <-- RULE applied instantly on pill tap
+    await _loadSettings();
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
@@ -69,10 +93,15 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
   }
 
   Future<void> _init() async {
-    await _loadLang();
+    // Role FIRST, before lang - because t() needs to know if na CEO
     selectedRole = widget.role;
+    if (selectedRole != 'Nurse' && selectedRole != 'Client' && selectedRole != 'CEO') {
+      selectedRole = 'Client';
+    }
+    await _loadLang();
     await _loadSettings();
     await _loadAlerts();
+    if (mounted) setState(() {});
   }
 
   Future<void> _loadSettings() async {
@@ -123,7 +152,7 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
     if (file.size > 8 * 1024 * 1024) {
-      _toast(t('pickSong')); // file too big - shows Pick Song text as warning
+      _toast(t('pickSong'));
       return;
     }
     customSongBytes = file.bytes;
@@ -139,7 +168,6 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
       await _player.play(BytesSource(customSongBytes!));
       return;
     }
-    // Default beep / song1 / song2 - use asset or system beep
     try {
       if (selectedSong == 'song1') {
         await _player.play(AssetSource('sounds/church_bell.mp3'));
@@ -149,7 +177,6 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
         await _player.play(AssetSource('sounds/default_beep.mp3'));
       }
     } catch (_) {
-      // fallback - no sound file, just vibrate / show
       _toast(type);
     }
   }
@@ -193,7 +220,6 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              // New alerts badge - opens list below
               setState(() {});
             },
             child: Text(t('newAlerts'), style: const TextStyle(color: Colors.white)),
@@ -214,31 +240,19 @@ class _AlertSettingsScreenState extends State<AlertSettingsScreen> {
                 ChoiceChip(
                   label: Text(t('nurse')),
                   selected: selectedRole == 'Nurse',
-                  onSelected: (_) async {
-                    selectedRole = 'Nurse';
-                    await _loadSettings();
-                    setState(() {});
-                  },
+                  onSelected: (_) => _switchRole('Nurse'),
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
                   label: Text(t('client')),
                   selected: selectedRole == 'Client',
-                  onSelected: (_) async {
-                    selectedRole = 'Client';
-                    await _loadSettings();
-                    setState(() {});
-                  },
+                  onSelected: (_) => _switchRole('Client'),
                 ),
                 const SizedBox(width: 8),
                 ChoiceChip(
                   label: Text(t('ceo')),
                   selected: selectedRole == 'CEO',
-                  onSelected: (_) async {
-                    selectedRole = 'CEO';
-                    await _loadSettings();
-                    setState(() {});
-                  },
+                  onSelected: (_) => _switchRole('CEO'),
                 ),
               ],
             ),
