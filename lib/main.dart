@@ -715,7 +715,6 @@ class LoveCareApp extends StatelessWidget {
 
         onUnknownRoute: (settings) => MaterialPageRoute(builder: (context) => LoveCareHomePage()),
 
-      ),
 
     );
 
@@ -1157,7 +1156,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
 
-        title: Text('馃挏 ${lang.t('welcome')}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('💜 Welcome', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
 
         content: const Column(
 
