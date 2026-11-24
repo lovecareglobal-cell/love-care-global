@@ -1,824 +1,323 @@
-// nurse_home_translations.dart
-// FILE - Nurse Home (NURSE) - ONLY SCREEN WORDS - ALL 22 LANGUAGES
-// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
-// 20/80: Nurse sees ONLY her CASH (80%). NEVER total, NEVER CEO fee, NEVER payNow/balance.
-// ONE FILE - Drop in lib/screens
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class NurseHomeTranslations {
-  static const Map<String, Map<String, String>> all = {
+// NURSE HOME - GO ONLINE + SEND GPS EVERY 10 SEC = MAKES UBER MAP MOVE
+// - Nurse taps GO ONLINE -> app starts sending lat/lng to nurseLocations/{uid} every 10 sec
+// - Client side LiveNurseMap / UberLiveMap listens to that node -> photo MOVES like Uber
+// - If nurse goes OFFLINE or closes app without GO OFFLINE, photo stops moving
+// - Location MUST be = Always, else Android stops GPS when app minimized
 
-    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
-    "en": {
-      "title": "Nurse Home",
-      "defaultNurse": "Nurse",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS not started",
-      "onlineStatus": "🟢 ONLINE - Clients can see you LIVE",
-      "offlineStatus": "🔴 OFFLINE - Go ONLINE to get bookings",
-      "gpsLive": "🟢 LIVE - Sending GPS every 10 sec\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - Last sent: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Clients cannot see you",
-      "goOfflineBtn": "🔴 GO OFFLINE - Stop Receiving Bookings",
-      "goOnlineBtn": "🟢 GO ONLINE - Start Receiving Bookings",
-      "uberWarning": "⚠️ For Uber map to move: 1) GO ONLINE  2) Location = ALWAYS (Settings > Location > Allow all the time)  3) Keep Internet ON  4) Do NOT force-close app",
-      "sendLocationBtn": "📍 Send My Location Now (Test)",
-      "myBookings": "My Bookings",
-      "noBookings": "No bookings yet.\nGo ONLINE to receive bookings.",
-      "defaultPatient": "Patient",
-      "collectCash": "You will collect CASH after work: {cash}",
-      "accept": "✅ Accept",
-      "reject": "❌ Reject",
-      "acceptedBanner": "✅ Accepted - Go to patient now. Keep app OPEN + Internet ON so your photo moves on client map.",
-      "locationAlwaysTitle": "Location = Always Needed",
-      "locationAlwaysContent": "For Uber live map to work, you MUST set Location = Always.\n\nGo to Settings > Apps > Love Care Global > Location > Allow all the time.\n\nIf you put \"While Using App\", your photo will STOP moving when you minimize app.",
-      "ok": "OK",
-      "openSettings": "Open Settings",
-      "toastLoginFirst": "Login first as nurse",
-      "toastChangeAlways": "⚠️ Please change Location to ALWAYS in Settings, else map will stop when you minimize app",
-      "toastOnline": "🟢 You are ONLINE - Clients can now see you moving LIVE on map",
-      "toastGpsFailed": "GPS failed: {error} - Turn ON Location + Internet",
-      "toastOffline": "🔴 You are OFFLINE",
-      "toastLocationSent": "📍 Location sent: {coords} - Client map will move now",
-      "toastAccepted": "✅ Booking accepted - Go to patient now, your photo will move on client map",
-      "toastRejected": "❌ Booking rejected",
-      "toastFailed": "Failed: {error}",
-    },
+class NurseHomeScreen extends StatefulWidget {
+  const NurseHomeScreen({super.key});
+  @override
+  State<NurseHomeScreen> createState() => _NurseHomeScreenState();
+}
 
-    // 2. TWI
-    "tw": {
-      "title": "Nɛɛse Fie",
-      "defaultNurse": "Nɛɛse",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS nhyɛɛ ase",
-      "onlineStatus": "🟢 ONLINE - Ɔkra hu wo LIVE",
-      "offlineStatus": "🔴 OFFLINE - Kɔ ONLINE na woanya bookings",
-      "gpsLive": "🟢 LIVE - Reyi fa GPS kwa sekɔn 10 biara\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - Wɔafa kɔ: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Ɔkra nhu wo",
-      "goOfflineBtn": "🔴 KƆ OFFLINE - Gyae Bookings Gye",
-      "goOnlineBtn": "🟢 KƆ ONLINE - Hyɛ Ase Gye Bookings",
-      "uberWarning": "⚠️ Sɛ Uber map bɛkeka: 1) KƆ ONLINE 2) Location = ALWAYS (Settings > Location > Allow all the time) 3) Fa Internet ON 4) MMA force-close app",
-      "sendLocationBtn": "📍 Fa Me Beae Kɔ Seisei (Test)",
-      "myBookings": "Me Bookings",
-      "noBookings": "Bookings biara nni hɔ.\nKɔ ONLINE na woanya bookings.",
-      "defaultPatient": "Ɔyarefo",
-      "collectCash": "Wobɛboaboa CASH wɔ adwuma akyi: {cash}",
-      "accept": "✅ Gye Tom",
-      "reject": "❌ Pow",
-      "acceptedBanner": "✅ Wɔagye - Kɔ ɔyarefo nkyɛn seisei. Fa app no BUE + Internet ON sɛ wo foto bɛkeka wɔ ɔkra map so.",
-      "locationAlwaysTitle": "Location = Always Ehia",
-      "locationAlwaysContent": "Sɛ Uber live map bɛyɛ adwuma, ƐSƐ sɛ wode Location = Always.\n\nKɔ Settings > Apps > Love Care Global > Location > Allow all the time.\n\nSɛ wode \"While Using App\", wo foto bɛGYAE keka sɛ wode app no sie.",
-      "ok": "OK",
-      "openSettings": "Bue Settings",
-      "toastLoginFirst": "Kɔ mu kane sɛ nɛɛse",
-      "toastChangeAlways": "⚠️ Yɛ wo Location ALWAYS wɔ Settings mu, anyɛ wo map bɛgyae sɛ wode app no sie",
-      "toastOnline": "🟢 Woyɛ ONLINE - Ɔkra hu wo seisei sɛ worekeka LIVE wɔ map so",
-      "toastGpsFailed": "GPS antumi: {error} - Sɔ Location + Internet ON",
-      "toastOffline": "🔴 Woyɛ OFFLINE",
-      "toastLocationSent": "📍 Wɔafa beae kɔ: {coords} - Ɔkra map bɛkeka seisei",
-      "toastAccepted": "✅ Wɔagye booking - Kɔ ɔyarefo nkyɛn seisei, wo foto bɛkeka wɔ ɔkra map so",
-      "toastRejected": "❌ Wɔapow booking",
-      "toastFailed": "Antumi: {error}",
-    },
+class _NurseHomeScreenState extends State<NurseHomeScreen> {
+  String nurseId = '';
+  String nurseName = '';
+  String nursePhoto = '';
+  bool isOnline = false;
+  bool _isLoading = true;
+  double? _lat, _lng;
+  String _gpsText = 'GPS not started';
+  Timer? _gpsTimer;
+  StreamSubscription<Position>? _posStream;
+  StreamSubscription? _bookingSub;
+  List<Map> myBookings = [];
+  int _todayEarnings = 0;
 
-    // 3. GA
-    "ga": {
-      "title": "Nɛɛse Shia",
-      "defaultNurse": "Nɛɛse",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS ebɔi",
-      "onlineStatus": "🟢 ONLINE - Mɔi wo LIVE",
-      "offlineStatus": "🔴 OFFLINE - Tee ONLINE koni ona bookings",
-      "gpsLive": "🟢 LIVE - Mii fee GPS kwa sekɔn 10\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - Afee kɛtee: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Mɔi wo",
-      "goOfflineBtn": "🔴 TEE OFFLINE - Fo Bookings He",
-      "goOnlineBtn": "🟢 TEE ONLINE - Bɔi Bookings He",
-      "uberWarning": "⚠️ Koni Uber map atsɔ: 1) TEE ONLINE 2) Location = ALWAYS (Settings > Location > Allow all the time) 3) Fee Internet ON 4) KA force-close app",
-      "sendLocationBtn": "📍 Fee Mi Hejɔɔ Kɛtee Sane (Test)",
-      "myBookings": "Mi Bookings",
-      "noBookings": "Bookings ko bɛ.\nTee ONLINE koni ona bookings.",
-      "defaultPatient": "Helɔ",
-      "collectCash": "O ba ŋɔ CASH yɛ nitsumɔ sɛɛ: {cash}",
-      "accept": "✅ He",
-      "reject": "❌ Kpɔ",
-      "acceptedBanner": "✅ Ahe - Tee helɔ gbɔ sane. Fee app no BUE + Internet ON koni o foto atsɔ yɛ mɔ map nɔ.",
-      "locationAlwaysTitle": "Location = Always Ehia",
-      "locationAlwaysContent": "Koni Uber live map fee nitsumɔ, ESA akɛ o fee Location = Always.\n\nTee Settings > Apps > Love Care Global > Location > Allow all the time.\n\nKɛ o fee \"While Using App\", o foto ba FOO tsɔ kɛ o ŋɔɔ app no.",
-      "ok": "OK",
-      "openSettings": "Gbe Settings",
-      "toastLoginFirst": "Ŋmɛ mli kane sɛ nɛɛse",
-      "toastChangeAlways": "⚠️ Tsake o Location fee ALWAYS yɛ Settings mli, aloo o map ba foo kɛ o ŋɔɔ app no",
-      "toastOnline": "🟢 O fee ONLINE - Mɔi wo sane sɛ o tsɔɔ LIVE yɛ map nɔ",
-      "toastGpsFailed": "GPS eko: {error} - Tswa Location + Internet ON",
-      "toastOffline": "🔴 O fee OFFLINE",
-      "toastLocationSent": "📍 Afee hejɔɔ kɛtee: {coords} - Mɔ map ba tsɔ sane",
-      "toastAccepted": "✅ Ahe booking - Tee helɔ gbɔ sane, o foto ba tsɔ yɛ mɔ map nɔ",
-      "toastRejected": "❌ Akpɔ booking",
-      "toastFailed": "Eko: {error}",
-    },
+  @override
+  void initState() {
+    super.initState();
+    _loadNurse();
+  }
 
-    // 4. EWE
-    "ee": {
-      "title": "Nɔnɔvia Aƒe",
-      "defaultNurse": "Nɔnɔvia",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS medze dze o",
-      "onlineStatus": "🟢 ONLINE — Amewo kpɔa wò LIVE",
-      "offlineStatus": "🔴 OFFLINE — Yi ONLINE be nàxɔ bookings",
-      "gpsLive": "🟢 LIVE — Le GPS ɖoɖo ɣleti 10 ɣleti 10\n{coords}",
-      "gpsLiveLast": "🟢 LIVE — Woɖo ɖe megbe: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE — Amewo mekpɔa wò o",
-      "goOfflineBtn": "🔴 YI OFFLINE — Dzudzɔ Bookings Xɔxɔ",
-      "goOnlineBtn": "🟢 YI ONLINE — Dze Bookings Xɔxɔ Gɔme",
-      "uberWarning": "⚠️ Be Uber map naʋu: 1) YI ONLINE 2) Location = ALWAYS (Settings > Location > Allow all the time) 3) Dzra Internet ON 4) MEGA force-close app o",
-      "sendLocationBtn": "📍 Ðo Nye Teƒe Ða Fifia (Test)",
-      "myBookings": "Nye Bookings",
-      "noBookings": "Bookings aɖeke meli o.\nYi ONLINE be nàxɔ bookings.",
-      "defaultPatient": "Dɔnɔ",
-      "collectCash": "Àxɔ CASH le dɔ megbe: {cash}",
-      "accept": "✅ Xɔ",
-      "reject": "❌ Gbe",
-      "acceptedBanner": "✅ Woxɔ — Yi dɔnɔ gbɔ fifia. Dzra app la ƲU + Internet ON be wò foto naʋu le amewo ƒe map dzi.",
-      "locationAlwaysTitle": "Location = Always Hiã",
-      "locationAlwaysContent": "Be Uber live map nawɔ dɔ, ELE be nàɖo Location = Always.\n\nYi Settings > Apps > Love Care Global > Location > Allow all the time.\n\nNe èɖo \"While Using App\", wò foto aDZUDZƆ ʋuʋu ne èɣla app la.",
-      "ok": "OK",
-      "openSettings": "Ʋu Settings",
-      "toastLoginFirst": "Ge ɖe eme gbã abe nɔnɔvia ene",
-      "toastChangeAlways": "⚠️ Trɔ Location ɖo ALWAYS le Settings me, ne menye nenema map aɖzudzɔ ne èɣla app la",
-      "toastOnline": "🟢 Èle ONLINE — Amewo kpɔa wò fifia sɛ èle ʋuʋu LIVE le map dzi",
-      "toastGpsFailed": "GPS medze o: {error} — Dze Location + Internet ON",
-      "toastOffline": "🔴 Èle OFFLINE",
-      "toastLocationSent": "📍 Woɖo teƒe ɖa: {coords} — Amewo ƒe map aʋu fifia",
-      "toastAccepted": "✅ Woxɔ booking — Yi dɔnɔ gbɔ fifia, wò foto aʋu le amewo ƒe map dzi",
-      "toastRejected": "❌ Wogbe booking",
-      "toastFailed": "Medze o: {error}",
-    },
+  @override
+  void dispose() {
+    _gpsTimer?.cancel();
+    _posStream?.cancel();
+    _bookingSub?.cancel();
+    super.dispose();
+  }
 
-    // 5. DUTCH
-    "nl": {
-      "title": "Verpleegkundige Home",
-      "defaultNurse": "Verpleegkundige",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS niet gestart",
-      "onlineStatus": "🟢 ONLINE - Klanten kunnen je LIVE zien",
-      "offlineStatus": "🔴 OFFLINE - Ga ONLINE om boekingen te krijgen",
-      "gpsLive": "🟢 LIVE - GPS verzenden elke 10 sec\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - Laatst verzonden: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Klanten kunnen je niet zien",
-      "goOfflineBtn": "🔴 GA OFFLINE - Stop Boekingen Ontvangen",
-      "goOnlineBtn": "🟢 GA ONLINE - Start Boekingen Ontvangen",
-      "uberWarning": "⚠️ Voor Uber kaart bewegen: 1) GA ONLINE 2) Locatie = ALTIJD (Instellingen > Locatie > Altijd toestaan) 3) Houd Internet AAN 4) Sluit app NIET geforceerd",
-      "sendLocationBtn": "📍 Stuur Mijn Locatie Nu (Test)",
-      "myBookings": "Mijn Boekingen",
-      "noBookings": "Nog geen boekingen.\nGa ONLINE om boekingen te ontvangen.",
-      "defaultPatient": "Patiënt",
-      "collectCash": "Je verzamelt CONTANT na werk: {cash}",
-      "accept": "✅ Accepteren",
-      "reject": "❌ Weigeren",
-      "acceptedBanner": "✅ Geaccepteerd - Ga nu naar patiënt. Houd app OPEN + Internet AAN zodat je foto beweegt op klantenkaart.",
-      "locationAlwaysTitle": "Locatie = Altijd Nodig",
-      "locationAlwaysContent": "Voor Uber live kaart moet je Locatie = Altijd zetten.\n\nGa naar Instellingen > Apps > Love Care Global > Locatie > Altijd toestaan.\n\nAls je \"Tijdens Gebruik App\" zet, stopt je foto met bewegen als je app minimaliseert.",
-      "ok": "OK",
-      "openSettings": "Open Instellingen",
-      "toastLoginFirst": "Log eerst in als verpleegkundige",
-      "toastChangeAlways": "⚠️ Verander Locatie naar ALTIJD in Instellingen, anders stopt kaart als je app minimaliseert",
-      "toastOnline": "🟢 Je bent ONLINE - Klanten kunnen je nu LIVE zien bewegen op kaart",
-      "toastGpsFailed": "GPS mislukt: {error} - Zet Locatie + Internet AAN",
-      "toastOffline": "🔴 Je bent OFFLINE",
-      "toastLocationSent": "📍 Locatie verzonden: {coords} - Klantenkaart beweegt nu",
-      "toastAccepted": "✅ Boeking geaccepteerd - Ga nu naar patiënt, je foto beweegt op klantenkaart",
-      "toastRejected": "❌ Boeking geweigerd",
-      "toastFailed": "Mislukt: {error}",
-    },
+  Future<void> _loadNurse() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final prefs = await SharedPreferences.getInstance();
+      String uid = user?.uid ?? prefs.getString('nurseId') ?? prefs.getString('uid') ?? '';
+      if (uid.isEmpty) {
+        // Fallback: try to read from stored email
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        return;
+      }
+      nurseId = uid;
+      // Load profile
+      final snap = await FirebaseDatabase.instance.ref('nurses/$uid').get();
+      if (snap.exists && snap.value is Map) {
+        final m = Map.from(snap.value as Map);
+        nurseName = (m['name'] ?? m['fullName'] ?? prefs.getString('nurseName') ?? 'Nurse').toString();
+        nursePhoto = (m['photoURL'] ?? m['photo'] ?? m['profilePic'] ?? '').toString();
+      } else {
+        nurseName = prefs.getString('nurseName') ?? prefs.getString('fullName') ?? 'Nurse';
+      }
+      // Check if already online (app was closed without GO OFFLINE)
+      final onSnap = await FirebaseDatabase.instance.ref('onlineNurses/$uid').get();
+      bool wasOnline = onSnap.exists;
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      if (wasOnline) {
+        // Auto-resume GPS - so map keeps moving even after restart
+        _goOnline(silent: true);
+      }
+      _listenBookings();
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
-    // 6. FRENCH
-    "fr": {
-      "title": "Accueil Infirmière",
-      "defaultNurse": "Infirmière",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS non démarré",
-      "onlineStatus": "🟢 EN LIGNE - Les clients te voient en DIRECT",
-      "offlineStatus": "🔴 HORS LIGNE - Passe EN LIGNE pour recevoir des réservations",
-      "gpsLive": "🟢 DIRECT - Envoi GPS toutes les 10 sec\n{coords}",
-      "gpsLiveLast": "🟢 DIRECT - Dernier envoi: {time}\n{coords}",
-      "gpsOffline": "🔴 HORS LIGNE - Les clients ne te voient pas",
-      "goOfflineBtn": "🔴 PASSER HORS LIGNE - Arrêter De Recevoir Des Réservations",
-      "goOnlineBtn": "🟢 PASSER EN LIGNE - Commencer À Recevoir Des Réservations",
-      "uberWarning": "⚠️ Pour que la carte Uber bouge: 1) PASSE EN LIGNE 2) Localisation = TOUJOURS (Paramètres > Localisation > Toujours autoriser) 3) Garde Internet ON 4) Ne force PAS la fermeture de l'app",
-      "sendLocationBtn": "📍 Envoyer Ma Position Maintenant (Test)",
-      "myBookings": "Mes Réservations",
-      "noBookings": "Aucune réservation.\nPasse EN LIGNE pour recevoir des réservations.",
-      "defaultPatient": "Patient",
-      "collectCash": "Tu collecteras ESPÈCES après travail: {cash}",
-      "accept": "✅ Accepter",
-      "reject": "❌ Refuser",
-      "acceptedBanner": "✅ Accepté - Va chez le patient maintenant. Garde l'app OUVERTE + Internet ON pour que ta photo bouge sur la carte client.",
-      "locationAlwaysTitle": "Localisation = Toujours Nécessaire",
-      "locationAlwaysContent": "Pour que la carte Uber live fonctionne, tu DOIS mettre Localisation = Toujours.\n\nVa dans Paramètres > Apps > Love Care Global > Localisation > Toujours autoriser.\n\nSi tu mets \"Pendant Utilisation\", ta photo ARRÊTERA de bouger quand tu minimises l'app.",
-      "ok": "OK",
-      "openSettings": "Ouvrir Paramètres",
-      "toastLoginFirst": "Connecte-toi d'abord comme infirmière",
-      "toastChangeAlways": "⚠️ Change Localisation en TOUJOURS dans Paramètres, sinon la carte s'arrêtera quand tu minimises l'app",
-      "toastOnline": "🟢 Tu es EN LIGNE - Les clients te voient maintenant bouger en DIRECT sur la carte",
-      "toastGpsFailed": "GPS échoué: {error} - Active Localisation + Internet",
-      "toastOffline": "🔴 Tu es HORS LIGNE",
-      "toastLocationSent": "📍 Position envoyée: {coords} - La carte client bouge maintenant",
-      "toastAccepted": "✅ Réservation acceptée - Va chez le patient maintenant, ta photo bouge sur la carte client",
-      "toastRejected": "❌ Réservation refusée",
-      "toastFailed": "Échec: {error}",
-    },
+  void _listenBookings() {
+    if (nurseId.isEmpty) return;
+    _bookingSub = FirebaseDatabase.instance.ref('bookingsByNurse/$nurseId').onValue.listen((e) {
+      if (!mounted) return;
+      final v = e.snapshot.value;
+      if (v is! Map) return;
+      List<Map> list = [];
+      v.forEach((k, val) {
+        if (val is Map) {
+          final m = Map.from(val);
+          m['bookingId'] = k.toString();
+          list.add(m);
+        }
+      });
+      list.sort((a, b) => (b['createdAt'] ?? b['time'] ?? 0).toString().compareTo((a['createdAt'] ?? a['time'] ?? 0).toString()));
+      setState(() => myBookings = list);
+    });
+  }
 
-    // 7. GERMAN
-    "de": {
-      "title": "Krankenschwester Home",
-      "defaultNurse": "Krankenschwester",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS nicht gestartet",
-      "onlineStatus": "🟢 ONLINE - Kunden sehen dich LIVE",
-      "offlineStatus": "🔴 OFFLINE - Gehe ONLINE um Buchungen zu erhalten",
-      "gpsLive": "🟢 LIVE - GPS senden alle 10 Sek\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - Zuletzt gesendet: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Kunden sehen dich nicht",
-      "goOfflineBtn": "🔴 GEHE OFFLINE - Buchungen Stoppen",
-      "goOnlineBtn": "🟢 GEHE ONLINE - Buchungen Empfangen Starten",
-      "uberWarning": "⚠️ Damit Uber Karte sich bewegt: 1) GEHE ONLINE 2) Standort = IMMER (Einstellungen > Standort > Immer erlauben) 3) Internet AN lassen 4) App NICHT force-schließen",
-      "sendLocationBtn": "📍 Meinen Standort Jetzt Senden (Test)",
-      "myBookings": "Meine Buchungen",
-      "noBookings": "Noch keine Buchungen.\nGehe ONLINE um Buchungen zu erhalten.",
-      "defaultPatient": "Patient",
-      "collectCash": "Du sammelst BARGELD nach Arbeit: {cash}",
-      "accept": "✅ Annehmen",
-      "reject": "❌ Ablehnen",
-      "acceptedBanner": "✅ Angenommen - Gehe jetzt zum Patienten. Halte App OFFEN + Internet AN, damit dein Foto sich auf Kundenkarte bewegt.",
-      "locationAlwaysTitle": "Standort = Immer Nötig",
-      "locationAlwaysContent": "Damit Uber Live-Karte funktioniert, MUSST du Standort = Immer setzen.\n\nGehe zu Einstellungen > Apps > Love Care Global > Standort > Immer erlauben.\n\nWenn du \"Während App-Nutzung\" setzt, STOPPT dein Foto, wenn du App minimierst.",
-      "ok": "OK",
-      "openSettings": "Einstellungen Öffnen",
-      "toastLoginFirst": "Melde dich zuerst als Krankenschwester an",
-      "toastChangeAlways": "⚠️ Ändere Standort zu IMMER in Einstellungen, sonst stoppt Karte, wenn du App minimierst",
-      "toastOnline": "🟢 Du bist ONLINE - Kunden sehen dich jetzt LIVE auf Karte bewegen",
-      "toastGpsFailed": "GPS fehlgeschlagen: {error} - Schalte Standort + Internet AN",
-      "toastOffline": "🔴 Du bist OFFLINE",
-      "toastLocationSent": "📍 Standort gesendet: {coords} - Kundenkarte bewegt sich jetzt",
-      "toastAccepted": "✅ Buchung angenommen - Gehe jetzt zum Patienten, dein Foto bewegt sich auf Kundenkarte",
-      "toastRejected": "❌ Buchung abgelehnt",
-      "toastFailed": "Fehlgeschlagen: {error}",
-    },
+  Future<bool> _checkLocationPermission() async {
+    LocationPermission perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
+    }
+    if (perm == LocationPermission.deniedForever) {
+      if (!mounted) return false;
+      showDialog(context: context, builder: (_) => AlertDialog(
+        title: const Text('Location = Always Needed'),
+        content: const Text('For Uber live map to work, you MUST set Location = Always.\n\nGo to Settings > Apps > Love Care Global > Location > Allow all the time.\n\nIf you put "While Using App", your photo will STOP moving when you minimize app.'),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')), ElevatedButton(onPressed: () { Navigator.pop(context); Geolocator.openAppSettings(); }, child: const Text('Open Settings'))],
+      ));
+      return false;
+    }
+    if (perm == LocationPermission.denied) return false;
+    // Ask for Always - this is what keeps GPS running in background
+    if (perm == LocationPermission.whileInUse) {
+      if (!mounted) return true; // Still allow, but warn
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('⚠️ Please change Location to ALWAYS in Settings, else map will stop when you minimize app'), duration: Duration(seconds: 5)));
+    }
+    return true;
+  }
 
-    // 8. SPANISH
-    "es": {
-      "title": "Inicio Enfermera",
-      "defaultNurse": "Enfermera",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS no iniciado",
-      "onlineStatus": "🟢 EN LÍNEA - Los clientes te ven EN VIVO",
-      "offlineStatus": "🔴 FUERA DE LÍNEA - Ponte EN LÍNEA para recibir reservas",
-      "gpsLive": "🟢 EN VIVO - Enviando GPS cada 10 seg\n{coords}",
-      "gpsLiveLast": "🟢 EN VIVO - Último envío: {time}\n{coords}",
-      "gpsOffline": "🔴 FUERA DE LÍNEA - Los clientes no te ven",
-      "goOfflineBtn": "🔴 PONTE FUERA DE LÍNEA - Dejar De Recibir Reservas",
-      "goOnlineBtn": "🟢 PONTE EN LÍNEA - Empezar A Recibir Reservas",
-      "uberWarning": "⚠️ Para que el mapa Uber se mueva: 1) PONTE EN LÍNEA 2) Ubicación = SIEMPRE (Ajustes > Ubicación > Permitir siempre) 3) Mantén Internet ON 4) NO fuerces cierre de app",
-      "sendLocationBtn": "📍 Enviar Mi Ubicación Ahora (Prueba)",
-      "myBookings": "Mis Reservas",
-      "noBookings": "Sin reservas aún.\nPonte EN LÍNEA para recibir reservas.",
-      "defaultPatient": "Paciente",
-      "collectCash": "Recogerás EFECTIVO después del trabajo: {cash}",
-      "accept": "✅ Aceptar",
-      "reject": "❌ Rechazar",
-      "acceptedBanner": "✅ Aceptado - Ve al paciente ahora. Mantén app ABIERTA + Internet ON para que tu foto se mueva en el mapa del cliente.",
-      "locationAlwaysTitle": "Ubicación = Siempre Necesaria",
-      "locationAlwaysContent": "Para que el mapa Uber en vivo funcione, DEBES poner Ubicación = Siempre.\n\nVe a Ajustes > Apps > Love Care Global > Ubicación > Permitir siempre.\n\nSi pones \"Mientras Usas App\", tu foto DEJARÁ de moverse cuando minimices app.",
-      "ok": "OK",
-      "openSettings": "Abrir Ajustes",
-      "toastLoginFirst": "Inicia sesión primero como enfermera",
-      "toastChangeAlways": "⚠️ Cambia Ubicación a SIEMPRE en Ajustes, si no el mapa se detendrá cuando minimices app",
-      "toastOnline": "🟢 Estás EN LÍNEA - Los clientes ahora te ven moverte EN VIVO en el mapa",
-      "toastGpsFailed": "GPS falló: {error} - Enciende Ubicación + Internet",
-      "toastOffline": "🔴 Estás FUERA DE LÍNEA",
-      "toastLocationSent": "📍 Ubicación enviada: {coords} - El mapa del cliente se mueve ahora",
-      "toastAccepted": "✅ Reserva aceptada - Ve al paciente ahora, tu foto se mueve en el mapa del cliente",
-      "toastRejected": "❌ Reserva rechazada",
-      "toastFailed": "Falló: {error}",
-    },
+  // ===== GO ONLINE - START SENDING GPS EVERY 10 SEC =====
+  Future<void> _goOnline({bool silent = false}) async {
+    if (nurseId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Login first as nurse')));
+      return;
+    }
+    final ok = await _checkLocationPermission();
+    if (!ok && !silent) return;
 
-    // 9. ITALIAN
-    "it": {
-      "title": "Home Infermiera",
-      "defaultNurse": "Infermiera",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS non avviato",
-      "onlineStatus": "🟢 ONLINE - I clienti ti vedono LIVE",
-      "offlineStatus": "🔴 OFFLINE - Vai ONLINE per ricevere prenotazioni",
-      "gpsLive": "🟢 LIVE - Invio GPS ogni 10 sec\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - Ultimo invio: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - I clienti non ti vedono",
-      "goOfflineBtn": "🔴 VAI OFFLINE - Smetti Di Ricevere Prenotazioni",
-      "goOnlineBtn": "🟢 VAI ONLINE - Inizia A Ricevere Prenotazioni",
-      "uberWarning": "⚠️ Per far muovere la mappa Uber: 1) VAI ONLINE 2) Posizione = SEMPRE (Impostazioni > Posizione > Consenti sempre) 3) Tieni Internet ON 4) NON forzare chiusura app",
-      "sendLocationBtn": "📍 Invia La Mia Posizione Ora (Test)",
-      "myBookings": "Le Mie Prenotazioni",
-      "noBookings": "Nessuna prenotazione.\nVai ONLINE per ricevere prenotazioni.",
-      "defaultPatient": "Paziente",
-      "collectCash": "Raccoglierai CONTANTI dopo lavoro: {cash}",
-      "accept": "✅ Accetta",
-      "reject": "❌ Rifiuta",
-      "acceptedBanner": "✅ Accettato - Vai dal paziente ora. Tieni app APERTA + Internet ON così la tua foto si muove sulla mappa cliente.",
-      "locationAlwaysTitle": "Posizione = Sempre Necessaria",
-      "locationAlwaysContent": "Per far funzionare la mappa Uber live, DEVI mettere Posizione = Sempre.\n\nVai in Impostazioni > App > Love Care Global > Posizione > Consenti sempre.\n\nSe metti \"Durante Uso App\", la tua foto SMETTERÀ di muoversi quando minimizzi app.",
-      "ok": "OK",
-      "openSettings": "Apri Impostazioni",
-      "toastLoginFirst": "Accedi prima come infermiera",
-      "toastChangeAlways": "⚠️ Cambia Posizione in SEMPRE in Impostazioni, altrimenti la mappa si fermerà quando minimizzi app",
-      "toastOnline": "🟢 Sei ONLINE - I clienti ora ti vedono muoverti LIVE sulla mappa",
-      "toastGpsFailed": "GPS fallito: {error} - Accendi Posizione + Internet",
-      "toastOffline": "🔴 Sei OFFLINE",
-      "toastLocationSent": "📍 Posizione inviata: {coords} - La mappa cliente si muove ora",
-      "toastAccepted": "✅ Prenotazione accettata - Vai dal paziente ora, la tua foto si muove sulla mappa cliente",
-      "toastRejected": "❌ Prenotazione rifiutata",
-      "toastFailed": "Fallito: {error}",
-    },
+    try {
+      // 1. Get first position immediately - so client sees you instantly
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      _lat = pos.latitude;
+      _lng = pos.longitude;
+      await _sendLocation(pos.latitude, pos.longitude);
 
-    // 10. PORTUGUESE
-    "pt": {
-      "title": "Início Enfermeira",
-      "defaultNurse": "Enfermeira",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS não iniciado",
-      "onlineStatus": "🟢 ONLINE - Clientes veem você AO VIVO",
-      "offlineStatus": "🔴 OFFLINE - Fique ONLINE para receber reservas",
-      "gpsLive": "🟢 AO VIVO - Enviando GPS a cada 10 seg\n{coords}",
-      "gpsLiveLast": "🟢 AO VIVO - Último envio: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Clientes não veem você",
-      "goOfflineBtn": "🔴 FIQUE OFFLINE - Parar De Receber Reservas",
-      "goOnlineBtn": "🟢 FIQUE ONLINE - Começar A Receber Reservas",
-      "uberWarning": "⚠️ Para o mapa Uber se mover: 1) FIQUE ONLINE 2) Localização = SEMPRE (Configurações > Localização > Permitir sempre) 3) Mantenha Internet ON 4) NÃO force fechamento do app",
-      "sendLocationBtn": "📍 Enviar Minha Localização Agora (Teste)",
-      "myBookings": "Minhas Reservas",
-      "noBookings": "Sem reservas ainda.\nFique ONLINE para receber reservas.",
-      "defaultPatient": "Paciente",
-      "collectCash": "Você coletará DINHEIRO após trabalho: {cash}",
-      "accept": "✅ Aceitar",
-      "reject": "❌ Rejeitar",
-      "acceptedBanner": "✅ Aceito - Vá ao paciente agora. Mantenha app ABERTO + Internet ON para sua foto se mover no mapa do cliente.",
-      "locationAlwaysTitle": "Localização = Sempre Necessária",
-      "locationAlwaysContent": "Para o mapa Uber ao vivo funcionar, você DEVE colocar Localização = Sempre.\n\nVá em Configurações > Apps > Love Care Global > Localização > Permitir sempre.\n\nSe colocar \"Durante Uso Do App\", sua foto PARARÁ de se mover quando minimizar app.",
-      "ok": "OK",
-      "openSettings": "Abrir Configurações",
-      "toastLoginFirst": "Entre primeiro como enfermeira",
-      "toastChangeAlways": "⚠️ Mude Localização para SEMPRE em Configurações, senão o mapa parará quando minimizar app",
-      "toastOnline": "🟢 Você está ONLINE - Clientes agora veem você se mover AO VIVO no mapa",
-      "toastGpsFailed": "GPS falhou: {error} - Ligue Localização + Internet",
-      "toastOffline": "🔴 Você está OFFLINE",
-      "toastLocationSent": "📍 Localização enviada: {coords} - Mapa do cliente se move agora",
-      "toastAccepted": "✅ Reserva aceita - Vá ao paciente agora, sua foto se move no mapa do cliente",
-      "toastRejected": "❌ Reserva rejeitada",
-      "toastFailed": "Falhou: {error}",
-    },
+      // 2. Mark ONLINE in 3 places - client list checks all 3
+      await FirebaseDatabase.instance.ref('onlineNurses/$nurseId').set(true);
+      await FirebaseDatabase.instance.ref('nursePresence/$nurseId').set({'isOnline': true, 'lastSeen': DateTime.now().millisecondsSinceEpoch});
+      await FirebaseDatabase.instance.ref('nurses/$nurseId/isOnline').set(true);
+      await FirebaseDatabase.instance.ref('nurses/$nurseId/lat').set(pos.latitude);
+      await FirebaseDatabase.instance.ref('nurses/$nurseId/lng').set(pos.longitude);
 
-    // 11. ARABIC
-    "ar": {
-      "title": "بيت الممرضة",
-      "defaultNurse": "ممرضة",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "لم يبدأ GPS",
-      "onlineStatus": "🟢 متصلة - العملاء يرونك مباشرة",
-      "offlineStatus": "🔴 غير متصلة - اذهبي ONLINE لتلقي الحجوزات",
-      "gpsLive": "🟢 مباشر - إرسال GPS كل 10 ثوانٍ\n{coords}",
-      "gpsLiveLast": "🟢 مباشر - آخر إرسال: {time}\n{coords}",
-      "gpsOffline": "🔴 غير متصلة - العملاء لا يرونك",
-      "goOfflineBtn": "🔴 اذهبي OFFLINE - توقفي عن تلقي الحجوزات",
-      "goOnlineBtn": "🟢 اذهبي ONLINE - ابدئي تلقي الحجوزات",
-      "uberWarning": "⚠️ لتحرك خريطة أوبر: 1) اذهبي ONLINE 2) الموقع = دائماً (الإعدادات > الموقع > السماح طوال الوقت) 3) أبقي الإنترنت ON 4) لا تغلقي التطبيق بالقوة",
-      "sendLocationBtn": "📍 أرسلي موقعي الآن (اختبار)",
-      "myBookings": "حجوزاتي",
-      "noBookings": "لا حجوزات بعد.\nاذهبي ONLINE لتلقي الحجوزات.",
-      "defaultPatient": "مريض",
-      "collectCash": "ستجمعين نقداً بعد العمل: {cash}",
-      "accept": "✅ قبول",
-      "reject": "❌ رفض",
-      "acceptedBanner": "✅ تم القبول - اذهبي للمريض الآن. أبقي التطبيق مفتوحاً + الإنترنت ON حتى تتحرك صورتك على خريطة العميل.",
-      "locationAlwaysTitle": "الموقع = دائماً مطلوب",
-      "locationAlwaysContent": "لكي تعمل خريطة أوبر المباشرة، يجب أن تضعي الموقع = دائماً.\n\nاذهبي إلى الإعدادات > التطبيقات > Love Care Global > الموقع > السماح طوال الوقت.\n\nإذا وضعت \"أثناء استخدام التطبيق\"، ستتوقف صورتك عن الحركة عندما تصغّرين التطبيق.",
-      "ok": "موافق",
-      "openSettings": "فتح الإعدادات",
-      "toastLoginFirst": "سجّلي دخول أولاً كممرضة",
-      "toastChangeAlways": "⚠️ غيّري الموقع إلى دائماً في الإعدادات، وإلا ستتوقف الخريطة عندما تصغّرين التطبيق",
-      "toastOnline": "🟢 أنت متصلة - العملاء يرونك الآن تتحركين مباشرة على الخريطة",
-      "toastGpsFailed": "فشل GPS: {error} - شغّلي الموقع + الإنترنت",
-      "toastOffline": "🔴 أنت غير متصلة",
-      "toastLocationSent": "📍 تم إرسال الموقع: {coords} - خريطة العميل تتحرك الآن",
-      "toastAccepted": "✅ تم قبول الحجز - اذهبي للمريض الآن، صورتك تتحرك على خريطة العميل",
-      "toastRejected": "❌ تم رفض الحجز",
-      "toastFailed": "فشل: {error}",
-    },
+      // 3. TIMER every 10 sec - THIS MAKES UBER PHOTO MOVE
+      _gpsTimer?.cancel();
+      _gpsTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+        try {
+          final p = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+          await _sendLocation(p.latitude, p.longitude);
+        } catch (_) {}
+      });
 
-    // 12. CHINESE
-    "zh": {
-      "title": "护士主页",
-      "defaultNurse": "护士",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS 未启动",
-      "onlineStatus": "🟢 在线 - 客户可以实时看到你",
-      "offlineStatus": "🔴 离线 - 上线以接收预订",
-      "gpsLive": "🟢 实时 - 每 10 秒发送 GPS\n{coords}",
-      "gpsLiveLast": "🟢 实时 - 上次发送: {time}\n{coords}",
-      "gpsOffline": "🔴 离线 - 客户看不到你",
-      "goOfflineBtn": "🔴 下线 - 停止接收预订",
-      "goOnlineBtn": "🟢 上线 - 开始接收预订",
-      "uberWarning": "⚠️ 让 Uber 地图移动: 1) 上线 2) 位置 = 始终 (设置 > 位置 > 始终允许) 3) 保持网络开启 4) 不要强制关闭应用",
-      "sendLocationBtn": "📍 立即发送我的位置 (测试)",
-      "myBookings": "我的预订",
-      "noBookings": "暂无预订。\n请上线以接收预订。",
-      "defaultPatient": "患者",
-      "collectCash": "工作后你将收取现金: {cash}",
-      "accept": "✅ 接受",
-      "reject": "❌ 拒绝",
-      "acceptedBanner": "✅ 已接受 - 现在去患者那里。保持应用打开 + 网络开启，这样你的照片会在客户地图上移动。",
-      "locationAlwaysTitle": "位置 = 需要始终",
-      "locationAlwaysContent": "要让 Uber 实时地图工作，你必须将位置设为始终。\n\n转到设置 > 应用 > Love Care Global > 位置 > 始终允许。\n\n如果你设为“使用应用期间”，当你最小化应用时，你的照片将停止移动。",
-      "ok": "确定",
-      "openSettings": "打开设置",
-      "toastLoginFirst": "请先以护士身份登录",
-      "toastChangeAlways": "⚠️ 请在设置中将位置改为始终，否则最小化应用时地图会停止",
-      "toastOnline": "🟢 你已上线 - 客户现在可以在地图上实时看到你移动",
-      "toastGpsFailed": "GPS 失败: {error} - 打开位置 + 网络",
-      "toastOffline": "🔴 你已离线",
-      "toastLocationSent": "📍 位置已发送: {coords} - 客户地图现在会移动",
-      "toastAccepted": "✅ 预订已接受 - 现在去患者那里，你的照片会在客户地图上移动",
-      "toastRejected": "❌ 预订已拒绝",
-      "toastFailed": "失败: {error}",
-    },
+      // 4. STREAM - also send immediately when nurse moves (faster than 10 sec)
+      _posStream?.cancel();
+      _posStream = Geolocator.getPositionStream(locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10)).listen((p) async {
+        await _sendLocation(p.latitude, p.longitude);
+      });
 
-    // 13. HINDI
-    "hi": {
-      "title": "नर्स होम",
-      "defaultNurse": "नर्स",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS शुरू नहीं हुआ",
-      "onlineStatus": "🟢 ONLINE - ग्राहक आपको LIVE देख सकते हैं",
-      "offlineStatus": "🔴 OFFLINE - बुकिंग पाने के लिए ONLINE जाएँ",
-      "gpsLive": "🟢 LIVE - हर 10 सेकंड GPS भेज रहे हैं\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - अंतिम बार भेजा: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - ग्राहक आपको नहीं देख सकते",
-      "goOfflineBtn": "🔴 OFFLINE जाएँ - बुकिंग लेना बंद करें",
-      "goOnlineBtn": "🟢 ONLINE जाएँ - बुकिंग लेना शुरू करें",
-      "uberWarning": "⚠️ Uber मैप हिलने के लिए: 1) ONLINE जाएँ 2) Location = हमेशा (Settings > Location > हमेशा अनुमति दें) 3) Internet ON रखें 4) App को force-close न करें",
-      "sendLocationBtn": "📍 मेरी लोकेशन अभी भेजें (टेस्ट)",
-      "myBookings": "मेरी बुकिंग",
-      "noBookings": "अभी तक कोई बुकिंग नहीं।\nबुकिंग पाने के लिए ONLINE जाएँ।",
-      "defaultPatient": "मरीज़",
-      "collectCash": "काम के बाद आप नकद एकत्र करेंगी: {cash}",
-      "accept": "✅ स्वीकार करें",
-      "reject": "❌ अस्वीकार करें",
-      "acceptedBanner": "✅ स्वीकार किया - अभी मरीज़ के पास जाएँ। App खुला रखें + Internet ON ताकि आपकी फोटो ग्राहक के मैप पर हिले।",
-      "locationAlwaysTitle": "Location = हमेशा चाहिए",
-      "locationAlwaysContent": "Uber live मैप के काम करने के लिए, आपको Location = हमेशा रखना होगा।\n\nजाएँ Settings > Apps > Love Care Global > Location > हमेशा अनुमति दें।\n\nअगर आप \"App इस्तेमाल के दौरान\" रखती हैं, तो App छोटा करने पर आपकी फोटो हिलना बंद हो जाएगी।",
-      "ok": "ठीक है",
-      "openSettings": "Settings खोलें",
-      "toastLoginFirst": "पहले नर्स के रूप में लॉगिन करें",
-      "toastChangeAlways": "⚠️ Settings में Location को हमेशा करें, नहीं तो App छोटा करने पर मैप रुक जाएगा",
-      "toastOnline": "🟢 आप ONLINE हैं - ग्राहक अब आपको मैप पर LIVE हिलते देख सकते हैं",
-      "toastGpsFailed": "GPS विफल: {error} - Location + Internet ON करें",
-      "toastOffline": "🔴 आप OFFLINE हैं",
-      "toastLocationSent": "📍 लोकेशन भेजी गई: {coords} - ग्राहक का मैप अब हिलेगा",
-      "toastAccepted": "✅ बुकिंग स्वीकार की गई - अभी मरीज़ के पास जाएँ, आपकी फोटो ग्राहक के मैप पर हिलेगी",
-      "toastRejected": "❌ बुकिंग अस्वीकार की गई",
-      "toastFailed": "विफल: {error}",
-    },
+      if (!mounted) return;
+      setState(() { isOnline = true; _gpsText = '🟢 LIVE - Sending GPS every 10 sec\n${_lat?.toStringAsFixed(5)}, ${_lng?.toStringAsFixed(5)}'; });
+      if (!silent) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🟢 You are ONLINE - Clients can now see you moving LIVE on map')));
+    } catch (e) {
+      if (!silent && mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('GPS failed: $e - Turn ON Location + Internet')));
+    }
+  }
 
-    // 14. SWAHILI
-    "sw": {
-      "title": "Nyumbani Muuguzi",
-      "defaultNurse": "Muuguzi",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS haijaanza",
-      "onlineStatus": "🟢 ONLINE - Wateja wanaweza kukuona LIVE",
-      "offlineStatus": "🔴 OFFLINE - Nenda ONLINE ili upate booking",
-      "gpsLive": "🟢 LIVE - Inatuma GPS kila sekunde 10\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - Ilituma mwisho: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Wateja hawawezi kukuona",
-      "goOfflineBtn": "🔴 NENDA OFFLINE - Acha Kupokea Booking",
-      "goOnlineBtn": "🟢 NENDA ONLINE - Anza Kupokea Booking",
-      "uberWarning": "⚠️ Ili ramani ya Uber isogee: 1) NENDA ONLINE 2) Mahali = DAIMA (Mipangilio > Mahali > Ruhusu wakati wote) 3) Weka Internet IMEWASHWA 4) USIFUNGE app kwa nguvu",
-      "sendLocationBtn": "📍 Tuma Mahali Pangu Sasa (Jaribio)",
-      "myBookings": "Booking Zangu",
-      "noBookings": "Hakuna booking bado.\nNenda ONLINE ili upate booking.",
-      "defaultPatient": "Mgonjwa",
-      "collectCash": "Utakusanya TASLIMU baada ya kazi: {cash}",
-      "accept": "✅ Kubali",
-      "reject": "❌ Kataa",
-      "acceptedBanner": "✅ Imekubaliwa - Nenda kwa mgonjwa sasa. Weka app IMEFUNGUKA + Internet IMEWASHWA ili picha yako isogee kwenye ramani ya mteja.",
-      "locationAlwaysTitle": "Mahali = Daima Inahitajika",
-      "locationAlwaysContent": "Ili ramani ya Uber live ifanye kazi, LAZIMA uweke Mahali = Daima.\n\nNenda Mipangilio > Apps > Love Care Global > Mahali > Ruhusu wakati wote.\n\nUkiweka \"Wakati Wa Kutumia App\", picha yako ITAACHA kusogea unapopunguza app.",
-      "ok": "Sawa",
-      "openSettings": "Fungua Mipangilio",
-      "toastLoginFirst": "Ingia kwanza kama muuguzi",
-      "toastChangeAlways": "⚠️ Badilisha Mahali kuwa DAIMA kwenye Mipangilio, vinginevyo ramani itasimama unapopunguza app",
-      "toastOnline": "🟢 Uko ONLINE - Wateja sasa wanaweza kukuona ukisogea LIVE kwenye ramani",
-      "toastGpsFailed": "GPS imeshindwa: {error} - Washa Mahali + Internet",
-      "toastOffline": "🔴 Uko OFFLINE",
-      "toastLocationSent": "📍 Mahali limetumwa: {coords} - Ramani ya mteja inasogea sasa",
-      "toastAccepted": "✅ Booking imekubaliwa - Nenda kwa mgonjwa sasa, picha yako inasogea kwenye ramani ya mteja",
-      "toastRejected": "❌ Booking imekataliwa",
-      "toastFailed": "Imeshindwa: {error}",
-    },
+  Future<void> _sendLocation(double lat, double lng) async {
+    if (nurseId.isEmpty) return;
+    try {
+      _lat = lat;
+      _lng = lng;
+      // THIS NODE is what client Uber map listens to: nurseLocations/{uid}
+      await FirebaseDatabase.instance.ref('nurseLocations/$nurseId').set({
+        'lat': lat,
+        'lng': lng,
+        'latitude': lat,
+        'longitude': lng,
+        'gpsLat': lat,
+        'gpsLng': lng,
+        'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        'isOnline': true,
+      });
+      // Also keep nurses/{uid} lat/lng fresh for list sorting
+      await FirebaseDatabase.instance.ref('nurses/$nurseId/lat').set(lat);
+      await FirebaseDatabase.instance.ref('nurses/$nurseId/lng').set(lng);
+      if (mounted) setState(() => _gpsText = '🟢 LIVE - Last sent: ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}:${DateTime.now().second.toString().padLeft(2, '0')}\n${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}');
+    } catch (_) {}
+  }
 
-    // 15. YORUBA
-    "yo": {
-      "title": "Ile Nọọsi",
-      "defaultNurse": "Nọọsi",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS ko bẹrẹ",
-      "onlineStatus": "🟢 ONLINE - Awọn alabara ri ọ LIVE",
-      "offlineStatus": "🔴 OFFLINE - Lọ ONLINE lati gba bookings",
-      "gpsLive": "🟢 LIVE - Nfi GPS ránṣẹ ni gbogbo iṣẹju-aaya 10\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - Ti fi ránṣẹ kẹhin: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Awọn alabara ko ri ọ",
-      "goOfflineBtn": "🔴 LỌ OFFLINE - Duro Gbigba Bookings",
-      "goOnlineBtn": "🟢 LỌ ONLINE - Bẹrẹ Gbigba Bookings",
-      "uberWarning": "⚠️ Fun maapu Uber lati gbe: 1) LỌ ONLINE 2) Ibi = NIGBAGBOGBO (Settings > Location > Gba laaye nigbagbogbo) 3) Fi Internet ON 4) MÁ ṣe force-close app",
-      "sendLocationBtn": "📍 Fi Ibi Mi Ránṣẹ Bayi (Test)",
-      "myBookings": "Awọn Booking Mi",
-      "noBookings": "Ko si booking sibẹ.\nLọ ONLINE lati gba bookings.",
-      "defaultPatient": "Alaisan",
-      "collectCash": "Iwọ yoo gba OWO ORI lẹhin iṣẹ: {cash}",
-      "accept": "✅ Gba",
-      "reject": "❌ Kọ",
-      "acceptedBanner": "✅ Ti gba - Lọ sọdọ alaisan bayii. Fi app naa ṢI + Internet ON ki foto rẹ gbe lori maapu alabara.",
-      "locationAlwaysTitle": "Ibi = Nigbagbogbo Nilo",
-      "locationAlwaysContent": "Fun maapu Uber live lati ṣiṣẹ, O GBỌDỌ fi Ibi = Nigbagbogbo.\n\nLọ Settings > Apps > Love Care Global > Location > Gba laaye nigbagbogbo.\n\nTi o ba fi \"Nigbati O Nlo App\", foto rẹ yoo DURO gbigbe nigbati o ba dinku app.",
-      "ok": "O DARA",
-      "openSettings": "Ṣi Settings",
-      "toastLoginFirst": "Wọle kọkọ bi nọọsi",
-      "toastChangeAlways": "⚠️ Yi Ibi pada si NIGBAGBAGBO ni Settings, bibẹẹkọ maapu yoo duro nigbati o ba dinku app",
-      "toastOnline": "🟢 O wa ONLINE - Awọn alabara ri ọ bayii pe o n gbe LIVE lori maapu",
-      "toastGpsFailed": "GPS kuna: {error} - Tan Ibi + Internet ON",
-      "toastOffline": "🔴 O wa OFFLINE",
-      "toastLocationSent": "📍 A ti fi ibi ránṣẹ: {coords} - Maapu alabara n gbe bayii",
-      "toastAccepted": "✅ Ti gba booking - Lọ sọdọ alaisan bayii, foto rẹ n gbe lori maapu alabara",
-      "toastRejected": "❌ Ti kọ booking",
-      "toastFailed": "Kuna: {error}",
-    },
+  // ===== GO OFFLINE - STOP SENDING GPS =====
+  Future<void> _goOffline() async {
+    _gpsTimer?.cancel();
+    _posStream?.cancel();
+    try {
+      await FirebaseDatabase.instance.ref('onlineNurses/$nurseId').remove();
+      await FirebaseDatabase.instance.ref('nursePresence/$nurseId').set({'isOnline': false, 'lastSeen': DateTime.now().millisecondsSinceEpoch});
+      await FirebaseDatabase.instance.ref('nurses/$nurseId/isOnline').set(false);
+      // Keep last location, but mark offline so client hides you
+      await FirebaseDatabase.instance.ref('nurseLocations/$nurseId/isOnline').set(false);
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() { isOnline = false; _gpsText = '🔴 OFFLINE - Clients cannot see you'; });
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🔴 You are OFFLINE')));
+  }
 
-    // 16. IGBO
-    "ig": {
-      "title": "Ụlọ Nọọsụ",
-      "defaultNurse": "Nọọsụ",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS amalitebeghị",
-      "onlineStatus": "🟢 ONLINE - Ndị ahịa na-ahụ gị LIVE",
-      "offlineStatus": "🔴 OFFLINE - Gaa ONLINE ka ị nweta bookings",
-      "gpsLive": "🟢 LIVE - Na-eziga GPS sekọnd 10 ọ bụla\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - Ezigara ikpeazụ: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Ndị ahịa anaghị ahụ gị",
-      "goOfflineBtn": "🔴 GAA OFFLINE - Kwụsị Ịnata Bookings",
-      "goOnlineBtn": "🟢 GAA ONLINE - Malite Ịnata Bookings",
-      "uberWarning": "⚠️ Ka map Uber gaa: 1) GAA ONLINE 2) Ebe = MGBE NIILE (Ntọala > Ebe > Kwe ka mgbe niile) 3) Debe Internet ON 4) EMECHILA app n'ike",
-      "sendLocationBtn": "📍 Zipu Ebe M Ugbu A (Nnwale)",
-      "myBookings": "Bookings M",
-      "noBookings": "Enweghị booking ugbu a.\nGaa ONLINE ka ị nweta bookings.",
-      "defaultPatient": "Onye Ọrịa",
-      "collectCash": "Ị ga-anakọta EGO NKITI mgbe ọrụ gasịrị: {cash}",
-      "accept": "✅ Nabata",
-      "reject": "❌ Jụ",
-      "acceptedBanner": "✅ Anabatala - Gaa onye ọrịa ugbu a. Debe app MEGHE + Internet ON ka foto gị gaa na map onye ahịa.",
-      "locationAlwaysTitle": "Ebe = Mgbe Niile Dị Mkpa",
-      "locationAlwaysContent": "Ka map Uber live rụọ ọrụ, Ị GA-EDO Ebe = Mgbe Niile.\n\nGaa Ntọala > Apps > Love Care Global > Ebe > Kwe ka mgbe niile.\n\nỌ bụrụ na ị dobe \"Mgbe Ị Na-eji App\", foto gị ga-AKWỤSỊ ịga mgbe ị belatara app.",
-      "ok": "Ọ DỊ MMA",
-      "openSettings": "Mepee Ntọala",
-      "toastLoginFirst": "Banye mbụ dị ka nọọsụ",
-      "toastChangeAlways": "⚠️ Gbanwee Ebe ka ọ bụrụ MGBE NIILE na Ntọala, ma ọ bụghị map ga-akwụsị mgbe ị belatara app",
-      "toastOnline": "🟢 Ị nọ ONLINE - Ndị ahịa na-ahụ gị ugbu a ka ị na-aga LIVE na map",
-      "toastGpsFailed": "GPS dara: {error} - Gbanye Ebe + Internet ON",
-      "toastOffline": "🔴 Ị nọ OFFLINE",
-      "toastLocationSent": "📍 Ezipula ebe: {coords} - Map onye ahịa na-aga ugbu a",
-      "toastAccepted": "✅ Anabatala booking - Gaa onye ọrịa ugbu a, foto gị na-aga na map onye ahịa",
-      "toastRejected": "❌ Ajụla booking",
-      "toastFailed": "Dara: {error}",
-    },
+  Future<void> _acceptReject(Map b, String status) async {
+    final id = b['bookingId'].toString();
+    try {
+      // Update in all 5 booking locations (same as client save)
+      final emailKey = (b['clientEmail'] ?? '').toString().toLowerCase().replaceAll(RegExp(r'[.#\$@\[\]]'), '_');
+      await FirebaseDatabase.instance.ref('bookings/$id/status').set(status);
+      if (emailKey.isNotEmpty) await FirebaseDatabase.instance.ref('bookingsByClient/$emailKey/$id/status').set(status);
+      await FirebaseDatabase.instance.ref('bookingsByNurse/$nurseId/$id/status').set(status);
+      await FirebaseDatabase.instance.ref('nurseBookings/$nurseId/$id/status').set(status);
+      if (emailKey.isNotEmpty) await FirebaseDatabase.instance.ref('clientBookings/$emailKey/$id/status').set(status);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(status == 'accepted' ? '✅ Booking accepted - Go to patient now, your photo will move on client map' : '❌ Booking rejected')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
+  }
 
-    // 17. HAUSA
-    "ha": {
-      "title": "Gidan Nurse",
-      "defaultNurse": "Nurse",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS bai fara ba",
-      "onlineStatus": "🟢 ONLINE - Abokan ciniki na gan ka LIVE",
-      "offlineStatus": "🔴 OFFLINE - Je ONLINE don karɓar bookings",
-      "gpsLive": "🟢 LIVE - Ana aika GPS kowane daƙiƙa 10\n{coords}",
-      "gpsLiveLast": "🟢 LIVE - An aika na ƙarshe: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Abokan ciniki ba sa gan ka",
-      "goOfflineBtn": "🔴 JE OFFLINE - Dakatar Da Karɓar Bookings",
-      "goOnlineBtn": "🟢 JE ONLINE - Fara Karɓar Bookings",
-      "uberWarning": "⚠️ Don taswirar Uber ta motsa: 1) JE ONLINE 2) Wuri = KOWANE LOKACI (Settings > Location > Bada izini koyaushe) 3) Ci gaba da Internet ON 4) KADA ka rufe app da ƙarfi",
-      "sendLocationBtn": "📍 Aika Wurina Yanzu (Gwaji)",
-      "myBookings": "Bookings Na",
-      "noBookings": "Babu booking tukuna.\nJe ONLINE don karɓar bookings.",
-      "defaultPatient": "Mara lafiya",
-      "collectCash": "Za ka tattara KUƊI TSABTA bayan aiki: {cash}",
-      "accept": "✅ Karɓa",
-      "reject": "❌ Ƙi",
-      "acceptedBanner": "✅ An karɓa - Je wurin mara lafiya yanzu. Ci gaba da app A BUDE + Internet ON don hotonka ya motsa a taswirar abokin ciniki.",
-      "locationAlwaysTitle": "Wuri = Kowane Lokaci Ana Bukata",
-      "locationAlwaysContent": "Don taswirar Uber live ta yi aiki, Dole ka sanya Wuri = Kowane Lokaci.\n\nJe Settings > Apps > Love Care Global > Location > Bada izini koyaushe.\n\nIdan ka sanya \"Yayin Amfani Da App\", hotonka zai DAKATA da motsi idan ka rage app.",
-      "ok": "YI",
-      "openSettings": "Buɗe Settings",
-      "toastLoginFirst": "Shiga da farko a matsayin nurse",
-      "toastChangeAlways": "⚠️ Canja Wuri zuwa KOWANE LOKACI a Settings, in ba haka ba taswira za ta tsaya idan ka rage app",
-      "toastOnline": "🟢 Kana ONLINE - Abokan ciniki suna gan ka yanzu kana motsi LIVE a taswira",
-      "toastGpsFailed": "GPS ya kasa: {error} - Kunna Wuri + Internet ON",
-      "toastOffline": "🔴 Kana OFFLINE",
-      "toastLocationSent": "📍 An aika wuri: {coords} - Taswirar abokin ciniki tana motsi yanzu",
-      "toastAccepted": "✅ An karɓi booking - Je wurin mara lafiya yanzu, hotonka yana motsi a taswirar abokin ciniki",
-      "toastRejected": "❌ An ƙi booking",
-      "toastFailed": "Ya kasa: {error}",
-    },
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) return const Scaffold(backgroundColor: Color(0xFF0E0A1C), body: Center(child: CircularProgressIndicator(color: Colors.purple)));
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E0A1C),
+      appBar: AppBar(title: const Text('Nurse Home', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: const Color(0xFF1A1633), actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: () { if (isOnline && _lat != null) _sendLocation(_lat!, _lng!); })]),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // PROFILE
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16)),
+            child: Row(children: [
+              CircleAvatar(radius: 32, backgroundImage: nursePhoto.isNotEmpty ? NetworkImage(nursePhoto) : null, backgroundColor: Colors.purple, child: nursePhoto.isEmpty ? const Text('👩', style: TextStyle(fontSize: 28)) : null),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(nurseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                Text(isOnline ? '🟢 ONLINE - Clients can see you LIVE' : '🔴 OFFLINE - Go ONLINE to get bookings', style: TextStyle(color: isOnline ? Colors.greenAccent : Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(_gpsText, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+              ])),
+            ]),
+          ),
+          const SizedBox(height: 16),
 
-    // 18. RUSSIAN
-    "ru": {
-      "title": "Дом Медсестры",
-      "defaultNurse": "Медсестра",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS не запущен",
-      "onlineStatus": "🟢 В СЕТИ - Клиенты видят тебя ВЖИВУЮ",
-      "offlineStatus": "🔴 НЕ В СЕТИ - Выйди В СЕТЬ, чтобы получать бронирования",
-      "gpsLive": "🟢 ВЖИВУЮ - Отправка GPS каждые 10 сек\n{coords}",
-      "gpsLiveLast": "🟢 ВЖИВУЮ - Последняя отправка: {time}\n{coords}",
-      "gpsOffline": "🔴 НЕ В СЕТИ - Клиенты тебя не видят",
-      "goOfflineBtn": "🔴 УЙТИ НЕ В СЕТЬ - Прекратить Получать Бронирования",
-      "goOnlineBtn": "🟢 ВЫЙТИ В СЕТЬ - Начать Получать Бронирования",
-      "uberWarning": "⚠️ Чтобы карта Uber двигалась: 1) ВЫЙДИ В СЕТЬ 2) Местоположение = ВСЕГДА (Настройки > Местоположение > Разрешить всегда) 3) Держи Интернет ВКЛ 4) НЕ закрывай принудительно app",
-      "sendLocationBtn": "📍 Отправить Моё Местоположение Сейчас (Тест)",
-      "myBookings": "Мои Бронирования",
-      "noBookings": "Пока нет бронирований.\nВыйди В СЕТЬ, чтобы получать бронирования.",
-      "defaultPatient": "Пациент",
-      "collectCash": "Вы соберёте НАЛИЧНЫЕ после работы: {cash}",
-      "accept": "✅ Принять",
-      "reject": "❌ Отклонить",
-      "acceptedBanner": "✅ Принято - Иди к пациенту сейчас. Держи app ОТКРЫТЫМ + Интернет ВКЛ, чтобы твоё фото двигалось на карте клиента.",
-      "locationAlwaysTitle": "Местоположение = Всегда Нужно",
-      "locationAlwaysContent": "Чтобы живая карта Uber работала, ты ДОЛЖНА поставить Местоположение = Всегда.\n\nПерейди Настройки > Приложения > Love Care Global > Местоположение > Разрешить всегда.\n\nЕсли поставишь \"Во Время Использования App\", твоё фото ПЕРЕСТАНЕТ двигаться, когда свернёшь app.",
-      "ok": "OK",
-      "openSettings": "Открыть Настройки",
-      "toastLoginFirst": "Сначала войди как медсестра",
-      "toastChangeAlways": "⚠️ Измени Местоположение на ВСЕГДА в Настройках, иначе карта остановится, когда свернёшь app",
-      "toastOnline": "🟢 Ты В СЕТИ - Клиенты теперь видят тебя движущейся ВЖИВУЮ на карте",
-      "toastGpsFailed": "GPS не удался: {error} - Включи Местоположение + Интернет",
-      "toastOffline": "🔴 Ты НЕ В СЕТИ",
-      "toastLocationSent": "📍 Местоположение отправлено: {coords} - Карта клиента движется сейчас",
-      "toastAccepted": "✅ Бронирование принято - Иди к пациенту сейчас, твоё фото движется на карте клиента",
-      "toastRejected": "❌ Бронирование отклонено",
-      "toastFailed": "Не удалось: {error}",
-    },
+          // GO ONLINE / OFFLINE - BIG BUTTON
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: isOnline ? _goOffline : () => _goOnline(),
+              style: ElevatedButton.styleFrom(backgroundColor: isOnline ? Colors.red : const Color(0xFF22C55E), padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+              child: Text(isOnline ? '🔴 GO OFFLINE - Stop Receiving Bookings' : '🟢 GO ONLINE - Start Receiving Bookings', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity, padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.amber.withOpacity(0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.amber.withOpacity(0.4))),
+            child: const Text('⚠️ For Uber map to move: 1) GO ONLINE  2) Location = ALWAYS (Settings > Location > Allow all the time)  3) Keep Internet ON  4) Do NOT force-close app', textAlign: TextAlign.center, style: TextStyle(color: Colors.amber, fontSize: 12)),
+          ),
+          const SizedBox(height: 8),
+          // TEST MY LOCATION BUTTON
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () async {
+                try {
+                  final p = await Geolocator.getCurrentPosition();
+                  await _sendLocation(p.latitude, p.longitude);
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('📍 Location sent: ${p.latitude.toStringAsFixed(5)}, ${p.longitude.toStringAsFixed(5)} - Client map will move now')));
+                } catch (e) { ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('GPS failed: $e'))); }
+              },
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white30), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: const Text('📍 Send My Location Now (Test)', style: TextStyle(color: Colors.white)),
+            ),
+          ),
+          const SizedBox(height: 20),
 
-    // 19. TURKISH
-    "tr": {
-      "title": "Hemşire Ana Sayfa",
-      "defaultNurse": "Hemşire",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS başlamadı",
-      "onlineStatus": "🟢 ÇEVRİMİÇİ - Müşteriler seni CANLI görüyor",
-      "offlineStatus": "🔴 ÇEVRİMDIŞI - Rezervasyon almak için ÇEVRİMİÇİ ol",
-      "gpsLive": "🟢 CANLI - Her 10 saniyede GPS gönderiliyor\n{coords}",
-      "gpsLiveLast": "🟢 CANLI - Son gönderim: {time}\n{coords}",
-      "gpsOffline": "🔴 ÇEVRİMDIŞI - Müşteriler seni görmüyor",
-      "goOfflineBtn": "🔴 ÇEVRİMDIŞI OL - Rezervasyon Almayı Durdur",
-      "goOnlineBtn": "🟢 ÇEVRİMİÇİ OL - Rezervasyon Almaya Başla",
-      "uberWarning": "⚠️ Uber haritasının hareket etmesi için: 1) ÇEVRİMİÇİ OL 2) Konum = HER ZAMAN (Ayarlar > Konum > Her zaman izin ver) 3) İnterneti AÇIK tut 4) Uygulamayı zorla KAPATMA",
-      "sendLocationBtn": "📍 Konumumu Şimdi Gönder (Test)",
-      "myBookings": "Rezervasyonlarım",
-      "noBookings": "Henüz rezervasyon yok.\nRezervasyon almak için ÇEVRİMİÇİ ol.",
-      "defaultPatient": "Hasta",
-      "collectCash": "İşten sonra NAKİT toplayacaksınız: {cash}",
-      "accept": "✅ Kabul Et",
-      "reject": "❌ Reddet",
-      "acceptedBanner": "✅ Kabul edildi - Şimdi hastaya git. Fotoğrafının müşteri haritasında hareket etmesi için uygulamayı AÇIK + İnterneti AÇIK tut.",
-      "locationAlwaysTitle": "Konum = Her Zaman Gerekli",
-      "locationAlwaysContent": "Uber canlı haritanın çalışması için Konum = Her Zaman yapmalısın.\n\nGit Ayarlar > Uygulamalar > Love Care Global > Konum > Her zaman izin ver.\n\n\"Uygulamayı Kullanırken\" yaparsan, uygulamayı küçülttüğünde fotoğrafın hareket etmeyi DURDURUR.",
-      "ok": "Tamam",
-      "openSettings": "Ayarları Aç",
-      "toastLoginFirst": "Önce hemşire olarak giriş yap",
-      "toastChangeAlways": "⚠️ Ayarlarda Konumu HER ZAMAN yap, yoksa uygulamayı küçülttüğünde harita durur",
-      "toastOnline": "🟢 ÇEVRİMİÇİSİN - Müşteriler şimdi seni haritada CANLI hareket ederken görüyor",
-      "toastGpsFailed": "GPS başarısız: {error} - Konum + İnterneti AÇ",
-      "toastOffline": "🔴 ÇEVRİMDIŞISIN",
-      "toastLocationSent": "📍 Konum gönderildi: {coords} - Müşteri haritası şimdi hareket ediyor",
-      "toastAccepted": "✅ Rezervasyon kabul edildi - Şimdi hastaya git, fotoğrafın müşteri haritasında hareket ediyor",
-      "toastRejected": "❌ Rezervasyon reddedildi",
-      "toastFailed": "Başarısız: {error}",
-    },
-
-    // 20. KOREAN
-    "ko": {
-      "title": "간호사 홈",
-      "defaultNurse": "간호사",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS가 시작되지 않음",
-      "onlineStatus": "🟢 온라인 - 고객이 당신을 실시간으로 볼 수 있음",
-      "offlineStatus": "🔴 오프라인 - 예약을 받으려면 온라인으로 가세요",
-      "gpsLive": "🟢 실시간 - 10초마다 GPS 전송 중\n{coords}",
-      "gpsLiveLast": "🟢 실시간 - 마지막 전송: {time}\n{coords}",
-      "gpsOffline": "🔴 오프라인 - 고객이 당신을 볼 수 없음",
-      "goOfflineBtn": "🔴 오프라인으로 가기 - 예약 받기 중지",
-      "goOnlineBtn": "🟢 온라인으로 가기 - 예약 받기 시작",
-      "uberWarning": "⚠️ Uber 지도가 움직이려면: 1) 온라인으로 가기 2) 위치 = 항상 (설정 > 위치 > 항상 허용) 3) 인터넷 켜두기 4) 앱을 강제 종료하지 마세요",
-      "sendLocationBtn": "📍 내 위치 지금 보내기 (테스트)",
-      "myBookings": "내 예약",
-      "noBookings": "아직 예약이 없습니다.\n예약을 받으려면 온라인으로 가세요.",
-      "defaultPatient": "환자",
-      "collectCash": "작업 후 현금을 수집합니다: {cash}",
-      "accept": "✅ 수락",
-      "reject": "❌ 거부",
-      "acceptedBanner": "✅ 수락됨 - 지금 환자에게 가세요. 사진이 고객 지도에서 움직이도록 앱을 열어두고 + 인터넷을 켜두세요.",
-      "locationAlwaysTitle": "위치 = 항상 필요",
-      "locationAlwaysContent": "Uber 실시간 지도가 작동하려면 위치를 항상 으로 설정해야 합니다.\n\n설정 > 앱 > Love Care Global > 위치 > 항상 허용으로 가세요.\n\n\"앱 사용 중\"으로 설정하면 앱을 최소화할 때 사진이 움직임을 멈춥니다.",
-      "ok": "확인",
-      "openSettings": "설정 열기",
-      "toastLoginFirst": "먼저 간호사로 로그인하세요",
-      "toastChangeAlways": "⚠️ 설정에서 위치를 항상 으로 변경하세요, 그렇지 않으면 앱을 최소화할 때 지도가 멈춥니다",
-      "toastOnline": "🟢 온라인입니다 - 고객이 이제 지도에서 당신이 실시간으로 움직이는 것을 볼 수 있습니다",
-      "toastGpsFailed": "GPS 실패: {error} - 위치 + 인터넷을 켜세요",
-      "toastOffline": "🔴 오프라인입니다",
-      "toastLocationSent": "📍 위치 전송됨: {coords} - 고객 지도가 지금 움직입니다",
-      "toastAccepted": "✅ 예약 수락됨 - 지금 환자에게 가세요, 사진이 고객 지도에서 움직입니다",
-      "toastRejected": "❌ 예약 거부됨",
-      "toastFailed": "실패: {error}",
-    },
-
-    // 21. JAPANESE
-    "ja": {
-      "title": "看護師ホーム",
-      "defaultNurse": "看護師",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS が開始されていません",
-      "onlineStatus": "🟢 オンライン - クライアントがあなたをライブで見られます",
-      "offlineStatus": "🔴 オフライン - 予約を受けるにはオンラインにしてください",
-      "gpsLive": "🟢 ライブ - 10秒ごとに GPS を送信中\n{coords}",
-      "gpsLiveLast": "🟢 ライブ - 最終送信: {time}\n{coords}",
-      "gpsOffline": "🔴 オフライン - クライアントはあなたを見られません",
-      "goOfflineBtn": "🔴 オフラインにする - 予約の受付を停止",
-      "goOnlineBtn": "🟢 オンラインにする - 予約の受付を開始",
-      "uberWarning": "⚠️ Uber マップを動かすには: 1) オンラインにする 2) 位置情報 = 常に (設定 > 位置情報 > 常に許可) 3) インターネットを ON に保つ 4) アプリを強制終了しない",
-      "sendLocationBtn": "📍 私の位置を今送信 (テスト)",
-      "myBookings": "私の予約",
-      "noBookings": "まだ予約がありません。\n予約を受けるにはオンラインにしてください。",
-      "defaultPatient": "患者",
-      "collectCash": "仕事の後に現金を集めます: {cash}",
-      "accept": "✅ 承認",
-      "reject": "❌ 拒否",
-      "acceptedBanner": "✅ 承認済み - 今すぐ患者の元へ。写真がクライアントマップで動くようにアプリを開いたまま + インターネットを ON にしてください。",
-      "locationAlwaysTitle": "位置情報 = 常に必要",
-      "locationAlwaysContent": "Uber ライブマップを機能させるには、位置情報 = 常に にする必要があります。\n\n設定 > アプリ > Love Care Global > 位置情報 > 常に許可 へ行ってください。\n\n「アプリ使用中」にすると、アプリを最小化したときに写真の動きが止まります。",
-      "ok": "OK",
-      "openSettings": "設定を開く",
-      "toastLoginFirst": "まず看護師としてログインしてください",
-      "toastChangeAlways": "⚠️ 設定で位置情報を常に に変更してください。そうしないとアプリを最小化したときにマップが止まります",
-      "toastOnline": "🟢 オンラインです - クライアントは今、あなたがマップ上でライブで動くのを見られます",
-      "toastGpsFailed": "GPS 失敗: {error} - 位置情報 + インターネットを ON にしてください",
-      "toastOffline": "🔴 オフラインです",
-      "toastLocationSent": "📍 位置情報を送信しました: {coords} - クライアントマップが今動きます",
-      "toastAccepted": "✅ 予約が承認されました - 今すぐ患者の元へ、写真がクライアントマップで動きます",
-      "toastRejected": "❌ 予約が拒否されました",
-      "toastFailed": "失敗: {error}",
-    },
-
-    // 22. POLISH
-    "pl": {
-      "title": "Strona Główna Pielęgniarki",
-      "defaultNurse": "Pielęgniarka",
-      "defaultAvatar": "👩",
-      "gpsNotStarted": "GPS nie uruchomiony",
-      "onlineStatus": "🟢 ONLINE - Klienci widzą Cię NA ŻYWO",
-      "offlineStatus": "🔴 OFFLINE - Przejdź ONLINE, aby otrzymywać rezerwacje",
-      "gpsLive": "🟢 NA ŻYWO - Wysyłanie GPS co 10 sek\n{coords}",
-      "gpsLiveLast": "🟢 NA ŻYWO - Ostatnio wysłano: {time}\n{coords}",
-      "gpsOffline": "🔴 OFFLINE - Klienci Cię nie widzą",
-      "goOfflineBtn": "🔴 PRZEJDŹ OFFLINE - Przestań Otrzymywać Rezerwacje",
-      "goOnlineBtn": "🟢 PRZEJDŹ ONLINE - Zacznij Otrzymywać Rezerwacje",
-      "uberWarning": "⚠️ Aby mapa Uber się poruszała: 1) PRZEJDŹ ONLINE 2) Lokalizacja = ZAWSZE (Ustawienia > Lokalizacja > Zezwalaj zawsze) 3) Trzymaj Internet WŁĄCZONY 4) NIE zamykaj wymuszenie app",
-      "sendLocationBtn": "📍 Wyślij Moją Lokalizację Teraz (Test)",
-      "myBookings": "Moje Rezerwacje",
-      "noBookings": "Brak rezerwacji.\nPrzejdź ONLINE, aby otrzymywać rezerwacje.",
-      "defaultPatient": "Pacjent",
-      "collectCash": "Zbierzesz GOTÓWKĘ po pracy: {cash}",
-      "accept": "✅ Akceptuj",
-      "reject": "❌ Odrzuć",
-      "acceptedBanner": "✅ Zaakceptowano - Idź do pacjenta teraz. Trzymaj app OTWARTĄ + Internet WŁĄCZONY, aby Twoje zdjęcie poruszało się na mapie klienta.",
-      "locationAlwaysTitle": "Lokalizacja = Zawsze Potrzebna",
-      "locationAlwaysContent": "Aby mapa Uber na żywo działała, MUSISZ ustawić Lokalizacja = Zawsze.\n\nIdź Ustawienia > Aplikacje > Love Care Global > Lokalizacja > Zezwalaj zawsze.\n\nJeśli ustawisz \"Podczas Używania App\", Twoje zdjęcie PRZESTANIE się poruszać, gdy zminimalizujesz app.",
-      "ok": "OK",
-      "openSettings": "Otwórz Ustawienia",
-      "toastLoginFirst": "Zaloguj się najpierw jako pielęgniarka",
-      "toastChangeAlways": "⚠️ Zmień Lokalizację na ZAWSZE w Ustawieniach, inaczej mapa zatrzyma się, gdy zminimalizujesz app",
-      "toastOnline": "🟢 Jesteś ONLINE - Klienci teraz widzą Cię poruszającą się NA ŻYWO na mapie",
-      "toastGpsFailed": "GPS nie powiodło się: {error} - Włącz Lokalizację + Internet",
-      "toastOffline": "🔴 Jesteś OFFLINE",
-      "toastLocationSent": "📍 Lokalizacja wysłana: {coords} - Mapa klienta porusza się teraz",
-      "toastAccepted": "✅ Rezerwacja zaakceptowana - Idź do pacjenta teraz, Twoje zdjęcie porusza się na mapie klienta",
-      "toastRejected": "❌ Rezerwacja odrzucona",
-      "toastFailed": "Nie powiodło się: {error}",
-    },
-  };
+          // BOOKINGS
+          const Text('My Bookings', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          if (myBookings.isEmpty)
+            Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(14)), child: const Center(child: Text('No bookings yet.\nGo ONLINE to receive bookings.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60))))
+          else
+            ...myBookings.map((b) {
+              final status = (b['status'] ?? 'pending').toString();
+              Color statusColor = status == 'accepted' ? Colors.green : status == 'rejected' ? Colors.red : Colors.orange;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.white12)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Expanded(child: Text('${b['patientName'] ?? b['clientName'] ?? 'Patient'}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(20)), child: Text(status.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold))),
+                  ]),
+                  const SizedBox(height: 4),
+                  Text('${b['patientLocation'] ?? ''} • ${b['startTime'] ?? ''} - ${b['endTime'] ?? ''} • ${b['careMode'] ?? ''}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text('${b['currency'] ?? 'GHS'} ${b['amount'] ?? ''} • ${b['paymentType'] ?? ''} • Paid Now: ${b['currency'] ?? 'GHS'} ${b['payNow'] ?? b['amountPaidNow'] ?? ''} • Balance: ${b['currency'] ?? 'GHS'} ${b['payLater'] ?? b['amountBalance'] ?? ''}', style: const TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  if (status == 'pending')
+                    Row(children: [
+                      Expanded(child: ElevatedButton(onPressed: () => _acceptReject(b, 'accepted'), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('✅ Accept', style: TextStyle(color: Colors.white)))),
+                      const SizedBox(width: 8),
+                      Expanded(child: ElevatedButton(onPressed: () => _acceptReject(b, 'rejected'), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('❌ Reject', style: TextStyle(color: Colors.white)))),
+                    ])
+                  else if (status == 'accepted')
+                    Container(width: double.infinity, padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.green.withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: const Text('✅ Accepted - Go to patient now. Keep app OPEN + Internet ON so your photo moves on client map.', textAlign: TextAlign.center, style: TextStyle(color: Colors.greenAccent, fontSize: 12))),
+                ]),
+              );
+            }),
+        ]),
+      ),
+    );
+  }
 }
