@@ -1,1350 +1,625 @@
-// index_translations.dart
-// FILE - Index / lib/main.dart - ONLY SCREEN WORDS - ALL 22 LANGUAGES
-// RULE: CEO = English ONLY. Everyone else = 22 languages.
-// ONE FILE - Drop in lib/
+// LOVE CARE GLOBAL - Flutter port of Index-4-FIXED-VIDEO-SOUND.html
+// SINGLE-FILE INDEX - paste this whole file as lib/main.dart
+// Run: flutter pub get  |  flutterfire configure (web-care-618e8)  |  flutter run
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:video_player/video_player.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:just_audio/just_audio.dart';
 
-class IndexTranslations {
-  static const Map<String, Map<String, String>> all = {
 
-    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
-    "en": {
-      "appTitle": "PROFESSIONAL ONLINE NURSE",
-      "sos": "SOS",
-      "welcomeTo": "Welcome to",
-      "heroTitle": "LOVE CARE GLOBAL\nHOME NURSING",
-      "heroBody": "Your health, our heart. We bring licensed nurses right to your doorstep — compassionate, professional care in 8 countries, 24/7. Now with live tracking, secure Paystack, and 2-step verified nurses.",
-      "joinNurse": "Join as Nurse",
-      "joinNurseSub": "Verified, earn with jobs — GPS + video profile",
-      "register2steps": "Register (2 steps)",
-      "login": "Login",
-      "bookNurse": "Book a Nurse",
-      "bookNurseSub": "See photo/video/rating before you pay",
-      "register": "Register",
-      "feat1Title": "Live Tracking + GPS Verified",
-      "feat1Body": "Track nurse in real time. All nurses GPS verified at registration.",
-      "feat2Title": "Secure Paystack + Pay on Delivery",
-      "feat2Body": "Pay GHS/USD + new 50% online option. No double booking — availability lock.",
-      "feat3Title": "2-Step Verified Nurses",
-      "feat3Body": "Photo, ID, Licence, Video checked by CEO. Only approved nurses show ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Client Ratings on Nurses — High Rank",
-      "liveBadge": "LIVE • {n} nurses rated",
-      "showMore": "Show more nurses ↓",
-      "showLess": "Show less ↑",
-      "ratingsNote": "⭐ Ratings reflect live from client ratings in rating.html / client-dashboard — Verified bookings only",
-      "soundOn": "🔊 Sound ON - Tap 🔊 if no sound",
-      "playWithSound": "▶️ Play with Sound",
-      "pause": "⏸ Pause",
-      "ceoVoice": "CEO voice note",
-      "ceoAnnouncementPrefix": "CEO Announcement: {text}",
-      "ceoDefaultName": "👑 CEO Announcement — Asabere Peter",
-      "ceoLoading": "Loading CEO announcement...",
-      "ceoTime": "Just now • LoveCare Global",
-      "drawerTitle": "PROFESSIONAL\nONLINE NURSE",
-      "hiGuest": "👋 Hi, Guest",
-      "notLoggedIn": "Not logged in",
-      "menuHome": "Home",
-      "menuAbout": "About",
-      "menuServices": "Services",
-      "menuHow": "How It Works",
-      "menuContact": "Contact - +233544121814",
-      "menuConsent": "Consent Form",
-      "menuPrivacy": "Privacy",
-      "menuTerms": "Terms",
-      "menuRefund": "Refund",
-      "menuDelete": "🗑️ Delete Account",
-      "menuSos": "SOS Emergency",
-      "menuLogout": "🚪 Logout",
-      "homeNursing": "Home Nursing",
-      "verifiedClient": "Verified Client",
-      "ghana": "Ghana",
-      "excellent": "Excellent service",
-      "mock1": "Very caring and professional.",
-      "mock2": "Arrived on time, excellent care.",
-      "mock3": "My mother loved her care.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} reviews)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Nurse",
-    },
+// ================= MODELS =================
 
-    // 2. TWI
-    "tw": {
-      "appTitle": "NƐƐSE A ƆWƆ ONLINE A ƆYƐ ADWUMAYƐFO",
-      "sos": "SOS",
-      "welcomeTo": "Akwaaba",
-      "heroTitle": "LOVE CARE GLOBAL\nFIE NƐƐSE ADWUMA",
-      "heroBody": "Wo akwahosan, yɛn koma. Yɛde nɛɛse a wɔama ho kwan ba wo pɔnɔ ano — ɔdɔ, adwumayɛfo hwɛ wɔ aman 8 mu, 24/7. Mprempren wɔ live tracking, Paystack a ahobammɔ wɔ mu, ne nɛɛse a wɔahwɛ mu 2-step.",
-      "joinNurse": "Ka Nɛɛse Ho",
-      "joinNurseSub": "Wɔahwɛ mu, nya sika ne adwuma — GPS + video profile",
-      "register2steps": "Kyerɛw Din (2 steps)",
-      "login": "Kɔ Mu",
-      "bookNurse": "Book Nɛɛse",
-      "bookNurseSub": "Hwɛ mfonini/video/rating ansa na wotua",
-      "register": "Kyerɛw Din",
-      "feat1Title": "Live Tracking + GPS A Wɔahwɛ Mu",
-      "feat1Body": "Hwɛ nɛɛse wɔ bere ankasa mu. Wɔahwɛ nɛɛse nyinaa GPS mu wɔ registration mu.",
-      "feat2Title": "Paystack A Ahobammɔ Wɔ Mu + Tua Wɔ Delivery Mu",
-      "feat2Body": "Tua GHS/USD + 50% online foforo. Double booking biara — availability lock.",
-      "feat3Title": "Nɛɛse A Wɔahwɛ Mu 2-Step",
-      "feat3Body": "CEO ahwɛ Mfonini, ID, Licence, Video mu. Nɛɛse a wɔapene so nko na wɔda ONLINE adi.",
-      "ratingsTitle": "👩‍⚕️ Ɔkra Ratings Wɔ Nɛɛse So — High Rank",
-      "liveBadge": "LIVE • Wɔahwɛ nɛɛse {n} mu",
-      "showMore": "Kyerɛ nɛɛse pii ↓",
-      "showLess": "Kyerɛ kakra ↑",
-      "ratingsNote": "⭐ Ratings fi ɔkra ratings a ɛyɛ live wɔ rating.html / client-dashboard — Booking a wɔahwɛ mu nko",
-      "soundOn": "🔊 Nne WƆ SO - Tap 🔊 sɛ nne nni hɔ",
-      "playWithSound": "▶️ Bɔ Ne Nne",
-      "pause": "⏸ Gyae",
-      "ceoVoice": "CEO voice note",
-      "ceoAnnouncementPrefix": "CEO Amaneɛ: {text}",
-      "ceoDefaultName": "👑 CEO Amaneɛ — Asabere Peter",
-      "ceoLoading": "Reyi CEO amaneɛ load...",
-      "ceoTime": "Seisei ara • LoveCare Global",
-      "drawerTitle": "NƐƐSE A ƆYƐ\nADWUMAYƐFO ONLINE",
-      "hiGuest": "👋 Maakye, Ɔhɔho",
-      "notLoggedIn": "Wonkɔ mu",
-      "menuHome": "Fie",
-      "menuAbout": "Yɛn Ho",
-      "menuServices": "Adwuma",
-      "menuHow": "Sɛnea Ɛyɛ Adwuma",
-      "menuContact": "Frɛ Yɛn - +233544121814",
-      "menuConsent": "Consent Form",
-      "menuPrivacy": "Privacy",
-      "menuTerms": "Terms",
-      "menuRefund": "Refund",
-      "menuDelete": "🗑️ Yi Account Fi Hɔ",
-      "menuSos": "SOS Emergency",
-      "menuLogout": "🚪 Fi Mu",
-      "homeNursing": "Fie Nɛɛse Adwuma",
-      "verifiedClient": "Ɔkra A Wɔahwɛ Mu",
-      "ghana": "Ghana",
-      "excellent": "Adwuma a ɛyɛ pa",
-      "mock1": "Ɔyɛ ɔdɔ na ɔyɛ adwumayɛfo pa.",
-      "mock2": "Ɔbaa bere mu, ɔhwɛ a ɛyɛ pa.",
-      "mock3": "Me maame pɛ ne hwɛ.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} reviews)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Nɛɛse",
-    },
-
-    // 3. GA
-    "ga": {
-      "appTitle": "NƐƐSE A YƐ ONLINE A FEE NITSUMƆ",
-      "sos": "SOS",
-      "welcomeTo": "Otsɔme",
-      "heroTitle": "LOVE CARE GLOBAL\nSHIA NƐƐSE NITSUMƆ",
-      "heroBody": "O wala, wɔ tsui. Wɔŋɔ nɛɛse a awo hegbɛ ba o pɔnɔ naa — suɔmɔ, nitsumɔlɔ hwɛ yɛ shikpɔŋ 8 mli, 24/7. Sane kɛ live tracking, Paystack a hejɔlɛ yɛ mli, kɛ nɛɛse a akɔ 2-step mli.",
-      "joinNurse": "Fee Nɛɛse",
-      "joinNurseSub": "Akwɛ, naa shika kɛ nitsumɔ — GPS + video profile",
-      "register2steps": "Ŋmɛ Gbɛi (2 steps)",
-      "login": "Ŋmɛ Mli",
-      "bookNurse": "Book Nɛɛse",
-      "bookNurseSub": "Kwɛ foto/video/rating dani otua",
-      "register": "Ŋmɛ Gbɛi",
-      "feat1Title": "Live Tracking + GPS A Akwɛ",
-      "feat1Body": "Kwɛ nɛɛse yɛ bere nɔŋŋ mli. Akwɛ nɛɛse fɛɛ GPS yɛ registration mli.",
-      "feat2Title": "Paystack A Hejɔlɛ Yɛ Mli + Tua Yɛ Delivery Nɔ",
-      "feat2Body": "Tua GHS/USD + 50% online hee. Double booking ko — availability lock.",
-      "feat3Title": "Nɛɛse A Akwɛ 2-Step",
-      "feat3Body": "CEO ekwɛ Foto, ID, Licence, Video. Nɛɛse a ahe nko na da ONLINE adi.",
-      "ratingsTitle": "👩‍⚕️ Mɔ Ratings Yɛ Nɛɛse Nɔ — High Rank",
-      "liveBadge": "LIVE • Akwɛ nɛɛse {n}",
-      "showMore": "Tsɔɔ nɛɛse pii ↓",
-      "showLess": "Tsɔɔ fioo ↑",
-      "ratingsNote": "⭐ Ratings jɛ mɔ ratings a yɛ live yɛ rating.html / client-dashboard — Booking a akwɛ nko",
-      "soundOn": "🔊 Gbee YƐ SO - Tap 🔊 kɛ gbee bɛ",
-      "playWithSound": "▶️ Bɔɔ Kɛ Gbee",
-      "pause": "⏸ Jɔɔ",
-      "ceoVoice": "CEO voice note",
-      "ceoAnnouncementPrefix": "CEO Amaneɛ: {text}",
-      "ceoDefaultName": "👑 CEO Amaneɛ — Asabere Peter",
-      "ceoLoading": "Mii load CEO amaneɛ...",
-      "ceoTime": "Sane • LoveCare Global",
-      "drawerTitle": "NƐƐSE A FEE\nNITSUMƆ ONLINE",
-      "hiGuest": "👋 Otsɔme, Gbɔ",
-      "notLoggedIn": "Oŋmɛ mli da",
-      "menuHome": "Shia",
-      "menuAbout": "Wɔ He",
-      "menuServices": "Nitsumɔ",
-      "menuHow": "Bɔɔ Nɔ Efeɔ Nitsumɔ",
-      "menuContact": "Bɔɔ Wɔ - +233544121814",
-      "menuConsent": "Consent Form",
-      "menuPrivacy": "Privacy",
-      "menuTerms": "Terms",
-      "menuRefund": "Refund",
-      "menuDelete": "🗑️ Jee Account Mli",
-      "menuSos": "SOS Emergency",
-      "menuLogout": "🚪 Jee Mli",
-      "homeNursing": "Shia Nɛɛse Nitsumɔ",
-      "verifiedClient": "Mɔ A Akwɛ",
-      "ghana": "Ghana",
-      "excellent": "Nitsumɔ a fee",
-      "mock1": "Ehi suɔmɔ na efee nitsumɔlɔ.",
-      "mock2": "Eba bere mli, hwɛ a fee.",
-      "mock3": "Mi nyɛ sumɔ e hwɛ.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} reviews)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Nɛɛse",
-    },
-
-    // 4. EWE
-    "ee": {
-      "appTitle": "NƆNƆVIA SI LE ONLINE E WƆ DƆ",
-      "sos": "SOS",
-      "welcomeTo": "Miawoe zɔ",
-      "heroTitle": "LOVE CARE GLOBAL\nAƑE NƆNƆVIA DƆ",
-      "heroBody": "Wò lãmesẽ, míaƒe dzi. Míekplɔa nɔnɔvia siwo ŋu wona mɔ ɖe va wò aƒe me — lɔlɔ̃, dɔwɔlawo ƒe kpɔkpɔ le dukɔ 8 me, 24/7. Fifi kple live tracking, Paystack si dedie le, kple nɔnɔvia siwo wokpɔ 2-step.",
-      "joinNurse": "Ge Ɖe Nɔnɔvia Me",
-      "joinNurseSub": "Wokpɔ, kpɔ ga kple dɔ — GPS + video profile",
-      "register2steps": "Ŋlɔ Ŋkɔ (2 steps)",
-      "login": "Ge Ðe Eme",
-      "bookNurse": "Book Nɔnɔvia",
-      "bookNurseSub": "Kpɔ foto/video/rating hafi nàxe",
-      "register": "Ŋlɔ Ŋkɔ",
-      "feat1Title": "Live Tracking + GPS Si Wokpɔ",
-      "feat1Body": "Kpɔ nɔnɔvia le gaƒoƒo ŋutɔ me. Wokpɔ nɔnɔviawo katã GPS le ŋlɔŋkɔ me.",
-      "feat2Title": "Paystack Si Dedie Le + Xe Le Delivery Me",
-      "feat2Body": "Xe GHS/USD + 50% online yeye. Double booking aɖeke — availability lock.",
-      "feat3Title": "Nɔnɔvia Siwo Wokpɔ 2-Step",
-      "feat3Body": "CEO kpɔ Foto, ID, Licence, Video. Nɔnɔvia siwo wona mɔ ɖe ko ɖea ONLINE fia.",
-      "ratingsTitle": "👩‍⚕️ Amewo ƒe Ratings Le Nɔnɔviawo Dzi — High Rank",
-      "liveBadge": "LIVE • Wokpɔ nɔnɔvia {n}",
-      "showMore": "Fia nɔnɔvia bubuwo ↓",
-      "showLess": "Fia vie ↑",
-      "ratingsNote": "⭐ Ratings tso amewo ƒe ratings si le live me le rating.html / client-dashboard — Booking si wokpɔ ɖeɖe ko",
-      "soundOn": "🔊 Gbe LE EME - Zi 🔊 ne gbe meli o",
-      "playWithSound": "▶️ Fom Kple Gbe",
-      "pause": "⏸ Dzudzɔ",
-      "ceoVoice": "CEO voice note",
-      "ceoAnnouncementPrefix": "CEO Nyatakaka: {text}",
-      "ceoDefaultName": "👑 CEO Nyatakaka — Asabere Peter",
-      "ceoLoading": "Le CEO nyatakaka load...",
-      "ceoTime": "Fifi la • LoveCare Global",
-      "drawerTitle": "NƆNƆVIA SI WƆ\nDƆ ONLINE",
-      "hiGuest": "👋 Miawoe zɔ, Amexɔ",
-      "notLoggedIn": "Mège ɖe eme o",
-      "menuHome": "Aƒe",
-      "menuAbout": "Mía Ŋuti",
-      "menuServices": "Dɔwo",
-      "menuHow": "Ale Si Ewɔa Dɔ",
-      "menuContact": "Ðo Mí — +233544121814",
-      "menuConsent": "Consent Form",
-      "menuPrivacy": "Privacy",
-      "menuTerms": "Terms",
-      "menuRefund": "Refund",
-      "menuDelete": "🗑️ Ðe Account Ða",
-      "menuSos": "SOS Emergency",
-      "menuLogout": "🚪 Do Goe",
-      "homeNursing": "Aƒe Nɔnɔvia Dɔ",
-      "verifiedClient": "Ame Si Wokpɔ",
-      "ghana": "Ghana",
-      "excellent": "Dɔ nyui",
-      "mock1": "Elɔlɔ̃ ŋutɔ eye ewɔ dɔ nyuie.",
-      "mock2": "Eva ɖe gaƒoƒo me, kpɔkpɔ nyui.",
-      "mock3": "Danye lɔ̃ eƒe kpɔkpɔ.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} reviews)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Nɔnɔvia",
-    },
-
-    // 5. DUTCH
-    "nl": {
-      "appTitle": "PROFESSIONELE ONLINE VERPLEEGKUNDIGE",
-      "sos": "SOS",
-      "welcomeTo": "Welkom bij",
-      "heroTitle": "LOVE CARE GLOBAL\nTHUISVERPLEGING",
-      "heroBody": "Jouw gezondheid, ons hart. Wij brengen erkende verpleegkundigen tot aan je deur — zorgzame, professionele zorg in 8 landen, 24/7. Nu met live tracking, veilige Paystack en 2-staps geverifieerde verpleegkundigen.",
-      "joinNurse": "Word Verpleegkundige",
-      "joinNurseSub": "Geverifieerd, verdien met klussen — GPS + video profiel",
-      "register2steps": "Registreren (2 stappen)",
-      "login": "Inloggen",
-      "bookNurse": "Boek een Verpleegkundige",
-      "bookNurseSub": "Bekijk foto/video/beoordeling voordat je betaalt",
-      "register": "Registreren",
-      "feat1Title": "Live Tracking + GPS Geverifieerd",
-      "feat1Body": "Volg verpleegkundige in real time. Alle verpleegkundigen GPS geverifieerd bij registratie.",
-      "feat2Title": "Veilige Paystack + Betaal Bij Levering",
-      "feat2Body": "Betaal GHS/USD + nieuwe 50% online optie. Geen dubbele boeking — beschikbaarheidsslot.",
-      "feat3Title": "2-Staps Geverifieerde Verpleegkundigen",
-      "feat3Body": "Foto, ID, Licentie, Video gecontroleerd door CEO. Alleen goedgekeurde verpleegkundigen tonen ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Klantbeoordelingen Over Verpleegkundigen — Hoge Rang",
-      "liveBadge": "LIVE • {n} verpleegkundigen beoordeeld",
-      "showMore": "Meer verpleegkundigen tonen ↓",
-      "showLess": "Minder tonen ↑",
-      "ratingsNote": "⭐ Beoordelingen weerspiegelen live klantbeoordelingen in rating.html / client-dashboard — Alleen geverifieerde boekingen",
-      "soundOn": "🔊 Geluid AAN - Tik 🔊 als geen geluid",
-      "playWithSound": "▶️ Speel Met Geluid",
-      "pause": "⏸ Pauze",
-      "ceoVoice": "CEO spraakbericht",
-      "ceoAnnouncementPrefix": "CEO Aankondiging: {text}",
-      "ceoDefaultName": "👑 CEO Aankondiging — Asabere Peter",
-      "ceoLoading": "CEO aankondiging laden...",
-      "ceoTime": "Zojuist • LoveCare Global",
-      "drawerTitle": "PROFESSIONELE\nONLINE VERPLEEGKUNDIGE",
-      "hiGuest": "👋 Hoi, Gast",
-      "notLoggedIn": "Niet ingelogd",
-      "menuHome": "Home",
-      "menuAbout": "Over Ons",
-      "menuServices": "Diensten",
-      "menuHow": "Hoe Het Werkt",
-      "menuContact": "Contact - +233544121814",
-      "menuConsent": "Toestemmingsformulier",
-      "menuPrivacy": "Privacy",
-      "menuTerms": "Voorwaarden",
-      "menuRefund": "Terugbetaling",
-      "menuDelete": "🗑️ Account Verwijderen",
-      "menuSos": "SOS Noodgeval",
-      "menuLogout": "🚪 Uitloggen",
-      "homeNursing": "Thuisverpleging",
-      "verifiedClient": "Geverifieerde Klant",
-      "ghana": "Ghana",
-      "excellent": "Uitstekende service",
-      "mock1": "Heel zorgzaam en professioneel.",
-      "mock2": "Kwam op tijd, uitstekende zorg.",
-      "mock3": "Mijn moeder hield van haar zorg.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} beoordelingen)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Verpleegkundige",
-    },
-
-    // 6. FRENCH
-    "fr": {
-      "appTitle": "INFIRMIÈRE PROFESSIONNELLE EN LIGNE",
-      "sos": "SOS",
-      "welcomeTo": "Bienvenue chez",
-      "heroTitle": "LOVE CARE GLOBAL\nSOINS INFIRMIERS À DOMICILE",
-      "heroBody": "Votre santé, notre cœur. Nous amenons des infirmières agréées directement à votre porte — des soins compatissants et professionnels dans 8 pays, 24/7. Maintenant avec suivi en direct, Paystack sécurisé et infirmières vérifiées en 2 étapes.",
-      "joinNurse": "Rejoindre En Tant Qu'Infirmière",
-      "joinNurseSub": "Vérifiée, gagnez avec des missions — GPS + profil vidéo",
-      "register2steps": "S'inscrire (2 étapes)",
-      "login": "Connexion",
-      "bookNurse": "Réserver Une Infirmière",
-      "bookNurseSub": "Voir photo/vidéo/note avant de payer",
-      "register": "S'inscrire",
-      "feat1Title": "Suivi En Direct + GPS Vérifié",
-      "feat1Body": "Suivez l'infirmière en temps réel. Toutes les infirmières GPS vérifiées à l'inscription.",
-      "feat2Title": "Paystack Sécurisé + Paiement À La Livraison",
-      "feat2Body": "Payez GHS/USD + nouvelle option 50% en ligne. Pas de double réservation — verrou de disponibilité.",
-      "feat3Title": "Infirmières Vérifiées En 2 Étapes",
-      "feat3Body": "Photo, ID, Licence, Vidéo vérifiées par le CEO. Seules les infirmières approuvées s'affichent EN LIGNE.",
-      "ratingsTitle": "👩‍⚕️ Notes Des Clients Sur Les Infirmières — Haut Rang",
-      "liveBadge": "EN DIRECT • {n} infirmières notées",
-      "showMore": "Afficher plus d'infirmières ↓",
-      "showLess": "Afficher moins ↑",
-      "ratingsNote": "⭐ Les notes reflètent en direct les notes des clients dans rating.html / client-dashboard — Réservations vérifiées uniquement",
-      "soundOn": "🔊 Son ACTIVÉ - Appuyez sur 🔊 si pas de son",
-      "playWithSound": "▶️ Lire Avec Le Son",
-      "pause": "⏸ Pause",
-      "ceoVoice": "Note vocale du CEO",
-      "ceoAnnouncementPrefix": "Annonce CEO: {text}",
-      "ceoDefaultName": "👑 Annonce CEO — Asabere Peter",
-      "ceoLoading": "Chargement annonce CEO...",
-      "ceoTime": "À l'instant • LoveCare Global",
-      "drawerTitle": "INFIRMIÈRE\nPROFESSIONNELLE EN LIGNE",
-      "hiGuest": "👋 Bonjour, Invité",
-      "notLoggedIn": "Non connecté",
-      "menuHome": "Accueil",
-      "menuAbout": "À Propos",
-      "menuServices": "Services",
-      "menuHow": "Comment Ça Marche",
-      "menuContact": "Contact - +233544121814",
-      "menuConsent": "Formulaire De Consentement",
-      "menuPrivacy": "Confidentialité",
-      "menuTerms": "Conditions",
-      "menuRefund": "Remboursement",
-      "menuDelete": "🗑️ Supprimer Le Compte",
-      "menuSos": "Urgence SOS",
-      "menuLogout": "🚪 Déconnexion",
-      "homeNursing": "Soins Infirmiers À Domicile",
-      "verifiedClient": "Client Vérifié",
-      "ghana": "Ghana",
-      "excellent": "Excellent service",
-      "mock1": "Très attentionnée et professionnelle.",
-      "mock2": "Arrivée à l'heure, soins excellents.",
-      "mock3": "Ma mère a adoré ses soins.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} avis)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Infirmière",
-    },
-
-    // 7. GERMAN
-    "de": {
-      "appTitle": "PROFESSIONELLE ONLINE KRANKENSCHWESTER",
-      "sos": "SOS",
-      "welcomeTo": "Willkommen bei",
-      "heroTitle": "LOVE CARE GLOBAL\nHÄUSLICHE PFLEGE",
-      "heroBody": "Deine Gesundheit, unser Herz. Wir bringen lizenzierte Krankenschwestern direkt zu deiner Tür — mitfühlende, professionelle Pflege in 8 Ländern, 24/7. Jetzt mit Live-Tracking, sicherem Paystack und 2-Schritt-verifizierten Krankenschwestern.",
-      "joinNurse": "Als Krankenschwester Beitreten",
-      "joinNurseSub": "Verifiziert, verdiene mit Jobs — GPS + Video-Profil",
-      "register2steps": "Registrieren (2 Schritte)",
-      "login": "Anmelden",
-      "bookNurse": "Krankenschwester Buchen",
-      "bookNurseSub": "Foto/Video/Bewertung vor Zahlung ansehen",
-      "register": "Registrieren",
-      "feat1Title": "Live-Tracking + GPS Verifiziert",
-      "feat1Body": "Verfolge Krankenschwester in Echtzeit. Alle Krankenschwestern GPS-verifiziert bei Registrierung.",
-      "feat2Title": "Sicheres Paystack + Zahlung Bei Lieferung",
-      "feat2Body": "Zahle GHS/USD + neue 50% Online-Option. Keine Doppelbuchung — Verfügbarkeitssperre.",
-      "feat3Title": "2-Schritt Verifizierte Krankenschwestern",
-      "feat3Body": "Foto, ID, Lizenz, Video vom CEO geprüft. Nur genehmigte Krankenschwestern zeigen ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Kundenbewertungen Über Krankenschwestern — Hoher Rang",
-      "liveBadge": "LIVE • {n} Krankenschwestern bewertet",
-      "showMore": "Mehr Krankenschwestern zeigen ↓",
-      "showLess": "Weniger zeigen ↑",
-      "ratingsNote": "⭐ Bewertungen spiegeln Live-Kundenbewertungen in rating.html / client-dashboard — Nur verifizierte Buchungen",
-      "soundOn": "🔊 Ton AN - Tippe 🔊 wenn kein Ton",
-      "playWithSound": "▶️ Mit Ton Abspielen",
-      "pause": "⏸ Pause",
-      "ceoVoice": "CEO Sprachnachricht",
-      "ceoAnnouncementPrefix": "CEO Ankündigung: {text}",
-      "ceoDefaultName": "👑 CEO Ankündigung — Asabere Peter",
-      "ceoLoading": "CEO Ankündigung wird geladen...",
-      "ceoTime": "Gerade eben • LoveCare Global",
-      "drawerTitle": "PROFESSIONELLE\nONLINE KRANKENSCHWESTER",
-      "hiGuest": "👋 Hallo, Gast",
-      "notLoggedIn": "Nicht angemeldet",
-      "menuHome": "Start",
-      "menuAbout": "Über Uns",
-      "menuServices": "Dienstleistungen",
-      "menuHow": "Wie Es Funktioniert",
-      "menuContact": "Kontakt - +233544121814",
-      "menuConsent": "Einwilligungsformular",
-      "menuPrivacy": "Datenschutz",
-      "menuTerms": "Bedingungen",
-      "menuRefund": "Erstattung",
-      "menuDelete": "🗑️ Konto Löschen",
-      "menuSos": "SOS Notfall",
-      "menuLogout": "🚪 Abmelden",
-      "homeNursing": "Häusliche Pflege",
-      "verifiedClient": "Verifizierter Kunde",
-      "ghana": "Ghana",
-      "excellent": "Ausgezeichneter Service",
-      "mock1": "Sehr fürsorglich und professionell.",
-      "mock2": "Pünktlich angekommen, ausgezeichnete Pflege.",
-      "mock3": "Meine Mutter liebte ihre Pflege.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} Bewertungen)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Krankenschwester",
-    },
-
-    // 8. SPANISH
-    "es": {
-      "appTitle": "ENFERMERA PROFESIONAL EN LÍNEA",
-      "sos": "SOS",
-      "welcomeTo": "Bienvenido a",
-      "heroTitle": "LOVE CARE GLOBAL\nENFERMERÍA EN CASA",
-      "heroBody": "Tu salud, nuestro corazón. Llevamos enfermeras licenciadas directo a tu puerta — cuidado compasivo y profesional en 8 países, 24/7. Ahora con seguimiento en vivo, Paystack seguro y enfermeras verificadas en 2 pasos.",
-      "joinNurse": "Únete Como Enfermera",
-      "joinNurseSub": "Verificada, gana con trabajos — GPS + perfil en video",
-      "register2steps": "Registrarse (2 pasos)",
-      "login": "Iniciar Sesión",
-      "bookNurse": "Reservar Una Enfermera",
-      "bookNurseSub": "Ve foto/video/calificación antes de pagar",
-      "register": "Registrarse",
-      "feat1Title": "Seguimiento En Vivo + GPS Verificado",
-      "feat1Body": "Sigue a la enfermera en tiempo real. Todas las enfermeras GPS verificadas al registrarse.",
-      "feat2Title": "Paystack Seguro + Pago Al Entregar",
-      "feat2Body": "Paga GHS/USD + nueva opción 50% en línea. Sin doble reserva — bloqueo de disponibilidad.",
-      "feat3Title": "Enfermeras Verificadas En 2 Pasos",
-      "feat3Body": "Foto, ID, Licencia, Video revisados por el CEO. Solo enfermeras aprobadas se muestran EN LÍNEA.",
-      "ratingsTitle": "👩‍⚕️ Calificaciones De Clientes Sobre Enfermeras — Alto Rango",
-      "liveBadge": "EN VIVO • {n} enfermeras calificadas",
-      "showMore": "Mostrar más enfermeras ↓",
-      "showLess": "Mostrar menos ↑",
-      "ratingsNote": "⭐ Las calificaciones reflejan en vivo las calificaciones de clientes en rating.html / client-dashboard — Solo reservas verificadas",
-      "soundOn": "🔊 Sonido ACTIVADO - Toca 🔊 si no hay sonido",
-      "playWithSound": "▶️ Reproducir Con Sonido",
-      "pause": "⏸ Pausa",
-      "ceoVoice": "Nota de voz del CEO",
-      "ceoAnnouncementPrefix": "Anuncio del CEO: {text}",
-      "ceoDefaultName": "👑 Anuncio del CEO — Asabere Peter",
-      "ceoLoading": "Cargando anuncio del CEO...",
-      "ceoTime": "Ahora mismo • LoveCare Global",
-      "drawerTitle": "ENFERMERA\nPROFESIONAL EN LÍNEA",
-      "hiGuest": "👋 Hola, Invitado",
-      "notLoggedIn": "No has iniciado sesión",
-      "menuHome": "Inicio",
-      "menuAbout": "Acerca De",
-      "menuServices": "Servicios",
-      "menuHow": "Cómo Funciona",
-      "menuContact": "Contacto - +233544121814",
-      "menuConsent": "Formulario De Consentimiento",
-      "menuPrivacy": "Privacidad",
-      "menuTerms": "Términos",
-      "menuRefund": "Reembolso",
-      "menuDelete": "🗑️ Eliminar Cuenta",
-      "menuSos": "Emergencia SOS",
-      "menuLogout": "🚪 Cerrar Sesión",
-      "homeNursing": "Enfermería En Casa",
-      "verifiedClient": "Cliente Verificado",
-      "ghana": "Ghana",
-      "excellent": "Excelente servicio",
-      "mock1": "Muy atenta y profesional.",
-      "mock2": "Llegó a tiempo, cuidado excelente.",
-      "mock3": "A mi madre le encantó su cuidado.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} reseñas)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Enfermera",
-    },
-
-    // 9. ITALIAN
-    "it": {
-      "appTitle": "INFERMIERA PROFESSIONALE ONLINE",
-      "sos": "SOS",
-      "welcomeTo": "Benvenuto in",
-      "heroTitle": "LOVE CARE GLOBAL\nASSISTENZA INFERMIERISTICA A DOMICILIO",
-      "heroBody": "La tua salute, il nostro cuore. Portiamo infermiere autorizzate direttamente a casa tua — assistenza compassionevole e professionale in 8 paesi, 24/7. Ora con tracciamento live, Paystack sicuro e infermiere verificate in 2 passaggi.",
-      "joinNurse": "Unisciti Come Infermiera",
-      "joinNurseSub": "Verificata, guadagna con lavori — GPS + profilo video",
-      "register2steps": "Registrati (2 passaggi)",
-      "login": "Accedi",
-      "bookNurse": "Prenota Un'Infermiera",
-      "bookNurseSub": "Vedi foto/video/valutazione prima di pagare",
-      "register": "Registrati",
-      "feat1Title": "Tracciamento Live + GPS Verificato",
-      "feat1Body": "Traccia l'infermiera in tempo reale. Tutte le infermiere GPS verificate alla registrazione.",
-      "feat2Title": "Paystack Sicuro + Paga Alla Consegna",
-      "feat2Body": "Paga GHS/USD + nuova opzione 50% online. Nessuna doppia prenotazione — blocco disponibilità.",
-      "feat3Title": "Infermiere Verificate In 2 Passaggi",
-      "feat3Body": "Foto, ID, Licenza, Video controllati dal CEO. Solo infermiere approvate si mostrano ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Valutazioni Dei Clienti Sulle Infermiere — Alto Rango",
-      "liveBadge": "LIVE • {n} infermiere valutate",
-      "showMore": "Mostra più infermiere ↓",
-      "showLess": "Mostra meno ↑",
-      "ratingsNote": "⭐ Le valutazioni riflettono in diretta le valutazioni dei clienti in rating.html / client-dashboard — Solo prenotazioni verificate",
-      "soundOn": "🔊 Audio ATTIVO - Tocca 🔊 se non c'è audio",
-      "playWithSound": "▶️ Riproduci Con Audio",
-      "pause": "⏸ Pausa",
-      "ceoVoice": "Nota vocale CEO",
-      "ceoAnnouncementPrefix": "Annuncio CEO: {text}",
-      "ceoDefaultName": "👑 Annuncio CEO — Asabere Peter",
-      "ceoLoading": "Caricamento annuncio CEO...",
-      "ceoTime": "Proprio ora • LoveCare Global",
-      "drawerTitle": "INFERMIERA\nPROFESSIONALE ONLINE",
-      "hiGuest": "👋 Ciao, Ospite",
-      "notLoggedIn": "Non hai effettuato l'accesso",
-      "menuHome": "Home",
-      "menuAbout": "Chi Siamo",
-      "menuServices": "Servizi",
-      "menuHow": "Come Funziona",
-      "menuContact": "Contatto - +233544121814",
-      "menuConsent": "Modulo Di Consenso",
-      "menuPrivacy": "Privacy",
-      "menuTerms": "Termini",
-      "menuRefund": "Rimborso",
-      "menuDelete": "🗑️ Elimina Account",
-      "menuSos": "Emergenza SOS",
-      "menuLogout": "🚪 Esci",
-      "homeNursing": "Assistenza Infermieristica A Domicilio",
-      "verifiedClient": "Cliente Verificato",
-      "ghana": "Ghana",
-      "excellent": "Servizio eccellente",
-      "mock1": "Molto premurosa e professionale.",
-      "mock2": "Arrivata in orario, assistenza eccellente.",
-      "mock3": "Mia madre ha adorato la sua assistenza.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} recensioni)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Infermiera",
-    },
-
-    // 10. PORTUGUESE
-    "pt": {
-      "appTitle": "ENFERMEIRA PROFISSIONAL ONLINE",
-      "sos": "SOS",
-      "welcomeTo": "Bem-vindo à",
-      "heroTitle": "LOVE CARE GLOBAL\nENFERMAGEM DOMICILIAR",
-      "heroBody": "Sua saúde, nosso coração. Levamos enfermeiras licenciadas direto à sua porta — cuidado compassivo e profissional em 8 países, 24/7. Agora com rastreamento ao vivo, Paystack seguro e enfermeiras verificadas em 2 etapas.",
-      "joinNurse": "Junte-se Como Enfermeira",
-      "joinNurseSub": "Verificada, ganhe com trabalhos — GPS + perfil em vídeo",
-      "register2steps": "Registrar (2 etapas)",
-      "login": "Entrar",
-      "bookNurse": "Reservar Uma Enfermeira",
-      "bookNurseSub": "Veja foto/vídeo/avaliação antes de pagar",
-      "register": "Registrar",
-      "feat1Title": "Rastreamento Ao Vivo + GPS Verificado",
-      "feat1Body": "Acompanhe a enfermeira em tempo real. Todas as enfermeiras GPS verificadas no registro.",
-      "feat2Title": "Paystack Seguro + Pague Na Entrega",
-      "feat2Body": "Pague GHS/USD + nova opção 50% online. Sem reserva dupla — bloqueio de disponibilidade.",
-      "feat3Title": "Enfermeiras Verificadas Em 2 Etapas",
-      "feat3Body": "Foto, ID, Licença, Vídeo verificados pelo CEO. Apenas enfermeiras aprovadas aparecem ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Avaliações De Clientes Sobre Enfermeiras — Alta Classificação",
-      "liveBadge": "AO VIVO • {n} enfermeiras avaliadas",
-      "showMore": "Mostrar mais enfermeiras ↓",
-      "showLess": "Mostrar menos ↑",
-      "ratingsNote": "⭐ As avaliações refletem ao vivo as avaliações de clientes em rating.html / client-dashboard — Apenas reservas verificadas",
-      "soundOn": "🔊 Som LIGADO - Toque 🔊 se não houver som",
-      "playWithSound": "▶️ Reproduzir Com Som",
-      "pause": "⏸ Pausar",
-      "ceoVoice": "Nota de voz do CEO",
-      "ceoAnnouncementPrefix": "Anúncio do CEO: {text}",
-      "ceoDefaultName": "👑 Anúncio do CEO — Asabere Peter",
-      "ceoLoading": "Carregando anúncio do CEO...",
-      "ceoTime": "Agora mesmo • LoveCare Global",
-      "drawerTitle": "ENFERMEIRA\nPROFISSIONAL ONLINE",
-      "hiGuest": "👋 Olá, Convidado",
-      "notLoggedIn": "Não conectado",
-      "menuHome": "Início",
-      "menuAbout": "Sobre Nós",
-      "menuServices": "Serviços",
-      "menuHow": "Como Funciona",
-      "menuContact": "Contato - +233544121814",
-      "menuConsent": "Formulário De Consentimento",
-      "menuPrivacy": "Privacidade",
-      "menuTerms": "Termos",
-      "menuRefund": "Reembolso",
-      "menuDelete": "🗑️ Excluir Conta",
-      "menuSos": "Emergência SOS",
-      "menuLogout": "🚪 Sair",
-      "homeNursing": "Enfermagem Domiciliar",
-      "verifiedClient": "Cliente Verificado",
-      "ghana": "Gana",
-      "excellent": "Excelente serviço",
-      "mock1": "Muito atenciosa e profissional.",
-      "mock2": "Chegou na hora, cuidado excelente.",
-      "mock3": "Minha mãe adorou o cuidado dela.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} avaliações)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Enfermeira",
-    },
-
-    // 11. ARABIC
-    "ar": {
-      "appTitle": "ممرضة محترفة عبر الإنترنت",
-      "sos": "SOS",
-      "welcomeTo": "مرحباً بك في",
-      "heroTitle": "LOVE CARE GLOBAL\nتمريض منزلي",
-      "heroBody": "صحتك، قلبنا. نأتي بممرضات مرخصات إلى باب منزلك مباشرة — رعاية رحيمة ومحترفة في 8 دول، 24/7. الآن مع تتبع مباشر، Paystack آمن، وممرضات تم التحقق منهن بخطوتين.",
-      "joinNurse": "انضمي كممرضة",
-      "joinNurseSub": "تم التحقق منها، اكسبي مع الوظائف — GPS + ملف فيديو",
-      "register2steps": "التسجيل (خطوتان)",
-      "login": "تسجيل الدخول",
-      "bookNurse": "احجز ممرضة",
-      "bookNurseSub": "شاهد الصورة / الفيديو / التقييم قبل الدفع",
-      "register": "التسجيل",
-      "feat1Title": "تتبع مباشر + GPS تم التحقق منه",
-      "feat1Body": "تتبع الممرضة في الوقت الحقيقي. جميع الممرضات تم التحقق من GPS عند التسجيل.",
-      "feat2Title": "Paystack آمن + ادفع عند التسليم",
-      "feat2Body": "ادفع GHS/USD + خيار جديد 50% عبر الإنترنت. لا حجز مزدوج — قفل التوفر.",
-      "feat3Title": "ممرضات تم التحقق منهن بخطوتين",
-      "feat3Body": "الصورة والهوية والترخيص والفيديو تم فحصها من قبل المدير. فقط الممرضات المعتمدات يظهرن ONLINE.",
-      "ratingsTitle": "👩‍⚕️ تقييمات العملاء للممرضات — مرتبة عالية",
-      "liveBadge": "مباشر • تم تقييم {n} ممرضة",
-      "showMore": "عرض المزيد من الممرضات ↓",
-      "showLess": "عرض أقل ↑",
-      "ratingsNote": "⭐ التقييمات تعكس مباشرة تقييمات العملاء في rating.html / client-dashboard — حجوزات تم التحقق منها فقط",
-      "soundOn": "🔊 الصوت قيد التشغيل - اضغط 🔊 إذا لم يكن هناك صوت",
-      "playWithSound": "▶️ تشغيل مع الصوت",
-      "pause": "⏸ إيقاف مؤقت",
-      "ceoVoice": "ملاحظة صوتية من المدير",
-      "ceoAnnouncementPrefix": "إعلان المدير: {text}",
-      "ceoDefaultName": "👑 إعلان المدير — Asabere Peter",
-      "ceoLoading": "جارٍ تحميل إعلان المدير...",
-      "ceoTime": "الآن • LoveCare Global",
-      "drawerTitle": "ممرضة محترفة\nعبر الإنترنت",
-      "hiGuest": "👋 مرحباً، ضيف",
-      "notLoggedIn": "غير مسجل الدخول",
-      "menuHome": "الرئيسية",
-      "menuAbout": "من نحن",
-      "menuServices": "الخدمات",
-      "menuHow": "كيف يعمل",
-      "menuContact": "اتصل بنا - +233544121814",
-      "menuConsent": "نموذج الموافقة",
-      "menuPrivacy": "الخصوصية",
-      "menuTerms": "الشروط",
-      "menuRefund": "الاسترداد",
-      "menuDelete": "🗑️ حذف الحساب",
-      "menuSos": "طوارئ SOS",
-      "menuLogout": "🚪 تسجيل الخروج",
-      "homeNursing": "تمريض منزلي",
-      "verifiedClient": "عميل تم التحقق منه",
-      "ghana": "غانا",
-      "excellent": "خدمة ممتازة",
-      "mock1": "مهتمة جداً ومحترفة.",
-      "mock2": "وصلت في الوقت المحدد، رعاية ممتازة.",
-      "mock3": "أحبّت أمي رعايتها.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} تقييم)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "ممرضة",
-    },
-
-    // 12. CHINESE
-    "zh": {
-      "appTitle": "专业在线护士",
-      "sos": "SOS",
-      "welcomeTo": "欢迎来到",
-      "heroTitle": "LOVE CARE GLOBAL\n家庭护理",
-      "heroBody": "您的健康，我们的心。我们将持证护士直接带到您的家门口 — 在 8 个国家提供富有同情心、专业的护理，24/7。现在具有实时跟踪、安全的 Paystack 和 2 步验证护士。",
-      "joinNurse": "加入成为护士",
-      "joinNurseSub": "已验证，通过工作赚钱 — GPS + 视频个人资料",
-      "register2steps": "注册 (2 步)",
-      "login": "登录",
-      "bookNurse": "预约护士",
-      "bookNurseSub": "付款前查看照片 / 视频 / 评分",
-      "register": "注册",
-      "feat1Title": "实时跟踪 + GPS 已验证",
-      "feat1Body": "实时跟踪护士。所有护士在注册时均已通过 GPS 验证。",
-      "feat2Title": "安全 Paystack + 送达时付款",
-      "feat2Body": "支付 GHS/USD + 新的 50% 在线选项。无重复预订 — 可用性锁定。",
-      "feat3Title": "2 步验证护士",
-      "feat3Body": "照片、身份证、执照、视频已由 CEO 检查。只有经批准的护士显示 ONLINE。",
-      "ratingsTitle": "👩‍⚕️ 客户对护士的评分 — 高排名",
-      "liveBadge": "实时 • 已评分 {n} 名护士",
-      "showMore": "显示更多护士 ↓",
-      "showLess": "显示更少 ↑",
-      "ratingsNote": "⭐ 评分反映 rating.html / client-dashboard 中客户评分的实时情况 — 仅限已验证预订",
-      "soundOn": "🔊 声音已开启 - 如果没有声音请点击 🔊",
-      "playWithSound": "▶️ 带声音播放",
-      "pause": "⏸ 暂停",
-      "ceoVoice": "CEO 语音留言",
-      "ceoAnnouncementPrefix": "CEO 公告: {text}",
-      "ceoDefaultName": "👑 CEO 公告 — Asabere Peter",
-      "ceoLoading": "正在加载 CEO 公告...",
-      "ceoTime": "刚刚 • LoveCare Global",
-      "drawerTitle": "专业\n在线护士",
-      "hiGuest": "👋 你好，访客",
-      "notLoggedIn": "未登录",
-      "menuHome": "首页",
-      "menuAbout": "关于我们",
-      "menuServices": "服务",
-      "menuHow": "如何运作",
-      "menuContact": "联系我们 - +233544121814",
-      "menuConsent": "同意书",
-      "menuPrivacy": "隐私",
-      "menuTerms": "条款",
-      "menuRefund": "退款",
-      "menuDelete": "🗑️ 删除账户",
-      "menuSos": "SOS 紧急情况",
-      "menuLogout": "🚪 退出登录",
-      "homeNursing": "家庭护理",
-      "verifiedClient": "已验证客户",
-      "ghana": "加纳",
-      "excellent": "出色的服务",
-      "mock1": "非常细心和专业。",
-      "mock2": "准时到达，护理出色。",
-      "mock3": "我妈妈很喜欢她的护理。",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} 条评价)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "护士",
-    },
-
-    // 13. HINDI
-    "hi": {
-      "appTitle": "पेशेवर ऑनलाइन नर्स",
-      "sos": "SOS",
-      "welcomeTo": "में आपका स्वागत है",
-      "heroTitle": "LOVE CARE GLOBAL\nहोम नर्सिंग",
-      "heroBody": "आपका स्वास्थ्य, हमारा दिल। हम लाइसेंस प्राप्त नर्सों को सीधे आपके दरवाजे तक लाते हैं — 8 देशों में दयालु, पेशेवर देखभाल, 24/7। अब लाइव ट्रैकिंग, सुरक्षित Paystack और 2-चरण सत्यापित नर्सों के साथ।",
-      "joinNurse": "नर्स के रूप में जुड़ें",
-      "joinNurseSub": "सत्यापित, नौकरियों से कमाएं — GPS + वीडियो प्रोफाइल",
-      "register2steps": "रजिस्टर करें (2 चरण)",
-      "login": "लॉगिन",
-      "bookNurse": "नर्स बुक करें",
-      "bookNurseSub": "भुगतान से पहले फोटो / वीडियो / रेटिंग देखें",
-      "register": "रजिस्टर करें",
-      "feat1Title": "लाइव ट्रैकिंग + GPS सत्यापित",
-      "feat1Body": "नर्स को रीयल टाइम में ट्रैक करें। सभी नर्स पंजीकरण पर GPS सत्यापित हैं।",
-      "feat2Title": "सुरक्षित Paystack + डिलीवरी पर भुगतान",
-      "feat2Body": "GHS/USD + नया 50% ऑनलाइन विकल्प का भुगतान करें। कोई डबल बुकिंग नहीं — उपलब्धता लॉक।",
-      "feat3Title": "2-चरण सत्यापित नर्स",
-      "feat3Body": "फोटो, ID, लाइसेंस, वीडियो CEO द्वारा जांचे गए। केवल अनुमोदित नर्स ONLINE दिखती हैं।",
-      "ratingsTitle": "👩‍⚕️ नर्सों पर ग्राहक रेटिंग — उच्च रैंक",
-      "liveBadge": "लाइव • {n} नर्सों को रेट किया गया",
-      "showMore": "और नर्स दिखाएं ↓",
-      "showLess": "कम दिखाएं ↑",
-      "ratingsNote": "⭐ रेटिंग rating.html / client-dashboard में ग्राहक रेटिंग से लाइव दर्शाती हैं — केवल सत्यापित बुकिंग",
-      "soundOn": "🔊 ध्वनि चालू है - यदि ध्वनि नहीं है तो 🔊 दबाएं",
-      "playWithSound": "▶️ ध्वनि के साथ चलाएं",
-      "pause": "⏸ रोकें",
-      "ceoVoice": "CEO वॉयस नोट",
-      "ceoAnnouncementPrefix": "CEO घोषणा: {text}",
-      "ceoDefaultName": "👑 CEO घोषणा — Asabere Peter",
-      "ceoLoading": "CEO घोषणा लोड हो रही है...",
-      "ceoTime": "अभी • LoveCare Global",
-      "drawerTitle": "पेशेवर\nऑनलाइन नर्स",
-      "hiGuest": "👋 नमस्ते, अतिथि",
-      "notLoggedIn": "लॉगिन नहीं है",
-      "menuHome": "होम",
-      "menuAbout": "हमारे बारे में",
-      "menuServices": "सेवाएं",
-      "menuHow": "यह कैसे काम करता है",
-      "menuContact": "संपर्क - +233544121814",
-      "menuConsent": "सहमति फॉर्म",
-      "menuPrivacy": "गोपनीयता",
-      "menuTerms": "शर्तें",
-      "menuRefund": "रिफंड",
-      "menuDelete": "🗑️ खाता हटाएं",
-      "menuSos": "SOS आपातकाल",
-      "menuLogout": "🚪 लॉगआउट",
-      "homeNursing": "होम नर्सिंग",
-      "verifiedClient": "सत्यापित ग्राहक",
-      "ghana": "घाना",
-      "excellent": "उत्कृष्ट सेवा",
-      "mock1": "बहुत देखभाल करने वाली और पेशेवर।",
-      "mock2": "समय पर आईं, उत्कृष्ट देखभाल।",
-      "mock3": "मेरी माँ को उनकी देखभाल पसंद आई।",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} समीक्षा)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "नर्स",
-    },
-
-    // 14. SWAHILI
-    "sw": {
-      "appTitle": "MUUGUZI MKUU MTANDAONI",
-      "sos": "SOS",
-      "welcomeTo": "Karibu",
-      "heroTitle": "LOVE CARE GLOBAL\nUUGUZI WA NYUMBANI",
-      "heroBody": "Afya yako, moyo wetu. Tunawaleta wauguzi wenye leseni moja kwa moja mlangoni kwako — huduma ya huruma, ya kitaalamu katika nchi 8, 24/7. Sasa na ufuatiliaji wa moja kwa moja, Paystack salama, na wauguzi waliothibitishwa hatua 2.",
-      "joinNurse": "Jiunge Kama Muuguzi",
-      "joinNurseSub": "Imethibitishwa, pata na kazi — GPS + wasifu wa video",
-      "register2steps": "Jisajili (hatua 2)",
-      "login": "Ingia",
-      "bookNurse": "Weka Muuguzi",
-      "bookNurseSub": "Tazama picha / video / ukadiriaji kabla ya kulipa",
-      "register": "Jisajili",
-      "feat1Title": "Ufuatiliaji Wa Moja Kwa Moja + GPS Imethibitishwa",
-      "feat1Body": "Fuatilia muuguzi kwa wakati halisi. Wauguzi wote GPS wamethibitishwa wakati wa usajili.",
-      "feat2Title": "Paystack Salama + Lipa Wakati Wa Kuwasilisha",
-      "feat2Body": "Lipa GHS/USD + chaguo jipya la 50% mtandaoni. Hakuna booking mara mbili — kufuli ya upatikanaji.",
-      "feat3Title": "Wauguzi Waliothibitishwa Hatua 2",
-      "feat3Body": "Picha, Kitambulisho, Leseni, Video zimeangaliwa na CEO. Wauguzi walioidhinishwa pekee ndio wanaonyesha ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Ukadiriaji Wa Wateja Kwenye Wauguzi — Cheo Cha Juu",
-      "liveBadge": "MOJA KWA MOJA • Wauguzi {n} wamekadiriwa",
-      "showMore": "Onyesha wauguzi zaidi ↓",
-      "showLess": "Onyesha wachache ↑",
-      "ratingsNote": "⭐ Ukadiriaji unaonyesha moja kwa moja ukadiriaji wa wateja katika rating.html / client-dashboard — Booking zilizothibitishwa tu",
-      "soundOn": "🔊 Sauti IMEWASHWA - Gusa 🔊 kama hakuna sauti",
-      "playWithSound": "▶️ Cheza Na Sauti",
-      "pause": "⏸ Sitisha",
-      "ceoVoice": "Ujumbe wa sauti wa CEO",
-      "ceoAnnouncementPrefix": "Tangazo la CEO: {text}",
-      "ceoDefaultName": "👑 Tangazo la CEO — Asabere Peter",
-      "ceoLoading": "Inapakia tangazo la CEO...",
-      "ceoTime": "Sasa hivi • LoveCare Global",
-      "drawerTitle": "MUUGUZI MKUU\nMTANDAONI",
-      "hiGuest": "👋 Habari, Mgeni",
-      "notLoggedIn": "Hujaingia",
-      "menuHome": "Nyumbani",
-      "menuAbout": "Kuhusu Sisi",
-      "menuServices": "Huduma",
-      "menuHow": "Jinsi Inavyofanya Kazi",
-      "menuContact": "Wasiliana - +233544121814",
-      "menuConsent": "Fomu Ya Ridhaa",
-      "menuPrivacy": "Faragha",
-      "menuTerms": "Masharti",
-      "menuRefund": "Marejesho",
-      "menuDelete": "🗑️ Futa Akaunti",
-      "menuSos": "Dharura SOS",
-      "menuLogout": "🚪 Toka",
-      "homeNursing": "Uuguzi Wa Nyumbani",
-      "verifiedClient": "Mteja Aliyethibitishwa",
-      "ghana": "Ghana",
-      "excellent": "Huduma bora",
-      "mock1": "Mwenye huruma sana na mtaalamu.",
-      "mock2": "Alifika kwa wakati, huduma bora.",
-      "mock3": "Mama yangu alipenda huduma yake.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} maoni)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Muuguzi",
-    },
-
-    // 15. YORUBA
-    "yo": {
-      "appTitle": "NƆƆSI ỌJỌGBỌN ONLINE",
-      "sos": "SOS",
-      "welcomeTo": "Kaabọ si",
-      "heroTitle": "LOVE CARE GLOBAL\nNƆƆSI ILE",
-      "heroBody": "Ilera rẹ, ọkan wa. A mu nọọsi ti o ni iwe-aṣẹ wa taara si ẹnu-ọna rẹ — itọju aanu, ọjọgbọn ni awọn orilẹ-ede 8, 24/7. Bayi pẹlu itọpa live, Paystack ailewu, ati nọọsi ti a jẹrisi igbesẹ 2.",
-      "joinNurse": "Darapọ Mọ Gẹgẹ Bi Nọọsi",
-      "joinNurseSub": "Ti jẹrisi, jo'wo pẹlu awọn iṣẹ — GPS + profaili fidio",
-      "register2steps": "Forukọsilẹ (awọn igbesẹ 2)",
-      "login": "Wọle",
-      "bookNurse": "Ṣe Iwe Nọọsi",
-      "bookNurseSub": "Wo fọto / fidio / igbelewọn ṣaaju ki o to sanwo",
-      "register": "Forukọsilẹ",
-      "feat1Title": "Itọpa Live + GPS Ti Jẹrisi",
-      "feat1Body": "Tọpa nọọsi ni akoko gidi. Gbogbo nọọsi GPS ti jẹrisi ni iforukọsilẹ.",
-      "feat2Title": "Paystack Ailewu + Sanwo Ni Ifijiṣẹ",
-      "feat2Body": "Sanwo GHS/USD + aṣayan 50% online tuntun. Ko si booking lẹẹmeji — titi wiwa.",
-      "feat3Title": "Nọọsi Ti A Jẹrisi Igbesẹ 2",
-      "feat3Body": "Fọto, ID, Iwe-aṣẹ, Fidio ti CEO ṣayẹwo. Nọọsi ti a fọwọsi nikan ni o fi ONLINE han.",
-      "ratingsTitle": "👩‍⚕️ Awọn Igbelewọn Alabara Lori Nọọsi — Ipo Giga",
-      "liveBadge": "LIVE • A ti ṣe igbelewọn nọọsi {n}",
-      "showMore": "Fi nọọsi diẹ sii han ↓",
-      "showLess": "Fi diẹ han ↑",
-      "ratingsNote": "⭐ Awọn igbelewọn fi live awọn igbelewọn alabara han ni rating.html / client-dashboard — Booking ti a jẹrisi nikan",
-      "soundOn": "🔊 Ohun WA - Tẹ 🔊 ti ko ba si ohun",
-      "playWithSound": "▶️ Mu Ṣere Pẹlu Ohun",
-      "pause": "⏸ Sinmi",
-      "ceoVoice": "Akọsilẹ ohun CEO",
-      "ceoAnnouncementPrefix": "Ikede CEO: {text}",
-      "ceoDefaultName": "👑 Ikede CEO — Asabere Peter",
-      "ceoLoading": "Ngbé ikede CEO...",
-      "ceoTime": "Bayi • LoveCare Global",
-      "drawerTitle": "NƆƆSI ỌJỌGBỌN\nONLINE",
-      "hiGuest": "👋 Ẹ n lẹ, Alejo",
-      "notLoggedIn": "Ko wọle",
-      "menuHome": "Ile",
-      "menuAbout": "Nipa Wa",
-      "menuServices": "Awọn Iṣẹ",
-      "menuHow": "Bawo Ni O Ṣe Nṣiṣẹ",
-      "menuContact": "Kan Si Wa - +233544121814",
-      "menuConsent": "Fọọmu Ifọwọsi",
-      "menuPrivacy": "Ìpamọ",
-      "menuTerms": "Awọn Ofin",
-      "menuRefund": "Agbapada",
-      "menuDelete": "🗑️ Pa Account Rẹ",
-      "menuSos": "Pajawiri SOS",
-      "menuLogout": "🚪 Jade",
-      "homeNursing": "Nọọsi Ile",
-      "verifiedClient": "Alabara Ti A Jẹrisi",
-      "ghana": "Ghana",
-      "excellent": "Iṣẹ to dara julọ",
-      "mock1": "O ni aanu pupọ ati ọjọgbọn.",
-      "mock2": "O de ni akoko, itọju to dara julọ.",
-      "mock3": "Iya mi fẹran itọju rẹ.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} awọn atunwo)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Nọọsi",
-    },
-
-    // 16. IGBO
-    "ig": {
-      "appTitle": "NỌỌSỤ ỌKACHAMARA N'ỊNTANETỊ",
-      "sos": "SOS",
-      "welcomeTo": "Nnọọ na",
-      "heroTitle": "LOVE CARE GLOBAL\nNỌỌSỤ ỤLỌ",
-      "heroBody": "Ahụike gị, obi anyị. Anyị na-eweta nọọsụ nwere ikike ozugbo n'ọnụ ụzọ gị — nlekọta obi ebere, ọkachamara na mba 8, 24/7. Ugbu a na nsochi live, Paystack echekwara, na nọọsụ enyochara nzọụkwụ 2.",
-      "joinNurse": "Sonye Dị Ka Nọọsụ",
-      "joinNurseSub": "Enyochara, nweta ego na ọrụ — GPS + profaịlụ vidio",
-      "register2steps": "Debanye Aha (nzọụkwụ 2)",
-      "login": "Banye",
-      "bookNurse": "Book Nọọsụ",
-      "bookNurseSub": "Hụ foto / vidio / ọkwa tupu ị kwụọ ụgwọ",
-      "register": "Debanye Aha",
-      "feat1Title": "Nsochi Live + GPS Enyochara",
-      "feat1Body": "Soro nọọsụ na oge. Enyochala nọọsụ niile GPS na ndebanye aha.",
-      "feat2Title": "Paystack Echekwara + Kwụọ Ụgwọ Na Nnyefe",
-      "feat2Body": "Kwụọ GHS/USD + nhọrọ 50% n'ịntanetị ọhụrụ. Enweghị booking ugboro abụọ — mkpọchi nnweta.",
-      "feat3Title": "Nọọsụ Enyochara Nzọụkwụ 2",
-      "feat3Body": "CEO enyochala Foto, ID, Ikike, Vidio. Naanị nọọsụ akwadoro na-egosi ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Ọkwa Onye Ahịa Na Nọọsụ — Ọkwa Dị Elu",
-      "liveBadge": "LIVE • Enyochala nọọsụ {n}",
-      "showMore": "Gosi nọọsụ ndị ọzọ ↓",
-      "showLess": "Gosi ole ↑",
-      "ratingsNote": "⭐ Ọkwa na-egosi live ọkwa onye ahịa na rating.html / client-dashboard — Naanị booking enyochara",
-      "soundOn": "🔊 Ụda NA — Pịa 🔊 ma ọ bụrụ na ụda adịghị",
-      "playWithSound": "▶️ Kpọọ Na Ụda",
-      "pause": "⏸ Kwụsị",
-      "ceoVoice": "Ozi olu CEO",
-      "ceoAnnouncementPrefix": "Ọkwa CEO: {text}",
-      "ceoDefaultName": "👑 Ọkwa CEO — Asabere Peter",
-      "ceoLoading": "Na-ebu ọkwa CEO...",
-      "ceoTime": "Ugbu a • LoveCare Global",
-      "drawerTitle": "NỌỌSỤ ỌKACHAMARA\nN'ỊNTANETỊ",
-      "hiGuest": "👋 Ndewo, Ọbịa",
-      "notLoggedIn": "Abanyeghị",
-      "menuHome": "Ụlọ",
-      "menuAbout": "Banyere Anyị",
-      "menuServices": "Ọrụ",
-      "menuHow": "Otu O Si Arụ Ọrụ",
-      "menuContact": "Kpọtụrụ Anyị - +233544121814",
-      "menuConsent": "Ụdị Nkwenye",
-      "menuPrivacy": "Nzuzo",
-      "menuTerms": "Usoro",
-      "menuRefund": "Nkwụghachi",
-      "menuDelete": "🗑️ Hichapụ Akaụntụ",
-      "menuSos": "Mberede SOS",
-      "menuLogout": "🚪 Pụọ",
-      "homeNursing": "Nọọsụ Ụlọ",
-      "verifiedClient": "Onye Ahịa Enyochara",
-      "ghana": "Ghana",
-      "excellent": "Ọrụ magburu onwe ya",
-      "mock1": "O nwere obi ebere na ọkachamara.",
-      "mock2": "Ọ bịara n'oge, nlekọta magburu onwe ya.",
-      "mock3": "Nne m hụrụ nlekọta ya n'anya.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} nyocha)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Nọọsụ",
-    },
-
-    // 17. HAUSA
-    "ha": {
-      "appTitle": "NURSE ƘWARARRIYA TA INTANET",
-      "sos": "SOS",
-      "welcomeTo": "Barka Da Zuwa",
-      "heroTitle": "LOVE CARE GLOBAL\nKULAWAR GIDA",
-      "heroBody": "Lafiyarka, zuciyarmu. Muna kawo nurse masu lasisi kai tsaye zuwa ƙofar gidanka — kulawa mai tausayi, ƙwararriya a ƙasashe 8, 24/7. Yanzu tare da bin diddigi kai tsaye, Paystack mai aminci, da nurse da aka tabbatar mataki 2.",
-      "joinNurse": "Shiga A Matsayin Nurse",
-      "joinNurseSub": "An tabbatar, sami kuɗi da ayyuka — GPS + bayanin bidiyo",
-      "register2steps": "Yi Rajista (mataki 2)",
-      "login": "Shiga",
-      "bookNurse": "Yi Book Nurse",
-      "bookNurseSub": "Duba hoto / bidiyo / ƙima kafin ka biya",
-      "register": "Yi Rajista",
-      "feat1Title": "Bin Diddigi Kai Tsaye + GPS An Tabbatar",
-      "feat1Body": "Bi nurse a ainihin lokaci. Duk nurse an tabbatar da GPS a rajista.",
-      "feat2Title": "Paystack Mai Aminci + Biya A Isarwa",
-      "feat2Body": "Biya GHS/USD + sabon zaɓi 50% na intanet. Babu booking sau biyu — kulle samuwa.",
-      "feat3Title": "Nurse Da Aka Tabbatar Mataki 2",
-      "feat3Body": "CEO ya duba Hoto, ID, Lasisi, Bidiyo. Nurse da aka amince da su kaɗai ke nuna ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Ƙimar Abokin Ciniki Akan Nurse — Matsayi Mai Girma",
-      "liveBadge": "KAI TSAYE • An ƙima nurse {n}",
-      "showMore": "Nuna ƙarin nurse ↓",
-      "showLess": "Nuna kaɗan ↑",
-      "ratingsNote": "⭐ Ƙima suna nuna kai tsaye ƙimar abokin ciniki a rating.html / client-dashboard — Booking da aka tabbatar kaɗai",
-      "soundOn": "🔊 Sauti A KUNNE - Taɓa 🔊 idan babu sauti",
-      "playWithSound": "▶️ Yi Wasa Da Sauti",
-      "pause": "⏸ Dakata",
-      "ceoVoice": "Saƙon murya na CEO",
-      "ceoAnnouncementPrefix": "Sanarwar CEO: {text}",
-      "ceoDefaultName": "👑 Sanarwar CEO — Asabere Peter",
-      "ceoLoading": "Ana loda sanarwar CEO...",
-      "ceoTime": "Yanzu • LoveCare Global",
-      "drawerTitle": "NURSE ƘWARARRIYA\nTA INTANET",
-      "hiGuest": "👋 Sannu, Baƙo",
-      "notLoggedIn": "Ba a shiga ba",
-      "menuHome": "Gida",
-      "menuAbout": "Game Da Mu",
-      "menuServices": "Sabis",
-      "menuHow": "Yadda Yake Aiki",
-      "menuContact": "Tuntuɓe Mu - +233544121814",
-      "menuConsent": "Fom Na Yarda",
-      "menuPrivacy": "Sirri",
-      "menuTerms": "Sharuɗɗa",
-      "menuRefund": "Kuɗi",
-      "menuDelete": "🗑️ Share Asusu",
-      "menuSos": "Gaggawa SOS",
-      "menuLogout": "🚪 Fita",
-      "homeNursing": "Kulawar Gida",
-      "verifiedClient": "Abokin Ciniki Da Aka Tabbatar",
-      "ghana": "Ghana",
-      "excellent": "Sabis mai kyau",
-      "mock1": "Mai tausayi sosai kuma ƙwararriya.",
-      "mock2": "Ta zo kan lokaci, kulawa mai kyau.",
-      "mock3": "Mahaifiyata ta son kulawarta.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} bita)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Nurse",
-    },
-
-    // 18. RUSSIAN
-    "ru": {
-      "appTitle": "ПРОФЕССИОНАЛЬНАЯ ОНЛАЙН МЕДСЕСТРА",
-      "sos": "SOS",
-      "welcomeTo": "Добро пожаловать в",
-      "heroTitle": "LOVE CARE GLOBAL\nДОМАШНИЙ УХОД",
-      "heroBody": "Ваше здоровье — наше сердце. Мы приводим лицензированных медсестёр прямо к вашей двери — заботливый, профессиональный уход в 8 странах, 24/7. Теперь с живым отслеживанием, безопасным Paystack и медсёстрами, проверенными в 2 этапа.",
-      "joinNurse": "Присоединиться Как Медсестра",
-      "joinNurseSub": "Проверена, зарабатывай на заданиях — GPS + видео-профиль",
-      "register2steps": "Зарегистрироваться (2 шага)",
-      "login": "Войти",
-      "bookNurse": "Забронировать Медсестру",
-      "bookNurseSub": "Посмотри фото / видео / рейтинг перед оплатой",
-      "register": "Зарегистрироваться",
-      "feat1Title": "Живое Отслеживание + GPS Проверен",
-      "feat1Body": "Отслеживай медсестру в реальном времени. Все медсёстры GPS-проверены при регистрации.",
-      "feat2Title": "Безопасный Paystack + Оплата При Доставке",
-      "feat2Body": "Плати GHS/USD + новая опция 50% онлайн. Никакого двойного бронирования — блокировка доступности.",
-      "feat3Title": "Медсёстры Проверенные В 2 Этапа",
-      "feat3Body": "Фото, ID, Лицензия, Видео проверены CEO. Только одобренные медсёстры показывают ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Рейтинги Клиентов О Медсёстрах — Высокий Ранг",
-      "liveBadge": "В ЭФИРЕ • Оценено медсестёр: {n}",
-      "showMore": "Показать больше медсестёр ↓",
-      "showLess": "Показать меньше ↑",
-      "ratingsNote": "⭐ Рейтинги отражают в прямом эфире рейтинги клиентов в rating.html / client-dashboard — Только проверенные бронирования",
-      "soundOn": "🔊 Звук ВКЛ - Нажми 🔊 если нет звука",
-      "playWithSound": "▶️ Играть Со Звуком",
-      "pause": "⏸ Пауза",
-      "ceoVoice": "Голосовая заметка CEO",
-      "ceoAnnouncementPrefix": "Объявление CEO: {text}",
-      "ceoDefaultName": "👑 Объявление CEO — Asabere Peter",
-      "ceoLoading": "Загрузка объявления CEO...",
-      "ceoTime": "Только что • LoveCare Global",
-      "drawerTitle": "ПРОФЕССИОНАЛЬНАЯ\nОНЛАЙН МЕДСЕСТРА",
-      "hiGuest": "👋 Привет, Гость",
-      "notLoggedIn": "Не вошли",
-      "menuHome": "Главная",
-      "menuAbout": "О Нас",
-      "menuServices": "Услуги",
-      "menuHow": "Как Это Работает",
-      "menuContact": "Контакт - +233544121814",
-      "menuConsent": "Форма Согласия",
-      "menuPrivacy": "Конфиденциальность",
-      "menuTerms": "Условия",
-      "menuRefund": "Возврат",
-      "menuDelete": "🗑️ Удалить Аккаунт",
-      "menuSos": "Чрезвычайная Ситуация SOS",
-      "menuLogout": "🚪 Выйти",
-      "homeNursing": "Домашний Уход",
-      "verifiedClient": "Проверенный Клиент",
-      "ghana": "Гана",
-      "excellent": "Отличный сервис",
-      "mock1": "Очень заботливая и профессиональная.",
-      "mock2": "Пришла вовремя, отличный уход.",
-      "mock3": "Моя мама любила её уход.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} отзывов)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Медсестра",
-    },
-
-    // 19. TURKISH
-    "tr": {
-      "appTitle": "PROFESYONEL ÇEVRİMİÇİ HEMŞİRE",
-      "sos": "SOS",
-      "welcomeTo": "Hoş Geldiniz",
-      "heroTitle": "LOVE CARE GLOBAL\nEVDE HEMŞİRELİK",
-      "heroBody": "Sağlığınız, kalbimiz. Lisanslı hemşireleri doğrudan kapınıza getiriyoruz — 8 ülkede şefkatli, profesyonel bakım, 24/7. Artık canlı takip, güvenli Paystack ve 2 aşamalı doğrulanmış hemşirelerle.",
-      "joinNurse": "Hemşire Olarak Katıl",
-      "joinNurseSub": "Doğrulandı, işlerle kazanın — GPS + video profili",
-      "register2steps": "Kaydol (2 adım)",
-      "login": "Giriş Yap",
-      "bookNurse": "Hemşire Rezerve Et",
-      "bookNurseSub": "Ödemeden önce fotoğraf / video / puanlamayı görün",
-      "register": "Kaydol",
-      "feat1Title": "Canlı Takip + GPS Doğrulandı",
-      "feat1Body": "Hemşireyi gerçek zamanlı takip edin. Tüm hemşireler kayıtta GPS doğrulandı.",
-      "feat2Title": "Güvenli Paystack + Teslimatta Öde",
-      "feat2Body": "GHS/USD + yeni %50 çevrimiçi seçenekle ödeyin. Çift rezervasyon yok — müsaitlik kilidi.",
-      "feat3Title": "2 Aşamalı Doğrulanmış Hemşireler",
-      "feat3Body": "Fotoğraf, Kimlik, Lisans, Video CEO tarafından kontrol edildi. Yalnızca onaylı hemşireler ONLINE görünür.",
-      "ratingsTitle": "👩‍⚕️ Hemşireler Hakkında Müşteri Puanları — Yüksek Sıra",
-      "liveBadge": "CANLI • {n} hemşire puanlandı",
-      "showMore": "Daha fazla hemşire göster ↓",
-      "showLess": "Daha az göster ↑",
-      "ratingsNote": "⭐ Puanlar rating.html / client-dashboard içindeki müşteri puanlarını canlı yansıtır — Yalnızca doğrulanmış rezervasyonlar",
-      "soundOn": "🔊 Ses AÇIK - Ses yoksa 🔊 dokunun",
-      "playWithSound": "▶️ Sesli Oynat",
-      "pause": "⏸ Duraklat",
-      "ceoVoice": "CEO sesli notu",
-      "ceoAnnouncementPrefix": "CEO Duyurusu: {text}",
-      "ceoDefaultName": "👑 CEO Duyurusu — Asabere Peter",
-      "ceoLoading": "CEO duyurusu yükleniyor...",
-      "ceoTime": "Az önce • LoveCare Global",
-      "drawerTitle": "PROFESYONEL\nÇEVRİMİÇİ HEMŞİRE",
-      "hiGuest": "👋 Merhaba, Misafir",
-      "notLoggedIn": "Giriş yapılmadı",
-      "menuHome": "Ana Sayfa",
-      "menuAbout": "Hakkımızda",
-      "menuServices": "Hizmetler",
-      "menuHow": "Nasıl Çalışır",
-      "menuContact": "İletişim - +233544121814",
-      "menuConsent": "Onay Formu",
-      "menuPrivacy": "Gizlilik",
-      "menuTerms": "Şartlar",
-      "menuRefund": "İade",
-      "menuDelete": "🗑️ Hesabı Sil",
-      "menuSos": "SOS Acil Durum",
-      "menuLogout": "🚪 Çıkış Yap",
-      "homeNursing": "Evde Hemşirelik",
-      "verifiedClient": "Doğrulanmış Müşteri",
-      "ghana": "Gana",
-      "excellent": "Mükemmel hizmet",
-      "mock1": "Çok şefkatli ve profesyonel.",
-      "mock2": "Zamanında geldi, mükemmel bakım.",
-      "mock3": "Annem bakımını çok sevdi.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} yorum)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Hemşire",
-    },
-
-    // 20. KOREAN
-    "ko": {
-      "appTitle": "전문 온라인 간호사",
-      "sos": "SOS",
-      "welcomeTo": "환영합니다",
-      "heroTitle": "LOVE CARE GLOBAL\n홈 간호",
-      "heroBody": "여러분의 건강, 우리의 마음. 면허를 가진 간호사를 여러분의 문 앞까지 직접 모십니다 — 8개국에서 자상하고 전문적인 간호, 24/7. 이제 실시간 추적, 안전한 Paystack, 2단계 인증 간호사와 함께.",
-      "joinNurse": "간호사로 가입",
-      "joinNurseSub": "인증됨, 일자리로 수익 창출 — GPS + 비디오 프로필",
-      "register2steps": "등록 (2단계)",
-      "login": "로그인",
-      "bookNurse": "간호사 예약",
-      "bookNurseSub": "결제 전에 사진 / 비디오 / 평점 보기",
-      "register": "등록",
-      "feat1Title": "실시간 추적 + GPS 인증됨",
-      "feat1Body": "간호사를 실시간으로 추적하세요. 모든 간호사는 등록 시 GPS 인증을 받았습니다.",
-      "feat2Title": "안전한 Paystack + 배송 시 결제",
-      "feat2Body": "GHS/USD + 새로운 50% 온라인 옵션으로 결제하세요. 이중 예약 없음 — 가용성 잠금.",
-      "feat3Title": "2단계 인증 간호사",
-      "feat3Body": "사진, ID, 면허, 비디오는 CEO가 확인했습니다. 승인된 간호사만 ONLINE으로 표시됩니다.",
-      "ratingsTitle": "👩‍⚕️ 간호사에 대한 고객 평점 — 높은 순위",
-      "liveBadge": "실시간 • 간호사 {n}명 평가됨",
-      "showMore": "간호사 더 보기 ↓",
-      "showLess": "간략히 보기 ↑",
-      "ratingsNote": "⭐ 평점은 rating.html / client-dashboard의 고객 평점을 실시간으로 반영합니다 — 인증된 예약만",
-      "soundOn": "🔊 소리 켜짐 - 소리가 안 나면 🔊를 탭하세요",
-      "playWithSound": "▶️ 소리와 함께 재생",
-      "pause": "⏸ 일시 정지",
-      "ceoVoice": "CEO 음성 메모",
-      "ceoAnnouncementPrefix": "CEO 공지: {text}",
-      "ceoDefaultName": "👑 CEO 공지 — Asabere Peter",
-      "ceoLoading": "CEO 공지 로딩 중...",
-      "ceoTime": "방금 • LoveCare Global",
-      "drawerTitle": "전문\n온라인 간호사",
-      "hiGuest": "👋 안녕하세요, 게스트",
-      "notLoggedIn": "로그인되지 않음",
-      "menuHome": "홈",
-      "menuAbout": "회사 소개",
-      "menuServices": "서비스",
-      "menuHow": "작동 방식",
-      "menuContact": "연락처 - +233544121814",
-      "menuConsent": "동의서",
-      "menuPrivacy": "개인정보",
-      "menuTerms": "약관",
-      "menuRefund": "환불",
-      "menuDelete": "🗑️ 계정 삭제",
-      "menuSos": "SOS 긴급",
-      "menuLogout": "🚪 로그아웃",
-      "homeNursing": "홈 간호",
-      "verifiedClient": "인증된 고객",
-      "ghana": "가나",
-      "excellent": "훌륭한 서비스",
-      "mock1": "매우 자상하고 전문적입니다.",
-      "mock2": "시간에 맞춰 도착했고, 훌륭한 간호였습니다.",
-      "mock3": "어머니께서 그녀의 간호를 정말 좋아하셨습니다.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count}개 리뷰)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "간호사",
-    },
-
-    // 21. JAPANESE
-    "ja": {
-      "appTitle": "プロのオンライン看護師",
-      "sos": "SOS",
-      "welcomeTo": "ようこそ",
-      "heroTitle": "LOVE CARE GLOBAL\nホームナーシング",
-      "heroBody": "あなたの健康、私たちの心。認可を受けた看護師を直接あなたの玄関までお届けします — 8か国で思いやりのあるプロフェッショナルなケア、24/7。ライブトラッキング、安全な Paystack、2段階認証済み看護師付き。",
-      "joinNurse": "看護師として参加",
-      "joinNurseSub": "認証済み、仕事で稼ぐ — GPS + ビデオプロフィール",
-      "register2steps": "登録 (2ステップ)",
-      "login": "ログイン",
-      "bookNurse": "看護師を予約",
-      "bookNurseSub": "支払う前に写真 / ビデオ / 評価を見る",
-      "register": "登録",
-      "feat1Title": "ライブトラッキング + GPS認証済み",
-      "feat1Body": "看護師をリアルタイムで追跡。すべての看護師は登録時に GPS 認証済み。",
-      "feat2Title": "安全な Paystack + 配達時支払い",
-      "feat2Body": "GHS/USD + 新しい 50% オンラインオプションで支払う。二重予約なし — 空き状況ロック。",
-      "feat3Title": "2段階認証済み看護師",
-      "feat3Body": "写真、ID、ライセンス、ビデオは CEO がチェック済み。承認された看護師のみ ONLINE と表示されます。",
-      "ratingsTitle": "👩‍⚕️ 看護師に対するクライアント評価 — 高ランク",
-      "liveBadge": "ライブ • 看護師 {n} 人が評価済み",
-      "showMore": "看護師をもっと表示 ↓",
-      "showLess": "表示を減らす ↑",
-      "ratingsNote": "⭐ 評価は rating.html / client-dashboard のクライアント評価をライブで反映します — 認証済み予約のみ",
-      "soundOn": "🔊 サウンド ON - 音が出ない場合は 🔊 をタップ",
-      "playWithSound": "▶️ サウンド付きで再生",
-      "pause": "⏸ 一時停止",
-      "ceoVoice": "CEO 音声メモ",
-      "ceoAnnouncementPrefix": "CEO アナウンス: {text}",
-      "ceoDefaultName": "👑 CEO アナウンス — Asabere Peter",
-      "ceoLoading": "CEO アナウンスを読み込み中...",
-      "ceoTime": "たった今 • LoveCare Global",
-      "drawerTitle": "プロの\nオンライン看護師",
-      "hiGuest": "👋 こんにちは、ゲスト",
-      "notLoggedIn": "ログインしていません",
-      "menuHome": "ホーム",
-      "menuAbout": "私たちについて",
-      "menuServices": "サービス",
-      "menuHow": "仕組み",
-      "menuContact": "お問い合わせ - +233544121814",
-      "menuConsent": "同意書",
-      "menuPrivacy": "プライバシー",
-      "menuTerms": "利用規約",
-      "menuRefund": "返金",
-      "menuDelete": "🗑️ アカウントを削除",
-      "menuSos": "SOS 緊急",
-      "menuLogout": "🚪 ログアウト",
-      "homeNursing": "ホームナーシング",
-      "verifiedClient": "認証済みクライアント",
-      "ghana": "ガーナ",
-      "excellent": "素晴らしいサービス",
-      "mock1": "とても思いやりがありプロフェッショナルです。",
-      "mock2": "時間通りに到着し、素晴らしいケアでした。",
-      "mock3": "母は彼女のケアが大好きでした。",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} 件のレビュー)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "看護師",
-    },
-
-    // 22. POLISH
-    "pl": {
-      "appTitle": "PROFESJONALNA PIELĘGNIARKA ONLINE",
-      "sos": "SOS",
-      "welcomeTo": "Witamy w",
-      "heroTitle": "LOVE CARE GLOBAL\nPIELĘGNIARSTWO DOMOWE",
-      "heroBody": "Twoje zdrowie, nasze serce. Przyprowadzamy licencjonowane pielęgniarki prosto pod Twoje drzwi — współczująca, profesjonalna opieka w 8 krajach, 24/7. Teraz z śledzeniem na żywo, bezpiecznym Paystack i pielęgniarkami zweryfikowanymi w 2 krokach.",
-      "joinNurse": "Dołącz Jako Pielęgniarka",
-      "joinNurseSub": "Zweryfikowana, zarabiaj na zleceniach — GPS + profil wideo",
-      "register2steps": "Zarejestruj Się (2 kroki)",
-      "login": "Zaloguj Się",
-      "bookNurse": "Zarezerwuj Pielęgniarkę",
-      "bookNurseSub": "Zobacz zdjęcie / wideo / ocenę przed zapłatą",
-      "register": "Zarejestruj Się",
-      "feat1Title": "Śledzenie Na Żywo + GPS Zweryfikowany",
-      "feat1Body": "Śledź pielęgniarkę w czasie rzeczywistym. Wszystkie pielęgniarki GPS zweryfikowane przy rejestracji.",
-      "feat2Title": "Bezpieczny Paystack + Płać Przy Dostawie",
-      "feat2Body": "Płać GHS/USD + nowa opcja 50% online. Brak podwójnej rezerwacji — blokada dostępności.",
-      "feat3Title": "Pielęgniarki Zweryfikowane W 2 Krokach",
-      "feat3Body": "Zdjęcie, ID, Licencja, Wideo sprawdzone przez CEO. Tylko zatwierdzone pielęgniarki pokazują ONLINE.",
-      "ratingsTitle": "👩‍⚕️ Oceny Klientów O Pielęgniarkach — Wysoka Ranga",
-      "liveBadge": "NA ŻYWO • Oceniono {n} pielęgniarek",
-      "showMore": "Pokaż więcej pielęgniarek ↓",
-      "showLess": "Pokaż mniej ↑",
-      "ratingsNote": "⭐ Oceny odzwierciedlają na żywo oceny klientów w rating.html / client-dashboard — Tylko zweryfikowane rezerwacje",
-      "soundOn": "🔊 Dźwięk WŁĄCZONY - Dotknij 🔊 jeśli brak dźwięku",
-      "playWithSound": "▶️ Odtwórz Z Dźwiękiem",
-      "pause": "⏸ Pauza",
-      "ceoVoice": "Notatka głosowa CEO",
-      "ceoAnnouncementPrefix": "Ogłoszenie CEO: {text}",
-      "ceoDefaultName": "👑 Ogłoszenie CEO — Asabere Peter",
-      "ceoLoading": "Ładowanie ogłoszenia CEO...",
-      "ceoTime": "Właśnie teraz • LoveCare Global",
-      "drawerTitle": "PROFESJONALNA\nPIELĘGNIARKA ONLINE",
-      "hiGuest": "👋 Cześć, Gość",
-      "notLoggedIn": "Nie zalogowano",
-      "menuHome": "Strona Główna",
-      "menuAbout": "O Nas",
-      "menuServices": "Usługi",
-      "menuHow": "Jak To Działa",
-      "menuContact": "Kontakt - +233544121814",
-      "menuConsent": "Formularz Zgody",
-      "menuPrivacy": "Prywatność",
-      "menuTerms": "Warunki",
-      "menuRefund": "Zwrot",
-      "menuDelete": "🗑️ Usuń Konto",
-      "menuSos": "SOS Awaryjne",
-      "menuLogout": "🚪 Wyloguj Się",
-      "homeNursing": "Pielęgniarstwo Domowe",
-      "verifiedClient": "Zweryfikowany Klient",
-      "ghana": "Ghana",
-      "excellent": "Doskonała obsługa",
-      "mock1": "Bardzo troskliwa i profesjonalna.",
-      "mock2": "Przybyła na czas, doskonała opieka.",
-      "mock3": "Moja mama pokochała jej opiekę.",
-      "reviewsLabel": "{service} • ⭐ {avg} ({count} recenzji)",
-      "reviewLine": "\"{text}\" — {client}, {loc}",
-      "nurseFallback": "Pielęgniarka",
-    },
-  };
-
-  // ---------- THE RULE ----------
-  // CEO = English ONLY. Everyone else = chosen language.
-  static String get(String lang, String key) {
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
-  }
-
-  static String getForRole(String role, String lang, String key) {
-    if (role.toLowerCase() == 'ceo') {
-      return all['en']?[key] ?? key;
+class CeoAnnouncement {
+  final bool active;
+  final String name, text, time, avatarUrl;
+  final List<String> images, videos;
+  final String? voice, videoUrl, displayType;
+  CeoAnnouncement({
+    this.active = false,
+    this.name = '👑 CEO Announcement — Asabere Peter',
+    this.text = 'Loading CEO announcement...',
+    this.time = 'Just now • LoveCare Global',
+    this.avatarUrl =
+        'https://ui-avatars.com/api/?name=Asabere+Peter&background=facc15&color=000',
+    this.images = const [],
+    this.videos = const [],
+    this.voice,
+    this.videoUrl,
+    this.displayType,
+  });
+  factory CeoAnnouncement.fromMap(Map m) => CeoAnnouncement(
+        active: m['active'] == true,
+        name: (m['name'] ?? '👑 CEO Announcement — Asabere Peter').toString(),
+        text: (m['text'] ?? m['message'] ?? '').toString(),
+        time: (m['time'] ?? 'Just now • LoveCare Global').toString(),
+        avatarUrl: (m['avatar'] ?? m['avatarUrl'] ??
+                'https://ui-avatars.com/api/?name=Asabere+Peter&background=facc15&color=000')
+            .toString(),
+        images: _strList(m['images']),
+        videos: _strList(m['videos']),
+        voice: m['voice']?.toString(),
+        videoUrl: (m['videoURL'] ?? m['videoUrl'] ?? m['video'])?.toString(),
+        displayType: m['displayType']?.toString(),
+      );
+  static List<String> _strList(dynamic v) {
+    if (v is List) {
+      return v
+          .map((e) => (e is Map ? (e['data'] ?? e['url'] ?? '') : e).toString())
+          .where((s) => s.isNotEmpty)
+          .toList();
     }
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
+    if (v is String && v.isNotEmpty) return [v];
+    return [];
   }
 
-  static String getWith(String role, String lang, String key, Map<String, String> params) {
-    String raw = getForRole(role, lang, key);
-    params.forEach((k, v) {
-      raw = raw.replaceAll('{$k}', v);
-    });
-    return raw;
+  List<String> get allVideos =>
+      [...videos, if (videoUrl != null && videoUrl!.isNotEmpty) videoUrl!];
+}
+
+class NurseRating {
+  final String nurseName, initials, service, nurseId;
+  final double avgRating;
+  final int totalReviews;
+  final bool verified;
+  final Review topReview;
+  NurseRating({
+    required this.nurseName,
+    required this.initials,
+    required this.service,
+    required this.avgRating,
+    required this.totalReviews,
+    required this.topReview,
+    this.verified = true,
+    this.nurseId = '',
+  });
+  factory NurseRating.mock(String n, double avg, int count, String text) =>
+      NurseRating(
+        nurseName: n,
+        initials:
+            n.split(' ').map((s) => s[0]).join('').substring(0, 2).toUpperCase(),
+        service: 'Home Nursing',
+        avgRating: avg,
+        totalReviews: count,
+        topReview: Review(
+            client: 'Verified Client', loc: 'Ghana', text: text, rating: 5, date: ''),
+      );
+}
+
+class Review {
+  final String client, loc, text, date;
+  final double rating;
+  Review(
+      {required this.client,
+      required this.loc,
+      required this.text,
+      required this.rating,
+      required this.date});
+}
+
+// ================= FIREBASE SERVICE =================
+
+
+/// Same Firebase project as the HTML: web-care-618e8
+/// HTML used firebasejs 9.22.0 compat + firebase.database().
+/// In Flutter use firebase_core + firebase_database with the SAME
+/// google-services.json / GoogleService-Info.plist from that project.
+class FirebaseService {
+  final _db = FirebaseDatabase.instance.ref();
+
+  Stream<CeoAnnouncement> ceoStream() =>
+      _db.child('ceoAnnouncement').onValue.map((e) {
+        final v = e.snapshot.value;
+        if (v is Map) return CeoAnnouncement.fromMap(v);
+        return CeoAnnouncement(active: false);
+      });
+
+  /// Mirrors HTML loadLiveRatings(): ratings/{nurseId}/{ratingId}
+  /// + allRatings + homepageReviews. Sorted high -> low.
+  Stream<List<NurseRating>> ratingsStream() =>
+      _db.child('ratings').onValue.map((e) {
+        final v = e.snapshot.value;
+        if (v is! Map) return <NurseRating>[];
+        final out = <NurseRating>[];
+        v.forEach((nurseId, ratings) {
+          if (ratings is! Map) return;
+          double total = 0;
+          int count = 0;
+          Map? latest;
+          ratings.forEach((_, r) {
+            if (r is Map) {
+              total += double.tryParse('${r['stars'] ?? r['rating'] ?? 0}') ?? 0;
+              count++;
+              if (latest == null ||
+                  ((r['time'] ?? 0) as num) > ((latest!['time'] ?? 0) as num)) {
+                latest = r;
+              }
+            }
+          });
+          if (count == 0) return;
+          final name = (latest?['nurseName'] ?? 'Nurse').toString();
+          out.add(NurseRating(
+            nurseName: name,
+            initials: name
+                .split(' ')
+                .map((s) => s[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase(),
+            service: (latest?['service'] ?? 'Home Nursing').toString(),
+            avgRating: double.parse((total / count).toStringAsFixed(1)),
+            totalReviews: count,
+            nurseId: nurseId.toString(),
+            topReview: Review(
+              client: (latest?['clientName'] ?? latest?['client'] ?? 'Verified Client')
+                  .toString(),
+              loc: (latest?['loc'] ?? 'Ghana').toString(),
+              text: (latest?['comment'] ?? latest?['text'] ?? latest?['ratingComment'] ??
+                      'Excellent service')
+                  .toString(),
+              rating: double.tryParse(
+                      '${latest?['stars'] ?? latest?['rating'] ?? 5}') ??
+                  5,
+              date: (latest?['timeStr'] ?? '').toString(),
+            ),
+          ));
+        });
+        out.sort((a, b) => b.avgRating != a.avgRating
+            ? b.avgRating.compareTo(a.avgRating)
+            : b.totalReviews.compareTo(a.totalReviews));
+        return out;
+      });
+}
+
+// ================= LAUNCHER =================
+
+
+class LauncherService {
+  static const phone = '+233544121814';
+  static Future<void> call() async =>
+      launchUrl(Uri.parse('tel:$phone'));
+  static Future<void> whatsapp() async => launchUrl(
+        Uri.parse(
+            'https://wa.me/233544121814?text=Hello%20LOVE%20CARE%20GLOBAL%20%F0%9F%92%AC'),
+        mode: LaunchMode.externalApplication,
+      );
+  static Future<void> open(String url) async =>
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+}
+
+// ================= VIDEO WITH SOUND =================
+
+
+/// Port of the HTML FIXED-VIDEO-SOUND logic:
+/// video.muted=false; volume=1.0; onloadeddata/onplay -> unmute again.
+/// Flutter has no autoplay-with-sound restriction like browsers, but we
+/// still expose the same explicit "Play with Sound" button.
+class VideoWithSound extends StatefulWidget {
+  final String url;
+  const VideoWithSound({super.key, required this.url});
+  @override
+  State<VideoWithSound> createState() => _S();
+}
+
+class _S extends State<VideoWithSound> {
+  late final VideoPlayerController _c;
+  bool _playing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+      ..setVolume(1.0)
+      ..initialize().then((_) => setState(() {}));
+    _c.addListener(() => setState(() => _playing = _c.value.isPlaying));
   }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(children: [
+        AspectRatio(
+          aspectRatio:
+              _c.value.isInitialized ? _c.value.aspectRatio : 16 / 9,
+          child: _c.value.isInitialized
+              ? VideoPlayer(_c)
+              : const Center(child: CircularProgressIndicator()),
+        ),
+        Container(
+          color: Colors.black.withOpacity(.7),
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('🔊 Sound ON - Tap 🔊 if no sound',
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF86EFAC),
+                      fontWeight: FontWeight.w700)),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF22C55E),
+                    foregroundColor: Colors.black),
+                onPressed: () async {
+                  await _c.setVolume(1.0);
+                  if (_playing) {
+                    await _c.pause();
+                  } else {
+                    await _c.play();
+                  }
+                },
+                child: Text(_playing ? '⏸ Pause' : '▶️ Play with Sound',
+                    style: const TextStyle(
+                        fontSize: 10, fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
+        ),
+      ]);
+}
+
+// ================= HOME SCREEN =================
+
+
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+  @override
+  State<HomeScreen> createState() => _H();
+}
+
+class _H extends State<HomeScreen> {
+  final _fb = FirebaseService();
+  final _scaffold = GlobalKey<ScaffoldState>();
+  List<NurseRating> _ratings = [];
+  bool _showAll = false;
+  bool _bannerClosed = false;
+  final _mock = [
+    NurseRating.mock('Ama Serwaa', 5.0, 24, 'Very caring and professional.'),
+    NurseRating.mock('Kwame Mensah', 4.9, 18, 'Arrived on time, excellent care.'),
+    NurseRating.mock('Efua Asante', 4.8, 31, 'My mother loved her care.'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fb.ratingsStream().listen((v) {
+      if (v.isNotEmpty && mounted) setState(() => _ratings = v);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = _ratings.isEmpty ? _mock : _ratings;
+    final shown = _showAll ? list : list.take(3).toList();
+    return Scaffold(
+      key: _scaffold,
+      backgroundColor: const Color(0xFF0E0A1C),
+      drawer: _drawer(),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0E0A1C),
+        title: const Text('PROFESSIONAL ONLINE NURSE',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+        actions: [
+          IconButton(
+            icon: const Text('SOS',
+                style: TextStyle(
+                    color: Colors.redAccent, fontWeight: FontWeight.w900)),
+            onPressed: () => LauncherService.open('sos.html'),
+          )
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(children: [
+          StreamBuilder<CeoAnnouncement>(
+            stream: _fb.ceoStream(),
+            builder: (c, s) {
+              final a = s.data;
+              if (a == null || !a.active || _bannerClosed) {
+                return const SizedBox.shrink();
+              }
+              if (a.displayType == 'ticker') return _ticker(a);
+              return _ceoBanner(a);
+            },
+          ),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Welcome to',
+                    style: TextStyle(color: Colors.white70, fontSize: 18)),
+                const Text('LOVE CARE GLOBAL\nHOME NURSING',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 34,
+                        fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                const Text(
+                    'Your health, our heart. We bring licensed nurses right to your doorstep — compassionate, professional care in 8 countries, 24/7. Now with live tracking, secure Paystack, and 2-step verified nurses.',
+                    style: TextStyle(color: Colors.white70)),
+                const SizedBox(height: 16),
+                Row(children: [
+                  Expanded(
+                      child: _cta(
+                          'Join as Nurse',
+                          'Verified, earn with jobs — GPS + video profile',
+                          ['Register (2 steps)', 'Login'],
+                          ['nurses-registration.html', 'nurse-login.html'])),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: _cta(
+                          'Book a Nurse',
+                          'See photo/video/rating before you pay',
+                          ['Register', 'Login'],
+                          ['client-registration.html', 'client-login.html'])),
+                ]),
+                const SizedBox(height: 18),
+                _feature('📍', 'Live Tracking + GPS Verified',
+                    'Track nurse in real time. All nurses GPS verified at registration.'),
+                _feature('⚡', 'Secure Paystack + Pay on Delivery',
+                    'Pay GHS/USD + new 50% online option. No double booking — availability lock.'),
+                _feature('💜', '2-Step Verified Nurses',
+                    'Photo, ID, Licence, Video checked by CEO. Only approved nurses show ONLINE.'),
+                const SizedBox(height: 20),
+                Row(children: [
+                  const Text('👩‍⚕️ Client Ratings on Nurses — High Rank',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 17)),
+                  const Spacer(),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(99)),
+                    child: Text('LIVE • ${list.length} nurses rated',
+                        style: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700)),
+                  ),
+                ]),
+                const SizedBox(height: 12),
+                ...shown.map(_ratingCard),
+                TextButton(
+                  onPressed: () => setState(() => _showAll = !_showAll),
+                  child: Text(
+                      _showAll ? 'Show less ↑' : 'Show more nurses ↓'),
+                ),
+                const Text(
+                    '⭐ Ratings reflect live from client ratings in rating.html / client-dashboard — Verified bookings only',
+                    style: TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
+            ),
+          ),
+        ]),
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FloatingActionButton.small(
+              heroTag: 'wa',
+              backgroundColor: Colors.green,
+              onPressed: LauncherService.whatsapp,
+              child: const Text('💬')),
+          const SizedBox(height: 8),
+          FloatingActionButton.small(
+              heroTag: 'call',
+              onPressed: LauncherService.call,
+              child: const Text('📞')),
+        ],
+      ),
+    );
+  }
+
+  Widget _ticker(CeoAnnouncement a) => Container(
+        color: Colors.amber,
+        padding: const EdgeInsets.all(10),
+        child: Text('CEO Announcement: ${a.text}',
+            style: const TextStyle(fontWeight: FontWeight.w700)),
+      );
+
+  Widget _ceoBanner(CeoAnnouncement a) => Card(
+        margin: const EdgeInsets.all(12),
+        color: const Color(0xFF1E1533),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(children: [
+            Row(children: [
+              CircleAvatar(backgroundImage: NetworkImage(a.avatarUrl)),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(a.name,
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(a.time,
+                      style: const TextStyle(
+                          color: Colors.white54, fontSize: 12)),
+                ],
+              )),
+              IconButton(
+                  onPressed: () => setState(() => _bannerClosed = true),
+                  icon: const Icon(Icons.close, color: Colors.white)),
+            ]),
+            const SizedBox(height: 10),
+            Text(a.text, style: const TextStyle(color: Colors.white)),
+            ...a.images.map((u) => Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(u)))),
+            ...a.allVideos.map((u) => Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: VideoWithSound(url: u))),
+            if (a.voice != null)
+              Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: _VoicePlayer(url: a.voice!)),
+          ]),
+        ),
+      );
+
+  Widget _cta(String title, String sub, List<String> labels,
+          List<String> urls) =>
+      Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+            color: const Color(0xFF2A1B4A),
+            borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16)),
+            Text(sub, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            const SizedBox(height: 10),
+            ...List.generate(
+                labels.length,
+                (i) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                            onPressed: () => LauncherService.open(urls[i]),
+                            child: Text(labels[i]))))),
+          ],
+        ),
+      );
+
+  Widget _feature(String icon, String t, String s) => ListTile(
+        leading: Text(icon, style: const TextStyle(fontSize: 26)),
+        title: Text(t,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.w700)),
+        subtitle: Text(s, style: const TextStyle(color: Colors.white70)),
+      );
+
+  Widget _ratingCard(NurseRating r) => Card(
+        color: const Color(0xFF1E1533),
+        child: ListTile(
+          leading: CircleAvatar(child: Text(r.initials)),
+          title: Text(r.nurseName,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold)),
+          subtitle: Text(
+              '${r.service} • ⭐ ${r.avgRating} (${r.totalReviews} reviews)\n"${r.topReview.text}" — ${r.topReview.client}, ${r.topReview.loc}',
+              style: const TextStyle(color: Colors.white70)),
+          isThreeLine: true,
+          trailing: const Icon(Icons.verified, color: Colors.green),
+        ),
+      );
+
+  Widget _drawer() => Drawer(
+        backgroundColor: const Color(0xFF140F24),
+        child: ListView(children: [
+          const DrawerHeader(
+              child: Text('PROFESSIONAL\nONLINE NURSE',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 22))),
+          const ListTile(
+              title: Text('👋 Hi, Guest',
+                  style: TextStyle(color: Colors.white70))),
+          const ListTile(
+              title: Text('Not logged in',
+                  style: TextStyle(color: Colors.white54))),
+          ...{
+            'Home': 'index.html',
+            'About': 'about.html',
+            'Services': 'services.html',
+            'How It Works': 'how-it-works.html',
+            'Contact - +233544121814': 'contact.html',
+            'Consent Form': 'consent-form.html',
+            'Privacy': 'privacy.html',
+            'Terms': 'terms.html',
+            'Refund': 'refund.html',
+            '🗑️ Delete Account': 'delete-account.html',
+            'SOS Emergency': 'sos.html',
+          }.entries.map((e) => ListTile(
+                title: Text(e.key, style: const TextStyle(color: Colors.white)),
+                onTap: () => LauncherService.open(e.value),
+              )),
+          ListTile(
+              title: const Text('🚪 Logout',
+                  style: TextStyle(color: Colors.white)),
+              onTap: () => Navigator.pop(context)),
+        ]),
+      );
+}
+
+class _VoicePlayer extends StatefulWidget {
+  final String url;
+  const _VoicePlayer({required this.url});
+  @override
+  State<_VoicePlayer> createState() => _V();
+}
+
+class _V extends State<_VoicePlayer> {
+  final _p = AudioPlayer();
+  bool _playing = false;
+  @override
+  void dispose() {
+    _p.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Row(children: [
+        IconButton(
+            icon: Icon(_playing ? Icons.pause : Icons.play_arrow,
+                color: Colors.white),
+            onPressed: () async {
+              if (_playing) {
+                await _p.pause();
+              } else {
+                await _p.setUrl(widget.url);
+                await _p.play();
+              }
+              setState(() => _playing = !_playing);
+            }),
+        const Text('CEO voice note', style: TextStyle(color: Colors.white)),
+      ]);
+}
+
+// ================= APP ENTRY (main.dart) =================
+
+
+// TODO: run `flutterfire configure` (project web-care-618e8) to generate
+// firebase_options.dart, then pass options: DefaultFirebaseOptions.currentPlatform
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase not configured yet: $e - app runs with mock ratings');
+  }
+  runApp(const LoveCareApp());
+}
+
+class LoveCareApp extends StatelessWidget {
+  const LoveCareApp({super.key});
+  @override
+  Widget build(BuildContext context) => MaterialApp(
+        title: 'PROFESSIONAL ONLINE NURSE',
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF6D28D9),
+            brightness: Brightness.dark,
+          ),
+        ),
+        home: const HomeScreen(),
+      );
 }
