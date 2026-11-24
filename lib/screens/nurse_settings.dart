@@ -1,339 +1,845 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:file_picker/file_picker.dart';
+// nurse_settings_translations.dart
+// FILE - Nurse Settings (NURSE) - ONLY SCREEN WORDS - ALL 22 LANGUAGES
+// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
+// ONE FILE - Drop in lib/screens
 
-/// Nurse Settings - Flutter version of nurse-settings.html
-/// - Photo upload -> Storage nurses/{uid}/photo_... + nurses/{uid} + syncToCEO
-/// - Docs: CV 10MB, Video 50MB, Certificate 10MB, License 10MB -> Storage nurses/{uid}/{type}_...
-/// - Email change (reauth), Phone+Name, Nurse Info (specialty, country, bio, prices, hours, availability)
-/// - GPS Location save, Password change (reauth), Delete Account (deletedNurses)
-/// - syncToCEO: nurses, nurse_registrations, pendingNurseRegistrations, nurseUsers, nurseProfiles, ceoNurseUpdates, ceoRegistrationCenter/nurses, ceoBookingReceiverNurses
-
-class NurseSettingsScreen extends StatefulWidget {
-  const NurseSettingsScreen({super.key});
-  @override
-  State<NurseSettingsScreen> createState() => _NurseSettingsScreenState();
-}
-
-class _NurseSettingsScreenState extends State<NurseSettingsScreen> {
-  User? currentUser;
-  Map? nurseData;
-  // Controllers
-  final _newEmailCtrl = TextEditingController();
-  final _emailPassCtrl = TextEditingController();
-  final _newPhoneCtrl = TextEditingController();
-  final _displayNameCtrl = TextEditingController();
-  final _specialtyCtrl = TextEditingController();
-  final _countryCtrl = TextEditingController();
-  final _bioCtrl = TextEditingController();
-  final _priceShortCtrl = TextEditingController();
-  final _priceLongCtrl = TextEditingController();
-  final _workHoursCtrl = TextEditingController();
-  String availability = 'Available';
-  final _gpsNameCtrl = TextEditingController();
-  final _latCtrl = TextEditingController();
-  final _lngCtrl = TextEditingController();
-  final _curPassCtrl = TextEditingController();
-  final _newPassCtrl = TextEditingController();
-  final _confirmPassCtrl = TextEditingController();
-  final _deletePassCtrl = TextEditingController();
-  final _deleteDetailsCtrl = TextEditingController();
-  String deleteReason = '';
-  bool confirmCheck = false, confirmData = false;
-  Map<String, String> docUrls = {}; // cv, video, certificate, license
-  Map<String, double> uploadProgress = {};
-  String? photoUrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUser();
-  }
-
-  Future<void> _loadUser() async {
-    final user = FirebaseAuth.instance.currentUser;
-    setState(() => currentUser = user);
-    if (user == null) return;
-    final snap = await FirebaseDatabase.instance.ref('nurses/${user.uid}').get();
-    if (snap.exists) {
-      final d = Map<String, dynamic>.from(snap.value as Map);
-      setState(() {
-        nurseData = d;
-        photoUrl = d['photo'] ?? d['photoURL'];
-        _displayNameCtrl.text = d['name'] ?? user.displayName ?? '';
-        _newPhoneCtrl.text = d['phone'] ?? '';
-        _specialtyCtrl.text = d['specialty'] ?? '';
-        _countryCtrl.text = d['country'] ?? 'Ghana';
-        _bioCtrl.text = d['bio'] ?? '';
-        _priceShortCtrl.text = d['priceShort']?.toString() ?? '';
-        _priceLongCtrl.text = d['priceLong']?.toString() ?? '';
-        _workHoursCtrl.text = d['workHours']?.toString() ?? '';
-        availability = d['availability'] ?? 'Available';
-        _latCtrl.text = d['lat']?.toString() ?? '';
-        _lngCtrl.text = d['lng']?.toString() ?? '';
-        _gpsNameCtrl.text = d['gpsActualName'] ?? '';
-        docUrls = {
-          'cv': d['cvUrl'] ?? '', 'video': d['videoUrl'] ?? '',
-          'certificate': d['certificateUrl'] ?? '', 'license': d['licenseUrl'] ?? '',
-        };
-      });
-    }
-  }
-
-  Future<void> _syncToCEO(String uid, Map<String, dynamic> data) async {
-    try {
-      final base = {...data, 'updatedAt': DateTime.now().millisecondsSinceEpoch, 'settingsUpdatedAt': DateTime.now().millisecondsSinceEpoch, 'lastUpdate': DateTime.now().millisecondsSinceEpoch, 'profileUpdatedAt': DateTime.now().millisecondsSinceEpoch};
-      final db = FirebaseDatabase.instance;
-      await db.ref('nurses/$uid').update(base);
-      await db.ref('nurse_registrations/$uid').update(base);
-      await db.ref('pendingNurseRegistrations/$uid').update(base);
-      await db.ref('nurseUsers/$uid').update(base).catchError((_) {});
-      await db.ref('nurseProfiles/$uid').update(base).catchError((_) {});
-      await db.ref('ceoNurseUpdates/$uid').set({...base, 'updatedBy': 'nurse-settings.dart', 'uid': uid});
-      await db.ref('ceoRegistrationCenter/nurses/$uid').set(base);
-      await db.ref('ceoBookingReceiverNurses/$uid').set(base);
-    } catch (e) { debugPrint('CEO sync failed: $e'); }
-  }
-
-  void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-
-  Future<void> _uploadPhoto() async {
-    if (currentUser == null) { _toast('Login required to upload'); return; }
-    final res = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (res == null || res.files.single.path == null) { _toast('Select a photo first'); return; }
-    _toast('Uploading photo...');
-    try {
-      final file = File(res.files.single.path!);
-      final ref = FirebaseStorage.instance.ref('nurses/${currentUser!.uid}/photo_${DateTime.now().millisecondsSinceEpoch}_${res.files.single.name}');
-      await ref.putFile(file);
-      final url = await ref.getDownloadURL();
-      await currentUser!.updatePhotoURL(url);
-      await FirebaseDatabase.instance.ref('nurses/${currentUser!.uid}').update({'photo': url, 'photoUpdatedAt': DateTime.now().millisecondsSinceEpoch});
-      await _syncToCEO(currentUser!.uid, {'photo': url, 'photoURL': url, 'photoUpdatedAt': DateTime.now().millisecondsSinceEpoch});
-      setState(() => photoUrl = url);
-      _toast('Photo updated ✅ — CEO Center live');
-    } catch (e) { _toast('Upload failed: $e'); }
-  }
-
-  Future<void> _uploadDoc(String type) async {
-    if (currentUser == null) { _toast('Login required'); return; }
-    final maxMB = type == 'video' ? 50 : 10;
-    final fieldUrl = type == 'cv' ? 'cvUrl' : type == 'video' ? 'videoUrl' : type == 'certificate' ? 'certificateUrl' : 'licenseUrl';
-    final fieldName = type == 'cv' ? 'cvName' : type == 'video' ? 'videoName' : type == 'certificate' ? 'certificateName' : 'licenseName';
-    final res = await FilePicker.platform.pickFiles();
-    if (res == null || res.files.single.path == null) { _toast('Select a file for $type'); return; }
-    final file = File(res.files.single.path!);
-    if (await file.length() > maxMB * 1024 * 1024) { _toast('File too large >$maxMB MB'); return; }
-    try {
-      final ref = FirebaseStorage.instance.ref('nurses/${currentUser!.uid}/${type}_${DateTime.now().millisecondsSinceEpoch}_${res.files.single.name}');
-      final task = ref.putFile(file);
-      task.snapshotEvents.listen((s) {
-        final double pct = s.totalBytes > 0 ? (s.bytesTransferred / s.totalBytes).toDouble() : 0.0;
-        setState(() => uploadProgress[type] = pct);
-      });
-      await task;
-      final url = await ref.getDownloadURL();
-      final updates = {fieldUrl: url, fieldName: res.files.single.name, '${fieldUrl}UpdatedAt': DateTime.now().millisecondsSinceEpoch};
-      await FirebaseDatabase.instance.ref('nurses/${currentUser!.uid}').update(updates);
-      await _syncToCEO(currentUser!.uid, updates);
-      setState(() => docUrls[type] = url);
-      _toast('${type.toUpperCase()} uploaded ✅ — CEO Center live');
-    } catch (e) { _toast('Upload failed: $e'); }
-  }
-
-  Future<void> _changeEmail() async {
-    final newEmail = _newEmailCtrl.text.trim();
-    final pass = _emailPassCtrl.text.trim();
-    if (newEmail.isEmpty) { _toast('Enter new email'); return; }
-    if (currentUser == null) { _toast('Login required'); return; }
-    if (pass.isEmpty) { _toast('Enter current password to confirm'); return; }
-    try {
-      final cred = EmailAuthProvider.credential(email: currentUser!.email!, password: pass);
-      await currentUser!.reauthenticateWithCredential(cred);
-      await currentUser!.verifyBeforeUpdateEmail(newEmail);
-      await FirebaseDatabase.instance.ref('nurses/${currentUser!.uid}').update({'email': newEmail});
-      await _syncToCEO(currentUser!.uid, {'email': newEmail, 'emailUpdatedAt': DateTime.now().millisecondsSinceEpoch});
-      _toast('Email updated — please re-login — CEO Center live');
-    } catch (e) { _toast('Email change failed: $e'); }
-  }
-
-  Future<void> _changePhone() async {
-    final newPhone = _newPhoneCtrl.text.trim();
-    final name = _displayNameCtrl.text.trim();
-    if (currentUser == null) { _toast('Login required'); return; }
-    if (newPhone.isEmpty && name.isEmpty) { _toast('Enter phone or name'); return; }
-    try {
-      final updates = <String, dynamic>{'updatedAt': DateTime.now().millisecondsSinceEpoch};
-      if (newPhone.isNotEmpty) updates['phone'] = newPhone;
-      if (name.isNotEmpty) updates['name'] = name;
-      await FirebaseDatabase.instance.ref('nurses/${currentUser!.uid}').update(updates);
-      await _syncToCEO(currentUser!.uid, updates);
-      if (name.isNotEmpty) await currentUser!.updateDisplayName(name);
-      _toast('Phone & name updated ✅ — CEO Center live');
-    } catch (e) { _toast('Update failed: $e'); }
-  }
-
-  Future<void> _saveNurseInfo() async {
-    if (currentUser == null) { _toast('Login required'); return; }
-    final data = {'specialty': _specialtyCtrl.text.trim(), 'country': _countryCtrl.text, 'bio': _bioCtrl.text.trim(), 'priceShort': _priceShortCtrl.text.trim(), 'priceLong': _priceLongCtrl.text.trim(), 'workHours': _workHoursCtrl.text.trim(), 'availability': availability, 'updatedAt': DateTime.now().millisecondsSinceEpoch};
-    try {
-      await FirebaseDatabase.instance.ref('nurses/${currentUser!.uid}').update(data);
-      await _syncToCEO(currentUser!.uid, data);
-      _toast('Nurse info saved ✅ — CEO Center live');
-    } catch (e) { _toast('Save failed: $e'); }
-  }
-
-  Future<void> _getGPS() async {
-    _gpsNameCtrl.text = 'Locating...';
-    try {
-      final perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.denied || perm == LocationPermission.deniedForever) { _gpsNameCtrl.text = 'Enable GPS'; return; }
-      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-      setState(() { _latCtrl.text = pos.latitude.toStringAsFixed(6); _lngCtrl.text = pos.longitude.toStringAsFixed(6); _gpsNameCtrl.text = '${pos.latitude.toStringAsFixed(6)}, ${pos.longitude.toStringAsFixed(6)}'; });
-    } catch (_) { _gpsNameCtrl.text = 'Enable GPS'; }
-  }
-
-  Future<void> _saveLocation() async {
-    if (currentUser == null) { _toast('Login required'); return; }
-    final lat = double.tryParse(_latCtrl.text);
-    final lng = double.tryParse(_lngCtrl.text);
-    if (lat == null || lng == null) { _toast('Get GPS first'); return; }
-    try {
-      final data = {'lat': lat, 'lng': lng, 'gpsActualName': _gpsNameCtrl.text, 'updatedAt': DateTime.now().millisecondsSinceEpoch};
-      await FirebaseDatabase.instance.ref('nurses/${currentUser!.uid}').update(data);
-      await _syncToCEO(currentUser!.uid, data);
-      _toast('Location saved ✅ — CEO Center live');
-    } catch (e) { _toast('Save failed: $e'); }
-  }
-
-  Future<void> _changePassword() async {
-    final cur = _curPassCtrl.text.trim(), np = _newPassCtrl.text.trim(), cp = _confirmPassCtrl.text.trim();
-    if (cur.isEmpty || np.isEmpty || cp.isEmpty) { _toast('Fill all password fields'); return; }
-    if (np.length < 6) { _toast('New password min 6 chars'); return; }
-    if (np != cp) { _toast('Passwords do not match'); return; }
-    if (currentUser == null) { _toast('Login required'); return; }
-    try {
-      final cred = EmailAuthProvider.credential(email: currentUser!.email!, password: cur);
-      await currentUser!.reauthenticateWithCredential(cred);
-      await currentUser!.updatePassword(np);
-      _toast('Password updated ✅');
-    } catch (e) { _toast('Password change failed: $e'); }
-  }
-
-  Future<void> _deleteAccount() async {
-    final reason = deleteReason, pass = _deletePassCtrl.text.trim();
-    if (reason.isEmpty) { _toast('Select a reason'); return; }
-    if (!confirmCheck || !confirmData) { _toast('Check both boxes'); return; }
-    if (pass.isEmpty) { _toast('Enter password'); return; }
-    if (currentUser == null) { _toast('Login required'); return; }
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Delete account for reason: $reason?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete'))]));
-    if (confirm != true) return;
-    try {
-      final cred = EmailAuthProvider.credential(email: currentUser!.email!, password: pass);
-      await currentUser!.reauthenticateWithCredential(cred);
-      await FirebaseDatabase.instance.ref('deletedNurses/${currentUser!.uid}').set({'email': currentUser!.email, 'reason': reason, 'details': _deleteDetailsCtrl.text, 'deletedAt': DateTime.now().millisecondsSinceEpoch});
-      await FirebaseDatabase.instance.ref('nurses/${currentUser!.uid}').remove().catchError((_) {});
-      await currentUser!.delete();
-      _toast('Account deleted — Redirecting...');
-      Future.delayed(const Duration(seconds: 2), () { if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false); });
-    } catch (e) { _toast('Delete failed: $e'); }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: const Text('Nurse Settings', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [TextButton(onPressed: () {}, child: const Text('SOS', style: TextStyle(color: Colors.white)))]),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(children: [
-          // Photo
-          _card('📸 Profile Photo', Column(children: [
-            CircleAvatar(radius: 40, backgroundImage: photoUrl != null && photoUrl!.isNotEmpty ? NetworkImage(photoUrl!) : null, child: photoUrl == null || photoUrl!.isEmpty ? const Icon(Icons.person, size: 40) : null),
-            const SizedBox(height: 10),
-            ElevatedButton(onPressed: _uploadPhoto, child: const Text('Upload New Photo')),
-            Text(currentUser == null ? '● Not logged in' : '● Logged in as ${currentUser!.email}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
-          ])),
-          // Docs
-          _card('📄 Documents — CV / Video / Certificate / License', Column(children: [
-            for (final type in ['cv','video','certificate','license']) ...[
-              ListTile(title: Text(type.toUpperCase()), subtitle: Text(docUrls[type]?.isNotEmpty == true ? '✅ Uploaded' : 'Not uploaded yet')),
-              if (uploadProgress[type] != null) LinearProgressIndicator(value: uploadProgress[type]),
-              ElevatedButton(onPressed: () => _uploadDoc(type), child: Text('Upload ${type.toUpperCase()} ${type == 'video' ? '(max 50MB)' : '(max 10MB)'}')),
-              const SizedBox(height: 8),
-            ],
-          ])),
-          // Email
-          _card('📧 Change Email', Column(children: [
-            Text('Current: ${currentUser?.email ?? ''}', style: const TextStyle(color: Colors.white60, fontSize: 12)),
-            TextField(controller: _newEmailCtrl, decoration: const InputDecoration(labelText: 'New Email', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(controller: _emailPassCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Current Password to Confirm', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _changeEmail, child: const Text('Change Email'))),
-          ])),
-          // Phone + Name
-          _card('📱 Phone & Name', Column(children: [
-            TextField(controller: _displayNameCtrl, decoration: const InputDecoration(labelText: 'Display Name', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(controller: _newPhoneCtrl, decoration: const InputDecoration(labelText: 'New Phone', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _changePhone, child: const Text('Update Phone & Name'))),
-          ])),
-          // Nurse Info
-          _card('🩺 Nurse Info', Column(children: [
-            TextField(controller: _specialtyCtrl, decoration: const InputDecoration(labelText: 'Specialty', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(value: _countryCtrl.text.isEmpty ? 'Ghana' : _countryCtrl.text, decoration: const InputDecoration(labelText: 'Country', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Ghana', child: Text('Ghana')), DropdownMenuItem(value: 'USA', child: Text('USA')), DropdownMenuItem(value: 'UK', child: Text('UK')), DropdownMenuItem(value: 'Other', child: Text('Other'))], onChanged: (v) => setState(() => _countryCtrl.text = v ?? 'Ghana')),
-            const SizedBox(height: 8),
-            TextField(controller: _bioCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Bio', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            Row(children: [Expanded(child: TextField(controller: _priceShortCtrl, decoration: const InputDecoration(labelText: 'Price Short', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: TextField(controller: _priceLongCtrl, decoration: const InputDecoration(labelText: 'Price Long', border: OutlineInputBorder())))]),
-            const SizedBox(height: 8),
-            TextField(controller: _workHoursCtrl, decoration: const InputDecoration(labelText: 'Work Hours', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(value: availability, decoration: const InputDecoration(labelText: 'Availability', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Available', child: Text('Available')), DropdownMenuItem(value: 'Busy', child: Text('Busy')), DropdownMenuItem(value: 'Offline', child: Text('Offline'))], onChanged: (v) => setState(() => availability = v ?? 'Available')),
-            const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _saveNurseInfo, child: const Text('Save Nurse Info'))),
-          ])),
-          // Location
-          _card('📍 GPS Location', Column(children: [
-            TextField(controller: _gpsNameCtrl, decoration: const InputDecoration(labelText: 'GPS Location Name', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            Row(children: [Expanded(child: TextField(controller: _latCtrl, decoration: const InputDecoration(labelText: 'Lat', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: TextField(controller: _lngCtrl, decoration: const InputDecoration(labelText: 'Lng', border: OutlineInputBorder())))]),
-            const SizedBox(height: 8),
-            Row(children: [Expanded(child: ElevatedButton(onPressed: _getGPS, child: const Text('Get GPS'))), const SizedBox(width: 8), Expanded(child: ElevatedButton(onPressed: _saveLocation, child: const Text('Save Location')))]),
-          ])),
-          // Password
-          _card('🔒 Change Password', Column(children: [
-            TextField(controller: _curPassCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Current Password', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(controller: _newPassCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'New Password (min 6)', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(controller: _confirmPassCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm New Password', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _changePassword, child: const Text('Change Password'))),
-          ])),
-          // Delete
-          _card('🗑️ Delete Account', Column(children: [
-            DropdownButtonFormField<String>(value: deleteReason.isEmpty ? null : deleteReason, decoration: const InputDecoration(labelText: 'Reason', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Leaving', child: Text('Leaving')), DropdownMenuItem(value: 'Not getting bookings', child: Text('Not getting bookings')), DropdownMenuItem(value: 'Privacy', child: Text('Privacy')), DropdownMenuItem(value: 'Other', child: Text('Other'))], onChanged: (v) => setState(() => deleteReason = v ?? '')),
-            const SizedBox(height: 8),
-            TextField(controller: _deleteDetailsCtrl, decoration: const InputDecoration(labelText: 'Details (optional)', border: OutlineInputBorder())),
-            const SizedBox(height: 8),
-            TextField(controller: _deletePassCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Password to Confirm', border: OutlineInputBorder())),
-            CheckboxListTile(title: const Text('I understand my account will be deleted', style: TextStyle(fontSize: 12)), value: confirmCheck, onChanged: (v) => setState(() => confirmCheck = v ?? false)),
-            CheckboxListTile(title: const Text('I understand my data will be removed', style: TextStyle(fontSize: 12)), value: confirmData, onChanged: (v) => setState(() => confirmData = v ?? false)),
-            SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _deleteAccount, style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Delete Account'))),
-          ])),
-          const SizedBox(height: 20),
-        ]),
-      ),
-    );
-  }
-
-  Widget _card(String title, Widget child) => Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.15))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), const SizedBox(height: 10), child]));
+class NurseSettingsTranslations {
+  static const Map<String, Map<String, String>> all = {
+    "en": {
+      "title": "Nurse Settings", "sos": "SOS",
+      "photoCard": "📸 Profile Photo", "uploadPhoto": "Upload New Photo",
+      "notLoggedIn": "● Not logged in", "loggedInAs": "● Logged in as {email}",
+      "docsCard": "📄 Documents — CV / Video / Certificate / License",
+      "uploaded": "✅ Uploaded", "notUploaded": "Not uploaded yet",
+      "uploadCV": "Upload CV (max 10MB)", "uploadVideo": "Upload VIDEO (max 50MB)",
+      "uploadCert": "Upload CERTIFICATE (max 10MB)", "uploadLicense": "Upload LICENSE (max 10MB)",
+      "emailCard": "📧 Change Email", "currentEmail": "Current: {email}",
+      "newEmail": "New Email", "emailPassConfirm": "Current Password to Confirm", "changeEmailBtn": "Change Email",
+      "phoneCard": "📱 Phone & Name", "displayName": "Display Name", "newPhone": "New Phone", "updatePhoneName": "Update Phone & Name",
+      "infoCard": "🩺 Nurse Info", "specialty": "Specialty", "country": "Country",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Other",
+      "bio": "Bio", "priceShort": "Price Short", "priceLong": "Price Long", "workHours": "Work Hours",
+      "availability": "Availability", "available": "Available", "busy": "Busy", "offline": "Offline", "saveInfo": "Save Nurse Info",
+      "gpsCard": "📍 GPS Location", "gpsName": "GPS Location Name", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Get GPS", "saveLocation": "Save Location", "locating": "Locating...", "enableGPS": "Enable GPS",
+      "passCard": "🔒 Change Password", "curPass": "Current Password", "newPass": "New Password (min 6)", "confirmPass": "Confirm New Password", "changePassBtn": "Change Password",
+      "deleteCard": "🗑️ Delete Account", "reason": "Reason", "leaving": "Leaving", "noBookings": "Not getting bookings", "privacy": "Privacy",
+      "details": "Details (optional)", "deletePass": "Password to Confirm",
+      "confirmDelete1": "I understand my account will be deleted", "confirmDelete2": "I understand my data will be removed",
+      "deleteAccountBtn": "Delete Account", "deleteConfirmTitle": "Delete account for reason: {reason}?",
+      "cancel": "Cancel", "delete": "Delete",
+      "toastLogin": "Login required", "toastLoginUpload": "Login required to upload",
+      "toastSelectPhoto": "Select a photo first", "toastUploadingPhoto": "Uploading photo...",
+      "toastPhotoUpdated": "Photo updated ✅ — CEO Center live", "toastUploadFailed": "Upload failed: {error}",
+      "toastSelectFile": "Select a file for {type}", "toastTooLarge": "File too large >{mb} MB",
+      "toastDocUploaded": "{type} uploaded ✅ — CEO Center live",
+      "toastEnterNewEmail": "Enter new email", "toastEnterPassConfirm": "Enter current password to confirm",
+      "toastEmailUpdated": "Email updated — please re-login — CEO Center live", "toastEmailFailed": "Email change failed: {error}",
+      "toastEnterPhoneName": "Enter phone or name", "toastPhoneUpdated": "Phone & name updated ✅ — CEO Center live", "toastUpdateFailed": "Update failed: {error}",
+      "toastInfoSaved": "Nurse info saved ✅ — CEO Center live", "toastSaveFailed": "Save failed: {error}",
+      "toastGetGPSFirst": "Get GPS first", "toastLocationSaved": "Location saved ✅ — CEO Center live",
+      "toastFillPass": "Fill all password fields", "toastPassMin6": "New password min 6 chars", "toastPassMismatch": "Passwords do not match",
+      "toastPassUpdated": "Password updated ✅", "toastPassFailed": "Password change failed: {error}",
+      "toastSelectReason": "Select a reason", "toastCheckBoxes": "Check both boxes", "toastEnterPass": "Enter password",
+      "toastDeleted": "Account deleted — Redirecting...", "toastDeleteFailed": "Delete failed: {error}",
+    },
+    "tw": {
+      "title": "Nɛɛse Settings", "sos": "SOS",
+      "photoCard": "📸 Profile Foto", "uploadPhoto": "Upload Foto Foforo",
+      "notLoggedIn": "● Woanyɛ login", "loggedInAs": "● Wɔa login sɛ {email}",
+      "docsCard": "📄 Documents — CV / Video / Certificate / License",
+      "uploaded": "✅ Wɔa upload", "notUploaded": "Ɛnnyaa upload",
+      "uploadCV": "Upload CV (max 10MB)", "uploadVideo": "Upload VIDEO (max 50MB)",
+      "uploadCert": "Upload CERTIFICATE (max 10MB)", "uploadLicense": "Upload LICENSE (max 10MB)",
+      "emailCard": "📧 Sesa Email", "currentEmail": "Seisei: {email}",
+      "newEmail": "Email Foforo", "emailPassConfirm": "Password Dadaa na Hyɛ Mu", "changeEmailBtn": "Sesa Email",
+      "phoneCard": "📱 Phone & Din", "displayName": "Display Din", "newPhone": "Phone Foforo", "updatePhoneName": "Update Phone & Din",
+      "infoCard": "🩺 Nɛɛse Info", "specialty": "Specialty", "country": "Ɔman",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Foforo",
+      "bio": "Bio", "priceShort": "Price Short", "priceLong": "Price Long", "workHours": "Adwuma Bere",
+      "availability": "Availability", "available": "Available", "busy": "Busy", "offline": "Offline", "saveInfo": "Kora Nɛɛse Info",
+      "gpsCard": "📍 GPS Beae", "gpsName": "GPS Beae Din", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Fa GPS", "saveLocation": "Kora Beae", "locating": "Rehwehwɛ...", "enableGPS": "Sɔ GPS ON",
+      "passCard": "🔒 Sesa Password", "curPass": "Password Dadaa", "newPass": "Password Foforo (min 6)", "confirmPass": "Hyɛ Password Foforo Mu Bio", "changePassBtn": "Sesa Password",
+      "deleteCard": "🗑️ Yi Account Fi Hɔ", "reason": "Adɛn", "leaving": "Rekɔ", "noBookings": "Mennya bookings", "privacy": "Privacy",
+      "details": "Details (optional)", "deletePass": "Password na Hyɛ Mu",
+      "confirmDelete1": "Mete ase sɛ wɔbɛyi me account fi hɔ", "confirmDelete2": "Mete ase sɛ wɔbɛyi me data fi hɔ",
+      "deleteAccountBtn": "Yi Account Fi Hɔ", "deleteConfirmTitle": "Yi account fi hɔ esiane: {reason}?",
+      "cancel": "Gyae", "delete": "Yi Fi Hɔ",
+      "toastLogin": "Login ehia", "toastLoginUpload": "Login ehia na wobɛ upload",
+      "toastSelectPhoto": "Fa foto kane", "toastUploadingPhoto": "Re upload foto...",
+      "toastPhotoUpdated": "Foto wɔasakra ✅ — CEO Center live", "toastUploadFailed": "Upload antumi: {error}",
+      "toastSelectFile": "Fa file ma {type}", "toastTooLarge": "File kɛse dodo >{mb} MB",
+      "toastDocUploaded": "{type} wɔa upload ✅ — CEO Center live",
+      "toastEnterNewEmail": "Fa email foforo", "toastEnterPassConfirm": "Fa password dadaa na hyɛ mu",
+      "toastEmailUpdated": "Email wɔasakra — login bio — CEO Center live", "toastEmailFailed": "Email sesa antumi: {error}",
+      "toastEnterPhoneName": "Fa phone anaa din", "toastPhoneUpdated": "Phone & din wɔasakra ✅ — CEO Center live", "toastUpdateFailed": "Update antumi: {error}",
+      "toastInfoSaved": "Nɛɛse info wɔakora ✅ — CEO Center live", "toastSaveFailed": "Kora antumi: {error}",
+      "toastGetGPSFirst": "Fa GPS kane", "toastLocationSaved": "Beae wɔakora ✅ — CEO Center live",
+      "toastFillPass": "Hyɛ password nyinaa mu", "toastPassMin6": "Password foforo min 6 chars", "toastPassMismatch": "Passwords nyɛ pɛ",
+      "toastPassUpdated": "Password wɔasakra ✅", "toastPassFailed": "Password sesa antumi: {error}",
+      "toastSelectReason": "Fa adɛn", "toastCheckBoxes": "Check boxes abien no", "toastEnterPass": "Fa password",
+      "toastDeleted": "Account wɔayi fi hɔ — Reko...", "toastDeleteFailed": "Yi fi hɔ antumi: {error}",
+    },
+    "ga": {
+      "title": "Nɛɛse Settings", "sos": "SOS",
+      "photoCard": "📸 Profile Foto", "uploadPhoto": "Upload Foto Hee",
+      "notLoggedIn": "● Oŋmɛ mli", "loggedInAs": "● Aŋmɛ mli sɛ {email}",
+      "docsCard": "📄 Documents — CV / Video / Certificate / License",
+      "uploaded": "✅ Afee", "notUploaded": "Eko fee",
+      "uploadCV": "Upload CV (max 10MB)", "uploadVideo": "Upload VIDEO (max 50MB)",
+      "uploadCert": "Upload CERTIFICATE (max 10MB)", "uploadLicense": "Upload LICENSE (max 10MB)",
+      "emailCard": "📧 Tsake Email", "currentEmail": "Sane: {email}",
+      "newEmail": "Email Hee", "emailPassConfirm": "Password Momo ni Shi Mu", "changeEmailBtn": "Tsake Email",
+      "phoneCard": "📱 Phone & Gbɛi", "displayName": "Display Gbɛi", "newPhone": "Phone Hee", "updatePhoneName": "Update Phone & Gbɛi",
+      "infoCard": "🩺 Nɛɛse Info", "specialty": "Specialty", "country": "Shikpon",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Kroko",
+      "bio": "Bio", "priceShort": "Price Short", "priceLong": "Price Long", "workHours": "Nitsumɔ Bere",
+      "availability": "Availability", "available": "Available", "busy": "Busy", "offline": "Offline", "saveInfo": "To Nɛɛse Info",
+      "gpsCard": "📍 GPS Hejɔɔ", "gpsName": "GPS Hejɔɔ Gbɛi", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Ŋɔ GPS", "saveLocation": "To Hejɔɔ", "locating": "Mii taomɔ...", "enableGPS": "Tswa GPS ON",
+      "passCard": "🔒 Tsake Password", "curPass": "Password Momo", "newPass": "Password Hee (min 6)", "confirmPass": "Shi Password Hee Mu Eko", "changePassBtn": "Tsake Password",
+      "deleteCard": "🗑️ Jee Account", "reason": "Hewɔ", "leaving": "Mii tee", "noBookings": "Minaa bookings", "privacy": "Privacy",
+      "details": "Details (optional)", "deletePass": "Password ni Shi Mu",
+      "confirmDelete1": "Mile akɛ aajee mi account", "confirmDelete2": "Mile akɛ aajee mi data",
+      "deleteAccountBtn": "Jee Account", "deleteConfirmTitle": "Jee account yɛ hewɔ: {reason}?",
+      "cancel": "Fo", "delete": "Jee",
+      "toastLogin": "Ŋmɛ mli ehia", "toastLoginUpload": "Ŋmɛ mli ehia koni o fee upload",
+      "toastSelectPhoto": "Hala foto kane", "toastUploadingPhoto": "Mii fee foto...",
+      "toastPhotoUpdated": "Foto atsake ✅ — CEO Center live", "toastUploadFailed": "Upload eko: {error}",
+      "toastSelectFile": "Hala file hã {type}", "toastTooLarge": "File kɛkɛ dodo >{mb} MB",
+      "toastDocUploaded": "{type} afee ✅ — CEO Center live",
+      "toastEnterNewEmail": "Ŋmɛ email hee", "toastEnterPassConfirm": "Ŋmɛ password momo ni shi mu",
+      "toastEmailUpdated": "Email atsake — ŋmɛ mli eko — CEO Center live", "toastEmailFailed": "Email tsake eko: {error}",
+      "toastEnterPhoneName": "Ŋmɛ phone loo gbɛi", "toastPhoneUpdated": "Phone & gbɛi atsake ✅ — CEO Center live", "toastUpdateFailed": "Update eko: {error}",
+      "toastInfoSaved": "Nɛɛse info ato ✅ — CEO Center live", "toastSaveFailed": "To eko: {error}",
+      "toastGetGPSFirst": "Ŋɔ GPS kane", "toastLocationSaved": "Hejɔɔ ato ✅ — CEO Center live",
+      "toastFillPass": "Ŋmɛ password fɛɛ mu", "toastPassMin6": "Password hee min 6 chars", "toastPassMismatch": "Passwords enyɛ kome",
+      "toastPassUpdated": "Password atsake ✅", "toastPassFailed": "Password tsake eko: {error}",
+      "toastSelectReason": "Hala hewɔ", "toastCheckBoxes": "Check boxes enyɔ no", "toastEnterPass": "Ŋmɛ password",
+      "toastDeleted": "Account ajee — Mii tee...", "toastDeleteFailed": "Jee eko: {error}",
+    },
+    "ee": {
+      "title": "Nɔnɔvia Settings", "sos": "SOS",
+      "photoCard": "📸 Profile Foto", "uploadPhoto": "Ðo Foto Yeye Ðe Ðo",
+      "notLoggedIn": "● Mège ɖe eme o", "loggedInAs": "● Ège ɖe eme abe {email} ene",
+      "docsCard": "📄 Documents — CV / Video / Certificate / License",
+      "uploaded": "✅ Woɖo ɖe", "notUploaded": "Meli woɖo ɖe o",
+      "uploadCV": "Upload CV (max 10MB)", "uploadVideo": "Upload VIDEO (max 50MB)",
+      "uploadCert": "Upload CERTIFICATE (max 10MB)", "uploadLicense": "Upload LICENSE (max 10MB)",
+      "emailCard": "📧 Trɔ Email", "currentEmail": "Fifia: {email}",
+      "newEmail": "Email Yeye", "emailPassConfirm": "Password Tsã be Nàɖo Kpe", "changeEmailBtn": "Trɔ Email",
+      "phoneCard": "📱 Phone & Ŋkɔ", "displayName": "Display Ŋkɔ", "newPhone": "Phone Yeye", "updatePhoneName": "Trɔ Phone & Ŋkɔ",
+      "infoCard": "🩺 Nɔnɔvia Info", "specialty": "Specialty", "country": "Dukɔ",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Bubu",
+      "bio": "Bio", "priceShort": "Price Short", "priceLong": "Price Long", "workHours": "Dɔ Ɣeyiɣi",
+      "availability": "Availability", "available": "Available", "busy": "Busy", "offline": "Offline", "saveInfo": "Dzra Nɔnɔvia Info Ðo",
+      "gpsCard": "📍 GPS Teƒe", "gpsName": "GPS Teƒe Ŋkɔ", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Xɔ GPS", "saveLocation": "Dzra Teƒe Ðo", "locating": "Le dim...", "enableGPS": "Dze GPS ON",
+      "passCard": "🔒 Trɔ Password", "curPass": "Password Tsã", "newPass": "Password Yeye (min 6)", "confirmPass": "Ðo Password Yeye Kpe Gbugbɔ", "changePassBtn": "Trɔ Password",
+      "deleteCard": "🗑️ Ðe Account Ða", "reason": "Nu Ta", "leaving": "Le dzo", "noBookings": "Mexɔ bookings o", "privacy": "Privacy",
+      "details": "Details (optional)", "deletePass": "Password be Nàɖo Kpe",
+      "confirmDelete1": "Mese egɔme be woaɖe nye account ɖa", "confirmDelete2": "Mese egɔme be woaɖe nye data ɖa",
+      "deleteAccountBtn": "Ðe Account Ða", "deleteConfirmTitle": "Ðe account ɖa le nu ta: {reason}?",
+      "cancel": "Ðe Ða", "delete": "Ðe Ða",
+      "toastLogin": "Ge ɖe eme hiã", "toastLoginUpload": "Ge ɖe eme hiã be nàɖo ɖe",
+      "toastSelectPhoto": "Tia foto gbã", "toastUploadingPhoto": "Le foto ɖoɖo...",
+      "toastPhotoUpdated": "Foto wotrɔ ✅ — CEO Center live", "toastUploadFailed": "Upload medze o: {error}",
+      "toastSelectFile": "Tia file na {type}", "toastTooLarge": "File lolo akpa >{mb} MB",
+      "toastDocUploaded": "{type} woɖo ɖe ✅ — CEO Center live",
+      "toastEnterNewEmail": "Ðo email yeye", "toastEnterPassConfirm": "Ðo password tsã be nàɖo kpe",
+      "toastEmailUpdated": "Email wotrɔ — ge ɖe eme gbugbɔ — CEO Center live", "toastEmailFailed": "Email trɔ medze o: {error}",
+      "toastEnterPhoneName": "Ðo phone alo ŋkɔ", "toastPhoneUpdated": "Phone & ŋkɔ wotrɔ ✅ — CEO Center live", "toastUpdateFailed": "Update medze o: {error}",
+      "toastInfoSaved": "Nɔnɔvia info wodzra ɖo ✅ — CEO Center live", "toastSaveFailed": "Dzra ɖo medze o: {error}",
+      "toastGetGPSFirst": "Xɔ GPS gbã", "toastLocationSaved": "Teƒe wodzra ɖo ✅ — CEO Center live",
+      "toastFillPass": "Ðo passwordwo katã", "toastPassMin6": "Password yeye min 6 chars", "toastPassMismatch": "Passwordwo mewɔ ɖeka o",
+      "toastPassUpdated": "Password wotrɔ ✅", "toastPassFailed": "Password trɔ medze o: {error}",
+      "toastSelectReason": "Tia nu ta", "toastCheckBoxes": "Kpɔ box eveawo", "toastEnterPass": "Ðo password",
+      "toastDeleted": "Account woɖe ɖa — Le yiyi...", "toastDeleteFailed": "Ðe ɖa medze o: {error}",
+    },
+    "nl": {
+      "title": "Verpleegkundige Instellingen", "sos": "SOS",
+      "photoCard": "📸 Profielfoto", "uploadPhoto": "Upload Nieuwe Foto",
+      "notLoggedIn": "● Niet ingelogd", "loggedInAs": "● Ingelogd als {email}",
+      "docsCard": "📄 Documenten — CV / Video / Certificaat / Licentie",
+      "uploaded": "✅ Geüpload", "notUploaded": "Nog niet geüpload",
+      "uploadCV": "Upload CV (max 10MB)", "uploadVideo": "Upload VIDEO (max 50MB)",
+      "uploadCert": "Upload CERTIFICAAT (max 10MB)", "uploadLicense": "Upload LICENTIE (max 10MB)",
+      "emailCard": "📧 Email Wijzigen", "currentEmail": "Huidig: {email}",
+      "newEmail": "Nieuwe Email", "emailPassConfirm": "Huidig Wachtwoord Ter Bevestiging", "changeEmailBtn": "Email Wijzigen",
+      "phoneCard": "📱 Telefoon & Naam", "displayName": "Weergavenaam", "newPhone": "Nieuwe Telefoon", "updatePhoneName": "Update Telefoon & Naam",
+      "infoCard": "🩺 Verpleegkundige Info", "specialty": "Specialiteit", "country": "Land",
+      "ghana": "Ghana", "usa": "VS", "uk": "VK", "other": "Anders",
+      "bio": "Bio", "priceShort": "Prijs Kort", "priceLong": "Prijs Lang", "workHours": "Werkuren",
+      "availability": "Beschikbaarheid", "available": "Beschikbaar", "busy": "Druk", "offline": "Offline", "saveInfo": "Info Opslaan",
+      "gpsCard": "📍 GPS Locatie", "gpsName": "GPS Locatienaam", "lat": "Lat", "lng": "Lng",
+      "getGPS": "GPS Ophalen", "saveLocation": "Locatie Opslaan", "locating": "Zoeken...", "enableGPS": "GPS Inschakelen",
+      "passCard": "🔒 Wachtwoord Wijzigen", "curPass": "Huidig Wachtwoord", "newPass": "Nieuw Wachtwoord (min 6)", "confirmPass": "Bevestig Nieuw Wachtwoord", "changePassBtn": "Wachtwoord Wijzigen",
+      "deleteCard": "🗑️ Account Verwijderen", "reason": "Reden", "leaving": "Vertrek", "noBookings": "Geen boekingen", "privacy": "Privacy",
+      "details": "Details (optioneel)", "deletePass": "Wachtwoord Ter Bevestiging",
+      "confirmDelete1": "Ik begrijp dat mijn account wordt verwijderd", "confirmDelete2": "Ik begrijp dat mijn data wordt verwijderd",
+      "deleteAccountBtn": "Account Verwijderen", "deleteConfirmTitle": "Account verwijderen om reden: {reason}?",
+      "cancel": "Annuleren", "delete": "Verwijderen",
+      "toastLogin": "Login vereist", "toastLoginUpload": "Login vereist om te uploaden",
+      "toastSelectPhoto": "Selecteer eerst een foto", "toastUploadingPhoto": "Foto uploaden...",
+      "toastPhotoUpdated": "Foto bijgewerkt ✅ — CEO Center live", "toastUploadFailed": "Upload mislukt: {error}",
+      "toastSelectFile": "Selecteer een bestand voor {type}", "toastTooLarge": "Bestand te groot >{mb} MB",
+      "toastDocUploaded": "{type} geüpload ✅ — CEO Center live",
+      "toastEnterNewEmail": "Voer nieuwe email in", "toastEnterPassConfirm": "Voer huidig wachtwoord in ter bevestiging",
+      "toastEmailUpdated": "Email bijgewerkt — log opnieuw in — CEO Center live", "toastEmailFailed": "Email wijzigen mislukt: {error}",
+      "toastEnterPhoneName": "Voer telefoon of naam in", "toastPhoneUpdated": "Telefoon & naam bijgewerkt ✅ — CEO Center live", "toastUpdateFailed": "Update mislukt: {error}",
+      "toastInfoSaved": "Info opgeslagen ✅ — CEO Center live", "toastSaveFailed": "Opslaan mislukt: {error}",
+      "toastGetGPSFirst": "Haal eerst GPS op", "toastLocationSaved": "Locatie opgeslagen ✅ — CEO Center live",
+      "toastFillPass": "Vul alle wachtwoordvelden in", "toastPassMin6": "Nieuw wachtwoord min 6 tekens", "toastPassMismatch": "Wachtwoorden komen niet overeen",
+      "toastPassUpdated": "Wachtwoord bijgewerkt ✅", "toastPassFailed": "Wachtwoord wijzigen mislukt: {error}",
+      "toastSelectReason": "Selecteer een reden", "toastCheckBoxes": "Vink beide vakjes aan", "toastEnterPass": "Voer wachtwoord in",
+      "toastDeleted": "Account verwijderd — Doorsturen...", "toastDeleteFailed": "Verwijderen mislukt: {error}",
+    },
+    "fr": {
+      "title": "Paramètres Infirmière", "sos": "SOS",
+      "photoCard": "📸 Photo De Profil", "uploadPhoto": "Télécharger Nouvelle Photo",
+      "notLoggedIn": "● Non connectée", "loggedInAs": "● Connectée comme {email}",
+      "docsCard": "📄 Documents — CV / Vidéo / Certificat / Licence",
+      "uploaded": "✅ Téléchargé", "notUploaded": "Pas encore téléchargé",
+      "uploadCV": "Télécharger CV (max 10MB)", "uploadVideo": "Télécharger VIDÉO (max 50MB)",
+      "uploadCert": "Télécharger CERTIFICAT (max 10MB)", "uploadLicense": "Télécharger LICENCE (max 10MB)",
+      "emailCard": "📧 Changer Email", "currentEmail": "Actuel: {email}",
+      "newEmail": "Nouvel Email", "emailPassConfirm": "Mot De Passe Actuel Pour Confirmer", "changeEmailBtn": "Changer Email",
+      "phoneCard": "📱 Téléphone & Nom", "displayName": "Nom D'Affichage", "newPhone": "Nouveau Téléphone", "updatePhoneName": "Mettre À Jour Téléphone & Nom",
+      "infoCard": "🩺 Info Infirmière", "specialty": "Spécialité", "country": "Pays",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Autre",
+      "bio": "Bio", "priceShort": "Prix Court", "priceLong": "Prix Long", "workHours": "Heures De Travail",
+      "availability": "Disponibilité", "available": "Disponible", "busy": "Occupée", "offline": "Hors Ligne", "saveInfo": "Enregistrer Info",
+      "gpsCard": "📍 Localisation GPS", "gpsName": "Nom Localisation GPS", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Obtenir GPS", "saveLocation": "Enregistrer Localisation", "locating": "Localisation...", "enableGPS": "Activer GPS",
+      "passCard": "🔒 Changer Mot De Passe", "curPass": "Mot De Passe Actuel", "newPass": "Nouveau Mot De Passe (min 6)", "confirmPass": "Confirmer Nouveau Mot De Passe", "changePassBtn": "Changer Mot De Passe",
+      "deleteCard": "🗑️ Supprimer Compte", "reason": "Raison", "leaving": "Départ", "noBookings": "Pas de réservations", "privacy": "Confidentialité",
+      "details": "Détails (optionnel)", "deletePass": "Mot De Passe Pour Confirmer",
+      "confirmDelete1": "Je comprends que mon compte sera supprimé", "confirmDelete2": "Je comprends que mes données seront supprimées",
+      "deleteAccountBtn": "Supprimer Compte", "deleteConfirmTitle": "Supprimer compte pour raison: {reason}?",
+      "cancel": "Annuler", "delete": "Supprimer",
+      "toastLogin": "Connexion requise", "toastLoginUpload": "Connexion requise pour télécharger",
+      "toastSelectPhoto": "Sélectionnez d'abord une photo", "toastUploadingPhoto": "Téléchargement photo...",
+      "toastPhotoUpdated": "Photo mise à jour ✅ — CEO Center live", "toastUploadFailed": "Téléchargement échoué: {error}",
+      "toastSelectFile": "Sélectionnez un fichier pour {type}", "toastTooLarge": "Fichier trop grand >{mb} MB",
+      "toastDocUploaded": "{type} téléchargé ✅ — CEO Center live",
+      "toastEnterNewEmail": "Entrez nouvel email", "toastEnterPassConfirm": "Entrez mot de passe actuel pour confirmer",
+      "toastEmailUpdated": "Email mis à jour — reconnectez-vous — CEO Center live", "toastEmailFailed": "Changement email échoué: {error}",
+      "toastEnterPhoneName": "Entrez téléphone ou nom", "toastPhoneUpdated": "Téléphone & nom mis à jour ✅ — CEO Center live", "toastUpdateFailed": "Mise à jour échouée: {error}",
+      "toastInfoSaved": "Info infirmière enregistrée ✅ — CEO Center live", "toastSaveFailed": "Enregistrement échoué: {error}",
+      "toastGetGPSFirst": "Obtenez GPS d'abord", "toastLocationSaved": "Localisation enregistrée ✅ — CEO Center live",
+      "toastFillPass": "Remplissez tous les champs mot de passe", "toastPassMin6": "Nouveau mot de passe min 6 caractères", "toastPassMismatch": "Mots de passe ne correspondent pas",
+      "toastPassUpdated": "Mot de passe mis à jour ✅", "toastPassFailed": "Changement mot de passe échoué: {error}",
+      "toastSelectReason": "Sélectionnez une raison", "toastCheckBoxes": "Cochez les deux cases", "toastEnterPass": "Entrez mot de passe",
+      "toastDeleted": "Compte supprimé — Redirection...", "toastDeleteFailed": "Suppression échouée: {error}",
+    },
+    "de": {
+      "title": "Krankenschwester Einstellungen", "sos": "SOS",
+      "photoCard": "📸 Profilfoto", "uploadPhoto": "Neues Foto Hochladen",
+      "notLoggedIn": "● Nicht eingeloggt", "loggedInAs": "● Eingeloggt als {email}",
+      "docsCard": "📄 Dokumente — Lebenslauf / Video / Zertifikat / Lizenz",
+      "uploaded": "✅ Hochgeladen", "notUploaded": "Noch nicht hochgeladen",
+      "uploadCV": "CV Hochladen (max 10MB)", "uploadVideo": "VIDEO Hochladen (max 50MB)",
+      "uploadCert": "ZERTIFIKAT Hochladen (max 10MB)", "uploadLicense": "LIZENZ Hochladen (max 10MB)",
+      "emailCard": "📧 Email Ändern", "currentEmail": "Aktuell: {email}",
+      "newEmail": "Neue Email", "emailPassConfirm": "Aktuelles Passwort Zur Bestätigung", "changeEmailBtn": "Email Ändern",
+      "phoneCard": "📱 Telefon & Name", "displayName": "Anzeigename", "newPhone": "Neues Telefon", "updatePhoneName": "Telefon & Name Aktualisieren",
+      "infoCard": "🩺 Krankenschwester Info", "specialty": "Fachgebiet", "country": "Land",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Andere",
+      "bio": "Bio", "priceShort": "Preis Kurz", "priceLong": "Preis Lang", "workHours": "Arbeitszeiten",
+      "availability": "Verfügbarkeit", "available": "Verfügbar", "busy": "Beschäftigt", "offline": "Offline", "saveInfo": "Info Speichern",
+      "gpsCard": "📍 GPS Standort", "gpsName": "GPS Standortname", "lat": "Lat", "lng": "Lng",
+      "getGPS": "GPS Holen", "saveLocation": "Standort Speichern", "locating": "Orten...", "enableGPS": "GPS Aktivieren",
+      "passCard": "🔒 Passwort Ändern", "curPass": "Aktuelles Passwort", "newPass": "Neues Passwort (min 6)", "confirmPass": "Neues Passwort Bestätigen", "changePassBtn": "Passwort Ändern",
+      "deleteCard": "🗑️ Konto Löschen", "reason": "Grund", "leaving": "Verlassen", "noBookings": "Keine Buchungen", "privacy": "Datenschutz",
+      "details": "Details (optional)", "deletePass": "Passwort Zur Bestätigung",
+      "confirmDelete1": "Ich verstehe, dass mein Konto gelöscht wird", "confirmDelete2": "Ich verstehe, dass meine Daten entfernt werden",
+      "deleteAccountBtn": "Konto Löschen", "deleteConfirmTitle": "Konto löschen aus Grund: {reason}?",
+      "cancel": "Abbrechen", "delete": "Löschen",
+      "toastLogin": "Login erforderlich", "toastLoginUpload": "Login erforderlich zum Hochladen",
+      "toastSelectPhoto": "Wähle zuerst ein Foto", "toastUploadingPhoto": "Foto wird hochgeladen...",
+      "toastPhotoUpdated": "Foto aktualisiert ✅ — CEO Center live", "toastUploadFailed": "Upload fehlgeschlagen: {error}",
+      "toastSelectFile": "Wähle eine Datei für {type}", "toastTooLarge": "Datei zu groß >{mb} MB",
+      "toastDocUploaded": "{type} hochgeladen ✅ — CEO Center live",
+      "toastEnterNewEmail": "Neue Email eingeben", "toastEnterPassConfirm": "Aktuelles Passwort zur Bestätigung eingeben",
+      "toastEmailUpdated": "Email aktualisiert — bitte erneut einloggen — CEO Center live", "toastEmailFailed": "Email ändern fehlgeschlagen: {error}",
+      "toastEnterPhoneName": "Telefon oder Name eingeben", "toastPhoneUpdated": "Telefon & Name aktualisiert ✅ — CEO Center live", "toastUpdateFailed": "Update fehlgeschlagen: {error}",
+      "toastInfoSaved": "Info gespeichert ✅ — CEO Center live", "toastSaveFailed": "Speichern fehlgeschlagen: {error}",
+      "toastGetGPSFirst": "Zuerst GPS holen", "toastLocationSaved": "Standort gespeichert ✅ — CEO Center live",
+      "toastFillPass": "Alle Passwortfelder ausfüllen", "toastPassMin6": "Neues Passwort min 6 Zeichen", "toastPassMismatch": "Passwörter stimmen nicht überein",
+      "toastPassUpdated": "Passwort aktualisiert ✅", "toastPassFailed": "Passwort ändern fehlgeschlagen: {error}",
+      "toastSelectReason": "Grund auswählen", "toastCheckBoxes": "Beide Kästchen ankreuzen", "toastEnterPass": "Passwort eingeben",
+      "toastDeleted": "Konto gelöscht — Weiterleitung...", "toastDeleteFailed": "Löschen fehlgeschlagen: {error}",
+    },
+    "es": {
+      "title": "Ajustes De Enfermera", "sos": "SOS",
+      "photoCard": "📸 Foto De Perfil", "uploadPhoto": "Subir Nueva Foto",
+      "notLoggedIn": "● No has iniciado sesión", "loggedInAs": "● Sesión como {email}",
+      "docsCard": "📄 Documentos — CV / Video / Certificado / Licencia",
+      "uploaded": "✅ Subido", "notUploaded": "Aún no subido",
+      "uploadCV": "Subir CV (max 10MB)", "uploadVideo": "Subir VIDEO (max 50MB)",
+      "uploadCert": "Subir CERTIFICADO (max 10MB)", "uploadLicense": "Subir LICENCIA (max 10MB)",
+      "emailCard": "📧 Cambiar Correo", "currentEmail": "Actual: {email}",
+      "newEmail": "Nuevo Correo", "emailPassConfirm": "Contraseña Actual Para Confirmar", "changeEmailBtn": "Cambiar Correo",
+      "phoneCard": "📱 Teléfono & Nombre", "displayName": "Nombre Para Mostrar", "newPhone": "Nuevo Teléfono", "updatePhoneName": "Actualizar Teléfono & Nombre",
+      "infoCard": "🩺 Info Enfermera", "specialty": "Especialidad", "country": "País",
+      "ghana": "Ghana", "usa": "EEUU", "uk": "Reino Unido", "other": "Otro",
+      "bio": "Bio", "priceShort": "Precio Corto", "priceLong": "Precio Largo", "workHours": "Horas De Trabajo",
+      "availability": "Disponibilidad", "available": "Disponible", "busy": "Ocupada", "offline": "Fuera De Línea", "saveInfo": "Guardar Info",
+      "gpsCard": "📍 Ubicación GPS", "gpsName": "Nombre Ubicación GPS", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Obtener GPS", "saveLocation": "Guardar Ubicación", "locating": "Localizando...", "enableGPS": "Activar GPS",
+      "passCard": "🔒 Cambiar Contraseña", "curPass": "Contraseña Actual", "newPass": "Nueva Contraseña (min 6)", "confirmPass": "Confirmar Nueva Contraseña", "changePassBtn": "Cambiar Contraseña",
+      "deleteCard": "🗑️ Eliminar Cuenta", "reason": "Motivo", "leaving": "Me Voy", "noBookings": "Sin reservas", "privacy": "Privacidad",
+      "details": "Detalles (opcional)", "deletePass": "Contraseña Para Confirmar",
+      "confirmDelete1": "Entiendo que mi cuenta será eliminada", "confirmDelete2": "Entiendo que mis datos serán eliminados",
+      "deleteAccountBtn": "Eliminar Cuenta", "deleteConfirmTitle": "¿Eliminar cuenta por motivo: {reason}?",
+      "cancel": "Cancelar", "delete": "Eliminar",
+      "toastLogin": "Se requiere inicio de sesión", "toastLoginUpload": "Se requiere inicio para subir",
+      "toastSelectPhoto": "Selecciona primero una foto", "toastUploadingPhoto": "Subiendo foto...",
+      "toastPhotoUpdated": "Foto actualizada ✅ — CEO Center live", "toastUploadFailed": "Subida fallida: {error}",
+      "toastSelectFile": "Selecciona un archivo para {type}", "toastTooLarge": "Archivo demasiado grande >{mb} MB",
+      "toastDocUploaded": "{type} subido ✅ — CEO Center live",
+      "toastEnterNewEmail": "Ingresa nuevo correo", "toastEnterPassConfirm": "Ingresa contraseña actual para confirmar",
+      "toastEmailUpdated": "Correo actualizado — vuelve a iniciar sesión — CEO Center live", "toastEmailFailed": "Cambio de correo fallido: {error}",
+      "toastEnterPhoneName": "Ingresa teléfono o nombre", "toastPhoneUpdated": "Teléfono & nombre actualizados ✅ — CEO Center live", "toastUpdateFailed": "Actualización fallida: {error}",
+      "toastInfoSaved": "Info guardada ✅ — CEO Center live", "toastSaveFailed": "Guardado fallido: {error}",
+      "toastGetGPSFirst": "Obtén GPS primero", "toastLocationSaved": "Ubicación guardada ✅ — CEO Center live",
+      "toastFillPass": "Completa todos los campos de contraseña", "toastPassMin6": "Nueva contraseña min 6 caracteres", "toastPassMismatch": "Contraseñas no coinciden",
+      "toastPassUpdated": "Contraseña actualizada ✅", "toastPassFailed": "Cambio de contraseña fallido: {error}",
+      "toastSelectReason": "Selecciona un motivo", "toastCheckBoxes": "Marca ambas casillas", "toastEnterPass": "Ingresa contraseña",
+      "toastDeleted": "Cuenta eliminada — Redirigiendo...", "toastDeleteFailed": "Eliminación fallida: {error}",
+    },
+    "it": {
+      "title": "Impostazioni Infermiera", "sos": "SOS",
+      "photoCard": "📸 Foto Profilo", "uploadPhoto": "Carica Nuova Foto",
+      "notLoggedIn": "● Non hai effettuato accesso", "loggedInAs": "● Accesso come {email}",
+      "docsCard": "📄 Documenti — CV / Video / Certificato / Licenza",
+      "uploaded": "✅ Caricato", "notUploaded": "Non ancora caricato",
+      "uploadCV": "Carica CV (max 10MB)", "uploadVideo": "Carica VIDEO (max 50MB)",
+      "uploadCert": "Carica CERTIFICATO (max 10MB)", "uploadLicense": "Carica LICENZA (max 10MB)",
+      "emailCard": "📧 Cambia Email", "currentEmail": "Attuale: {email}",
+      "newEmail": "Nuova Email", "emailPassConfirm": "Password Attuale Per Confermare", "changeEmailBtn": "Cambia Email",
+      "phoneCard": "📱 Telefono & Nome", "displayName": "Nome Visualizzato", "newPhone": "Nuovo Telefono", "updatePhoneName": "Aggiorna Telefono & Nome",
+      "infoCard": "🩺 Info Infermiera", "specialty": "Specialità", "country": "Paese",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Altro",
+      "bio": "Bio", "priceShort": "Prezzo Breve", "priceLong": "Prezzo Lungo", "workHours": "Ore Di Lavoro",
+      "availability": "Disponibilità", "available": "Disponibile", "busy": "Occupata", "offline": "Offline", "saveInfo": "Salva Info",
+      "gpsCard": "📍 Posizione GPS", "gpsName": "Nome Posizione GPS", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Ottieni GPS", "saveLocation": "Salva Posizione", "locating": "Localizzazione...", "enableGPS": "Attiva GPS",
+      "passCard": "🔒 Cambia Password", "curPass": "Password Attuale", "newPass": "Nuova Password (min 6)", "confirmPass": "Conferma Nuova Password", "changePassBtn": "Cambia Password",
+      "deleteCard": "🗑️ Elimina Account", "reason": "Motivo", "leaving": "Me Ne Vado", "noBookings": "Nessuna prenotazione", "privacy": "Privacy",
+      "details": "Dettagli (opzionale)", "deletePass": "Password Per Confermare",
+      "confirmDelete1": "Capisco che il mio account sarà eliminato", "confirmDelete2": "Capisco che i miei dati saranno rimossi",
+      "deleteAccountBtn": "Elimina Account", "deleteConfirmTitle": "Eliminare account per motivo: {reason}?",
+      "cancel": "Annulla", "delete": "Elimina",
+      "toastLogin": "Accesso richiesto", "toastLoginUpload": "Accesso richiesto per caricare",
+      "toastSelectPhoto": "Seleziona prima una foto", "toastUploadingPhoto": "Caricamento foto...",
+      "toastPhotoUpdated": "Foto aggiornata ✅ — CEO Center live", "toastUploadFailed": "Caricamento fallito: {error}",
+      "toastSelectFile": "Seleziona un file per {type}", "toastTooLarge": "File troppo grande >{mb} MB",
+      "toastDocUploaded": "{type} caricato ✅ — CEO Center live",
+      "toastEnterNewEmail": "Inserisci nuova email", "toastEnterPassConfirm": "Inserisci password attuale per confermare",
+      "toastEmailUpdated": "Email aggiornata — accedi di nuovo — CEO Center live", "toastEmailFailed": "Cambio email fallito: {error}",
+      "toastEnterPhoneName": "Inserisci telefono o nome", "toastPhoneUpdated": "Telefono & nome aggiornati ✅ — CEO Center live", "toastUpdateFailed": "Aggiornamento fallito: {error}",
+      "toastInfoSaved": "Info salvata ✅ — CEO Center live", "toastSaveFailed": "Salvataggio fallito: {error}",
+      "toastGetGPSFirst": "Ottieni GPS prima", "toastLocationSaved": "Posizione salvata ✅ — CEO Center live",
+      "toastFillPass": "Compila tutti i campi password", "toastPassMin6": "Nuova password min 6 caratteri", "toastPassMismatch": "Le password non corrispondono",
+      "toastPassUpdated": "Password aggiornata ✅", "toastPassFailed": "Cambio password fallito: {error}",
+      "toastSelectReason": "Seleziona un motivo", "toastCheckBoxes": "Spunta entrambe le caselle", "toastEnterPass": "Inserisci password",
+      "toastDeleted": "Account eliminato — Reindirizzamento...", "toastDeleteFailed": "Eliminazione fallita: {error}",
+    },
+    "pt": {
+      "title": "Configurações Da Enfermeira", "sos": "SOS",
+      "photoCard": "📸 Foto De Perfil", "uploadPhoto": "Enviar Nova Foto",
+      "notLoggedIn": "● Não logada", "loggedInAs": "● Logada como {email}",
+      "docsCard": "📄 Documentos — CV / Vídeo / Certificado / Licença",
+      "uploaded": "✅ Enviado", "notUploaded": "Ainda não enviado",
+      "uploadCV": "Enviar CV (max 10MB)", "uploadVideo": "Enviar VÍDEO (max 50MB)",
+      "uploadCert": "Enviar CERTIFICADO (max 10MB)", "uploadLicense": "Enviar LICENÇA (max 10MB)",
+      "emailCard": "📧 Alterar Email", "currentEmail": "Atual: {email}",
+      "newEmail": "Novo Email", "emailPassConfirm": "Senha Atual Para Confirmar", "changeEmailBtn": "Alterar Email",
+      "phoneCard": "📱 Telefone & Nome", "displayName": "Nome De Exibição", "newPhone": "Novo Telefone", "updatePhoneName": "Atualizar Telefone & Nome",
+      "infoCard": "🩺 Info Enfermeira", "specialty": "Especialidade", "country": "País",
+      "ghana": "Gana", "usa": "EUA", "uk": "Reino Unido", "other": "Outro",
+      "bio": "Bio", "priceShort": "Preço Curto", "priceLong": "Preço Longo", "workHours": "Horas De Trabalho",
+      "availability": "Disponibilidade", "available": "Disponível", "busy": "Ocupada", "offline": "Offline", "saveInfo": "Salvar Info",
+      "gpsCard": "📍 Localização GPS", "gpsName": "Nome Localização GPS", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Obter GPS", "saveLocation": "Salvar Localização", "locating": "Localizando...", "enableGPS": "Ativar GPS",
+      "passCard": "🔒 Alterar Senha", "curPass": "Senha Atual", "newPass": "Nova Senha (min 6)", "confirmPass": "Confirmar Nova Senha", "changePassBtn": "Alterar Senha",
+      "deleteCard": "🗑️ Excluir Conta", "reason": "Motivo", "leaving": "Saindo", "noBookings": "Sem reservas", "privacy": "Privacidade",
+      "details": "Detalhes (opcional)", "deletePass": "Senha Para Confirmar",
+      "confirmDelete1": "Entendo que minha conta será excluída", "confirmDelete2": "Entendo que meus dados serão removidos",
+      "deleteAccountBtn": "Excluir Conta", "deleteConfirmTitle": "Excluir conta por motivo: {reason}?",
+      "cancel": "Cancelar", "delete": "Excluir",
+      "toastLogin": "Login necessário", "toastLoginUpload": "Login necessário para enviar",
+      "toastSelectPhoto": "Selecione uma foto primeiro", "toastUploadingPhoto": "Enviando foto...",
+      "toastPhotoUpdated": "Foto atualizada ✅ — CEO Center live", "toastUploadFailed": "Envio falhou: {error}",
+      "toastSelectFile": "Selecione um arquivo para {type}", "toastTooLarge": "Arquivo muito grande >{mb} MB",
+      "toastDocUploaded": "{type} enviado ✅ — CEO Center live",
+      "toastEnterNewEmail": "Digite novo email", "toastEnterPassConfirm": "Digite senha atual para confirmar",
+      "toastEmailUpdated": "Email atualizado — faça login novamente — CEO Center live", "toastEmailFailed": "Alteração de email falhou: {error}",
+      "toastEnterPhoneName": "Digite telefone ou nome", "toastPhoneUpdated": "Telefone & nome atualizados ✅ — CEO Center live", "toastUpdateFailed": "Atualização falhou: {error}",
+      "toastInfoSaved": "Info salva ✅ — CEO Center live", "toastSaveFailed": "Salvar falhou: {error}",
+      "toastGetGPSFirst": "Obtenha GPS primeiro", "toastLocationSaved": "Localização salva ✅ — CEO Center live",
+      "toastFillPass": "Preencha todos os campos de senha", "toastPassMin6": "Nova senha min 6 caracteres", "toastPassMismatch": "Senhas não correspondem",
+      "toastPassUpdated": "Senha atualizada ✅", "toastPassFailed": "Alteração de senha falhou: {error}",
+      "toastSelectReason": "Selecione um motivo", "toastCheckBoxes": "Marque ambas as caixas", "toastEnterPass": "Digite senha",
+      "toastDeleted": "Conta excluída — Redirecionando...", "toastDeleteFailed": "Exclusão falhou: {error}",
+    },
+    "ar": {
+      "title": "إعدادات الممرضة", "sos": "SOS",
+      "photoCard": "📸 صورة الملف", "uploadPhoto": "رفع صورة جديدة",
+      "notLoggedIn": "● غير مسجّل دخول", "loggedInAs": "● مسجّل دخول كـ {email}",
+      "docsCard": "📄 مستندات — سيرة / فيديو / شهادة / ترخيص",
+      "uploaded": "✅ تم الرفع", "notUploaded": "لم يتم الرفع بعد",
+      "uploadCV": "رفع سيرة (max 10MB)", "uploadVideo": "رفع فيديو (max 50MB)",
+      "uploadCert": "رفع شهادة (max 10MB)", "uploadLicense": "رفع ترخيص (max 10MB)",
+      "emailCard": "📧 تغيير البريد", "currentEmail": "الحالي: {email}",
+      "newEmail": "بريد جديد", "emailPassConfirm": "كلمة المرور الحالية للتأكيد", "changeEmailBtn": "تغيير البريد",
+      "phoneCard": "📱 الهاتف & الاسم", "displayName": "اسم العرض", "newPhone": "هاتف جديد", "updatePhoneName": "تحديث الهاتف & الاسم",
+      "infoCard": "🩺 معلومات الممرضة", "specialty": "التخصص", "country": "الدولة",
+      "ghana": "غانا", "usa": "أمريكا", "uk": "بريطانيا", "other": "أخرى",
+      "bio": "نبذة", "priceShort": "سعر قصير", "priceLong": "سعر طويل", "workHours": "ساعات العمل",
+      "availability": "التوفر", "available": "متاحة", "busy": "مشغولة", "offline": "غير متصلة", "saveInfo": "حفظ المعلومات",
+      "gpsCard": "📍 موقع GPS", "gpsName": "اسم موقع GPS", "lat": "خط العرض", "lng": "خط الطول",
+      "getGPS": "الحصول على GPS", "saveLocation": "حفظ الموقع", "locating": "جارٍ التحديد...", "enableGPS": "تفعيل GPS",
+      "passCard": "🔒 تغيير كلمة المرور", "curPass": "كلمة المرور الحالية", "newPass": "كلمة مرور جديدة (min 6)", "confirmPass": "تأكيد كلمة المرور الجديدة", "changePassBtn": "تغيير كلمة المرور",
+      "deleteCard": "🗑️ حذف الحساب", "reason": "السبب", "leaving": "مغادرة", "noBookings": "لا حجوزات", "privacy": "الخصوصية",
+      "details": "تفاصيل (اختياري)", "deletePass": "كلمة المرور للتأكيد",
+      "confirmDelete1": "أفهم أن حسابي سيُحذف", "confirmDelete2": "أفهم أن بياناتي ستُزال",
+      "deleteAccountBtn": "حذف الحساب", "deleteConfirmTitle": "حذف الحساب لسبب: {reason}؟",
+      "cancel": "إلغاء", "delete": "حذف",
+      "toastLogin": "تسجيل دخول مطلوب", "toastLoginUpload": "تسجيل دخول مطلوب للرفع",
+      "toastSelectPhoto": "اختر صورة أولاً", "toastUploadingPhoto": "جارٍ رفع الصورة...",
+      "toastPhotoUpdated": "تم تحديث الصورة ✅ — CEO Center live", "toastUploadFailed": "فشل الرفع: {error}",
+      "toastSelectFile": "اختر ملفاً لـ {type}", "toastTooLarge": "الملف كبير جداً >{mb} MB",
+      "toastDocUploaded": "تم رفع {type} ✅ — CEO Center live",
+      "toastEnterNewEmail": "أدخل بريداً جديداً", "toastEnterPassConfirm": "أدخل كلمة المرور الحالية للتأكيد",
+      "toastEmailUpdated": "تم تحديث البريد — سجّل دخول من جديد — CEO Center live", "toastEmailFailed": "فشل تغيير البريد: {error}",
+      "toastEnterPhoneName": "أدخل هاتفاً أو اسماً", "toastPhoneUpdated": "تم تحديث الهاتف & الاسم ✅ — CEO Center live", "toastUpdateFailed": "فشل التحديث: {error}",
+      "toastInfoSaved": "تم حفظ المعلومات ✅ — CEO Center live", "toastSaveFailed": "فشل الحفظ: {error}",
+      "toastGetGPSFirst": "احصل على GPS أولاً", "toastLocationSaved": "تم حفظ الموقع ✅ — CEO Center live",
+      "toastFillPass": "املأ كل حقول كلمة المرور", "toastPassMin6": "كلمة مرور جديدة min 6 أحرف", "toastPassMismatch": "كلمات المرور غير متطابقة",
+      "toastPassUpdated": "تم تحديث كلمة المرور ✅", "toastPassFailed": "فشل تغيير كلمة المرور: {error}",
+      "toastSelectReason": "اختر سبباً", "toastCheckBoxes": "علّم على المربعين", "toastEnterPass": "أدخل كلمة المرور",
+      "toastDeleted": "تم حذف الحساب — جارٍ التحويل...", "toastDeleteFailed": "فشل الحذف: {error}",
+    },
+    "zh": {
+      "title": "护士设置", "sos": "SOS",
+      "photoCard": "📸 个人照片", "uploadPhoto": "上传新照片",
+      "notLoggedIn": "● 未登录", "loggedInAs": "● 已登录为 {email}",
+      "docsCard": "📄 文件 — 简历 / 视频 / 证书 / 执照",
+      "uploaded": "✅ 已上传", "notUploaded": "尚未上传",
+      "uploadCV": "上传简历 (max 10MB)", "uploadVideo": "上传视频 (max 50MB)",
+      "uploadCert": "上传证书 (max 10MB)", "uploadLicense": "上传执照 (max 10MB)",
+      "emailCard": "📧 更改邮箱", "currentEmail": "当前: {email}",
+      "newEmail": "新邮箱", "emailPassConfirm": "当前密码以确认", "changeEmailBtn": "更改邮箱",
+      "phoneCard": "📱 电话 & 姓名", "displayName": "显示姓名", "newPhone": "新电话", "updatePhoneName": "更新电话 & 姓名",
+      "infoCard": "🩺 护士信息", "specialty": "专业", "country": "国家",
+      "ghana": "加纳", "usa": "美国", "uk": "英国", "other": "其他",
+      "bio": "简介", "priceShort": "短价", "priceLong": "长价", "workHours": "工作时间",
+      "availability": "可用性", "available": "可用", "busy": "忙碌", "offline": "离线", "saveInfo": "保存信息",
+      "gpsCard": "📍 GPS 位置", "gpsName": "GPS 位置名称", "lat": "纬度", "lng": "经度",
+      "getGPS": "获取 GPS", "saveLocation": "保存位置", "locating": "定位中...", "enableGPS": "启用 GPS",
+      "passCard": "🔒 更改密码", "curPass": "当前密码", "newPass": "新密码 (min 6)", "confirmPass": "确认新密码", "changePassBtn": "更改密码",
+      "deleteCard": "🗑️ 删除账号", "reason": "原因", "leaving": "离开", "noBookings": "没有预订", "privacy": "隐私",
+      "details": "详情 (可选)", "deletePass": "密码以确认",
+      "confirmDelete1": "我理解我的账号将被删除", "confirmDelete2": "我理解我的数据将被移除",
+      "deleteAccountBtn": "删除账号", "deleteConfirmTitle": "因原因删除账号: {reason}？",
+      "cancel": "取消", "delete": "删除",
+      "toastLogin": "需要登录", "toastLoginUpload": "上传需要登录",
+      "toastSelectPhoto": "先选择一张照片", "toastUploadingPhoto": "正在上传照片...",
+      "toastPhotoUpdated": "照片已更新 ✅ — CEO Center live", "toastUploadFailed": "上传失败: {error}",
+      "toastSelectFile": "为 {type} 选择文件", "toastTooLarge": "文件太大 >{mb} MB",
+      "toastDocUploaded": "{type} 已上传 ✅ — CEO Center live",
+      "toastEnterNewEmail": "输入新邮箱", "toastEnterPassConfirm": "输入当前密码以确认",
+      "toastEmailUpdated": "邮箱已更新 — 请重新登录 — CEO Center live", "toastEmailFailed": "更改邮箱失败: {error}",
+      "toastEnterPhoneName": "输入电话或姓名", "toastPhoneUpdated": "电话 & 姓名已更新 ✅ — CEO Center live", "toastUpdateFailed": "更新失败: {error}",
+      "toastInfoSaved": "护士信息已保存 ✅ — CEO Center live", "toastSaveFailed": "保存失败: {error}",
+      "toastGetGPSFirst": "先获取 GPS", "toastLocationSaved": "位置已保存 ✅ — CEO Center live",
+      "toastFillPass": "填写所有密码字段", "toastPassMin6": "新密码至少 6 字符", "toastPassMismatch": "密码不匹配",
+      "toastPassUpdated": "密码已更新 ✅", "toastPassFailed": "更改密码失败: {error}",
+      "toastSelectReason": "选择原因", "toastCheckBoxes": "勾选两个框", "toastEnterPass": "输入密码",
+      "toastDeleted": "账号已删除 — 正在跳转...", "toastDeleteFailed": "删除失败: {error}",
+    },
+    "hi": {
+      "title": "नर्स सेटिंग्स", "sos": "SOS",
+      "photoCard": "📸 प्रोफाइल फोटो", "uploadPhoto": "नई फोटो अपलोड करें",
+      "notLoggedIn": "● लॉगिन नहीं", "loggedInAs": "● लॉगिन के रूप में {email}",
+      "docsCard": "📄 दस्तावेज़ — CV / वीडियो / प्रमाणपत्र / लाइसेंस",
+      "uploaded": "✅ अपलोड", "notUploaded": "अभी अपलोड नहीं",
+      "uploadCV": "CV अपलोड करें (max 10MB)", "uploadVideo": "वीडियो अपलोड करें (max 50MB)",
+      "uploadCert": "प्रमाणपत्र अपलोड करें (max 10MB)", "uploadLicense": "लाइसेंस अपलोड करें (max 10MB)",
+      "emailCard": "📧 ईमेल बदलें", "currentEmail": "वर्तमान: {email}",
+      "newEmail": "नया ईमेल", "emailPassConfirm": "पुष्टि के लिए वर्तमान पासवर्ड", "changeEmailBtn": "ईमेल बदलें",
+      "phoneCard": "📱 फोन & नाम", "displayName": "प्रदर्शन नाम", "newPhone": "नया फोन", "updatePhoneName": "फोन & नाम अपडेट करें",
+      "infoCard": "🩺 नर्स जानकारी", "specialty": "विशेषता", "country": "देश",
+      "ghana": "घाना", "usa": "USA", "uk": "UK", "other": "अन्य",
+      "bio": "बायो", "priceShort": "मूल्य छोटा", "priceLong": "मूल्य लंबा", "workHours": "कार्य घंटे",
+      "availability": "उपलब्धता", "available": "उपलब्ध", "busy": "व्यस्त", "offline": "ऑफ़लाइन", "saveInfo": "जानकारी सहेजें",
+      "gpsCard": "📍 GPS स्थान", "gpsName": "GPS स्थान नाम", "lat": "अक्षांश", "lng": "देशांतर",
+      "getGPS": "GPS लें", "saveLocation": "स्थान सहेजें", "locating": "पता लगा रहे हैं...", "enableGPS": "GPS सक्षम करें",
+      "passCard": "🔒 पासवर्ड बदलें", "curPass": "वर्तमान पासवर्ड", "newPass": "नया पासवर्ड (min 6)", "confirmPass": "नया पासवर्ड पुष्टि करें", "changePassBtn": "पासवर्ड बदलें",
+      "deleteCard": "🗑️ खाता हटाएँ", "reason": "कारण", "leaving": "छोड़ रही हैं", "noBookings": "बुकिंग नहीं मिल रही", "privacy": "गोपनीयता",
+      "details": "विवरण (वैकल्पिक)", "deletePass": "पुष्टि के लिए पासवर्ड",
+      "confirmDelete1": "मैं समझती हूँ मेरा खाता हटा दिया जाएगा", "confirmDelete2": "मैं समझती हूँ मेरा डेटा हटा दिया जाएगा",
+      "deleteAccountBtn": "खाता हटाएँ", "deleteConfirmTitle": "कारण से खाता हटाएँ: {reason}?",
+      "cancel": "रद्द करें", "delete": "हटाएँ",
+      "toastLogin": "लॉगिन आवश्यक", "toastLoginUpload": "अपलोड के लिए लॉगिन आवश्यक",
+      "toastSelectPhoto": "पहले एक फोटो चुनें", "toastUploadingPhoto": "फोटो अपलोड हो रही है...",
+      "toastPhotoUpdated": "फोटो अपडेट ✅ — CEO Center live", "toastUploadFailed": "अपलोड विफल: {error}",
+      "toastSelectFile": "{type} के लिए फाइल चुनें", "toastTooLarge": "फाइल बहुत बड़ी >{mb} MB",
+      "toastDocUploaded": "{type} अपलोड ✅ — CEO Center live",
+      "toastEnterNewEmail": "नया ईमेल डालें", "toastEnterPassConfirm": "पुष्टि के लिए वर्तमान पासवर्ड डालें",
+      "toastEmailUpdated": "ईमेल अपडेट — कृपया फिर से लॉगिन करें — CEO Center live", "toastEmailFailed": "ईमेल बदलना विफल: {error}",
+      "toastEnterPhoneName": "फोन या नाम डालें", "toastPhoneUpdated": "फोन & नाम अपडेट ✅ — CEO Center live", "toastUpdateFailed": "अपडेट विफल: {error}",
+      "toastInfoSaved": "नर्स जानकारी सहेजी ✅ — CEO Center live", "toastSaveFailed": "सहेजना विफल: {error}",
+      "toastGetGPSFirst": "पहले GPS लें", "toastLocationSaved": "स्थान सहेजा ✅ — CEO Center live",
+      "toastFillPass": "सभी पासवर्ड फ़ील्ड भरें", "toastPassMin6": "नया पासवर्ड min 6 अक्षर", "toastPassMismatch": "पासवर्ड मेल नहीं खाते",
+      "toastPassUpdated": "पासवर्ड अपडेट ✅", "toastPassFailed": "पासवर्ड बदलना विफल: {error}",
+      "toastSelectReason": "कारण चुनें", "toastCheckBoxes": "दोनों बॉक्स चेक करें", "toastEnterPass": "पासवर्ड डालें",
+      "toastDeleted": "खाता हटाया गया — रीडायरेक्ट हो रहा है...", "toastDeleteFailed": "हटाना विफल: {error}",
+    },
+    "sw": {
+      "title": "Mipangilio Ya Muuguzi", "sos": "SOS",
+      "photoCard": "📸 Picha Ya Wasifu", "uploadPhoto": "Pakia Picha Mpya",
+      "notLoggedIn": "● Hujaingia", "loggedInAs": "● Umeingia kama {email}",
+      "docsCard": "📄 Nyaraka — CV / Video / Cheti / Leseni",
+      "uploaded": "✅ Imepakiwa", "notUploaded": "Bado haijapakiwa",
+      "uploadCV": "Pakia CV (max 10MB)", "uploadVideo": "Pakia VIDEO (max 50MB)",
+      "uploadCert": "Pakia CHETI (max 10MB)", "uploadLicense": "Pakia LESENI (max 10MB)",
+      "emailCard": "📧 Badilisha Barua Pepe", "currentEmail": "Sasa: {email}",
+      "newEmail": "Barua Pepe Mpya", "emailPassConfirm": "Nenosiri La Sasa Kuthibitisha", "changeEmailBtn": "Badilisha Barua Pepe",
+      "phoneCard": "📱 Simu & Jina", "displayName": "Jina La Kuonyesha", "newPhone": "Simu Mpya", "updatePhoneName": "Sasisha Simu & Jina",
+      "infoCard": "🩺 Taarifa Za Muuguzi", "specialty": "Utaalamu", "country": "Nchi",
+      "ghana": "Ghana", "usa": "Marekani", "uk": "Uingereza", "other": "Nyingine",
+      "bio": "Wasifu", "priceShort": "Bei Fupi", "priceLong": "Bei Ndefu", "workHours": "Saa Za Kazi",
+      "availability": "Upatikanaji", "available": "Anapatikana", "busy": "Ana Shughuli", "offline": "Offline", "saveInfo": "Hifadhi Taarifa",
+      "gpsCard": "📍 Mahali Pa GPS", "gpsName": "Jina La Mahali Pa GPS", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Pata GPS", "saveLocation": "Hifadhi Mahali", "locating": "Inatafuta...", "enableGPS": "Washa GPS",
+      "passCard": "🔒 Badilisha Nenosiri", "curPass": "Nenosiri La Sasa", "newPass": "Nenosiri Jipya (min 6)", "confirmPass": "Thibitisha Nenosiri Jipya", "changePassBtn": "Badilisha Nenosiri",
+      "deleteCard": "🗑️ Futa Akaunti", "reason": "Sababu", "leaving": "Naondoka", "noBookings": "Sipati booking", "privacy": "Faragha",
+      "details": "Maelezo (hiari)", "deletePass": "Nenosiri Kuthibitisha",
+      "confirmDelete1": "Naelewa akaunti yangu itafutwa", "confirmDelete2": "Naelewa data yangu itaondolewa",
+      "deleteAccountBtn": "Futa Akaunti", "deleteConfirmTitle": "Futa akaunti kwa sababu: {reason}?",
+      "cancel": "Ghairi", "delete": "Futa",
+      "toastLogin": "Kuingia kunahitajika", "toastLoginUpload": "Kuingia kunahitajika kupakia",
+      "toastSelectPhoto": "Chagua picha kwanza", "toastUploadingPhoto": "Inapakia picha...",
+      "toastPhotoUpdated": "Picha imesasishwa ✅ — CEO Center live", "toastUploadFailed": "Kupakia kumeshindwa: {error}",
+      "toastSelectFile": "Chagua faili kwa {type}", "toastTooLarge": "Faili kubwa sana >{mb} MB",
+      "toastDocUploaded": "{type} imepakiwa ✅ — CEO Center live",
+      "toastEnterNewEmail": "Ingiza barua pepe mpya", "toastEnterPassConfirm": "Ingiza nenosiri la sasa kuthibitisha",
+      "toastEmailUpdated": "Barua pepe imesasishwa — ingia tena — CEO Center live", "toastEmailFailed": "Kubadilisha barua pepe kumeshindwa: {error}",
+      "toastEnterPhoneName": "Ingiza simu au jina", "toastPhoneUpdated": "Simu & jina zimesasishwa ✅ — CEO Center live", "toastUpdateFailed": "Kusasisha kumeshindwa: {error}",
+      "toastInfoSaved": "Taarifa zimehifadhiwa ✅ — CEO Center live", "toastSaveFailed": "Kuhifadhi kumeshindwa: {error}",
+      "toastGetGPSFirst": "Pata GPS kwanza", "toastLocationSaved": "Mahali pamehifadhiwa ✅ — CEO Center live",
+      "toastFillPass": "Jaza sehemu zote za nenosiri", "toastPassMin6": "Nenosiri jipya min herufi 6", "toastPassMismatch": "Nenosiri hazilingani",
+      "toastPassUpdated": "Nenosiri limesasishwa ✅", "toastPassFailed": "Kubadilisha nenosiri kumeshindwa: {error}",
+      "toastSelectReason": "Chagua sababu", "toastCheckBoxes": "Weka alama kwenye visanduku vyote viwili", "toastEnterPass": "Ingiza nenosiri",
+      "toastDeleted": "Akaunti imefutwa — Inaelekeza...", "toastDeleteFailed": "Kufuta kumeshindwa: {error}",
+    },
+    "yo": {
+      "title": "Eto Nọọsi", "sos": "SOS",
+      "photoCard": "📸 Foto Profaili", "uploadPhoto": "Upload Foto Tuntun",
+      "notLoggedIn": "● O ko wọle", "loggedInAs": "● O wọle bi {email}",
+      "docsCard": "📄 Awọn Iwe — CV / Fidio / Iwe-ẹri / Iwe-aṣẹ",
+      "uploaded": "✅ Ti upload", "notUploaded": "Ko ti upload",
+      "uploadCV": "Upload CV (max 10MB)", "uploadVideo": "Upload FIDIO (max 50MB)",
+      "uploadCert": "Upload IWE-ẸRI (max 10MB)", "uploadLicense": "Upload IWE-AṢẸ (max 10MB)",
+      "emailCard": "📧 Yi Email Pada", "currentEmail": "Bayi: {email}",
+      "newEmail": "Email Tuntun", "emailPassConfirm": "Password Lọwọlọwọ Lati Jẹrisi", "changeEmailBtn": "Yi Email Pada",
+      "phoneCard": "📱 Foonu & Orukọ", "displayName": "Orukọ Ifihan", "newPhone": "Foonu Tuntun", "updatePhoneName": "Ṣe Imudojuiwọn Foonu & Orukọ",
+      "infoCard": "🩺 Alaye Nọọsi", "specialty": "Pataki", "country": "Orilẹ-ede",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Miiran",
+      "bio": "Bio", "priceShort": "Iye Kukuru", "priceLong": "Iye Gigun", "workHours": "Wakati Iṣẹ",
+      "availability": "Wiwa", "available": "Wa", "busy": "N ṣiṣẹ", "offline": "Offline", "saveInfo": "Fipamọ Alaye",
+      "gpsCard": "📍 Ibi GPS", "gpsName": "Orukọ Ibi GPS", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Gba GPS", "saveLocation": "Fipamọ Ibi", "locating": "Nwa...", "enableGPS": "Tan GPS",
+      "passCard": "🔒 Yi Password Pada", "curPass": "Password Lọwọlọwọ", "newPass": "Password Tuntun (min 6)", "confirmPass": "Jẹrisi Password Tuntun", "changePassBtn": "Yi Password Pada",
+      "deleteCard": "🗑️ Pa Account Rẹ", "reason": "Idi", "leaving": "Nlọ", "noBookings": "Ko gba bookings", "privacy": "Aṣiri",
+      "details": "Awọn Alaye (aṣayan)", "deletePass": "Password Lati Jẹrisi",
+      "confirmDelete1": "Mo ye pe a o pa account mi rẹ", "confirmDelete2": "Mo ye pe a o pa data mi rẹ",
+      "deleteAccountBtn": "Pa Account Rẹ", "deleteConfirmTitle": "Pa account rẹ fun idi: {reason}?",
+      "cancel": "Fagile", "delete": "Pa Rẹ",
+      "toastLogin": "Wọle nilo", "toastLoginUpload": "Wọle nilo lati upload",
+      "toastSelectPhoto": "Yan foto kọkọ", "toastUploadingPhoto": "N upload foto...",
+      "toastPhotoUpdated": "Foto ti ṣe imudojuiwọn ✅ — CEO Center live", "toastUploadFailed": "Upload kuna: {error}",
+      "toastSelectFile": "Yan faili fun {type}", "toastTooLarge": "Faili tobi ju >{mb} MB",
+      "toastDocUploaded": "{type} ti upload ✅ — CEO Center live",
+      "toastEnterNewEmail": "Fi email tuntun", "toastEnterPassConfirm": "Fi password lọwọlọwọ lati jẹrisi",
+      "toastEmailUpdated": "Email ti ṣe imudojuiwọn — wọle lẹẹkansi — CEO Center live", "toastEmailFailed": "Yiyipada email kuna: {error}",
+      "toastEnterPhoneName": "Fi foonu tabi orukọ", "toastPhoneUpdated": "Foonu & orukọ ti ṣe imudojuiwọn ✅ — CEO Center live", "toastUpdateFailed": "Imudojuiwọn kuna: {error}",
+      "toastInfoSaved": "Alaye ti fipamọ ✅ — CEO Center live", "toastSaveFailed": "Fipamọ kuna: {error}",
+      "toastGetGPSFirst": "Gba GPS kọkọ", "toastLocationSaved": "Ibi ti fipamọ ✅ — CEO Center live",
+      "toastFillPass": "Kun gbogbo aaye password", "toastPassMin6": "Password tuntun min 6 lẹta", "toastPassMismatch": "Awọn password ko baamu",
+      "toastPassUpdated": "Password ti ṣe imudojuiwọn ✅", "toastPassFailed": "Yiyipada password kuna: {error}",
+      "toastSelectReason": "Yan idi", "toastCheckBoxes": "Ṣayẹwo awọn apoti mejeeji", "toastEnterPass": "Fi password",
+      "toastDeleted": "Account ti pa rẹ — Nlọ...", "toastDeleteFailed": "Piparẹ kuna: {error}",
+    },
+    "ig": {
+      "title": "Ntọala Nọọsụ", "sos": "SOS",
+      "photoCard": "📸 Foto Profailụ", "uploadPhoto": "Bulite Foto Ọhụrụ",
+      "notLoggedIn": "● Ịbanyebeghị", "loggedInAs": "● Ị banyere dị ka {email}",
+      "docsCard": "📄 Akwụkwọ — CV / Vidio / Asambodo / Ikike",
+      "uploaded": "✅ Ebulitela", "notUploaded": "Ebulitebeghị",
+      "uploadCV": "Bulite CV (max 10MB)", "uploadVideo": "Bulite VIDIO (max 50MB)",
+      "uploadCert": "Bulite ASAMBODO (max 10MB)", "uploadLicense": "Bulite IKIKE (max 10MB)",
+      "emailCard": "📧 Gbanwee Email", "currentEmail": "Ugbụ a: {email}",
+      "newEmail": "Email Ọhụrụ", "emailPassConfirm": "Paswọọdụ Ugbu A Iji Kwenye", "changeEmailBtn": "Gbanwee Email",
+      "phoneCard": "📱 Ekwentị & Aha", "displayName": "Aha Ngosi", "newPhone": "Ekwentị Ọhụrụ", "updatePhoneName": "Melite Ekwentị & Aha",
+      "infoCard": "🩺 Ozi Nọọsụ", "specialty": "Ọpụrụiche", "country": "Mba",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Ọzọ",
+      "bio": "Bio", "priceShort": "Ọnụahịa Mkpirisi", "priceLong": "Ọnụahịa Ogologo", "workHours": "Awa Ọrụ",
+      "availability": "Nnweta", "available": "Dị", "busy": "Na-arụ ọrụ", "offline": "Offline", "saveInfo": "Chekwaa Ozi",
+      "gpsCard": "📍 Ebe GPS", "gpsName": "Aha Ebe GPS", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Nweta GPS", "saveLocation": "Chekwaa Ebe", "locating": "Na-achọ...", "enableGPS": "Gbanye GPS",
+      "passCard": "🔒 Gbanwee Paswọọdụ", "curPass": "Paswọọdụ Ugbu A", "newPass": "Paswọọdụ Ọhụrụ (min 6)", "confirmPass": "Kwenye Paswọọdụ Ọhụrụ", "changePassBtn": "Gbanwee Paswọọdụ",
+      "deleteCard": "🗑️ Hichapụ Akaụntụ", "reason": "Ihe Mere", "leaving": "Na-apụ", "noBookings": "Anaghị enweta bookings", "privacy": "Nzuzo",
+      "details": "Nkọwa (nhọrọ)", "deletePass": "Paswọọdụ Iji Kwenye",
+      "confirmDelete1": "Aghọtara m na a ga-ehichapụ akaụntụ m", "confirmDelete2": "Aghọtara m na a ga-ewepụ data m",
+      "deleteAccountBtn": "Hichapụ Akaụntụ", "deleteConfirmTitle": "Hichapụ akaụntụ maka ihe mere: {reason}?",
+      "cancel": "Kagbuo", "delete": "Hichapụ",
+      "toastLogin": "Nbanye achọrọ", "toastLoginUpload": "Nbanye achọrọ ibulite",
+      "toastSelectPhoto": "Họrọ foto mbụ", "toastUploadingPhoto": "Na-ebulite foto...",
+      "toastPhotoUpdated": "Foto emelitere ✅ — CEO Center live", "toastUploadFailed": "Ibulite dara: {error}",
+      "toastSelectFile": "Họrọ faịlụ maka {type}", "toastTooLarge": "Faịlụ buru oke ibu >{mb} MB",
+      "toastDocUploaded": "{type} ebulitela ✅ — CEO Center live",
+      "toastEnterNewEmail": "Tinye email ọhụrụ", "toastEnterPassConfirm": "Tinye paswọọdụ ugbu a iji kwenye",
+      "toastEmailUpdated": "Email emelitere — banye ọzọ — CEO Center live", "toastEmailFailed": "Ịgbanwe email dara: {error}",
+      "toastEnterPhoneName": "Tinye ekwentị ma ọ bụ aha", "toastPhoneUpdated": "Ekwentị & aha emelitere ✅ — CEO Center live", "toastUpdateFailed": "Mmelite dara: {error}",
+      "toastInfoSaved": "Ozi echekwara ✅ — CEO Center live", "toastSaveFailed": "Ichekwa dara: {error}",
+      "toastGetGPSFirst": "Nweta GPS mbụ", "toastLocationSaved": "Ebe echekwara ✅ — CEO Center live",
+      "toastFillPass": "Dejupụta ubi paswọọdụ niile", "toastPassMin6": "Paswọọdụ ọhụrụ min mkpụrụedemede 6", "toastPassMismatch": "Paswọọdụ adabaghị",
+      "toastPassUpdated": "Paswọọdụ emelitere ✅", "toastPassFailed": "Ịgbanwe paswọọdụ dara: {error}",
+      "toastSelectReason": "Họrọ ihe mere", "toastCheckBoxes": "Lelee igbe abụọ ahụ", "toastEnterPass": "Tinye paswọọdụ",
+      "toastDeleted": "Ehichapụla akaụntụ — Na-atụgharị...", "toastDeleteFailed": "Ihichapụ dara: {error}",
+    },
+    "ha": {
+      "title": "Saitunan Nurse", "sos": "SOS",
+      "photoCard": "📸 Hoton Bayanai", "uploadPhoto": "Loda Sabon Hoto",
+      "notLoggedIn": "● Ba a shiga ba", "loggedInAs": "● An shiga a matsayin {email}",
+      "docsCard": "📄 Takardu — CV / Bidiyo / Takardar Shaida / Lasisi",
+      "uploaded": "✅ An loda", "notUploaded": "Ba a loda ba tukuna",
+      "uploadCV": "Loda CV (max 10MB)", "uploadVideo": "Loda BIDYO (max 50MB)",
+      "uploadCert": "Loda TAKARDAR SHAIDA (max 10MB)", "uploadLicense": "Loda LASISI (max 10MB)",
+      "emailCard": "📧 Canja Email", "currentEmail": "Yanzu: {email}",
+      "newEmail": "Sabon Email", "emailPassConfirm": "Kalmar Sirri Ta Yanzu Don Tabbatarwa", "changeEmailBtn": "Canja Email",
+      "phoneCard": "📱 Waya & Suna", "displayName": "Sunan Nuni", "newPhone": "Sabuwar Waya", "updatePhoneName": "Sabunta Waya & Suna",
+      "infoCard": "🩺 Bayanin Nurse", "specialty": "Ƙwarewa", "country": "Ƙasa",
+      "ghana": "Ghana", "usa": "Amurka", "uk": "Burtaniya", "other": "Wani",
+      "bio": "Bio", "priceShort": "Farashi Gajere", "priceLong": "Farashi Dogon", "workHours": "Awanni Aiki",
+      "availability": "Samuwa", "available": "Akwai", "busy": "Ana aiki", "offline": "Offline", "saveInfo": "Ajiye Bayani",
+      "gpsCard": "📍 Wurin GPS", "gpsName": "Sunan Wurin GPS", "lat": "Lat", "lng": "Lng",
+      "getGPS": "Samo GPS", "saveLocation": "Ajiye Wuri", "locating": "Ana neman...", "enableGPS": "Kunna GPS",
+      "passCard": "🔒 Canja Kalmar Sirri", "curPass": "Kalmar Sirri Ta Yanzu", "newPass": "Sabuwar Kalmar Sirri (min 6)", "confirmPass": "Tabbatar Sabuwar Kalmar Sirri", "changePassBtn": "Canja Kalmar Sirri",
+      "deleteCard": "🗑️ Share Asusun", "reason": "Dalili", "leaving": "Na tafi", "noBookings": "Ba na samun bookings", "privacy": "Sirri",
+      "details": "Cikakkun Bayani (zaɓi)", "deletePass": "Kalmar Sirri Don Tabbatarwa",
+      "confirmDelete1": "Na fahimci za a share asusuna", "confirmDelete2": "Na fahimci za a cire bayanana",
+      "deleteAccountBtn": "Share Asusun", "deleteConfirmTitle": "Share asusun don dalili: {reason}?",
+      "cancel": "Soke", "delete": "Share",
+      "toastLogin": "Shiga ana buƙata", "toastLoginUpload": "Shiga ana buƙata don lodawa",
+      "toastSelectPhoto": "Zaɓi hoto da farko", "toastUploadingPhoto": "Ana loda hoto...",
+      "toastPhotoUpdated": "An sabunta hoto ✅ — CEO Center live", "toastUploadFailed": "Lodawa ta kasa: {error}",
+      "toastSelectFile": "Zaɓi fayil don {type}", "toastTooLarge": "Fayil ya yi girma >{mb} MB",
+      "toastDocUploaded": "An loda {type} ✅ — CEO Center live",
+      "toastEnterNewEmail": "Shigar da sabon email", "toastEnterPassConfirm": "Shigar da kalmar sirri ta yanzu don tabbatarwa",
+      "toastEmailUpdated": "An sabunta email — sake shiga — CEO Center live", "toastEmailFailed": "Canja email ta kasa: {error}",
+      "toastEnterPhoneName": "Shigar da waya ko suna", "toastPhoneUpdated": "An sabunta waya & suna ✅ — CEO Center live", "toastUpdateFailed": "Sabuntawa ta kasa: {error}",
+      "toastInfoSaved": "An ajiye bayani ✅ — CEO Center live", "toastSaveFailed": "Ajiyewa ta kasa: {error}",
+      "toastGetGPSFirst": "Samo GPS da farko", "toastLocationSaved": "An ajiye wuri ✅ — CEO Center live",
+      "toastFillPass": "Cika duk filayen kalmar sirri", "toastPassMin6": "Sabuwar kalmar sirri min haruffa 6", "toastPassMismatch": "Kalmomin sirri ba su dace ba",
+      "toastPassUpdated": "An sabunta kalmar sirri ✅", "toastPassFailed": "Canja kalmar sirri ta kasa: {error}",
+      "toastSelectReason": "Zaɓi dalili", "toastCheckBoxes": "Duba akwatuna biyu", "toastEnterPass": "Shigar da kalmar sirri",
+      "toastDeleted": "An share asusun — Ana turawa...", "toastDeleteFailed": "Sharewa ta kasa: {error}",
+    },
+    "ru": {
+      "title": "Настройки Медсестры", "sos": "SOS",
+      "photoCard": "📸 Фото Профиля", "uploadPhoto": "Загрузить Новое Фото",
+      "notLoggedIn": "● Не вошли", "loggedInAs": "● Вошли как {email}",
+      "docsCard": "📄 Документы — Резюме / Видео / Сертификат / Лицензия",
+      "uploaded": "✅ Загружено", "notUploaded": "Ещё не загружено",
+      "uploadCV": "Загрузить РЕЗЮМЕ (max 10MB)", "uploadVideo": "Загрузить ВИДЕО (max 50MB)",
+      "uploadCert": "Загрузить СЕРТИФИКАТ (max 10MB)", "uploadLicense": "Загрузить ЛИЦЕНЗИЮ (max 10MB)",
+      "emailCard": "📧 Сменить Email", "currentEmail": "Текущий: {email}",
+      "newEmail": "Новый Email", "emailPassConfirm": "Текущий Пароль Для Подтверждения", "changeEmailBtn": "Сменить Email",
+      "phoneCard": "📱 Телефон & Имя", "displayName": "Отображаемое Имя", "newPhone": "Новый Телефон", "updatePhoneName": "Обновить Телефон & Имя",
+      "infoCard": "🩺 Информация Медсестры", "specialty": "Специальность", "country": "Страна",
+      "ghana": "Гана", "usa": "США", "uk": "Великобритания", "other": "Другое",
+      "bio": "Био", "priceShort": "Цена Короткая", "priceLong": "Цена Длинная", "workHours": "Рабочие Часы",
+      "availability": "Доступность", "available": "Доступна", "busy": "Занята", "offline": "Офлайн", "saveInfo": "Сохранить Инфо",
+      "gpsCard": "📍 GPS Местоположение", "gpsName": "Имя GPS Местоположения", "lat": "Шир", "lng": "Дол",
+      "getGPS": "Получить GPS", "saveLocation": "Сохранить Местоположение", "locating": "Определение...", "enableGPS": "Включить GPS",
+      "passCard": "🔒 Сменить Пароль", "curPass": "Текущий Пароль", "newPass": "Новый Пароль (min 6)", "confirmPass": "Подтвердить Новый Пароль", "changePassBtn": "Сменить Пароль",
+      "deleteCard": "🗑️ Удалить Аккаунт", "reason": "Причина", "leaving": "Ухожу", "noBookings": "Нет бронирований", "privacy": "Конфиденциальность",
+      "details": "Детали (необязательно)", "deletePass": "Пароль Для Подтверждения",
+      "confirmDelete1": "Я понимаю, что мой аккаунт будет удалён", "confirmDelete2": "Я понимаю, что мои данные будут удалены",
+      "deleteAccountBtn": "Удалить Аккаунт", "deleteConfirmTitle": "Удалить аккаунт по причине: {reason}?",
+      "cancel": "Отмена", "delete": "Удалить",
+      "toastLogin": "Требуется вход", "toastLoginUpload": "Требуется вход для загрузки",
+      "toastSelectPhoto": "Сначала выберите фото", "toastUploadingPhoto": "Загрузка фото...",
+      "toastPhotoUpdated": "Фото обновлено ✅ — CEO Center live", "toastUploadFailed": "Загрузка не удалась: {error}",
+      "toastSelectFile": "Выберите файл для {type}", "toastTooLarge": "Файл слишком большой >{mb} MB",
+      "toastDocUploaded": "{type} загружен ✅ — CEO Center live",
+      "toastEnterNewEmail": "Введите новый email", "toastEnterPassConfirm": "Введите текущий пароль для подтверждения",
+      "toastEmailUpdated": "Email обновлён — войдите снова — CEO Center live", "toastEmailFailed": "Смена email не удалась: {error}",
+      "toastEnterPhoneName": "Введите телефон или имя", "toastPhoneUpdated": "Телефон & имя обновлены ✅ — CEO Center live", "toastUpdateFailed": "Обновление не удалось: {error}",
+      "toastInfoSaved": "Информация сохранена ✅ — CEO Center live", "toastSaveFailed": "Сохранение не удалось: {error}",
+      "toastGetGPSFirst": "Сначала получите GPS", "toastLocationSaved": "Местоположение сохранено ✅ — CEO Center live",
+      "toastFillPass": "Заполните все поля пароля", "toastPassMin6": "Новый пароль min 6 символов", "toastPassMismatch": "Пароли не совпадают",
+      "toastPassUpdated": "Пароль обновлён ✅", "toastPassFailed": "Смена пароля не удалась: {error}",
+      "toastSelectReason": "Выберите причину", "toastCheckBoxes": "Отметьте оба флажка", "toastEnterPass": "Введите пароль",
+      "toastDeleted": "Аккаунт удалён — Перенаправление...", "toastDeleteFailed": "Удаление не удалось: {error}",
+    },
+    "tr": {
+      "title": "Hemşire Ayarları", "sos": "SOS",
+      "photoCard": "📸 Profil Fotoğrafı", "uploadPhoto": "Yeni Fotoğraf Yükle",
+      "notLoggedIn": "● Giriş yapılmadı", "loggedInAs": "● {email} olarak giriş yapıldı",
+      "docsCard": "📄 Belgeler — CV / Video / Sertifika / Lisans",
+      "uploaded": "✅ Yüklendi", "notUploaded": "Henüz yüklenmedi",
+      "uploadCV": "CV Yükle (max 10MB)", "uploadVideo": "VİDEO Yükle (max 50MB)",
+      "uploadCert": "SERTİFİKA Yükle (max 10MB)", "uploadLicense": "LİSANS Yükle (max 10MB)",
+      "emailCard": "📧 E-posta Değiştir", "currentEmail": "Mevcut: {email}",
+      "newEmail": "Yeni E-posta", "emailPassConfirm": "Onay İçin Mevcut Şifre", "changeEmailBtn": "E-posta Değiştir",
+      "phoneCard": "📱 Telefon & İsim", "displayName": "Görünen İsim", "newPhone": "Yeni Telefon", "updatePhoneName": "Telefon & İsim Güncelle",
+      "infoCard": "🩺 Hemşire Bilgisi", "specialty": "Uzmanlık", "country": "Ülke",
+      "ghana": "Gana", "usa": "ABD", "uk": "İngiltere", "other": "Diğer",
+      "bio": "Biyografi", "priceShort": "Kısa Fiyat", "priceLong": "Uzun Fiyat", "workHours": "Çalışma Saatleri",
+      "availability": "Müsaitlik", "available": "Müsait", "busy": "Meşgul", "offline": "Çevrimdışı", "saveInfo": "Bilgi Kaydet",
+      "gpsCard": "📍 GPS Konumu", "gpsName": "GPS Konum Adı", "lat": "Enlem", "lng": "Boylam",
+      "getGPS": "GPS Al", "saveLocation": "Konum Kaydet", "locating": "Bulunuyor...", "enableGPS": "GPS Etkinleştir",
+      "passCard": "🔒 Şifre Değiştir", "curPass": "Mevcut Şifre", "newPass": "Yeni Şifre (min 6)", "confirmPass": "Yeni Şifreyi Onayla", "changePassBtn": "Şifre Değiştir",
+      "deleteCard": "🗑️ Hesabı Sil", "reason": "Neden", "leaving": "Ayrılıyorum", "noBookings": "Rezervasyon alamıyorum", "privacy": "Gizlilik",
+      "details": "Detaylar (isteğe bağlı)", "deletePass": "Onay İçin Şifre",
+      "confirmDelete1": "Hesabımın silineceğini anlıyorum", "confirmDelete2": "Verilerimin kaldırılacağını anlıyorum",
+      "deleteAccountBtn": "Hesabı Sil", "deleteConfirmTitle": "Hesabı şu nedenle sil: {reason}?",
+      "cancel": "İptal", "delete": "Sil",
+      "toastLogin": "Giriş gerekli", "toastLoginUpload": "Yüklemek için giriş gerekli",
+      "toastSelectPhoto": "Önce bir fotoğraf seçin", "toastUploadingPhoto": "Fotoğraf yükleniyor...",
+      "toastPhotoUpdated": "Fotoğraf güncellendi ✅ — CEO Center live", "toastUploadFailed": "Yükleme başarısız: {error}",
+      "toastSelectFile": "{type} için dosya seçin", "toastTooLarge": "Dosya çok büyük >{mb} MB",
+      "toastDocUploaded": "{type} yüklendi ✅ — CEO Center live",
+      "toastEnterNewEmail": "Yeni e-posta girin", "toastEnterPassConfirm": "Onay için mevcut şifreyi girin",
+      "toastEmailUpdated": "E-posta güncellendi — lütfen tekrar giriş yapın — CEO Center live", "toastEmailFailed": "E-posta değiştirme başarısız: {error}",
+      "toastEnterPhoneName": "Telefon veya isim girin", "toastPhoneUpdated": "Telefon & isim güncellendi ✅ — CEO Center live", "toastUpdateFailed": "Güncelleme başarısız: {error}",
+      "toastInfoSaved": "Bilgi kaydedildi ✅ — CEO Center live", "toastSaveFailed": "Kaydetme başarısız: {error}",
+      "toastGetGPSFirst": "Önce GPS alın", "toastLocationSaved": "Konum kaydedildi ✅ — CEO Center live",
+      "toastFillPass": "Tüm şifre alanlarını doldurun", "toastPassMin6": "Yeni şifre min 6 karakter", "toastPassMismatch": "Şifreler eşleşmiyor",
+      "toastPassUpdated": "Şifre güncellendi ✅", "toastPassFailed": "Şifre değiştirme başarısız: {error}",
+      "toastSelectReason": "Bir neden seçin", "toastCheckBoxes": "Her iki kutuyu işaretleyin", "toastEnterPass": "Şifre girin",
+      "toastDeleted": "Hesap silindi — Yönlendiriliyor...", "toastDeleteFailed": "Silme başarısız: {error}",
+    },
+    "ko": {
+      "title": "간호사 설정", "sos": "SOS",
+      "photoCard": "📸 프로필 사진", "uploadPhoto": "새 사진 업로드",
+      "notLoggedIn": "● 로그인 안 됨", "loggedInAs": "● {email}로 로그인됨",
+      "docsCard": "📄 문서 — 이력서 / 비디오 / 인증서 / 면허",
+      "uploaded": "✅ 업로드됨", "notUploaded": "아직 업로드 안 됨",
+      "uploadCV": "이력서 업로드 (max 10MB)", "uploadVideo": "비디오 업로드 (max 50MB)",
+      "uploadCert": "인증서 업로드 (max 10MB)", "uploadLicense": "면허 업로드 (max 10MB)",
+      "emailCard": "📧 이메일 변경", "currentEmail": "현재: {email}",
+      "newEmail": "새 이메일", "emailPassConfirm": "확인을 위한 현재 비밀번호", "changeEmailBtn": "이메일 변경",
+      "phoneCard": "📱 전화 & 이름", "displayName": "표시 이름", "newPhone": "새 전화", "updatePhoneName": "전화 & 이름 업데이트",
+      "infoCard": "🩺 간호사 정보", "specialty": "전문", "country": "국가",
+      "ghana": "가나", "usa": "미국", "uk": "영국", "other": "기타",
+      "bio": "소개", "priceShort": "단기 가격", "priceLong": "장기 가격", "workHours": "근무 시간",
+      "availability": "이용 가능 여부", "available": "이용 가능", "busy": "바쁨", "offline": "오프라인", "saveInfo": "정보 저장",
+      "gpsCard": "📍 GPS 위치", "gpsName": "GPS 위치 이름", "lat": "위도", "lng": "경도",
+      "getGPS": "GPS 가져오기", "saveLocation": "위치 저장", "locating": "찾는 중...", "enableGPS": "GPS 활성화",
+      "passCard": "🔒 비밀번호 변경", "curPass": "현재 비밀번호", "newPass": "새 비밀번호 (min 6)", "confirmPass": "새 비밀번호 확인", "changePassBtn": "비밀번호 변경",
+      "deleteCard": "🗑️ 계정 삭제", "reason": "이유", "leaving": "떠남", "noBookings": "예약이 없음", "privacy": "개인정보",
+      "details": "세부사항 (선택)", "deletePass": "확인을 위한 비밀번호",
+      "confirmDelete1": "내 계정이 삭제됨을 이해합니다", "confirmDelete2": "내 데이터가 제거됨을 이해합니다",
+      "deleteAccountBtn": "계정 삭제", "deleteConfirmTitle": "이유로 계정 삭제: {reason}?",
+      "cancel": "취소", "delete": "삭제",
+      "toastLogin": "로그인 필요", "toastLoginUpload": "업로드하려면 로그인 필요",
+      "toastSelectPhoto": "먼저 사진 선택", "toastUploadingPhoto": "사진 업로드 중...",
+      "toastPhotoUpdated": "사진 업데이트됨 ✅ — CEO Center live", "toastUploadFailed": "업로드 실패: {error}",
+      "toastSelectFile": "{type}에 대한 파일 선택", "toastTooLarge": "파일이 너무 큼 >{mb} MB",
+      "toastDocUploaded": "{type} 업로드됨 ✅ — CEO Center live",
+      "toastEnterNewEmail": "새 이메일 입력", "toastEnterPassConfirm": "확인을 위해 현재 비밀번호 입력",
+      "toastEmailUpdated": "이메일 업데이트됨 — 다시 로그인하세요 — CEO Center live", "toastEmailFailed": "이메일 변경 실패: {error}",
+      "toastEnterPhoneName": "전화 또는 이름 입력", "toastPhoneUpdated": "전화 & 이름 업데이트됨 ✅ — CEO Center live", "toastUpdateFailed": "업데이트 실패: {error}",
+      "toastInfoSaved": "간호사 정보 저장됨 ✅ — CEO Center live", "toastSaveFailed": "저장 실패: {error}",
+      "toastGetGPSFirst": "먼저 GPS 가져오기", "toastLocationSaved": "위치 저장됨 ✅ — CEO Center live",
+      "toastFillPass": "모든 비밀번호 필드 채우기", "toastPassMin6": "새 비밀번호 최소 6자", "toastPassMismatch": "비밀번호가 일치하지 않음",
+      "toastPassUpdated": "비밀번호 업데이트됨 ✅", "toastPassFailed": "비밀번호 변경 실패: {error}",
+      "toastSelectReason": "이유 선택", "toastCheckBoxes": "두 상자 모두 체크", "toastEnterPass": "비밀번호 입력",
+      "toastDeleted": "계정 삭제됨 — 리디렉션 중...", "toastDeleteFailed": "삭제 실패: {error}",
+    },
+    "ja": {
+      "title": "看護師設定", "sos": "SOS",
+      "photoCard": "📸 プロフィール写真", "uploadPhoto": "新しい写真をアップロード",
+      "notLoggedIn": "● ログインしていません", "loggedInAs": "● {email} としてログイン",
+      "docsCard": "📄 書類 — 履歴書 / ビデオ / 証明書 / 免許",
+      "uploaded": "✅ アップロード済み", "notUploaded": "まだアップロードされていません",
+      "uploadCV": "履歴書をアップロード (max 10MB)", "uploadVideo": "ビデオをアップロード (max 50MB)",
+      "uploadCert": "証明書をアップロード (max 10MB)", "uploadLicense": "免許をアップロード (max 10MB)",
+      "emailCard": "📧 メールを変更", "currentEmail": "現在: {email}",
+      "newEmail": "新しいメール", "emailPassConfirm": "確認のための現在のパスワード", "changeEmailBtn": "メールを変更",
+      "phoneCard": "📱 電話 & 名前", "displayName": "表示名", "newPhone": "新しい電話", "updatePhoneName": "電話 & 名前を更新",
+      "infoCard": "🩺 看護師情報", "specialty": "専門", "country": "国",
+      "ghana": "ガーナ", "usa": "アメリカ", "uk": "イギリス", "other": "その他",
+      "bio": "自己紹介", "priceShort": "短期価格", "priceLong": "長期価格", "workHours": "勤務時間",
+      "availability": "可用性", "available": "利用可能", "busy": "忙しい", "offline": "オフライン", "saveInfo": "情報を保存",
+      "gpsCard": "📍 GPS 位置", "gpsName": "GPS 位置名", "lat": "緯度", "lng": "経度",
+      "getGPS": "GPS を取得", "saveLocation": "位置を保存", "locating": "測位中...", "enableGPS": "GPS を有効化",
+      "passCard": "🔒 パスワードを変更", "curPass": "現在のパスワード", "newPass": "新しいパスワード (min 6)", "confirmPass": "新しいパスワードを確認", "changePassBtn": "パスワードを変更",
+      "deleteCard": "🗑️ アカウントを削除", "reason": "理由", "leaving": "退会", "noBookings": "予約が来ない", "privacy": "プライバシー",
+      "details": "詳細 (任意)", "deletePass": "確認のためのパスワード",
+      "confirmDelete1": "アカウントが削除されることを理解しています", "confirmDelete2": "データが削除されることを理解しています",
+      "deleteAccountBtn": "アカウントを削除", "deleteConfirmTitle": "理由でアカウントを削除: {reason}?",
+      "cancel": "キャンセル", "delete": "削除",
+      "toastLogin": "ログインが必要です", "toastLoginUpload": "アップロードにはログインが必要です",
+      "toastSelectPhoto": "まず写真を選択", "toastUploadingPhoto": "写真をアップロード中...",
+      "toastPhotoUpdated": "写真が更新されました ✅ — CEO Center live", "toastUploadFailed": "アップロード失敗: {error}",
+      "toastSelectFile": "{type} のファイルを選択", "toastTooLarge": "ファイルが大きすぎます >{mb} MB",
+      "toastDocUploaded": "{type} がアップロードされました ✅ — CEO Center live",
+      "toastEnterNewEmail": "新しいメールを入力", "toastEnterPassConfirm": "確認のため現在のパスワードを入力",
+      "toastEmailUpdated": "メールが更新されました — 再ログインしてください — CEO Center live", "toastEmailFailed": "メール変更失敗: {error}",
+      "toastEnterPhoneName": "電話または名前を入力", "toastPhoneUpdated": "電話 & 名前が更新されました ✅ — CEO Center live", "toastUpdateFailed": "更新失敗: {error}",
+      "toastInfoSaved": "看護師情報が保存されました ✅ — CEO Center live", "toastSaveFailed": "保存失敗: {error}",
+      "toastGetGPSFirst": "まず GPS を取得", "toastLocationSaved": "位置が保存されました ✅ — CEO Center live",
+      "toastFillPass": "すべてのパスワード欄を入力", "toastPassMin6": "新しいパスワードは min 6 文字", "toastPassMismatch": "パスワードが一致しません",
+      "toastPassUpdated": "パスワードが更新されました ✅", "toastPassFailed": "パスワード変更失敗: {error}",
+      "toastSelectReason": "理由を選択", "toastCheckBoxes": "両方のボックスにチェック", "toastEnterPass": "パスワードを入力",
+      "toastDeleted": "アカウントが削除されました — リダイレクト中...", "toastDeleteFailed": "削除失敗: {error}",
+    },
+    "pl": {
+      "title": "Ustawienia Pielęgniarki", "sos": "SOS",
+      "photoCard": "📸 Zdjęcie Profilowe", "uploadPhoto": "Prześlij Nowe Zdjęcie",
+      "notLoggedIn": "● Nie zalogowana", "loggedInAs": "● Zalogowana jako {email}",
+      "docsCard": "📄 Dokumenty — CV / Wideo / Certyfikat / Licencja",
+      "uploaded": "✅ Przesłano", "notUploaded": "Jeszcze nie przesłano",
+      "uploadCV": "Prześlij CV (max 10MB)", "uploadVideo": "Prześlij WIDEO (max 50MB)",
+      "uploadCert": "Prześlij CERTYFIKAT (max 10MB)", "uploadLicense": "Prześlij LICENCJĘ (max 10MB)",
+      "emailCard": "📧 Zmień Email", "currentEmail": "Aktualny: {email}",
+      "newEmail": "Nowy Email", "emailPassConfirm": "Aktualne Hasło Do Potwierdzenia", "changeEmailBtn": "Zmień Email",
+      "phoneCard": "📱 Telefon & Imię", "displayName": "Wyświetlane Imię", "newPhone": "Nowy Telefon", "updatePhoneName": "Aktualizuj Telefon & Imię",
+      "infoCard": "🩺 Info Pielęgniarki", "specialty": "Specjalność", "country": "Kraj",
+      "ghana": "Ghana", "usa": "USA", "uk": "UK", "other": "Inne",
+      "bio": "Bio", "priceShort": "Cena Krótka", "priceLong": "Cena Długa", "workHours": "Godziny Pracy",
+      "availability": "Dostępność", "available": "Dostępna", "busy": "Zajęta", "offline": "Offline", "saveInfo": "Zapisz Info",
+      "gpsCard": "📍 Lokalizacja GPS", "gpsName": "Nazwa Lokalizacji GPS", "lat": "Szer", "lng": "Dł",
+      "getGPS": "Pobierz GPS", "saveLocation": "Zapisz Lokalizację", "locating": "Lokalizowanie...", "enableGPS": "Włącz GPS",
+      "passCard": "🔒 Zmień Hasło", "curPass": "Aktualne Hasło", "newPass": "Nowe Hasło (min 6)", "confirmPass": "Potwierdź Nowe Hasło", "changePassBtn": "Zmień Hasło",
+      "deleteCard": "🗑️ Usuń Konto", "reason": "Powód", "leaving": "Odchodzę", "noBookings": "Brak rezerwacji", "privacy": "Prywatność",
+      "details": "Szczegóły (opcjonalnie)", "deletePass": "Hasło Do Potwierdzenia",
+      "confirmDelete1": "Rozumiem, że moje konto zostanie usunięte", "confirmDelete2": "Rozumiem, że moje dane zostaną usunięte",
+      "deleteAccountBtn": "Usuń Konto", "deleteConfirmTitle": "Usunąć konto z powodu: {reason}?",
+      "cancel": "Anuluj", "delete": "Usuń",
+      "toastLogin": "Wymagane logowanie", "toastLoginUpload": "Wymagane logowanie do przesłania",
+      "toastSelectPhoto": "Wybierz najpierw zdjęcie", "toastUploadingPhoto": "Przesyłanie zdjęcia...",
+      "toastPhotoUpdated": "Zdjęcie zaktualizowane ✅ — CEO Center live", "toastUploadFailed": "Przesyłanie nieudane: {error}",
+      "toastSelectFile": "Wybierz plik dla {type}", "toastTooLarge": "Plik za duży >{mb} MB",
+      "toastDocUploaded": "{type} przesłano ✅ — CEO Center live",
+      "toastEnterNewEmail": "Wpisz nowy email", "toastEnterPassConfirm": "Wpisz aktualne hasło do potwierdzenia",
+      "toastEmailUpdated": "Email zaktualizowany — zaloguj ponownie — CEO Center live", "toastEmailFailed": "Zmiana email nieudana: {error}",
+      "toastEnterPhoneName": "Wpisz telefon lub imię", "toastPhoneUpdated": "Telefon & imię zaktualizowane ✅ — CEO Center live", "toastUpdateFailed": "Aktualizacja nieudana: {error}",
+      "toastInfoSaved": "Info zapisane ✅ — CEO Center live", "toastSaveFailed": "Zapisywanie nieudane: {error}",
+      "toastGetGPSFirst": "Najpierw pobierz GPS", "toastLocationSaved": "Lokalizacja zapisana ✅ — CEO Center live",
+      "toastFillPass": "Wypełnij wszystkie pola hasła", "toastPassMin6": "Nowe hasło min 6 znaków", "toastPassMismatch": "Hasła nie pasują",
+      "toastPassUpdated": "Hasło zaktualizowane ✅", "toastPassFailed": "Zmiana hasła nieudana: {error}",
+      "toastSelectReason": "Wybierz powód", "toastCheckBoxes": "Zaznacz oba pola", "toastEnterPass": "Wpisz hasło",
+      "toastDeleted": "Konto usunięte — Przekierowanie...", "toastDeleteFailed": "Usunięcie nieudane: {error}",
+    },
+  };
 }
