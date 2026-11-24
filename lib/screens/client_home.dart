@@ -1,547 +1,485 @@
-// client_home_translations.dart
-// FILE 5 - Client Home - ONLY SCREEN WORDS - ALL 22 LANGUAGES
-// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
-// ONE FILE - Drop in lib/screens
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
-class ClientHomeTranslations {
-  static const Map<String, Map<String, String>> all = {
+class ClientHomePage extends StatefulWidget {
+  const ClientHomePage({super.key});
 
-    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
-    "en": {
-      "hello": "Hello {name} 👋",
-      "clientDefault": "Client",
-      "activeTotal": "📋 {active} Active Booking(s) • {total} Total",
-      "whatNeed": "What do you need today?",
-      "bookNurse": "Book Nurse",
-      "myBookings": "My Bookings",
-      "messages": "Messages",
-      "myProfile": "My Profile",
-      "bookingsCount": "{count} bookings",
-      "noBookings": "No bookings yet",
-      "bookFirst": "Book your first nurse to get started",
-      "nurseDefault": "Nurse",
-      "homeCare": "Home Care",
-      "statusPending": "Pending",
-      "statusAccepted": "Accepted",
-      "statusCompleted": "Completed",
-      "statusCancelled": "Cancelled",
-      "statusRejected": "Rejected",
-      "statusArrived": "Arrived",
-    },
+  @override
+  State<ClientHomePage> createState() => _ClientHomePageState();
+}
 
-    // 2. TWI - CLIENT + NURSE ONLY
-    "tw": {
-      "hello": "Maakye {name} 👋",
-      "clientDefault": "Ɔkra",
-      "activeTotal": "📋 {active} Booking A Ɛrekɔ So • {total} Nyina",
-      "whatNeed": "Dɛn na wohia nnɛ?",
-      "bookNurse": "Kra Nɛɛse",
-      "myBookings": "Me Bookings",
-      "messages": "Nkrasɛm",
-      "myProfile": "Me Profile",
-      "bookingsCount": "Bookings {count}",
-      "noBookings": "Booking biara nni hɔ da",
-      "bookFirst": "Kra wo nɛɛse a edi kan na hyɛ ase",
-      "nurseDefault": "Nɛɛse",
-      "homeCare": "Fie Hwɛ",
-      "statusPending": "Rɛtwɛn",
-      "statusAccepted": "Wɔagye",
-      "statusCompleted": "Awiei",
-      "statusCancelled": "Wɔagyae",
-      "statusRejected": "Wɔapo",
-      "statusArrived": "Woadu",
-    },
+class _ClientHomePageState extends State<ClientHomePage> {
+  bool _isLoading = true;
+  String clientName = '';
+  String clientPhone = '';
+  String clientEmail = '';
+  String clientId = '';
+  String clientPhoto = ''; // NEW: client own photo
 
-    // 3. GA
-    "ga": {
-      "hello": "Otsa {name} 👋",
-      "clientDefault": "Mɔ",
-      "activeTotal": "📋 {active} Booking Nɔ Yɛ Nitsumɔ Mli • {total} Fɛɛ",
-      "whatNeed": "Mɛni ohia ŋmɛnɛ?",
-      "bookNurse": "Hala Nɛɛse",
-      "myBookings": "Mi Bookings",
-      "messages": "Sane",
-      "myProfile": "Mi Profile",
-      "bookingsCount": "Bookings {count}",
-      "noBookings": "Booking ko bɛ da",
-      "bookFirst": "Hala o nɛɛse klɛŋklɛŋ koni oshishi",
-      "nurseDefault": "Nɛɛse",
-      "homeCare": "Shia Nɔkwɛmɔ",
-      "statusPending": "Miihwɛ",
-      "statusAccepted": "Ahee",
-      "statusCompleted": "Egbo",
-      "statusCancelled": "Afo",
-      "statusRejected": "Akoo",
-      "statusArrived": "Eshɛ",
-    },
+  List<Map<String, dynamic>> myBookings = [];
+  int activeCount = 0;
 
-    // 4. EWE
-    "ee": {
-      "hello": "Ŋdi {name} 👋",
-      "clientDefault": "Ame",
-      "activeTotal": "📋 {active} Booking Si Le Dɔ Wɔm • {total} Kata",
-      "whatNeed": "Nuka nèhiã egbe?",
-      "bookNurse": "Bia Nɔnɔvia",
-      "myBookings": "Nye Bookings",
-      "messages": "Nyatakaka",
-      "myProfile": "Nye Profile",
-      "bookingsCount": "Bookings {count}",
-      "noBookings": "Booking aɖeke meli o",
-      "bookFirst": "Bia wò nɔnɔvia gbãtɔ be nàdze egɔme",
-      "nurseDefault": "Nɔnɔvia",
-      "homeCare": "Aƒe Me Kpɔkpli",
-      "statusPending": "Le Lalam",
-      "statusAccepted": "Wolɔ̃",
-      "statusCompleted": "Wu",
-      "statusCancelled": "Woɖe Ða",
-      "statusRejected": "Wogbe",
-      "statusArrived": "Woɖo",
-    },
-
-    // 5. DUTCH
-    "nl": {
-      "hello": "Hoi {name} 👋",
-      "clientDefault": "Klant",
-      "activeTotal": "📋 {active} Actieve Boeking(en) • {total} Totaal",
-      "whatNeed": "Wat heb je vandaag nodig?",
-      "bookNurse": "Boek Verpleegkundige",
-      "myBookings": "Mijn Boekingen",
-      "messages": "Berichten",
-      "myProfile": "Mijn Profiel",
-      "bookingsCount": "{count} boekingen",
-      "noBookings": "Nog geen boekingen",
-      "bookFirst": "Boek je eerste verpleegkundige om te starten",
-      "nurseDefault": "Verpleegkundige",
-      "homeCare": "Thuiszorg",
-      "statusPending": "In afwachting",
-      "statusAccepted": "Geaccepteerd",
-      "statusCompleted": "Voltooid",
-      "statusCancelled": "Geannuleerd",
-      "statusRejected": "Geweigerd",
-      "statusArrived": "Aangekomen",
-    },
-
-    // 6. FRENCH
-    "fr": {
-      "hello": "Bonjour {name} 👋",
-      "clientDefault": "Client",
-      "activeTotal": "📋 {active} Réservation(s) Active(s) • {total} Total",
-      "whatNeed": "De quoi avez-vous besoin aujourd'hui?",
-      "bookNurse": "Réserver Infirmière",
-      "myBookings": "Mes Réservations",
-      "messages": "Messages",
-      "myProfile": "Mon Profil",
-      "bookingsCount": "{count} réservations",
-      "noBookings": "Aucune réservation pour l'instant",
-      "bookFirst": "Réservez votre première infirmière pour commencer",
-      "nurseDefault": "Infirmière",
-      "homeCare": "Soins à Domicile",
-      "statusPending": "En attente",
-      "statusAccepted": "Acceptée",
-      "statusCompleted": "Terminée",
-      "statusCancelled": "Annulée",
-      "statusRejected": "Refusée",
-      "statusArrived": "Arrivée",
-    },
-
-    // 7. GERMAN
-    "de": {
-      "hello": "Hallo {name} 👋",
-      "clientDefault": "Kunde",
-      "activeTotal": "📋 {active} Aktive Buchung(en) • {total} Gesamt",
-      "whatNeed": "Was brauchst du heute?",
-      "bookNurse": "Krankenschwester Buchen",
-      "myBookings": "Meine Buchungen",
-      "messages": "Nachrichten",
-      "myProfile": "Mein Profil",
-      "bookingsCount": "{count} Buchungen",
-      "noBookings": "Noch keine Buchungen",
-      "bookFirst": "Buche deine erste Krankenschwester zum Starten",
-      "nurseDefault": "Krankenschwester",
-      "homeCare": "Häusliche Pflege",
-      "statusPending": "Ausstehend",
-      "statusAccepted": "Angenommen",
-      "statusCompleted": "Abgeschlossen",
-      "statusCancelled": "Abgebrochen",
-      "statusRejected": "Abgelehnt",
-      "statusArrived": "Angekommen",
-    },
-
-    // 8. SPANISH
-    "es": {
-      "hello": "Hola {name} 👋",
-      "clientDefault": "Cliente",
-      "activeTotal": "📋 {active} Reserva(s) Activa(s) • {total} Total",
-      "whatNeed": "¿Qué necesitas hoy?",
-      "bookNurse": "Reservar Enfermera",
-      "myBookings": "Mis Reservas",
-      "messages": "Mensajes",
-      "myProfile": "Mi Perfil",
-      "bookingsCount": "{count} reservas",
-      "noBookings": "Aún no hay reservas",
-      "bookFirst": "Reserva tu primera enfermera para empezar",
-      "nurseDefault": "Enfermera",
-      "homeCare": "Cuidado En Casa",
-      "statusPending": "Pendiente",
-      "statusAccepted": "Aceptada",
-      "statusCompleted": "Completada",
-      "statusCancelled": "Cancelada",
-      "statusRejected": "Rechazada",
-      "statusArrived": "Llegó",
-    },
-
-    // 9. ITALIAN
-    "it": {
-      "hello": "Ciao {name} 👋",
-      "clientDefault": "Cliente",
-      "activeTotal": "📋 {active} Prenotazione(i) Attiva(e) • {total} Totale",
-      "whatNeed": "Di cosa hai bisogno oggi?",
-      "bookNurse": "Prenota Infermiera",
-      "myBookings": "Le Mie Prenotazioni",
-      "messages": "Messaggi",
-      "myProfile": "Il Mio Profilo",
-      "bookingsCount": "{count} prenotazioni",
-      "noBookings": "Ancora nessuna prenotazione",
-      "bookFirst": "Prenota la tua prima infermiera per iniziare",
-      "nurseDefault": "Infermiera",
-      "homeCare": "Assistenza Domiciliare",
-      "statusPending": "In attesa",
-      "statusAccepted": "Accettata",
-      "statusCompleted": "Completata",
-      "statusCancelled": "Annullata",
-      "statusRejected": "Rifiutata",
-      "statusArrived": "Arrivata",
-    },
-
-    // 10. PORTUGUESE
-    "pt": {
-      "hello": "Olá {name} 👋",
-      "clientDefault": "Cliente",
-      "activeTotal": "📋 {active} Reserva(s) Ativa(s) • {total} Total",
-      "whatNeed": "Do que você precisa hoje?",
-      "bookNurse": "Reservar Enfermeira",
-      "myBookings": "Minhas Reservas",
-      "messages": "Mensagens",
-      "myProfile": "Meu Perfil",
-      "bookingsCount": "{count} reservas",
-      "noBookings": "Ainda sem reservas",
-      "bookFirst": "Reserve sua primeira enfermeira para começar",
-      "nurseDefault": "Enfermeira",
-      "homeCare": "Cuidado Domiciliar",
-      "statusPending": "Pendente",
-      "statusAccepted": "Aceita",
-      "statusCompleted": "Concluída",
-      "statusCancelled": "Cancelada",
-      "statusRejected": "Recusada",
-      "statusArrived": "Chegou",
-    },
-
-    // 11. ARABIC
-    "ar": {
-      "hello": "مرحباً {name} 👋",
-      "clientDefault": "عميل",
-      "activeTotal": "📋 {active} حجز نشط • {total} الإجمالي",
-      "whatNeed": "ماذا تحتاج اليوم؟",
-      "bookNurse": "حجز ممرضة",
-      "myBookings": "حجوزاتي",
-      "messages": "الرسائل",
-      "myProfile": "ملفي",
-      "bookingsCount": "{count} حجوزات",
-      "noBookings": "لا حجوزات بعد",
-      "bookFirst": "احجز ممرضتك الأولى للبدء",
-      "nurseDefault": "ممرضة",
-      "homeCare": "رعاية منزلية",
-      "statusPending": "قيد الانتظار",
-      "statusAccepted": "مقبولة",
-      "statusCompleted": "مكتملة",
-      "statusCancelled": "ملغاة",
-      "statusRejected": "مرفوضة",
-      "statusArrived": "وصلت",
-    },
-
-    // 12. CHINESE
-    "zh": {
-      "hello": "你好 {name} 👋",
-      "clientDefault": "客户",
-      "activeTotal": "📋 {active} 个进行中的预订 • 共 {total} 个",
-      "whatNeed": "今天需要什么？",
-      "bookNurse": "预订护士",
-      "myBookings": "我的预订",
-      "messages": "消息",
-      "myProfile": "我的资料",
-      "bookingsCount": "{count} 个预订",
-      "noBookings": "暂无预订",
-      "bookFirst": "预订您的第一位护士开始吧",
-      "nurseDefault": "护士",
-      "homeCare": "居家护理",
-      "statusPending": "待处理",
-      "statusAccepted": "已接受",
-      "statusCompleted": "已完成",
-      "statusCancelled": "已取消",
-      "statusRejected": "已拒绝",
-      "statusArrived": "已到达",
-    },
-
-    // 13. HINDI
-    "hi": {
-      "hello": "नमस्ते {name} 👋",
-      "clientDefault": "ग्राहक",
-      "activeTotal": "📋 {active} सक्रिय बुकिंग • कुल {total}",
-      "whatNeed": "आज आपको क्या चाहिए?",
-      "bookNurse": "नर्स बुक करें",
-      "myBookings": "मेरी बुकिंग",
-      "messages": "संदेश",
-      "myProfile": "मेरी प्रोफाइल",
-      "bookingsCount": "{count} बुकिंग",
-      "noBookings": "अभी कोई बुकिंग नहीं",
-      "bookFirst": "शुरू करने के लिए अपनी पहली नर्स बुक करें",
-      "nurseDefault": "नर्स",
-      "homeCare": "होम केयर",
-      "statusPending": "लंबित",
-      "statusAccepted": "स्वीकृत",
-      "statusCompleted": "पूर्ण",
-      "statusCancelled": "रद्द",
-      "statusRejected": "अस्वीकृत",
-      "statusArrived": "पहुंची",
-    },
-
-    // 14. SWAHILI
-    "sw": {
-      "hello": "Habari {name} 👋",
-      "clientDefault": "Mteja",
-      "activeTotal": "📋 {active} Booking Zinazoendelea • Jumla {total}",
-      "whatNeed": "Unahitaji nini leo?",
-      "bookNurse": "Weka Muuguzi",
-      "myBookings": "Booking Zangu",
-      "messages": "Ujumbe",
-      "myProfile": "Wasifu Wangu",
-      "bookingsCount": "Booking {count}",
-      "noBookings": "Bado hakuna booking",
-      "bookFirst": "Weka muuguzi wako wa kwanza kuanza",
-      "nurseDefault": "Muuguzi",
-      "homeCare": "Huduma Ya Nyumbani",
-      "statusPending": "Inasubiri",
-      "statusAccepted": "Imekubaliwa",
-      "statusCompleted": "Imekamilika",
-      "statusCancelled": "Imeghairiwa",
-      "statusRejected": "Imekataliwa",
-      "statusArrived": "Amewasili",
-    },
-
-    // 15. YORUBA
-    "yo": {
-      "hello": "Ẹ n lẹ {name} 👋",
-      "clientDefault": "Alabara",
-      "activeTotal": "📋 {active} Booking Ti Nlọ Lọwọ • Lapapọ {total}",
-      "whatNeed": "Kini o nilo loni?",
-      "bookNurse": "Gba Nọọsi",
-      "myBookings": "Booking Mi",
-      "messages": "Awọn Ifiranṣẹ",
-      "myProfile": "Profaili Mi",
-      "bookingsCount": "Booking {count}",
-      "noBookings": "Ko si booking sibẹ",
-      "bookFirst": "Gba nọọsi akọkọ rẹ lati bẹrẹ",
-      "nurseDefault": "Nọọsi",
-      "homeCare": "Itoju Ile",
-      "statusPending": "Nduro",
-      "statusAccepted": "Ti Gba",
-      "statusCompleted": "Ti Pari",
-      "statusCancelled": "Ti Fagile",
-      "statusRejected": "Ti Kọ",
-      "statusArrived": "Ti De",
-    },
-
-    // 16. IGBO
-    "ig": {
-      "hello": "Ndewo {name} 👋",
-      "clientDefault": "Onye Ahịa",
-      "activeTotal": "📋 {active} Booking Na-aga • Mkpo {total}",
-      "whatNeed": "Kedu ihe ị chọrọ taa?",
-      "bookNurse": "Debe Nọọsụ",
-      "myBookings": "Booking M",
-      "messages": "Ozi",
-      "myProfile": "Profaịlụ M",
-      "bookingsCount": "Booking {count}",
-      "noBookings": "Enweghị booking ma",
-      "bookFirst": "Debe nọọsụ mbụ gị ka ịmalite",
-      "nurseDefault": "Nọọsụ",
-      "homeCare": "Nlekọta Ụlọ",
-      "statusPending": "Na-echere",
-      "statusAccepted": "Anabatala",
-      "statusCompleted": "Emechara",
-      "statusCancelled": "Akagbuola",
-      "statusRejected": "Ajụla",
-      "statusArrived": "Abịarala",
-    },
-
-    // 17. HAUSA
-    "ha": {
-      "hello": "Sannu {name} 👋",
-      "clientDefault": "Abokin Ciniki",
-      "activeTotal": "📋 {active} Booking Mai Gudana • Jimilla {total}",
-      "whatNeed": "Me kake bukata yau?",
-      "bookNurse": "Yi Nurse",
-      "myBookings": "Booking Na",
-      "messages": "Saƙonni",
-      "myProfile": "Bayani Na",
-      "bookingsCount": "Booking {count}",
-      "noBookings": "Babu booking tukuna",
-      "bookFirst": "Yi booking na nurse na farko don farawa",
-      "nurseDefault": "Nurse",
-      "homeCare": "Kulawar Gida",
-      "statusPending": "Ana Jira",
-      "statusAccepted": "An Karɓa",
-      "statusCompleted": "An Kammala",
-      "statusCancelled": "An Soke",
-      "statusRejected": "An Ƙi",
-      "statusArrived": "Ta Iso",
-    },
-
-    // 18. RUSSIAN
-    "ru": {
-      "hello": "Привет {name} 👋",
-      "clientDefault": "Клиент",
-      "activeTotal": "📋 {active} Активных бронирований • Всего {total}",
-      "whatNeed": "Что вам нужно сегодня?",
-      "bookNurse": "Забронировать Медсестру",
-      "myBookings": "Мои Бронирования",
-      "messages": "Сообщения",
-      "myProfile": "Мой Профиль",
-      "bookingsCount": "{count} бронирований",
-      "noBookings": "Пока нет бронирований",
-      "bookFirst": "Забронируйте первую медсестру, чтобы начать",
-      "nurseDefault": "Медсестра",
-      "homeCare": "Уход На Дому",
-      "statusPending": "Ожидание",
-      "statusAccepted": "Принята",
-      "statusCompleted": "Завершена",
-      "statusCancelled": "Отменена",
-      "statusRejected": "Отклонена",
-      "statusArrived": "Прибыла",
-    },
-
-    // 19. TURKISH
-    "tr": {
-      "hello": "Merhaba {name} 👋",
-      "clientDefault": "Müşteri",
-      "activeTotal": "📋 {active} Aktif Rezervasyon • Toplam {total}",
-      "whatNeed": "Bugün neye ihtiyacın var?",
-      "bookNurse": "Hemşire Rezerv Et",
-      "myBookings": "Rezervasyonlarım",
-      "messages": "Mesajlar",
-      "myProfile": "Profilim",
-      "bookingsCount": "{count} rezervasyon",
-      "noBookings": "Henüz rezervasyon yok",
-      "bookFirst": "Başlamak için ilk hemşireni rezerve et",
-      "nurseDefault": "Hemşire",
-      "homeCare": "Evde Bakım",
-      "statusPending": "Bekliyor",
-      "statusAccepted": "Kabul Edildi",
-      "statusCompleted": "Tamamlandı",
-      "statusCancelled": "İptal Edildi",
-      "statusRejected": "Reddedildi",
-      "statusArrived": "Ulaştı",
-    },
-
-    // 20. KOREAN
-    "ko": {
-      "hello": "안녕하세요 {name} 👋",
-      "clientDefault": "고객",
-      "activeTotal": "📋 진행 중 예약 {active}건 • 총 {total}건",
-      "whatNeed": "오늘 무엇이 필요하세요?",
-      "bookNurse": "간호사 예약",
-      "myBookings": "내 예약",
-      "messages": "메시지",
-      "myProfile": "내 프로필",
-      "bookingsCount": "예약 {count}건",
-      "noBookings": "아직 예약이 없습니다",
-      "bookFirst": "시작하려면 첫 간호사를 예약하세요",
-      "nurseDefault": "간호사",
-      "homeCare": "가정 간호",
-      "statusPending": "대기 중",
-      "statusAccepted": "수락됨",
-      "statusCompleted": "완료됨",
-      "statusCancelled": "취소됨",
-      "statusRejected": "거절됨",
-      "statusArrived": "도착함",
-    },
-
-    // 21. JAPANESE
-    "ja": {
-      "hello": "こんにちは {name} 👋",
-      "clientDefault": "クライアント",
-      "activeTotal": "📋 {active}件のアクティブな予約 • 合計 {total}件",
-      "whatNeed": "今日は何が必要ですか?",
-      "bookNurse": "看護師を予約",
-      "myBookings": "私の予約",
-      "messages": "メッセージ",
-      "myProfile": "私のプロフィール",
-      "bookingsCount": "{count}件の予約",
-      "noBookings": "まだ予約がありません",
-      "bookFirst": "最初の看護師を予約して始めましょう",
-      "nurseDefault": "看護師",
-      "homeCare": "在宅ケア",
-      "statusPending": "保留中",
-      "statusAccepted": "承認済み",
-      "statusCompleted": "完了",
-      "statusCancelled": "キャンセル",
-      "statusRejected": "拒否",
-      "statusArrived": "到着",
-    },
-
-    // 22. POLISH
-    "pl": {
-      "hello": "Cześć {name} 👋",
-      "clientDefault": "Klient",
-      "activeTotal": "📋 {active} Aktywnych rezerwacji • Razem {total}",
-      "whatNeed": "Czego dziś potrzebujesz?",
-      "bookNurse": "Zarezerwuj Pielęgniarkę",
-      "myBookings": "Moje Rezerwacje",
-      "messages": "Wiadomości",
-      "myProfile": "Mój Profil",
-      "bookingsCount": "{count} rezerwacji",
-      "noBookings": "Brak rezerwacji",
-      "bookFirst": "Zarezerwuj pierwszą pielęgniarkę, aby zacząć",
-      "nurseDefault": "Pielęgniarka",
-      "homeCare": "Opieka Domowa",
-      "statusPending": "Oczekująca",
-      "statusAccepted": "Zaakceptowana",
-      "statusCompleted": "Ukończona",
-      "statusCancelled": "Anulowana",
-      "statusRejected": "Odrzucona",
-      "statusArrived": "Przybyła",
-    },
-  };
-
-  // ---------- THE RULE ----------
-  // CEO = English ONLY. Nurse + Client = chosen language.
-  static String get(String lang, String key) {
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
+  @override
+  void initState() {
+    super.initState();
+    _loadClient();
   }
 
-  static String getForRole(String role, String lang, String key) {
-    if (role.toLowerCase() == 'ceo') {
-      return all['en']?[key] ?? key;
+  // ---------- LOAD CLIENT + PHOTO ----------
+  Future<void> _loadClient() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final prefs = await SharedPreferences.getInstance();
+      clientName = prefs.getString('clientName') ??
+          prefs.getString('fullName') ??
+          user?.displayName ??
+          'Client';
+      clientPhone =
+          prefs.getString('clientPhone') ?? prefs.getString('phone') ?? '';
+      clientEmail =
+          prefs.getString('clientEmail') ??
+              prefs.getString('email') ??
+              user?.email ??
+              '';
+      clientId = user?.uid ?? prefs.getString('clientId') ?? '';
+
+      // 1. Try prefs / Auth photo first
+      clientPhoto = prefs.getString('clientPhoto') ??
+          prefs.getString('photoURL') ??
+          prefs.getString('photo') ??
+          prefs.getString('profilePic') ??
+          user?.photoURL ??
+          '';
+
+      // 2. Try Firebase Realtime Database - clients / users
+      if (clientId.isNotEmpty) {
+        for (final path in [
+          'clients/$clientId',
+          'users/$clientId',
+          'clientsById/$clientId'
+        ]) {
+          try {
+            final snap = await FirebaseDatabase.instance.ref(path).get();
+            if (snap.exists && snap.value is Map) {
+              final m = Map.from(snap.value as Map);
+              final p = (m['photoURL'] ??
+                      m['photo'] ??
+                      m['profilePic'] ??
+                      m['profilePhoto'] ??
+                      '')
+                  .toString();
+              final n = (m['fullName'] ?? m['name'] ?? m['clientName'] ?? '')
+                  .toString();
+              if (p.isNotEmpty) clientPhoto = p;
+              if (n.isNotEmpty && clientName == 'Client') clientName = n;
+              if (p.isNotEmpty) break;
+            }
+          } catch (_) {}
+        }
+      }
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      _listenMyBookings();
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
     }
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
   }
 
-  static String getWith(String role, String lang, String key, Map<String, String> params) {
-    String raw = getForRole(role, lang, key);
-    params.forEach((k, v) {
-      raw = raw.replaceAll('{$k}', v);
+  // ---------- LISTEN MY BOOKINGS ----------
+  void _listenMyBookings() {
+    if (clientId.isEmpty) return;
+    FirebaseDatabase.instance
+        .ref('bookings')
+        .orderByChild('clientId')
+        .equalTo(clientId)
+        .onValue
+        .listen((event) {
+      final data = event.snapshot.value;
+      List<Map<String, dynamic>> list = [];
+      if (data is Map) {
+        data.forEach((key, value) {
+          if (value is Map) {
+            final m = Map<String, dynamic>.from(value);
+            m['id'] = key.toString();
+            list.add(m);
+          }
+        });
+      }
+      // Newest first
+      list.sort((a, b) {
+        final at = (a['createdAt'] ?? 0).toString();
+        final bt = (b['createdAt'] ?? 0).toString();
+        return bt.compareTo(at);
+      });
+      if (!mounted) return;
+      setState(() {
+        myBookings = list;
+        activeCount = list
+            .where((b) =>
+                (b['status'] ?? '').toString().toLowerCase() != 'completed' &&
+                (b['status'] ?? '').toString().toLowerCase() != 'cancelled')
+            .length;
+      });
     });
-    return raw;
   }
 
-  // Status from Firebase is English - translate it to user language
-  static String status(String role, String lang, String rawStatus) {
-    final s = rawStatus.toLowerCase();
-    if (s.contains('accept')) return getForRole(role, lang, 'statusAccepted');
-    if (s.contains('complet')) return getForRole(role, lang, 'statusCompleted');
-    if (s.contains('cancel')) return getForRole(role, lang, 'statusCancelled');
-    if (s.contains('reject')) return getForRole(role, lang, 'statusRejected');
-    if (s.contains('arriv')) return getForRole(role, lang, 'statusArrived');
-    return getForRole(role, lang, 'statusPending');
+  String _formatDate(dynamic v) {
+    try {
+      if (v == null) return '';
+      if (v is int) {
+        return DateFormat('dd MMM yyyy, hh:mm a')
+            .format(DateTime.fromMillisecondsSinceEpoch(v));
+      }
+      return v.toString();
+    } catch (_) {
+      return v.toString();
+    }
+  }
+
+  Color _statusColor(String s) {
+    final l = s.toLowerCase();
+    if (l.contains('accept') || l.contains('confirm')) return Colors.green;
+    if (l.contains('pend')) return Colors.orange;
+    if (l.contains('complete')) return Colors.blue;
+    if (l.contains('cancel') || l.contains('reject')) return Colors.red;
+    return Colors.grey;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: Color(0xFFA855F7))),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F5FF),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFA855F7),
+        elevation: 0,
+        title: Row(
+          children: [
+            // APP BAR PHOTO
+            CircleAvatar(
+              radius: 18,
+              backgroundImage:
+                  clientPhoto.isNotEmpty ? NetworkImage(clientPhoto) : null,
+              backgroundColor: Colors.white,
+              child: clientPhoto.isEmpty
+                  ? Text(
+                      clientName.isNotEmpty
+                          ? clientName[0].toUpperCase()
+                          : 'C',
+                      style: const TextStyle(
+                          color: Color(0xFFA855F7),
+                          fontWeight: FontWeight.bold),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(clientName,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis),
+                  Text(clientPhone.isNotEmpty ? clientPhone : clientEmail,
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 11)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings, color: Colors.white),
+            onPressed: () {
+              Navigator.pushNamed(context, '/client_settings');
+            },
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ---------- GREETING ----------
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFA855F7), Color(0xFF7C3AED)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    // CLIENT PHOTO - real photo, or first letter if no photo
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundImage: clientPhoto.isNotEmpty
+                          ? NetworkImage(clientPhoto)
+                          : null,
+                      backgroundColor: Colors.white,
+                      child: clientPhoto.isEmpty
+                          ? Text(
+                              clientName.isNotEmpty
+                                  ? clientName[0].toUpperCase()
+                                  : 'C',
+                              style: const TextStyle(
+                                  color: Color(0xFFA855F7),
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Hello $clientName 👋',
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(
+                                clientPhone.isNotEmpty
+                                    ? clientPhone
+                                    : clientEmail,
+                                style: const TextStyle(
+                                    color: Colors.white60, fontSize: 12)),
+                          ]),
+                    ),
+                  ]),
+                  const SizedBox(height: 12),
+                  Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20)),
+                      child: Text(
+                          '📋 $activeCount Active Booking(s) • ${myBookings.length} Total',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold))),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            // ---------- QUICK ACTIONS ----------
+            const Text('What do you need today?',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                    child: _actionCard(
+                        icon: Icons.search,
+                        label: 'Book Nurse',
+                        color: const Color(0xFFA855F7),
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/book_nurse'))),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: _actionCard(
+                        icon: Icons.list_alt,
+                        label: 'My Bookings',
+                        color: Colors.blue,
+                        onTap: () {
+                          // scroll to bookings - already on page
+                        })),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                    child: _actionCard(
+                        icon: Icons.chat,
+                        label: 'Messages',
+                        color: Colors.green,
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/messages'))),
+                const SizedBox(width: 12),
+                Expanded(
+                    child: _actionCard(
+                        icon: Icons.person,
+                        label: 'My Profile',
+                        color: Colors.orange,
+                        onTap: () => Navigator.pushNamed(
+                            context, '/client_settings'))),
+              ],
+            ),
+
+            const SizedBox(height: 22),
+
+            // ---------- MY BOOKINGS ----------
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('My Bookings',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('${myBookings.length} bookings',
+                    style: const TextStyle(color: Colors.grey)),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            if (myBookings.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16)),
+                child: const Column(
+                  children: [
+                    Icon(Icons.calendar_today_outlined,
+                        size: 40, color: Colors.grey),
+                    SizedBox(height: 10),
+                    Text('No bookings yet',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 4),
+                    Text('Book your first nurse to get started',
+                        style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  ],
+                ),
+              )
+            else
+              ...myBookings.map((b) => _bookingCard(b)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _actionCard(
+      {required IconData icon,
+      required String label,
+      required Color color,
+      required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18),
+        decoration: BoxDecoration(
+            color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          children: [
+            CircleAvatar(
+                backgroundColor: color.withOpacity(0.1),
+                child: Icon(icon, color: color)),
+            const SizedBox(height: 8),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bookingCard(Map<String, dynamic> b) {
+    final nurseName = (b['nurseName'] ?? b['nurseFullName'] ?? 'Nurse').toString();
+    final nursePhoto = (b['nursePhoto'] ??
+            b['nursePhotoURL'] ??
+            b['photoURL'] ??
+            b['photo'] ??
+            b['profilePic'] ??
+            '')
+        .toString();
+    final status = (b['status'] ?? 'Pending').toString();
+    final service = (b['service'] ?? b['serviceType'] ?? 'Home Care').toString();
+    final date = _formatDate(b['date'] ?? b['createdAt']);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // NURSE PHOTO + NAME - real photo if saved, else first letter
+          CircleAvatar(
+            radius: 24,
+            backgroundImage:
+                nursePhoto.isNotEmpty ? NetworkImage(nursePhoto) : null,
+            backgroundColor: Colors.purple,
+            child: nursePhoto.isEmpty
+                ? Text(
+                    nurseName.isNotEmpty ? nurseName[0].toUpperCase() : 'N',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18))
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                        child: Text(nurseName,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15),
+                            overflow: TextOverflow.ellipsis)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                          color: _statusColor(status).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20)),
+                      child: Text(status,
+                          style: TextStyle(
+                              color: _statusColor(status),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(service,
+                    style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                const SizedBox(height: 2),
+                Text(date,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                if ((b['location'] ?? '').toString().isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text('📍 ${b['location']}',
+                      style:
+                          const TextStyle(color: Colors.grey, fontSize: 12)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
