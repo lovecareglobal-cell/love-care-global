@@ -1,339 +1,364 @@
-// sound_settings_translations.dart
-// FILE - Sound Settings - ONLY SCREEN WORDS - ALL 22 LANGUAGES
-// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
-// ONE FILE - Drop in lib/screens
+import 'dart:convert';
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:audioplayers/audioplayers.dart';
+// REMOVED: import 'package:vibration/vibration.dart';
+// That package is NOT in pubspec.yaml, so Build Web #261/#262 failed with:
+//   Couldn't resolve the package 'vibration' / Undefined name 'Vibration'
+// Web cannot vibrate via that package anyway - _vibrate() below is now a no-op.
 
-class SoundSettingsTranslations {
-  static const Map<String, Map<String, String>> all = {
-    "en": {
-      "title": "🔔 Sound Settings",
-      "enableOn": "✅ SOUND ON", "enableOff": "🔊 TAP TO ENABLE SOUND",
-      "optBell": "🔔 Bell", "optChime": "🎵 Chime", "optAlarm": "⏰ Alarm",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Siren", "optCustom": "🎤 My Song",
-      "test": "▶ Test", "stop": "⏹ Stop",
-      "uploadEmpty": "🎤 Upload My Song (max 3MB)", "uploadChange": "🎤 {name} — Tap to change",
-      "customSavedLabel": "Custom song saved",
-      "pickHint": "Pick audio file from phone — will play as your notification sound",
-      "ring3": "Ring 3 times", "vibrate": "Vibrate", "keepRinging": "Keep ringing",
-      "logSaved": "Saved: {choice}", "logOn": "ON", "logRinging": "Ringing: {choice}", "logStopped": "Stopped", "logSavedShort": "Saved",
-      "toastOn": "✅ SOUND ON", "toastTooBig": "Too big - max 3MB", "toastCustomSaved": "✅ Custom song saved: {name}",
-      "savedLabel": "Saved: {choice}",
-      "tip": "Tip: Tap ENABLE first — phone browsers block sound until you tap. This choice is used by Bookings + Refunds + CEO screens when new booking / refund arrives.",
-    },
-    "tw": {
-      "title": "🔔 Sound Settings",
-      "enableOn": "✅ SOUND ON", "enableOff": "🔊 TAP NA SƆ SOUND ON",
-      "optBell": "🔔 Bell", "optChime": "🎵 Chime", "optAlarm": "⏰ Alarm",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Siren", "optCustom": "🎤 Me Nnwom",
-      "test": "▶ Test", "stop": "⏹ Gyae",
-      "uploadEmpty": "🎤 Fa Me Nnwom (max 3MB)", "uploadChange": "🎤 {name} — Tap na sesa",
-      "customSavedLabel": "Wɔakora me nnwom",
-      "pickHint": "Fa audio file fi phone so — ɛbɛbɔ sɛ wo notification sound",
-      "ring3": "Bɔ 3 times", "vibrate": "Woso", "keepRinging": "Kɔ so bɔ",
-      "logSaved": "Wɔakora: {choice}", "logOn": "ON", "logRinging": "Rebɔ: {choice}", "logStopped": "Agyae", "logSavedShort": "Wɔakora",
-      "toastOn": "✅ SOUND ON", "toastTooBig": "Ɛsõ dodo - max 3MB", "toastCustomSaved": "✅ Wɔakora me nnwom: {name}",
-      "savedLabel": "Wɔakora: {choice}",
-      "tip": "Tip: Tap ENABLE kane — phone browsers siw sound kɔsi sɛ wotap. Wɔde saa choice yi di dwuma wɔ Bookings + Refunds + CEO screens berɛ a booking / refund foforo ba.",
-    },
-    "ga": {
-      "title": "🔔 Sound Settings",
-      "enableOn": "✅ SOUND ON", "enableOff": "🔊 TSWA NA TSWAA SOUND ON",
-      "optBell": "🔔 Bell", "optChime": "🎵 Chime", "optAlarm": "⏰ Alarm",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Siren", "optCustom": "🎤 Mi Lala",
-      "test": "▶ Test", "stop": "⏹ Fo",
-      "uploadEmpty": "🎤 Kɛɛ Mi Lala (max 3MB)", "uploadChange": "🎤 {name} — Tswa na tsake",
-      "customSavedLabel": "Ato mi lala",
-      "pickHint": "Hala audio file kɛjɛ phone nɔ — eba bɔ sɛ o notification sound",
-      "ring3": "Tswa 3 times", "vibrate": "Hoso", "keepRinging": "Yaa nɔ tswa",
-      "logSaved": "Ato: {choice}", "logOn": "ON", "logRinging": "Mii tswa: {choice}", "logStopped": "Afo", "logSavedShort": "Ato",
-      "toastOn": "✅ SOUND ON", "toastTooBig": "Ewa bɛɛ - max 3MB", "toastCustomSaved": "✅ Ato mi lala: {name}",
-      "savedLabel": "Ato: {choice}",
-      "tip": "Tip: Tswa ENABLE kane — phone browsers siwɔ sound kɛ yaa sɛ otswa. Afee saa choice nɛɛ nitsumɔ yɛ Bookings + Refunds + CEO screens be a booking / refund hee ba.",
-    },
-    "ee": {
-      "title": "🔔 Sound Settings",
-      "enableOn": "✅ SOUND ON", "enableOff": "🔊 ZI NA NÀDZE SOUND",
-      "optBell": "🔔 Bell", "optChime": "🎵 Chime", "optAlarm": "⏰ Alarm",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Siren", "optCustom": "🎤 Nye Hadzidzi",
-      "test": "▶ Test", "stop": "⏹ Ðe Ða",
-      "uploadEmpty": "🎤 Ðe Nye Hadzidzi (max 3MB)", "uploadChange": "🎤 {name} — Zi na nàtrɔ",
-      "customSavedLabel": "Wodzra nye hadzidzi ɖo",
-      "pickHint": "Tia audio file tso phone me — aƒo abe wò notification sound ene",
-      "ring3": "Ƒo zi 3", "vibrate": "Wuwu", "keepRinging": "Gayi le ƒom",
-      "logSaved": "Wodzra: {choice}", "logOn": "ON", "logRinging": "Le ƒom: {choice}", "logStopped": "Woɖe ɖa", "logSavedShort": "Wodzra",
-      "toastOn": "✅ SOUND ON", "toastTooBig": "Elolo ŋutɔ - max 3MB", "toastCustomSaved": "✅ Wodzra nye hadzidzi: {name}",
-      "savedLabel": "Wodzra: {choice}",
-      "tip": "Tip: Zi ENABLE gbã — phone browsers xea mɔ na sound vaseɖe esime nàzi. Wozãa choice sia le Bookings + Refunds + CEO screens me ne booking / refund yeye va.",
-    },
-    "nl": {
-      "title": "🔔 Geluidsinstellingen",
-      "enableOn": "✅ GELUID AAN", "enableOff": "🔊 TIK OM GELUID IN TE SCHAKELEN",
-      "optBell": "🔔 Bel", "optChime": "🎵 Klokje", "optAlarm": "⏰ Alarm",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Sirene", "optCustom": "🎤 Mijn Lied",
-      "test": "▶ Test", "stop": "⏹ Stop",
-      "uploadEmpty": "🎤 Upload Mijn Lied (max 3MB)", "uploadChange": "🎤 {name} — Tik om te wijzigen",
-      "customSavedLabel": "Aangepast lied opgeslagen",
-      "pickHint": "Kies audiobestand van telefoon — wordt afgespeeld als je meldingsgeluid",
-      "ring3": "3 keer rinkelen", "vibrate": "Trillen", "keepRinging": "Blijf rinkelen",
-      "logSaved": "Opgeslagen: {choice}", "logOn": "AAN", "logRinging": "Rinkelen: {choice}", "logStopped": "Gestopt", "logSavedShort": "Opgeslagen",
-      "toastOn": "✅ GELUID AAN", "toastTooBig": "Te groot - max 3MB", "toastCustomSaved": "✅ Aangepast lied opgeslagen: {name}",
-      "savedLabel": "Opgeslagen: {choice}",
-      "tip": "Tip: Tik eerst INschakelen — telefoonbrowsers blokkeren geluid tot je tikt. Deze keuze wordt gebruikt door Boekingen + Terugbetalingen + CEO schermen als nieuwe boeking / terugbetaling aankomt.",
-    },
-    "fr": {
-      "title": "🔔 Paramètres Son",
-      "enableOn": "✅ SON ACTIVÉ", "enableOff": "🔊 APPUYEZ POUR ACTIVER LE SON",
-      "optBell": "🔔 Cloche", "optChime": "🎵 Carillon", "optAlarm": "⏰ Alarme",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Sirène", "optCustom": "🎤 Ma Chanson",
-      "test": "▶ Test", "stop": "⏹ Arrêter",
-      "uploadEmpty": "🎤 Télécharger Ma Chanson (max 3MB)", "uploadChange": "🎤 {name} — Appuyez pour changer",
-      "customSavedLabel": "Chanson personnalisée enregistrée",
-      "pickHint": "Choisissez un fichier audio du téléphone — jouera comme votre son de notification",
-      "ring3": "Sonner 3 fois", "vibrate": "Vibrer", "keepRinging": "Continuer à sonner",
-      "logSaved": "Enregistré: {choice}", "logOn": "ACTIVÉ", "logRinging": "Sonnerie: {choice}", "logStopped": "Arrêté", "logSavedShort": "Enregistré",
-      "toastOn": "✅ SON ACTIVÉ", "toastTooBig": "Trop grand - max 3MB", "toastCustomSaved": "✅ Chanson personnalisée enregistrée: {name}",
-      "savedLabel": "Enregistré: {choice}",
-      "tip": "Astuce: Appuyez d'abord sur ACTIVER — les navigateurs de téléphone bloquent le son jusqu'à ce que vous appuyiez. Ce choix est utilisé par Réservations + Remboursements + écrans CEO quand une nouvelle réservation / remboursement arrive.",
-    },
-    "de": {
-      "title": "🔔 Toneinstellungen",
-      "enableOn": "✅ TON AN", "enableOff": "🔊 TIPPEN UM TON ZU AKTIVIEREN",
-      "optBell": "🔔 Glocke", "optChime": "🎵 Klang", "optAlarm": "⏰ Alarm",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Sirene", "optCustom": "🎤 Mein Lied",
-      "test": "▶ Test", "stop": "⏹ Stopp",
-      "uploadEmpty": "🎤 Mein Lied Hochladen (max 3MB)", "uploadChange": "🎤 {name} — Tippen zum Ändern",
-      "customSavedLabel": "Eigenes Lied gespeichert",
-      "pickHint": "Audiodatei vom Telefon wählen — wird als dein Benachrichtigungston abgespielt",
-      "ring3": "3 Mal klingeln", "vibrate": "Vibrieren", "keepRinging": "Weiter klingeln",
-      "logSaved": "Gespeichert: {choice}", "logOn": "AN", "logRinging": "Klingelt: {choice}", "logStopped": "Gestoppt", "logSavedShort": "Gespeichert",
-      "toastOn": "✅ TON AN", "toastTooBig": "Zu groß - max 3MB", "toastCustomSaved": "✅ Eigenes Lied gespeichert: {name}",
-      "savedLabel": "Gespeichert: {choice}",
-      "tip": "Tipp: Tippe zuerst auf AKTIVIEREN — Telefonbrowser blockieren Ton bis du tippst. Diese Auswahl wird von Buchungen + Erstattungen + CEO Bildschirmen verwendet, wenn neue Buchung / Erstattung ankommt.",
-    },
-    "es": {
-      "title": "🔔 Ajustes De Sonido",
-      "enableOn": "✅ SONIDO ACTIVADO", "enableOff": "🔊 TOCA PARA ACTIVAR SONIDO",
-      "optBell": "🔔 Campana", "optChime": "🎵 Campanada", "optAlarm": "⏰ Alarma",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Sirena", "optCustom": "🎤 Mi Canción",
-      "test": "▶ Probar", "stop": "⏹ Detener",
-      "uploadEmpty": "🎤 Subir Mi Canción (max 3MB)", "uploadChange": "🎤 {name} — Toca para cambiar",
-      "customSavedLabel": "Canción personalizada guardada",
-      "pickHint": "Elige archivo de audio del teléfono — sonará como tu sonido de notificación",
-      "ring3": "Sonar 3 veces", "vibrate": "Vibrar", "keepRinging": "Seguir sonando",
-      "logSaved": "Guardado: {choice}", "logOn": "ACTIVADO", "logRinging": "Sonando: {choice}", "logStopped": "Detenido", "logSavedShort": "Guardado",
-      "toastOn": "✅ SONIDO ACTIVADO", "toastTooBig": "Demasiado grande - max 3MB", "toastCustomSaved": "✅ Canción personalizada guardada: {name}",
-      "savedLabel": "Guardado: {choice}",
-      "tip": "Consejo: Toca ACTIVAR primero — los navegadores del teléfono bloquean el sonido hasta que tocas. Esta opción se usa en Reservas + Reembolsos + pantallas CEO cuando llega nueva reserva / reembolso.",
-    },
-    "it": {
-      "title": "🔔 Impostazioni Audio",
-      "enableOn": "✅ AUDIO ATTIVO", "enableOff": "🔊 TOCCA PER ATTIVARE AUDIO",
-      "optBell": "🔔 Campana", "optChime": "🎵 Campanello", "optAlarm": "⏰ Allarme",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Sirena", "optCustom": "🎤 La Mia Canzone",
-      "test": "▶ Prova", "stop": "⏹ Ferma",
-      "uploadEmpty": "🎤 Carica La Mia Canzone (max 3MB)", "uploadChange": "🎤 {name} — Tocca per cambiare",
-      "customSavedLabel": "Canzone personalizzata salvata",
-      "pickHint": "Scegli file audio dal telefono — suonerà come suono di notifica",
-      "ring3": "Suona 3 volte", "vibrate": "Vibra", "keepRinging": "Continua a suonare",
-      "logSaved": "Salvato: {choice}", "logOn": "ATTIVO", "logRinging": "Suono: {choice}", "logStopped": "Fermato", "logSavedShort": "Salvato",
-      "toastOn": "✅ AUDIO ATTIVO", "toastTooBig": "Troppo grande - max 3MB", "toastCustomSaved": "✅ Canzone personalizzata salvata: {name}",
-      "savedLabel": "Salvato: {choice}",
-      "tip": "Suggerimento: Tocca prima ATTIVA — i browser del telefono bloccano l'audio finché non tocchi. Questa scelta è usata da Prenotazioni + Rimborsi + schermate CEO quando arriva nuova prenotazione / rimborso.",
-    },
-    "pt": {
-      "title": "🔔 Configurações De Som",
-      "enableOn": "✅ SOM LIGADO", "enableOff": "🔊 TOQUE PARA ATIVAR SOM",
-      "optBell": "🔔 Sino", "optChime": "🎵 Carrilhão", "optAlarm": "⏰ Alarme",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Sirene", "optCustom": "🎤 Minha Música",
-      "test": "▶ Testar", "stop": "⏹ Parar",
-      "uploadEmpty": "🎤 Enviar Minha Música (max 3MB)", "uploadChange": "🎤 {name} — Toque para trocar",
-      "customSavedLabel": "Música personalizada salva",
-      "pickHint": "Escolha arquivo de áudio do telefone — tocará como seu som de notificação",
-      "ring3": "Tocar 3 vezes", "vibrate": "Vibrar", "keepRinging": "Continuar tocando",
-      "logSaved": "Salvo: {choice}", "logOn": "LIGADO", "logRinging": "Tocando: {choice}", "logStopped": "Parado", "logSavedShort": "Salvo",
-      "toastOn": "✅ SOM LIGADO", "toastTooBig": "Grande demais - max 3MB", "toastCustomSaved": "✅ Música personalizada salva: {name}",
-      "savedLabel": "Salvo: {choice}",
-      "tip": "Dica: Toque em ATIVAR primeiro — navegadores do telefone bloqueiam som até você tocar. Esta escolha é usada por Reservas + Reembolsos + telas CEO quando nova reserva / reembolso chega.",
-    },
-    "ar": {
-      "title": "🔔 إعدادات الصوت",
-      "enableOn": "✅ الصوت مفعّل", "enableOff": "🔊 اضغط لتفعيل الصوت",
-      "optBell": "🔔 جرس", "optChime": "🎵 رنين", "optAlarm": "⏰ منبه",
-      "optGospel": "🎶 غوسبل", "optHighlife": "🎶 هايلايف", "optSiren": "🚨 صفارة", "optCustom": "🎤 أغنيتي",
-      "test": "▶ تجربة", "stop": "⏹ إيقاف",
-      "uploadEmpty": "🎤 رفع أغنيتي (بحد أقصى 3MB)", "uploadChange": "🎤 {name} — اضغط للتغيير",
-      "customSavedLabel": "تم حفظ الأغنية المخصصة",
-      "pickHint": "اختر ملف صوتي من الهاتف — سيعمل كصوت إشعارك",
-      "ring3": "الرنين 3 مرات", "vibrate": "الاهتزاز", "keepRinging": "الاستمرار في الرنين",
-      "logSaved": "تم الحفظ: {choice}", "logOn": "مفعّل", "logRinging": "يرن: {choice}", "logStopped": "توقف", "logSavedShort": "تم الحفظ",
-      "toastOn": "✅ الصوت مفعّل", "toastTooBig": "كبير جداً - بحد أقصى 3MB", "toastCustomSaved": "✅ تم حفظ الأغنية المخصصة: {name}",
-      "savedLabel": "تم الحفظ: {choice}",
-      "tip": "نصيحة: اضغط تفعيل أولاً — متصفحات الهاتف تحظر الصوت حتى تضغط. يُستخدم هذا الاختيار في شاشات الحجوزات + الاستردادات + المدير عند وصول حجز / استرداد جديد.",
-    },
-    "zh": {
-      "title": "🔔 声音设置",
-      "enableOn": "✅ 声音已开启", "enableOff": "🔊 点击启用声音",
-      "optBell": "🔔 铃声", "optChime": "🎵 风铃", "optAlarm": "⏰ 闹钟",
-      "optGospel": "🎶 福音", "optHighlife": "🎶 高生活", "optSiren": "🚨 警笛", "optCustom": "🎤 我的歌曲",
-      "test": "▶ 测试", "stop": "⏹ 停止",
-      "uploadEmpty": "🎤 上传我的歌曲 (最大 3MB)", "uploadChange": "🎤 {name} — 点击更改",
-      "customSavedLabel": "自定义歌曲已保存",
-      "pickHint": "从手机中选择音频文件 — 将作为你的通知声音播放",
-      "ring3": "响 3 次", "vibrate": "振动", "keepRinging": "持续响铃",
-      "logSaved": "已保存: {choice}", "logOn": "已开启", "logRinging": "响铃中: {choice}", "logStopped": "已停止", "logSavedShort": "已保存",
-      "toastOn": "✅ 声音已开启", "toastTooBig": "太大 - 最大 3MB", "toastCustomSaved": "✅ 自定义歌曲已保存: {name}",
-      "savedLabel": "已保存: {choice}",
-      "tip": "提示: 先点击启用 — 手机浏览器在你点击之前会阻止声音。此选择用于预订 + 退款 + CEO 界面，当新预订 / 退款到达时使用。",
-    },
-    "hi": {
-      "title": "🔔 ध्वनि सेटिंग्स",
-      "enableOn": "✅ ध्वनि चालू", "enableOff": "🔊 ध्वनि चालू करने के लिए टैप करें",
-      "optBell": "🔔 घंटी", "optChime": "🎵 चाइम", "optAlarm": "⏰ अलार्म",
-      "optGospel": "🎶 गॉस्पेल", "optHighlife": "🎶 हाईलाइफ", "optSiren": "🚨 सायरन", "optCustom": "🎤 मेरा गाना",
-      "test": "▶ टेस्ट", "stop": "⏹ रोकें",
-      "uploadEmpty": "🎤 मेरा गाना अपलोड करें (अधिकतम 3MB)", "uploadChange": "🎤 {name} — बदलने के लिए टैप करें",
-      "customSavedLabel": "कस्टम गाना सहेजा गया",
-      "pickHint": "फोन से ऑडियो फ़ाइल चुनें — आपकी अधिसूचना ध्वनि के रूप में बजेगी",
-      "ring3": "3 बार बजाएं", "vibrate": "कंपन", "keepRinging": "बजते रहें",
-      "logSaved": "सहेजा गया: {choice}", "logOn": "चालू", "logRinging": "बज रहा है: {choice}", "logStopped": "रुक गया", "logSavedShort": "सहेजा गया",
-      "toastOn": "✅ ध्वनि चालू", "toastTooBig": "बहुत बड़ा - अधिकतम 3MB", "toastCustomSaved": "✅ कस्टम गाना सहेजा गया: {name}",
-      "savedLabel": "सहेजा गया: {choice}",
-      "tip": "टिप: पहले सक्षम करें टैप करें — फोन ब्राउज़र आपके टैप करने तक ध्वनि को ब्लॉक करते हैं। इस विकल्प का उपयोग बुकिंग + रिफंड + CEO स्क्रीन द्वारा किया जाता है जब नई बुकिंग / रिफंड आता है।",
-    },
-    "sw": {
-      "title": "🔔 Mipangilio Ya Sauti",
-      "enableOn": "✅ SAUTI IMEWASHWA", "enableOff": "🔊 GUSA KUWASHA SAUTI",
-      "optBell": "🔔 Kengele", "optChime": "🎵 Kengele Ndogo", "optAlarm": "⏰ Kengele Ya Kuamka",
-      "optGospel": "🎶 Injili", "optHighlife": "🎶 Highlife", "optSiren": "🚨 King'ora", "optCustom": "🎤 Wimbo Wangu",
-      "test": "▶ Jaribu", "stop": "⏹ Simamisha",
-      "uploadEmpty": "🎤 Pakia Wimbo Wangu (max 3MB)", "uploadChange": "🎤 {name} — Gusa kubadilisha",
-      "customSavedLabel": "Wimbo maalum umehifadhiwa",
-      "pickHint": "Chagua faili la sauti kutoka simu — litacheza kama sauti yako ya arifa",
-      "ring3": "Lia mara 3", "vibrate": "Tetemesha", "keepRinging": "Endelea kulia",
-      "logSaved": "Imehifadhiwa: {choice}", "logOn": "IMEWASHWA", "logRinging": "Inalia: {choice}", "logStopped": "Imesimamishwa", "logSavedShort": "Imehifadhiwa",
-      "toastOn": "✅ SAUTI IMEWASHWA", "toastTooBig": "Kubwa sana - max 3MB", "toastCustomSaved": "✅ Wimbo maalum umehifadhiwa: {name}",
-      "savedLabel": "Imehifadhiwa: {choice}",
-      "tip": "Kidokezo: Gusa WASHA kwanza — vivinjari vya simu huzuia sauti hadi uguse. Chaguo hili linatumika na skrini za Booking + Marejesho + CEO wakati booking / marejesho mapya yanapofika.",
-    },
-    "yo": {
-      "title": "🔔 Eto Ohun",
-      "enableOn": "✅ OHUN TAN", "enableOff": "🔊 TẸ LATI TAN OHUN",
-      "optBell": "🔔 Agogo", "optChime": "🎵 Chime", "optAlarm": "⏰ Alarm",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Siren", "optCustom": "🎤 Orin Mi",
-      "test": "▶ Idanwo", "stop": "⏹ Duro",
-      "uploadEmpty": "🎤 Gbe Orin Mi Soke (max 3MB)", "uploadChange": "🎤 {name} — Tẹ lati yipada",
-      "customSavedLabel": "Orin ti a ṣe ti fipamọ",
-      "pickHint": "Yan faili ohun lati foonu — yoo dun bi ohun iwifunni rẹ",
-      "ring3": "Dun ni igba 3", "vibrate": "Gbọn", "keepRinging": "Tẹsiwaju lati dun",
-      "logSaved": "Ti fipamọ: {choice}", "logOn": "TAN", "logRinging": "Ndun: {choice}", "logStopped": "Ti duro", "logSavedShort": "Ti fipamọ",
-      "toastOn": "✅ OHUN TAN", "toastTooBig": "O tobi ju - max 3MB", "toastCustomSaved": "✅ Orin ti a ṣe ti fipamọ: {name}",
-      "savedLabel": "Ti fipamọ: {choice}",
-      "tip": "Imọran: Tẹ TAN kọkọ — awọn aṣawakiri foonu dina ohun titi iwọ o fi tẹ. A nlo yiyan yii ni Booking + Refund + awọn iboju CEO nigbati booking / refund tuntun ba de.",
-    },
-    "ig": {
-      "title": "🔔 Ntọala Ụda",
-      "enableOn": "✅ ỤDA GBANYERE", "enableOff": "🔊 PỊA KA IGBANYE ỤDA",
-      "optBell": "🔔 Mgbịrịgba", "optChime": "🎵 Chime", "optAlarm": "⏰ Mkpu",
-      "optGospel": "🎶 Oziọma", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Siren", "optCustom": "🎤 Abụ M",
-      "test": "▶ Nwalee", "stop": "⏹ Kwụsị",
-      "uploadEmpty": "🎤 Bulite Abụ M (max 3MB)", "uploadChange": "🎤 {name} — Pịa ka ịgbanwe",
-      "customSavedLabel": "Echekwara abụ omenala",
-      "pickHint": "Họrọ faịlụ ọdịyo site na ekwentị — ọ ga-egwu dị ka ụda ngosi gị",
-      "ring3": "Kụọ ugboro 3", "vibrate": "Maa jijiji", "keepRinging": "Nọgide na-akụ",
-      "logSaved": "Echekwara: {choice}", "logOn": "GBANYERE", "logRinging": "Na-akụ: {choice}", "logStopped": "Kwụsịrị", "logSavedShort": "Echekwara",
-      "toastOn": "✅ ỤDA GBANYERE", "toastTooBig": "O buru oke - max 3MB", "toastCustomSaved": "✅ Echekwara abụ omenala: {name}",
-      "savedLabel": "Echekwara: {choice}",
-      "tip": "Ndụmọdụ: Pịa GBANYE mbụ — ihe nchọgharị ekwentị na-egbochi ụda ruo mgbe ị pịa. A na-eji nhọrọ a na Booking + Refund + ihuenyo CEO mgbe booking / refund ọhụrụ rutere.",
-    },
-    "ha": {
-      "title": "🔔 Saitunan Sauti",
-      "enableOn": "✅ SAUTI A KUNNE", "enableOff": "🔊 Danna DON KUNNA SAUTI",
-      "optBell": "🔔 Ƙararrawa", "optChime": "🎵 Chime", "optAlarm": "⏰ Ƙararrawar Farkawa",
-      "optGospel": "🎶 Bishara", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Siren", "optCustom": "🎤 Waƙa Ta",
-      "test": "▶ Gwada", "stop": "⏹ Dakata",
-      "uploadEmpty": "🎤 Loda Waƙa Ta (max 3MB)", "uploadChange": "🎤 {name} — Danna don canzawa",
-      "customSavedLabel": "An adana waƙa ta musamman",
-      "pickHint": "Zaɓi fayil ɗin sauti daga waya — zai yi wasa azaman sautin sanarwarka",
-      "ring3": "Yi ƙara sau 3", "vibrate": "Girgiza", "keepRinging": "Ci gaba da ƙara",
-      "logSaved": "An adana: {choice}", "logOn": "A KUNNE", "logRinging": "Ana ƙara: {choice}", "logStopped": "An dakata", "logSavedShort": "An adana",
-      "toastOn": "✅ SAUTI A KUNNE", "toastTooBig": "Ya yi girma - max 3MB", "toastCustomSaved": "✅ An adana waƙa ta musamman: {name}",
-      "savedLabel": "An adana: {choice}",
-      "tip": "Tukwici: Danna KUNNA da farko — masu binciken waya suna toshe sauti har sai ka danna. Ana amfani da wannan zaɓi ta Booking + Refund + allon CEO lokacin da sabon booking / refund ya zo.",
-    },
-    "ru": {
-      "title": "🔔 Настройки Звука",
-      "enableOn": "✅ ЗВУК ВКЛЮЧЁН", "enableOff": "🔊 НАЖМИТЕ ЧТОБЫ ВКЛЮЧИТЬ ЗВУК",
-      "optBell": "🔔 Колокол", "optChime": "🎵 Перелив", "optAlarm": "⏰ Будильник",
-      "optGospel": "🎶 Госпел", "optHighlife": "🎶 Хайлайф", "optSiren": "🚨 Сирена", "optCustom": "🎤 Моя Песня",
-      "test": "▶ Тест", "stop": "⏹ Стоп",
-      "uploadEmpty": "🎤 Загрузить Мою Песню (max 3MB)", "uploadChange": "🎤 {name} — Нажмите чтобы изменить",
-      "customSavedLabel": "Пользовательская песня сохранена",
-      "pickHint": "Выберите аудиофайл с телефона — будет играть как звук уведомления",
-      "ring3": "Звонить 3 раза", "vibrate": "Вибрация", "keepRinging": "Продолжать звонить",
-      "logSaved": "Сохранено: {choice}", "logOn": "ВКЛ", "logRinging": "Звонит: {choice}", "logStopped": "Остановлено", "logSavedShort": "Сохранено",
-      "toastOn": "✅ ЗВУК ВКЛЮЧЁН", "toastTooBig": "Слишком большой - max 3MB", "toastCustomSaved": "✅ Пользовательская песня сохранена: {name}",
-      "savedLabel": "Сохранено: {choice}",
-      "tip": "Совет: Сначала нажмите ВКЛЮЧИТЬ — браузеры телефона блокируют звук, пока вы не нажмёте. Этот выбор используется экранами Бронирования + Возвраты + CEO, когда приходит новое бронирование / возврат.",
-    },
-    "tr": {
-      "title": "🔔 Ses Ayarları",
-      "enableOn": "✅ SES AÇIK", "enableOff": "🔊 SESİ ETKİNLEŞTİRMEK İÇİN DOKUN",
-      "optBell": "🔔 Zil", "optChime": "🎵 Çan", "optAlarm": "⏰ Alarm",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Siren", "optCustom": "🎤 Şarkım",
-      "test": "▶ Test", "stop": "⏹ Durdur",
-      "uploadEmpty": "🎤 Şarkımı Yükle (max 3MB)", "uploadChange": "🎤 {name} — Değiştirmek için dokun",
-      "customSavedLabel": "Özel şarkı kaydedildi",
-      "pickHint": "Telefondan ses dosyası seç — bildirim sesin olarak çalacak",
-      "ring3": "3 kez çal", "vibrate": "Titreşim", "keepRinging": "Çalmaya devam et",
-      "logSaved": "Kaydedildi: {choice}", "logOn": "AÇIK", "logRinging": "Çalıyor: {choice}", "logStopped": "Durduruldu", "logSavedShort": "Kaydedildi",
-      "toastOn": "✅ SES AÇIK", "toastTooBig": "Çok büyük - max 3MB", "toastCustomSaved": "✅ Özel şarkı kaydedildi: {name}",
-      "savedLabel": "Kaydedildi: {choice}",
-      "tip": "İpucu: Önce ETKİNLEŞTİR'e dokun — telefon tarayıcıları dokunana kadar sesi engeller. Bu seçim, yeni rezervasyon / iade geldiğinde Rezervasyon + İade + CEO ekranları tarafından kullanılır.",
-    },
-    "ko": {
-      "title": "🔔 소리 설정",
-      "enableOn": "✅ 소리 켜짐", "enableOff": "🔊 눌러서 소리 켜기",
-      "optBell": "🔔 종", "optChime": "🎵 차임", "optAlarm": "⏰ 알람",
-      "optGospel": "🎶 가스펠", "optHighlife": "🎶 하이라이프", "optSiren": "🚨 사이렌", "optCustom": "🎤 내 노래",
-      "test": "▶ 테스트", "stop": "⏹ 중지",
-      "uploadEmpty": "🎤 내 노래 업로드 (최대 3MB)", "uploadChange": "🎤 {name} — 변경하려면 누르세요",
-      "customSavedLabel": "사용자 지정 노래 저장됨",
-      "pickHint": "전화에서 오디오 파일 선택 — 알림 소리로 재생됩니다",
-      "ring3": "3번 울리기", "vibrate": "진동", "keepRinging": "계속 울리기",
-      "logSaved": "저장됨: {choice}", "logOn": "켜짐", "logRinging": "울리는 중: {choice}", "logStopped": "중지됨", "logSavedShort": "저장됨",
-      "toastOn": "✅ 소리 켜짐", "toastTooBig": "너무 큼 - 최대 3MB", "toastCustomSaved": "✅ 사용자 지정 노래 저장됨: {name}",
-      "savedLabel": "저장됨: {choice}",
-      "tip": "팁: 먼저 활성화 누르기 — 휴대폰 브라우저는 누르기 전까지 소리를 차단합니다. 이 선택은 새 예약 / 환불이 도착할 때 예약 + 환불 + CEO 화면에서 사용됩니다.",
-    },
-    "ja": {
-      "title": "🔔 サウンド設定",
-      "enableOn": "✅ サウンド ON", "enableOff": "🔊 タップしてサウンドを有効化",
-      "optBell": "🔔 ベル", "optChime": "🎵 チャイム", "optAlarm": "⏰ アラーム",
-      "optGospel": "🎶 ゴスペル", "optHighlife": "🎶 ハイライフ", "optSiren": "🚨 サイレン", "optCustom": "🎤 マイソング",
-      "test": "▶ テスト", "stop": "⏹ 停止",
-      "uploadEmpty": "🎤 マイソングをアップロード (最大 3MB)", "uploadChange": "🎤 {name} — タップして変更",
-      "customSavedLabel": "カスタムソングを保存しました",
-      "pickHint": "電話からオーディオファイルを選択 — 通知音として再生されます",
-      "ring3": "3回鳴らす", "vibrate": "バイブレーション", "keepRinging": "鳴らし続ける",
-      "logSaved": "保存: {choice}", "logOn": "ON", "logRinging": "鳴動中: {choice}", "logStopped": "停止", "logSavedShort": "保存",
-      "toastOn": "✅ サウンド ON", "toastTooBig": "大きすぎます - 最大 3MB", "toastCustomSaved": "✅ カスタムソングを保存しました: {name}",
-      "savedLabel": "保存: {choice}",
-      "tip": "ヒント: まず有効化をタップ — 電話ブラウザはタップするまでサウンドをブロックします。この選択は、新しい予約 / 返金が届いたときに予約 + 返金 + CEO 画面で使用されます。",
-    },
-    "pl": {
-      "title": "🔔 Ustawienia Dźwięku",
-      "enableOn": "✅ DŹWIĘK WŁĄCZONY", "enableOff": "🔊 DOTKNIJ ABY WŁĄCZYĆ DŹWIĘK",
-      "optBell": "🔔 Dzwonek", "optChime": "🎵 Dzwoneczek", "optAlarm": "⏰ Alarm",
-      "optGospel": "🎶 Gospel", "optHighlife": "🎶 Highlife", "optSiren": "🚨 Syrena", "optCustom": "🎤 Moja Piosenka",
-      "test": "▶ Test", "stop": "⏹ Stop",
-      "uploadEmpty": "🎤 Wgraj Moją Piosenkę (max 3MB)", "uploadChange": "🎤 {name} — Dotknij aby zmienić",
-      "customSavedLabel": "Własna piosenka zapisana",
-      "pickHint": "Wybierz plik audio z telefonu — będzie odtwarzany jako dźwięk powiadomienia",
-      "ring3": "Dzwoń 3 razy", "vibrate": "Wibracja", "keepRinging": "Dzwoń dalej",
-      "logSaved": "Zapisano: {choice}", "logOn": "WŁĄCZONY", "logRinging": "Dzwoni: {choice}", "logStopped": "Zatrzymano", "logSavedShort": "Zapisano",
-      "toastOn": "✅ DŹWIĘK WŁĄCZONY", "toastTooBig": "Za duży - max 3MB", "toastCustomSaved": "✅ Własna piosenka zapisana: {name}",
-      "savedLabel": "Zapisano: {choice}",
-      "tip": "Wskazówka: Dotknij najpierw WŁĄCZ — przeglądarki telefonów blokują dźwięk do momentu dotknięcia. Ten wybór jest używany przez ekrany Rezerwacje + Zwroty + CEO, gdy nadejdzie nowa rezerwacja / zwrot.",
-    },
-  };
+// ===== GLOBAL SOUND SERVICE - Use from ANY screen =====
+// Same keys as HTML: lcg_sound_choice + lcg_custom_song
+// Usage: await SoundService.playCustomSound();
+//        await SoundService.enableSound();
+class SoundService {
+  static final AudioPlayer _player = AudioPlayer();
+  static bool soundEnabled = false;
+  static bool keepRinging = false;
+  static String choice = 'bell';
+  static String customSong = ''; // data:audio/...;base64,...
+  static bool repeat3 = true;
+  static bool vibrateOn = true;
+  static bool keepRingingOpt = false;
+
+  static Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    choice = prefs.getString('lcg_sound_choice') ?? 'bell';
+    customSong = prefs.getString('lcg_custom_song') ?? '';
+    repeat3 = prefs.getBool('lcg_sound_repeat') ?? true;
+    vibrateOn = prefs.getBool('lcg_sound_vibrate') ?? true;
+    keepRingingOpt = prefs.getBool('lcg_sound_keep') ?? false;
+  }
+
+  static Future<void> save() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('lcg_sound_choice', choice);
+    if (customSong.isNotEmpty) await prefs.setString('lcg_custom_song', customSong);
+    await prefs.setBool('lcg_sound_repeat', repeat3);
+    await prefs.setBool('lcg_sound_vibrate', vibrateOn);
+    await prefs.setBool('lcg_sound_keep', keepRingingOpt);
+  }
+
+  static Future<void> enableSound() async {
+    soundEnabled = true;
+    await load();
+    await playCustomSound();
+    await _vibrate([200, 100, 200]);
+  }
+
+  static Future<void> stopSound() async {
+    keepRinging = false;
+    keepRingingOpt = false;
+    try { await _player.stop(); } catch (_) {}
+  }
+
+  static Future<void> _vibrate(List<int> pattern) async {
+    // No-op on Web: vibration package is not in pubspec.yaml and Web has no
+    // Vibration API via that package. Keeping the method so the Vibrate
+    // checkbox still works (it just saves the setting, no crash, no build fail).
+    return;
+  }
+
+  // Generate WAV tone - same frequencies as HTML beep()
+  static Uint8List _wavTone(double freq, double durationSec, String type) {
+    const sampleRate = 22050;
+    final total = (sampleRate * durationSec).toInt();
+    final bytes = <int>[];
+    // WAV header - 44 bytes
+    void addStr(String s) => bytes.addAll(s.codeUnits);
+    void add32(int v) => bytes.addAll([v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF]);
+    void add16(int v) => bytes.addAll([v & 0xFF, (v >> 8) & 0xFF]);
+    final dataSize = total * 2;
+    addStr('RIFF'); add32(36 + dataSize); addStr('WAVE');
+    addStr('fmt '); add32(16); add16(1); add16(1); add32(sampleRate); add32(sampleRate * 2); add16(2); add16(16);
+    addStr('data'); add32(dataSize);
+    for (var i = 0; i < total; i++) {
+      final t = i / sampleRate;
+      double v = 0;
+      if (type == 'sine') v = sin(2 * pi * freq * t);
+      if (type == 'square') v = sin(2 * pi * freq * t) >= 0 ? 1 : -1;
+      if (type == 'triangle') v = (2 / pi) * asin(sin(2 * pi * freq * t));
+      if (type == 'sawtooth') v = 2 * ((freq * t) % 1) - 1;
+      // Fade in/out
+      final fade = min(1.0, min(i / 200, (total - i) / 200));
+      final sample = (v * 0.5 * fade * 32767).toInt().clamp(-32767, 32767);
+      add16(sample);
+    }
+    return Uint8List.fromList(bytes);
+  }
+
+  static Future<void> _beep(double freq, double dur, String type) async {
+    try {
+      final wav = _wavTone(freq, dur, type);
+      await _player.play(BytesSource(wav));
+      await Future.delayed(Duration(milliseconds: (dur * 1000).toInt() + 30));
+    } catch (_) {}
+  }
+
+  // Same as HTML playBuiltIn(k)
+  static Future<void> _playBuiltIn(String k) async {
+    if (k == 'bell') {
+      await _beep(880, 0.4, 'sine');
+      await Future.delayed(const Duration(milliseconds: 250));
+      await _beep(1174, 0.5, 'sine');
+      await Future.delayed(const Duration(milliseconds: 250));
+      await _beep(1568, 0.6, 'sine');
+    } else if (k == 'chime') {
+      for (final f in [523.0, 659.0, 784.0, 1046.0]) {
+        await _beep(f, 0.5, 'sine');
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+    } else if (k == 'alarm') {
+      for (var i = 0; i < 6; i++) {
+        await _beep(1000, 0.2, 'square');
+        await Future.delayed(const Duration(milliseconds: 150));
+        await _beep(700, 0.2, 'square');
+        await Future.delayed(const Duration(milliseconds: 150));
+      }
+    } else if (k == 'gospel') {
+      for (final f in [392.0, 523.0, 659.0, 784.0]) {
+        await _beep(f, 0.6, 'triangle');
+        await Future.delayed(const Duration(milliseconds: 250));
+      }
+      await _beep(1046, 0.9, 'triangle');
+    } else if (k == 'highlife') {
+      for (final f in [440.0, 554.0, 659.0, 880.0, 659.0, 554.0]) {
+        await _beep(f, 0.3, 'triangle');
+        await Future.delayed(const Duration(milliseconds: 180));
+      }
+    } else if (k == 'siren') {
+      for (var i = 0; i < 4; i++) {
+        await _beep(600, 0.3, 'sawtooth');
+        await Future.delayed(const Duration(milliseconds: 200));
+        await _beep(1200, 0.3, 'sawtooth');
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+    }
+  }
+
+  // Same as HTML playCustomSound(reason)
+  static Future<void> playCustomSound([String reason = 'test']) async {
+    if (!soundEnabled) return;
+    await load();
+    final repeat = repeat3;
+    final keep = keepRingingOpt;
+    int count = repeat ? 3 : 1;
+    if (keep) { keepRinging = true; count = 99; }
+    for (var i = 0; i < count; i++) {
+      if (keep && !keepRinging) break;
+      if (i > 0) await Future.delayed(const Duration(milliseconds: 1200));
+      if (choice == 'custom' && customSong.isNotEmpty) {
+        try {
+          final base64Part = customSong.contains(',') ? customSong.split(',').last : customSong;
+          final bytes = base64Decode(base64Part);
+          await _player.play(BytesSource(bytes));
+          // If keep ringing, loop on complete
+          if (keep) {
+            await Future.delayed(const Duration(milliseconds: 300));
+            continue;
+          }
+        } catch (_) {
+          await _playBuiltIn('bell');
+        }
+      } else {
+        await _playBuiltIn(choice);
+      }
+      await _vibrate([300, 100, 300, 100, 300]);
+      if (!keep) break;
+      if (i >= 2 && !keep) break;
+      if (keep && i >= 2) {
+        // Keep ringing - continue loop, stop button will set keepRinging=false
+        if (!keepRinging) break;
+      }
+    }
+  }
+}
+
+class SoundSettingsScreen extends StatefulWidget {
+  const SoundSettingsScreen({super.key});
+  @override
+  State<SoundSettingsScreen> createState() => _SoundSettingsScreenState();
+}
+
+// Aliases
+class SoundSettingsPage extends SoundSettingsScreen {
+  const SoundSettingsPage({super.key});
+}
+
+class _SoundSettingsScreenState extends State<SoundSettingsScreen> {
+  String choice = 'bell';
+  bool soundEnabled = false;
+  bool repeat3 = true;
+  bool vibrateOn = true;
+  bool keepRinging = false;
+  String logText = '';
+  String customName = '';
+
+  final List<Map<String, String>> options = [
+    {'value': 'bell', 'label': '🔔 Bell'},
+    {'value': 'chime', 'label': '🎵 Chime'},
+    {'value': 'alarm', 'label': '⏰ Alarm'},
+    {'value': 'gospel', 'label': '🎶 Gospel'},
+    {'value': 'highlife', 'label': '🎶 Highlife'},
+    {'value': 'siren', 'label': '🚨 Siren'},
+    {'value': 'custom', 'label': '🎤 My Song'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    await SoundService.load();
+    setState(() {
+      choice = SoundService.choice;
+      soundEnabled = SoundService.soundEnabled;
+      repeat3 = SoundService.repeat3;
+      vibrateOn = SoundService.vibrateOn;
+      keepRinging = SoundService.keepRingingOpt;
+      if (SoundService.customSong.isNotEmpty) customName = 'Custom song saved';
+    });
+  }
+
+  void _toast(String m) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+  }
+
+  Future<void> _saveAll() async {
+    SoundService.choice = choice;
+    SoundService.repeat3 = repeat3;
+    SoundService.vibrateOn = vibrateOn;
+    SoundService.keepRingingOpt = keepRinging;
+    await SoundService.save();
+    setState(() => logText = 'Saved: $choice');
+  }
+
+  Future<void> _enable() async {
+    await SoundService.enableSound();
+    setState(() {
+      soundEnabled = true;
+      logText = 'ON';
+    });
+    await _saveAll();
+    _toast('✅ SOUND ON');
+  }
+
+  Future<void> _pickBuiltIn(String? v) async {
+    if (v == null) return;
+    setState(() => choice = v);
+    SoundService.choice = v;
+    await _saveAll();
+  }
+
+  Future<void> _uploadCustom() async {
+    final res = await FilePicker.platform.pickFiles(type: FileType.audio, withData: true);
+    if (res == null || res.files.isEmpty || res.files.first.bytes == null) return;
+    final f = res.files.first;
+    if (f.bytes!.length > 3 * 1024 * 1024) {
+      _toast('Too big - max 3MB');
+      return;
+    }
+    final base64 = base64Encode(f.bytes!);
+    SoundService.customSong = 'data:audio/mpeg;base64,$base64';
+    SoundService.choice = 'custom';
+    setState(() {
+      choice = 'custom';
+      customName = f.name;
+      logText = 'Saved';
+    });
+    await _saveAll();
+    _toast('✅ Custom song saved: ${f.name}');
+    await SoundService.playCustomSound('test');
+  }
+
+  Future<void> _test() async {
+    if (!soundEnabled) { await _enable(); return; }
+    await _saveAll();
+    await SoundService.playCustomSound('test');
+    setState(() => logText = 'Ringing: $choice');
+  }
+
+  Future<void> _stop() async {
+    SoundService.keepRinging = false;
+    setState(() => keepRinging = false);
+    SoundService.keepRingingOpt = false;
+    await SoundService.stopSound();
+    await _saveAll();
+    setState(() => logText = 'Stopped');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E0A1C),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0E0A1C),
+        title: const Text('🔔 Sound Settings', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(14),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 640),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.red.withOpacity(0.12), Colors.purple.withOpacity(0.15)]),
+              border: Border.all(color: Colors.red.withOpacity(0.35), width: 2),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ElevatedButton(
+                  onPressed: _enable,
+                  style: ElevatedButton.styleFrom(backgroundColor: soundEnabled ? const Color(0xFF16A34A) : const Color(0xFF22C55E), foregroundColor: Colors.white, padding: const EdgeInsets.all(18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))),
+                  child: Text(soundEnabled ? '✅ SOUND ON' : '🔊 TAP TO ENABLE SOUND', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: choice,
+                  dropdownColor: const Color(0xFF1C1238),
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(filled: true, fillColor: const Color(0xFF1C1238), border: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: BorderSide(color: Colors.purple.withOpacity(0.4))), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)),
+                  items: options.map((o) => DropdownMenuItem(value: o['value'], child: Text(o['label']!))).toList(),
+                  onChanged: _pickBuiltIn,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: ElevatedButton(onPressed: _test, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFACC15), foregroundColor: Colors.black, padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))), child: const Text('▶ Test', style: TextStyle(fontWeight: FontWeight.w900)))),
+                    const SizedBox(width: 8),
+                    Expanded(child: ElevatedButton(onPressed: _stop, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), foregroundColor: Colors.white, padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999))), child: const Text('⏹ Stop', style: TextStyle(fontWeight: FontWeight.w900)))),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _uploadCustom,
+                  icon: const Icon(Icons.upload, size: 18),
+                  label: Text(customName.isEmpty ? '🎤 Upload My Song (max 3MB)' : '🎤 $customName — Tap to change'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.06), foregroundColor: Colors.white, padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                ),
+                const SizedBox(height: 8),
+                const Text('Pick audio file from phone — will play as your notification sound', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                const SizedBox(height: 10),
+                CheckboxListTile(value: repeat3, onChanged: (v) async { setState(() => repeat3 = v ?? true); await _saveAll(); }, title: const Text('Ring 3 times', style: TextStyle(color: Colors.white, fontSize: 13)), activeColor: const Color(0xFF22C55E), controlAffinity: ListTileControlAffinity.leading),
+                CheckboxListTile(value: vibrateOn, onChanged: (v) async { setState(() => vibrateOn = v ?? true); await _saveAll(); }, title: const Text('Vibrate', style: TextStyle(color: Colors.white, fontSize: 13)), activeColor: const Color(0xFF22C55E), controlAffinity: ListTileControlAffinity.leading),
+                CheckboxListTile(value: keepRinging, onChanged: (v) async { setState(() => keepRinging = v ?? false); await _saveAll(); }, title: const Text('Keep ringing', style: TextStyle(color: Colors.white, fontSize: 13)), activeColor: const Color(0xFFEF4444), controlAffinity: ListTileControlAffinity.leading),
+                if (logText.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Text(logText, style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11))),
+                Padding(padding: const EdgeInsets.only(top: 8), child: Text('Saved: $choice', style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11))),
+                const SizedBox(height: 10),
+                const Text('Tip: Tap ENABLE first — phone browsers block sound until you tap. This choice is used by Bookings + Refunds + CEO screens when new booking / refund arrives.', style: TextStyle(color: Colors.white54, fontSize: 11)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
