@@ -1,247 +1,471 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+// rating_translations.dart
+// FILE - Rate Your Nurse (CLIENT) - ONLY SCREEN WORDS - ALL 22 LANGUAGES
+// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
+// ONE FILE - Drop in lib/screens
 
-/// Rate Your Nurse - Flutter version of rating.html
-/// Only client who booked this nurse + job marked COMPLETED can rate.
-/// Rating + photo appears on homepage index for everyone.
-/// Saves to: ratings/{nurseId}/{bookingId} + clientRatings + ratingsAll + publicReviews + homepageReviews + clientReviews/{emailKey}/{bookingId}
-/// + clientBookings/{phoneKey}/{bookingId} + bookings/{bookingId} (isRated, ratingValue, ratingComment)
-/// + nurses/{nurseId} avg rating + reviewCount
-
-class RatingScreen extends StatefulWidget {
-  const RatingScreen({super.key});
-  @override
-  State<RatingScreen> createState() => _RatingScreenState();
-}
-
-class _RatingScreenState extends State<RatingScreen> {
-  String clientName = 'Client', clientPhone = '', clientEmail = '', clientPhoto = '', clientUid = '';
-  List<Map> myBookings = [];
-  String? currentBookingId;
-  String currentNurseId = '';
-  int currentRating = 0;
-  final _commentCtrl = TextEditingController();
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-  final _photoCtrl = TextEditingController();
-  String result = '';
-  bool isSubmitting = false;
-  bool showForm = false;
-
-  final ratingTexts = {1: 'Poor - Needs improvement', 2: 'Fair - Okay', 3: 'Good - Satisfied', 4: 'Very Good - Happy', 5: 'Excellent - Outstanding!'};
-
-  @override
-  void initState() {
-    super.initState();
-    _loadClient();
-  }
-
-  Future<bool> _loadClient() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      clientPhone = prefs.getString('clientPhone') ?? prefs.getString('phone') ?? prefs.getString('userPhone') ?? '';
-      clientName = prefs.getString('clientName') ?? prefs.getString('fullName') ?? prefs.getString('lcg_client_name') ?? 'Client';
-      clientEmail = prefs.getString('clientEmail') ?? prefs.getString('email') ?? prefs.getString('userEmail') ?? '';
-      clientPhoto = prefs.getString('clientPhotoUrl') ?? prefs.getString('clientPhoto') ?? prefs.getString('photoUrl') ?? prefs.getString('photo') ?? '';
-      clientUid = prefs.getString('clientUid') ?? prefs.getString('uid') ?? '';
-      _nameCtrl.text = clientName;
-      _phoneCtrl.text = clientPhone;
-      _emailCtrl.text = clientEmail;
-      _photoCtrl.text = clientPhoto;
-    });
-    if (clientPhone.isEmpty) return false;
-    await _loadBookingsToRate();
-    return true;
-  }
-
-  Future<void> _loadBookingsToRate() async {
-    final phoneKey = clientPhone.replaceAll(RegExp(r'[^0-9]'), '');
-    List<Map> bookings = [];
-    try {
-      final snap = await FirebaseDatabase.instance.ref('clientBookings/$phoneKey').get();
-      if (snap.exists) {
-        (snap.value as Map).forEach((k, v) => bookings.add({'id': k, ...Map<String, dynamic>.from(v as Map)}));
-      }
-      final snap2 = await FirebaseDatabase.instance.ref('bookings').get();
-      if (snap2.exists) {
-        (snap2.value as Map).forEach((k, v) {
-          final val = Map<String, dynamic>.from(v as Map);
-          final bPhone = (val['clientPhone'] ?? val['phone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
-          if ((bPhone == phoneKey || (phoneKey.length >= 9 && bPhone.endsWith(phoneKey.substring(phoneKey.length - 9)))) && !bookings.any((b) => b['id'] == k)) {
-            bookings.add({'id': k, ...val});
-          }
-        });
-      }
-      setState(() => myBookings = bookings);
-    } catch (_) {}
-  }
-
-  List<Map> get toRate => myBookings.where((b) {
-    final s = (b['status'] ?? '').toString().toLowerCase();
-    return (s == 'completed' || s == 'done' || b['completedAt'] != null) && b['isRated'] != true;
-  }).toList();
-
-  List<Map> get rated => myBookings.where((b) => b['isRated'] == true).toList();
-
-  void _startRating(String bookingId) {
-    final b = myBookings.firstWhere((x) => x['id'] == bookingId);
-    setState(() {
-      currentBookingId = bookingId;
-      currentNurseId = b['nurseId'] ?? b['selectedNurseId'] ?? '';
-      showForm = true;
-      currentRating = 0;
-      result = '';
-    });
-  }
-
-  void _cancelRating() => setState(() { showForm = false; currentBookingId = null; currentNurseId = ''; currentRating = 0; });
-
-  Future<void> _submitRating() async {
-    if (currentRating == 0) { setState(() => result = 'Please select 1-5 stars'); return; }
-    if (currentBookingId == null) { setState(() => result = 'No booking selected'); return; }
-    final comment = _commentCtrl.text.trim();
-    if (comment.isEmpty) { setState(() => result = 'Please write your experience (comment)'); return; }
-    setState(() { isSubmitting = true; result = ''; });
-    try {
-      final booking = myBookings.firstWhere((b) => b['id'] == currentBookingId);
-      final phoneKey = clientPhone.replaceAll(RegExp(r'[^0-9]'), '');
-      final cName = _nameCtrl.text.trim().isEmpty ? clientName : _nameCtrl.text.trim();
-      final cPhone = _phoneCtrl.text.trim().isEmpty ? clientPhone : _phoneCtrl.text.trim();
-      final cEmail = _emailCtrl.text.trim().isEmpty ? clientEmail : _emailCtrl.text.trim();
-      final cPhoto = _photoCtrl.text.trim().isEmpty ? (clientPhoto.isEmpty ? (booking['clientPhotoUrl'] ?? booking['clientPhoto'] ?? '') : clientPhoto) : _photoCtrl.text.trim();
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final ratingData = {
-        'bookingId': currentBookingId,
-        'nurseId': currentNurseId.isNotEmpty ? currentNurseId : (booking['nurseId'] ?? ''),
-        'nurseName': booking['nurseName'] ?? booking['selectedNurseName'] ?? '',
-        'service': booking['service'] ?? 'Home Nursing',
-        'clientPhone': cPhone, 'clientPhoneKey': phoneKey, 'phone': cPhone,
-        'clientName': cName, 'client': cName, 'clientFullName': cName, 'clientDisplayName': cName,
-        'clientEmail': cEmail, 'email': cEmail, 'clientMail': cEmail,
-        'clientPhotoUrl': cPhoto, 'clientPhoto': cPhoto, 'photoUrl': cPhoto, 'clientAvatar': cPhoto, 'clientProfilePhoto': cPhoto, 'clientImage': cPhoto,
-        'clientUid': clientUid.isNotEmpty ? clientUid : (booking['clientUid'] ?? ''),
-        'patientName': booking['patientName'] ?? '', 'patientPhone': booking['patientPhone'] ?? '', 'patientLocation': booking['patientLocation'] ?? '',
-        'ratingValue': currentRating, 'rating': currentRating, 'ratingComment': comment, 'text': comment,
-        'ratedAt': now, 'ratedAtISO': DateTime.now().toIso8601String(), 'ratingTime': now, 'ratingTimeFormatted': DateTime.now().toString(), 'ratingTimeDisplay': TimeOfDay.now().format(context),
-        'date': DateTime.now().toIso8601String().split('T')[0],
-        'timestamp': now, 'timeOfRating': now,
-        'bookingTime': booking['time'] ?? booking['createdAt'] ?? now, 'bookingTimeFormatted': booking['time'] != null ? DateTime.fromMillisecondsSinceEpoch((booking['time'] as num).toInt()).toString() : '',
-        'loc': 'Ghana', 'verifiedBooking': true, 'showOnIndex': true, 'source': 'rating.dart — with photo email',
-        'originalBookingId': currentBookingId,
-      };
-      final db = FirebaseDatabase.instance;
-      final nid = currentNurseId.isNotEmpty ? currentNurseId : (booking['nurseId'] ?? 'unknown');
-      final emailKey = cEmail.isNotEmpty ? cEmail.replaceAll(RegExp(r'[.#\$@\[\]]'), '_') : phoneKey;
-      await db.ref('ratings/$nid/$currentBookingId').set(ratingData);
-      await db.ref('clientRatings/$currentBookingId').set(ratingData);
-      await db.ref('ratingsAll/$currentBookingId').set(ratingData);
-      await db.ref('publicReviews/$currentBookingId').set(ratingData);
-      await db.ref('homepageReviews/$currentBookingId').set(ratingData);
-      await db.ref('clientReviews/$emailKey/$currentBookingId').set(ratingData);
-      await db.ref('clientBookings/$phoneKey/$currentBookingId').update({'isRated': true, 'ratingValue': currentRating, 'ratingComment': comment, 'ratedAt': now, 'clientPhotoUrl': cPhoto, 'clientEmail': cEmail});
-      await db.ref('bookings/$currentBookingId').update({'isRated': true, 'ratingValue': currentRating, 'ratingComment': comment, 'ratedAt': now, 'clientPhotoUrl': cPhoto, 'clientEmail': cEmail}).catchError((_) {});
-      // Update nurse avg
-      final snap = await db.ref('ratings/$nid').get();
-      if (snap.exists) {
-        double total = 0; int count = 0;
-        (snap.value as Map).forEach((_, v) { total += double.tryParse((Map<String, dynamic>.from(v as Map)['ratingValue'] ?? 0).toString()) ?? 0; count++; });
-        final avg = count > 0 ? total / count : currentRating.toDouble();
-        await db.ref('nurses/$nid').update({'rating': double.parse(avg.toStringAsFixed(1)), 'reviewCount': count, 'lastRatedAt': now}).catchError((_) {});
-      }
-      setState(() => result = '✅ Rating submitted! ⭐$currentRating — Client: $cName • Phone: $cPhone • Email: $cEmail • Photo: ${cPhoto.isNotEmpty ? 'YES' : 'NO'} • Time: ${DateTime.now()}\n"$comment" — Now appears on homepage with your photo!');
-      _commentCtrl.clear();
-      await _loadBookingsToRate();
-      Future.delayed(const Duration(milliseconds: 2500), () { if (mounted) Navigator.pushNamed(context, '/', arguments: {'scrollTo': 'reviews'}); });
-    } catch (e) {
-      setState(() => result = 'Failed: $e');
-    } finally {
-      setState(() => isSubmitting = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: const Text('RATE YOUR NURSE', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [TextButton(onPressed: () => Navigator.pushNamed(context, '/client-dashboard'), child: const Text('Dashboard', style: TextStyle(color: Color(0xFFD8B4FE))))]),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(14),
-        child: Column(children: [
-          Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF4C1D95).withOpacity(0.25), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFA855F7).withOpacity(0.25))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('🔒 Secure Verified Rating — With Client Photo + Email + Time', style: TextStyle(fontWeight: FontWeight.bold)),
-            const Text('Only client who booked this nurse and whose job is marked COMPLETED can rate. Your rating + photo appears on homepage index for everyone.', style: TextStyle(color: Color(0xFFFACC15), fontSize: 11)),
-            const SizedBox(height: 10),
-            Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFFFACC15).withOpacity(0.12), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFFACC15).withOpacity(0.2))), child: Row(children: [
-              CircleAvatar(radius: 24, backgroundImage: clientPhoto.isNotEmpty ? NetworkImage(clientPhoto) : null, child: clientPhoto.isEmpty ? Text(clientName.isNotEmpty ? clientName[0] : 'C') : null),
-              const SizedBox(width: 10),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(clientName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), Text(clientPhone.isEmpty ? 'Not found' : clientPhone, style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11)), Text(clientEmail.isEmpty ? 'No email' : clientEmail, style: const TextStyle(color: Colors.white60, fontSize: 11))])),
-            ])),
-          ])),
-          const SizedBox(height: 12),
-          // Bookings to rate
-          Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('📅 Completed Bookings to Rate', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (clientPhone.isEmpty) const Text('❌ No phone found. Please book first.', style: TextStyle(color: Color(0xFFFCA5A5))),
-            if (clientPhone.isNotEmpty && myBookings.isEmpty) const Text('Loading completed bookings...', style: TextStyle(color: Color(0xFFA78BFA))),
-            if (clientPhone.isNotEmpty && myBookings.isNotEmpty && toRate.isEmpty) ...[
-              Text('✅ All completed jobs rated! ${rated.length} ratings — they appear on homepage.', style: const TextStyle(color: Color(0xFF86EFAC))),
-              ...rated.map((b) => Container(margin: const EdgeInsets.only(top: 8), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.green.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green.withOpacity(0.2))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${b['id']} — ${b['nurseName'] ?? ''}  ${'⭐' * ((b['ratingValue'] ?? 5) as int)}', style: const TextStyle(fontWeight: FontWeight.bold)), Text(b['ratingComment'] ?? '', style: const TextStyle(fontSize: 12))]))),
-            ],
-            ...toRate.map((b) => Container(
-              margin: const EdgeInsets.only(top: 10), padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFFACC15).withOpacity(0.3))),
-              child: Row(children: [
-                CircleAvatar(backgroundImage: (b['clientPhotoUrl'] ?? clientPhoto).toString().isNotEmpty ? NetworkImage((b['clientPhotoUrl'] ?? clientPhoto).toString()) : null, child: (b['clientPhotoUrl'] ?? clientPhoto).toString().isEmpty ? Text(clientName.isNotEmpty ? clientName[0] : 'C') : null),
-                const SizedBox(width: 10),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('${b['id']} — ${b['nurseName'] ?? b['selectedNurseName'] ?? 'Nurse'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)), Text('Status: ${b['status'] ?? ''} • Service: ${b['service'] ?? 'Home Nursing'}', style: const TextStyle(color: Colors.white60, fontSize: 11))])),
-                ElevatedButton(onPressed: () => _startRating(b['id']), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFACC15)), child: const Text('⭐ Rate', style: TextStyle(color: Colors.black))),
-              ]),
-            )),
-          ])),
-          if (showForm) ...[
-            const SizedBox(height: 12),
-            Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFFACC15), width: 2)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('⭐ Rate ${myBookings.firstWhere((b) => b['id'] == currentBookingId)['nurseName'] ?? 'Nurse'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              Text('Booking: $currentBookingId • ${DateTime.now()}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
-              const SizedBox(height: 12),
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(5, (i) {
-                final n = i + 1;
-                return GestureDetector(onTap: () => setState(() => currentRating = n), child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: Text(n <= currentRating ? '★' : '☆', style: TextStyle(fontSize: 36, color: n <= currentRating ? const Color(0xFFFACC15) : Colors.grey))));
-              })),
-              Center(child: Text(currentRating == 0 ? 'Select rating' : ratingTexts[currentRating]!, style: const TextStyle(color: Color(0xFFFACC15), fontWeight: FontWeight.bold))),
-              const SizedBox(height: 12),
-              const Text('YOUR EXPERIENCE *', style: TextStyle(color: Color(0xFFC4B5FD), fontSize: 11, fontWeight: FontWeight.bold)),
-              TextField(controller: _commentCtrl, maxLines: 3, decoration: const InputDecoration(hintText: 'Write your experience...', border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              const Text('CLIENT NAME', style: TextStyle(color: Color(0xFFC4B5FD), fontSize: 11, fontWeight: FontWeight.bold)),
-              TextField(controller: _nameCtrl, decoration: const InputDecoration(border: OutlineInputBorder())),
-              const SizedBox(height: 8),
-              const Text('CLIENT PHONE', style: TextStyle(color: Color(0xFFC4B5FD), fontSize: 11, fontWeight: FontWeight.bold)),
-              TextField(controller: _phoneCtrl, decoration: const InputDecoration(border: OutlineInputBorder())),
-              const SizedBox(height: 8),
-              const Text('CLIENT EMAIL', style: TextStyle(color: Color(0xFFC4B5FD), fontSize: 11, fontWeight: FontWeight.bold)),
-              TextField(controller: _emailCtrl, decoration: const InputDecoration(border: OutlineInputBorder())),
-              const SizedBox(height: 8),
-              const Text('CLIENT PHOTO URL', style: TextStyle(color: Color(0xFFC4B5FD), fontSize: 11, fontWeight: FontWeight.bold)),
-              TextField(controller: _photoCtrl, decoration: const InputDecoration(border: OutlineInputBorder())),
-              const SizedBox(height: 12),
-              if (result.isNotEmpty) Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: result.startsWith('✅') ? Colors.green.withOpacity(0.15) : Colors.red.withOpacity(0.15), borderRadius: BorderRadius.circular(10)), child: Text(result, style: const TextStyle(fontSize: 12))),
-              const SizedBox(height: 10),
-              Row(children: [
-                Expanded(child: ElevatedButton(onPressed: isSubmitting ? null : _submitRating, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFACC15), padding: const EdgeInsets.symmetric(vertical: 14)), child: Text(isSubmitting ? '⏳ Submitting...' : '⭐ Submit Rating — With Photo + Email', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)))),
-                const SizedBox(width: 8),
-                OutlinedButton(onPressed: _cancelRating, child: const Text('Cancel')),
-              ]),
-            ])),
-          ],
-          const SizedBox(height: 12),
-          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)), child: const Text('You rate here → Saves to publicReviews + homepageReviews with client photo + email + time\nShows on homepage index with 4.9 AVG', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 11))),
-          const SizedBox(height: 20),
-        ]),
-      ),
-    );
-  }
+class RatingTranslations {
+  static const Map<String, Map<String, String>> all = {
+    "en": {
+      "title": "RATE YOUR NURSE", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Secure Verified Rating — With Client Photo + Email + Time",
+      "secureDesc": "Only client who booked this nurse and whose job is marked COMPLETED can rate. Your rating + photo appears on homepage index for everyone.",
+      "notFound": "Not found", "noEmail": "No email",
+      "completedTitle": "📅 Completed Bookings to Rate",
+      "noPhone": "❌ No phone found. Please book first.",
+      "loading": "Loading completed bookings...",
+      "allRated": "✅ All completed jobs rated! {count} ratings — they appear on homepage.",
+      "status": "Status: {status} • Service: {service}", "rateBtn": "⭐ Rate",
+      "rateTitle": "⭐ Rate {nurse}", "bookingLabel": "Booking: {id} • {time}",
+      "selectRating": "Select rating",
+      "r1": "Poor - Needs improvement", "r2": "Fair - Okay", "r3": "Good - Satisfied", "r4": "Very Good - Happy", "r5": "Excellent - Outstanding!",
+      "experience": "YOUR EXPERIENCE *", "commentHint": "Write your experience...",
+      "clientName": "CLIENT NAME", "clientPhone": "CLIENT PHONE", "clientEmail": "CLIENT EMAIL", "clientPhoto": "CLIENT PHOTO URL",
+      "submitting": "⏳ Submitting...", "submitBtn": "⭐ Submit Rating — With Photo + Email", "cancel": "Cancel",
+      "footer": "You rate here → Saves to publicReviews + homepageReviews with client photo + email + time\nShows on homepage index with 4.9 AVG",
+      "pleaseSelect": "Please select 1-5 stars", "noBooking": "No booking selected", "pleaseWrite": "Please write your experience (comment)",
+      "submitted": "✅ Rating submitted! ⭐{rating} — Client: {name} • Phone: {phone} • Email: {email} • Photo: {photo} • Time: {time}\n\"{comment}\" — Now appears on homepage with your photo!",
+      "failed": "Failed: {error}",
+    },
+    "tw": {
+      "title": "RATE WO NƐƐSE", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Secure Verified Rating — Ɛne Ɔkra Foto + Email + Bere",
+      "secureDesc": "Ɔkra a ɔbook Nɛɛse yi nko na ne dwuma wɔakyerɛ COMPLETED na ɔtumi rate. Wo rating + foto da adi wɔ homepage index ma obiara.",
+      "notFound": "Ennhu", "noEmail": "Email nni hɔ",
+      "completedTitle": "📅 Bookings a Wɔawie a Wobɛ Rate",
+      "noPhone": "❌ Phone nni hɔ. Book kane.",
+      "loading": "Re load bookings a wɔawie...",
+      "allRated": "✅ Wɔa rate dwumadi a wɔawie nyinaa! {count} ratings — ɛda adi wɔ homepage.",
+      "status": "Status: {status} • Service: {service}", "rateBtn": "⭐ Rate",
+      "rateTitle": "⭐ Rate {nurse}", "bookingLabel": "Booking: {id} • {time}",
+      "selectRating": "Fa rating",
+      "r1": "Poor - Ɛhia nkɔso", "r2": "Fair - Okay", "r3": "Good - Me ani agye", "r4": "Very Good - Me ani agye paa", "r5": "Excellent - Ɛyɛ paa!",
+      "experience": "WO SUHUUDWE *", "commentHint": "Kyerɛw wo suahuudwe...",
+      "clientName": "ƆKRA DIN", "clientPhone": "ƆKRA PHONE", "clientEmail": "ƆKRA EMAIL", "clientPhoto": "ƆKRA FOTO URL",
+      "submitting": "⏳ Resoma...", "submitBtn": "⭐ Soma Rating — Ɛne Foto + Email", "cancel": "Gyae",
+      "footer": "Worate ha → Wɔkora wɔ publicReviews + homepageReviews ɛne ɔkra foto + email + bere\nƐda adi wɔ homepage index ɛne 4.9 AVG",
+      "pleaseSelect": "Fa 1-5 stars", "noBooking": "Woanyi booking", "pleaseWrite": "Kyerɛw wo suahuudwe (comment)",
+      "submitted": "✅ Rating wɔasoma! ⭐{rating} — Ɔkra: {name} • Phone: {phone} • Email: {email} • Foto: {photo} • Bere: {time}\n\"{comment}\" — Seisei ɛda adi wɔ homepage ɛne wo foto!",
+      "failed": "Antumi: {error}",
+    },
+    "ga": {
+      "title": "RATE O NƐƐSE", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Secure Verified Rating — Kɛ Mɔ Foto + Email + Bere",
+      "secureDesc": "Mɔ a e book Nɛɛse nɛɛ pɛ kɛ e nitsumɔ atsɔ COMPLETED na etee rate. O rating + foto daa yɛ homepage index hã mɔ fɛɛ.",
+      "notFound": "Ena", "noEmail": "Email bɛ",
+      "completedTitle": "📅 Bookings a Agbe Na Oa Rate",
+      "noPhone": "❌ Phone bɛ. Book kane.",
+      "loading": "Mii loade bookings a agbe...",
+      "allRated": "✅ Agbe nitsumɔ fɛɛ a rate! {count} ratings — amɛ daa yɛ homepage.",
+      "status": "Status: {status} • Service: {service}", "rateBtn": "⭐ Rate",
+      "rateTitle": "⭐ Rate {nurse}", "bookingLabel": "Booking: {id} • {time}",
+      "selectRating": "Hala rating",
+      "r1": "Poor - E hiaa nkɔso", "r2": "Fair - Okay", "r3": "Good - Mi shɛɛ", "r4": "Very Good - Mi shɛɛ paa", "r5": "Excellent - Ehi paa!",
+      "experience": "O SUHUUDWE *", "commentHint": "Ŋmɛ o suhuudwe...",
+      "clientName": "MƆ GBƐI", "clientPhone": "MƆ PHONE", "clientEmail": "MƆ EMAIL", "clientPhoto": "MƆ FOTO URL",
+      "submitting": "⏳ Mii fee...", "submitBtn": "⭐ Fee Rating — Kɛ Foto + Email", "cancel": "Fo",
+      "footer": "O rate hee → Atoɔ yɛ publicReviews + homepageReviews kɛ mɔ foto + email + bere\nDaa yɛ homepage index kɛ 4.9 AVG",
+      "pleaseSelect": "Hala 1-5 stars", "noBooking": "Booking bɛ", "pleaseWrite": "Ŋmɛ o suhuudwe (comment)",
+      "submitted": "✅ Rating afee! ⭐{rating} — Mɔ: {name} • Phone: {phone} • Email: {email} • Foto: {photo} • Bere: {time}\n\"{comment}\" — Seisei daa yɛ homepage kɛ o foto!",
+      "failed": "Eko: {error}",
+    },
+    "ee": {
+      "title": "ÐO NƆNƆVIA WÒ NU", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Secure Verified Rating — Kple Ame Foto + Email + Ɣeyiɣi",
+      "secureDesc": "Ame si book Nɔnɔvia sia ko eye ne dɔa wode dzesi COMPLETED ate ŋu aɖo nu. Wò rating + foto ɖea le homepage index na ame sia ame.",
+      "notFound": "Mekpɔ o", "noEmail": "Email meli o",
+      "completedTitle": "📅 Booking Siwo Wu Nu Si Nàɖo Nu",
+      "noPhone": "❌ Phone meli o. Book gbã.",
+      "loading": "Le booking siwo wu nu lɔɔm...",
+      "allRated": "✅ Woɖo dɔ siwo wu nu katã nu! {count} ratings — wodea le homepage.",
+      "status": "Status: {status} • Service: {service}", "rateBtn": "⭐ Rate",
+      "rateTitle": "⭐ Rate {nurse}", "bookingLabel": "Booking: {id} • {time}",
+      "selectRating": "Tia rating",
+      "r1": "Poor - Ehiã ŋgɔyiyi", "r2": "Fair - Okay", "r3": "Good - Medzɔ", "r4": "Very Good - Medzɔ ŋutɔ", "r5": "Excellent - Enyo ŋutɔ!",
+      "experience": "WÒ NUTEPƐ *", "commentHint": "Ŋlɔ wò nutepɛ...",
+      "clientName": "AME ŊKƆ", "clientPhone": "AME PHONE", "clientEmail": "AME EMAIL", "clientPhoto": "AME FOTO URL",
+      "submitting": "⏳ Le ɖoɖo...", "submitBtn": "⭐ Ðo Rating Ðe Ðo — Kple Foto + Email", "cancel": "Ðe Ða",
+      "footer": "Èɖoa nu afi → Wodzra ɖo le publicReviews + homepageReviews kple ame foto + email + ɣeyiɣi\nƉea le homepage index kple 4.9 AVG",
+      "pleaseSelect": "Tia 1-5 stars", "noBooking": "Booking aɖeke meli o", "pleaseWrite": "Ŋlɔ wò nutepɛ (comment)",
+      "submitted": "✅ Rating woɖo ɖe! ⭐{rating} — Ame: {name} • Phone: {phone} • Email: {email} • Foto: {photo} • Ɣeyiɣi: {time}\n\"{comment}\" — Fifia ɖea le homepage kple wò foto!",
+      "failed": "Medze o: {error}",
+    },
+    "nl": {
+      "title": "BEOORDEEL JE VERPLEEGKUNDIGE", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Veilige Geverifieerde Beoordeling — Met Klant Foto + Email + Tijd",
+      "secureDesc": "Alleen klant die deze verpleegkundige boekte en wiens job als VOLTOOID staat gemarkeerd kan beoordelen. Je beoordeling + foto verschijnt op homepage index voor iedereen.",
+      "notFound": "Niet gevonden", "noEmail": "Geen email",
+      "completedTitle": "📅 Voltooide Boekingen Om Te Beoordelen",
+      "noPhone": "❌ Geen telefoon gevonden. Boek eerst.",
+      "loading": "Voltooide boekingen laden...",
+      "allRated": "✅ Alle voltooide jobs beoordeeld! {count} beoordelingen — ze staan op homepage.",
+      "status": "Status: {status} • Service: {service}", "rateBtn": "⭐ Beoordeel",
+      "rateTitle": "⭐ Beoordeel {nurse}", "bookingLabel": "Boeking: {id} • {time}",
+      "selectRating": "Selecteer beoordeling",
+      "r1": "Slecht - Verbetering nodig", "r2": "Redelijk - Okay", "r3": "Goed - Tevreden", "r4": "Zeer Goed - Blij", "r5": "Uitstekend - Uitmuntend!",
+      "experience": "JOUW ERVARING *", "commentHint": "Schrijf je ervaring...",
+      "clientName": "KLANT NAAM", "clientPhone": "KLANT TELEFOON", "clientEmail": "KLANT EMAIL", "clientPhoto": "KLANT FOTO URL",
+      "submitting": "⏳ Verzenden...", "submitBtn": "⭐ Beoordeling Verzenden — Met Foto + Email", "cancel": "Annuleren",
+      "footer": "Je beoordeelt hier → Wordt opgeslagen in publicReviews + homepageReviews met klant foto + email + tijd\nVerschijnt op homepage index met 4.9 GEM",
+      "pleaseSelect": "Selecteer 1-5 sterren", "noBooking": "Geen boeking geselecteerd", "pleaseWrite": "Schrijf je ervaring (commentaar)",
+      "submitted": "✅ Beoordeling verzonden! ⭐{rating} — Klant: {name} • Telefoon: {phone} • Email: {email} • Foto: {photo} • Tijd: {time}\n\"{comment}\" — Verschijnt nu op homepage met je foto!",
+      "failed": "Mislukt: {error}",
+    },
+    "fr": {
+      "title": "NOTEZ VOTRE INFIRMIÈRE", "dashboard": "Tableau De Bord",
+      "secureTitle": "🔒 Note Vérifiée Sécurisée — Avec Photo Client + Email + Heure",
+      "secureDesc": "Seul le client qui a réservé cette infirmière et dont le travail est marqué TERMINÉ peut noter. Votre note + photo apparaît sur la page d'accueil pour tout le monde.",
+      "notFound": "Introuvable", "noEmail": "Pas d'email",
+      "completedTitle": "📅 Réservations Terminées À Noter",
+      "noPhone": "❌ Aucun téléphone trouvé. Réservez d'abord.",
+      "loading": "Chargement des réservations terminées...",
+      "allRated": "✅ Tous les travaux terminés notés! {count} notes — elles apparaissent sur la page d'accueil.",
+      "status": "Statut: {status} • Service: {service}", "rateBtn": "⭐ Noter",
+      "rateTitle": "⭐ Noter {nurse}", "bookingLabel": "Réservation: {id} • {time}",
+      "selectRating": "Sélectionnez une note",
+      "r1": "Médiocre - Besoin d'amélioration", "r2": "Correct - Okay", "r3": "Bien - Satisfait", "r4": "Très Bien - Heureux", "r5": "Excellent - Exceptionnel!",
+      "experience": "VOTRE EXPÉRIENCE *", "commentHint": "Écrivez votre expérience...",
+      "clientName": "NOM CLIENT", "clientPhone": "TÉLÉPHONE CLIENT", "clientEmail": "EMAIL CLIENT", "clientPhoto": "PHOTO CLIENT URL",
+      "submitting": "⏳ Envoi...", "submitBtn": "⭐ Envoyer Note — Avec Photo + Email", "cancel": "Annuler",
+      "footer": "Vous notez ici → Enregistré dans publicReviews + homepageReviews avec photo client + email + heure\nS'affiche sur la page d'accueil avec 4.9 MOY",
+      "pleaseSelect": "Sélectionnez 1-5 étoiles", "noBooking": "Aucune réservation sélectionnée", "pleaseWrite": "Écrivez votre expérience (commentaire)",
+      "submitted": "✅ Note envoyée! ⭐{rating} — Client: {name} • Téléphone: {phone} • Email: {email} • Photo: {photo} • Heure: {time}\n\"{comment}\" — Apparaît maintenant sur la page d'accueil avec votre photo!",
+      "failed": "Échec: {error}",
+    },
+    "de": {
+      "title": "BEWERTE DEINE KRANKENSCHWESTER", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Sichere Verifizierte Bewertung — Mit Kundenfoto + Email + Zeit",
+      "secureDesc": "Nur Kunde, der diese Krankenschwester gebucht hat und dessen Job als ABGESCHLOSSEN markiert ist, kann bewerten. Deine Bewertung + Foto erscheint auf der Homepage für alle.",
+      "notFound": "Nicht gefunden", "noEmail": "Keine Email",
+      "completedTitle": "📅 Abgeschlossene Buchungen Zum Bewerten",
+      "noPhone": "❌ Kein Telefon gefunden. Bitte zuerst buchen.",
+      "loading": "Abgeschlossene Buchungen laden...",
+      "allRated": "✅ Alle abgeschlossenen Jobs bewertet! {count} Bewertungen — sie erscheinen auf der Homepage.",
+      "status": "Status: {status} • Service: {service}", "rateBtn": "⭐ Bewerten",
+      "rateTitle": "⭐ Bewerte {nurse}", "bookingLabel": "Buchung: {id} • {time}",
+      "selectRating": "Bewertung wählen",
+      "r1": "Schlecht - Verbesserung nötig", "r2": "Okay - In Ordnung", "r3": "Gut - Zufrieden", "r4": "Sehr Gut - Glücklich", "r5": "Ausgezeichnet - Hervorragend!",
+      "experience": "DEINE ERFAHRUNG *", "commentHint": "Schreibe deine Erfahrung...",
+      "clientName": "KUNDENNAME", "clientPhone": "KUNDENTELEFON", "clientEmail": "KUNDEN EMAIL", "clientPhoto": "KUNDEN FOTO URL",
+      "submitting": "⏳ Senden...", "submitBtn": "⭐ Bewertung Senden — Mit Foto + Email", "cancel": "Abbrechen",
+      "footer": "Du bewertest hier → Wird in publicReviews + homepageReviews mit Kundenfoto + Email + Zeit gespeichert\nErscheint auf der Homepage mit 4.9 DURCHSCHNITT",
+      "pleaseSelect": "Bitte 1-5 Sterne wählen", "noBooking": "Keine Buchung ausgewählt", "pleaseWrite": "Bitte schreibe deine Erfahrung (Kommentar)",
+      "submitted": "✅ Bewertung gesendet! ⭐{rating} — Kunde: {name} • Telefon: {phone} • Email: {email} • Foto: {photo} • Zeit: {time}\n\"{comment}\" — Erscheint jetzt auf der Homepage mit deinem Foto!",
+      "failed": "Fehlgeschlagen: {error}",
+    },
+    "es": {
+      "title": "CALIFICA A TU ENFERMERA", "dashboard": "Panel",
+      "secureTitle": "🔒 Calificación Verificada Segura — Con Foto Cliente + Correo + Hora",
+      "secureDesc": "Solo el cliente que reservó a esta enfermera y cuyo trabajo está marcado como COMPLETADO puede calificar. Tu calificación + foto aparece en la página principal para todos.",
+      "notFound": "No encontrado", "noEmail": "Sin correo",
+      "completedTitle": "📅 Reservas Completadas Para Calificar",
+      "noPhone": "❌ No se encontró teléfono. Reserva primero.",
+      "loading": "Cargando reservas completadas...",
+      "allRated": "✅ ¡Todos los trabajos completados calificados! {count} calificaciones — aparecen en la página principal.",
+      "status": "Estado: {status} • Servicio: {service}", "rateBtn": "⭐ Calificar",
+      "rateTitle": "⭐ Calificar {nurse}", "bookingLabel": "Reserva: {id} • {time}",
+      "selectRating": "Selecciona calificación",
+      "r1": "Malo - Necesita mejorar", "r2": "Regular - Okay", "r3": "Bueno - Satisfecho", "r4": "Muy Bueno - Feliz", "r5": "Excelente - ¡Sobresaliente!",
+      "experience": "TU EXPERIENCIA *", "commentHint": "Escribe tu experiencia...",
+      "clientName": "NOMBRE CLIENTE", "clientPhone": "TELÉFONO CLIENTE", "clientEmail": "CORREO CLIENTE", "clientPhoto": "FOTO CLIENTE URL",
+      "submitting": "⏳ Enviando...", "submitBtn": "⭐ Enviar Calificación — Con Foto + Correo", "cancel": "Cancelar",
+      "footer": "Calificas aquí → Se guarda en publicReviews + homepageReviews con foto cliente + correo + hora\nSe muestra en la página principal con 4.9 PROM",
+      "pleaseSelect": "Selecciona 1-5 estrellas", "noBooking": "Ninguna reserva seleccionada", "pleaseWrite": "Escribe tu experiencia (comentario)",
+      "submitted": "✅ ¡Calificación enviada! ⭐{rating} — Cliente: {name} • Teléfono: {phone} • Correo: {email} • Foto: {photo} • Hora: {time}\n\"{comment}\" — ¡Ahora aparece en la página principal con tu foto!",
+      "failed": "Falló: {error}",
+    },
+    "it": {
+      "title": "VALUTA LA TUA INFERMIERA", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Valutazione Verificata Sicura — Con Foto Cliente + Email + Ora",
+      "secureDesc": "Solo il cliente che ha prenotato questa infermiera e il cui lavoro è segnato COMPLETATO può valutare. La tua valutazione + foto appare sulla homepage per tutti.",
+      "notFound": "Non trovato", "noEmail": "Nessuna email",
+      "completedTitle": "📅 Prenotazioni Completate Da Valutare",
+      "noPhone": "❌ Nessun telefono trovato. Prenota prima.",
+      "loading": "Caricamento prenotazioni completate...",
+      "allRated": "✅ Tutti i lavori completati valutati! {count} valutazioni — appaiono sulla homepage.",
+      "status": "Stato: {status} • Servizio: {service}", "rateBtn": "⭐ Valuta",
+      "rateTitle": "⭐ Valuta {nurse}", "bookingLabel": "Prenotazione: {id} • {time}",
+      "selectRating": "Seleziona valutazione",
+      "r1": "Scarso - Bisogno di miglioramento", "r2": "Discreto - Okay", "r3": "Buono - Soddisfatto", "r4": "Molto Buono - Felice", "r5": "Eccellente - Eccezionale!",
+      "experience": "LA TUA ESPERIENZA *", "commentHint": "Scrivi la tua esperienza...",
+      "clientName": "NOME CLIENTE", "clientPhone": "TELEFONO CLIENTE", "clientEmail": "EMAIL CLIENTE", "clientPhoto": "FOTO CLIENTE URL",
+      "submitting": "⏳ Invio...", "submitBtn": "⭐ Invia Valutazione — Con Foto + Email", "cancel": "Annulla",
+      "footer": "Valuti qui → Salvato in publicReviews + homepageReviews con foto cliente + email + ora\nMostrato sulla homepage con 4.9 MEDIA",
+      "pleaseSelect": "Seleziona 1-5 stelle", "noBooking": "Nessuna prenotazione selezionata", "pleaseWrite": "Scrivi la tua esperienza (commento)",
+      "submitted": "✅ Valutazione inviata! ⭐{rating} — Cliente: {name} • Telefono: {phone} • Email: {email} • Foto: {photo} • Ora: {time}\n\"{comment}\" — Ora appare sulla homepage con la tua foto!",
+      "failed": "Fallito: {error}",
+    },
+    "pt": {
+      "title": "AVALIE SUA ENFERMEIRA", "dashboard": "Painel",
+      "secureTitle": "🔒 Avaliação Verificada Segura — Com Foto Cliente + Email + Hora",
+      "secureDesc": "Apenas o cliente que reservou esta enfermeira e cujo trabalho está marcado como CONCLUÍDO pode avaliar. Sua avaliação + foto aparece na página inicial para todos.",
+      "notFound": "Não encontrado", "noEmail": "Sem email",
+      "completedTitle": "📅 Reservas Concluídas Para Avaliar",
+      "noPhone": "❌ Nenhum telefone encontrado. Reserve primeiro.",
+      "loading": "Carregando reservas concluídas...",
+      "allRated": "✅ Todos os trabalhos concluídos avaliados! {count} avaliações — aparecem na página inicial.",
+      "status": "Status: {status} • Serviço: {service}", "rateBtn": "⭐ Avaliar",
+      "rateTitle": "⭐ Avaliar {nurse}", "bookingLabel": "Reserva: {id} • {time}",
+      "selectRating": "Selecione avaliação",
+      "r1": "Ruim - Precisa melhorar", "r2": "Razoável - Okay", "r3": "Bom - Satisfeito", "r4": "Muito Bom - Feliz", "r5": "Excelente - Excepcional!",
+      "experience": "SUA EXPERIÊNCIA *", "commentHint": "Escreva sua experiência...",
+      "clientName": "NOME CLIENTE", "clientPhone": "TELEFONE CLIENTE", "clientEmail": "EMAIL CLIENTE", "clientPhoto": "FOTO CLIENTE URL",
+      "submitting": "⏳ Enviando...", "submitBtn": "⭐ Enviar Avaliação — Com Foto + Email", "cancel": "Cancelar",
+      "footer": "Você avalia aqui → Salvo em publicReviews + homepageReviews com foto cliente + email + hora\nMostrado na página inicial com 4.9 MÉDIA",
+      "pleaseSelect": "Selecione 1-5 estrelas", "noBooking": "Nenhuma reserva selecionada", "pleaseWrite": "Escreva sua experiência (comentário)",
+      "submitted": "✅ Avaliação enviada! ⭐{rating} — Cliente: {name} • Telefone: {phone} • Email: {email} • Foto: {photo} • Hora: {time}\n\"{comment}\" — Agora aparece na página inicial com sua foto!",
+      "failed": "Falhou: {error}",
+    },
+    "ar": {
+      "title": "قيّم ممرضتك", "dashboard": "لوحة التحكم",
+      "secureTitle": "🔒 تقييم موثّق آمن — مع صورة العميل + البريد + الوقت",
+      "secureDesc": "فقط العميل الذي حجز هذه الممرضة وتم وضع علامة مكتمل على عمله يمكنه التقييم. تقييمك + صورتك يظهران على الصفحة الرئيسية للجميع.",
+      "notFound": "غير موجود", "noEmail": "لا بريد",
+      "completedTitle": "📅 حجوزات مكتملة للتقييم",
+      "noPhone": "❌ لم يتم العثور على هاتف. احجز أولاً.",
+      "loading": "جارٍ تحميل الحجوزات المكتملة...",
+      "allRated": "✅ تم تقييم كل الأعمال المكتملة! {count} تقييم — تظهر على الصفحة الرئيسية.",
+      "status": "الحالة: {status} • الخدمة: {service}", "rateBtn": "⭐ قيّم",
+      "rateTitle": "⭐ قيّم {nurse}", "bookingLabel": "الحجز: {id} • {time}",
+      "selectRating": "اختر تقييماً",
+      "r1": "سيئ - يحتاج تحسين", "r2": "مقبول - جيد", "r3": "جيد - راضٍ", "r4": "جيد جداً - سعيد", "r5": "ممتاز - رائع!",
+      "experience": "تجربتك *", "commentHint": "اكتب تجربتك...",
+      "clientName": "اسم العميل", "clientPhone": "هاتف العميل", "clientEmail": "بريد العميل", "clientPhoto": "رابط صورة العميل",
+      "submitting": "⏳ جارٍ الإرسال...", "submitBtn": "⭐ إرسال التقييم — مع الصورة + البريد", "cancel": "إلغاء",
+      "footer": "تقيّم هنا → يُحفظ في publicReviews + homepageReviews مع صورة العميل + البريد + الوقت\nيظهر على الصفحة الرئيسية بمتوسط 4.9",
+      "pleaseSelect": "اختر 1-5 نجوم", "noBooking": "لم يتم اختيار حجز", "pleaseWrite": "اكتب تجربتك (تعليق)",
+      "submitted": "✅ تم إرسال التقييم! ⭐{rating} — العميل: {name} • الهاتف: {phone} • البريد: {email} • الصورة: {photo} • الوقت: {time}\n\"{comment}\" — يظهر الآن على الصفحة الرئيسية مع صورتك!",
+      "failed": "فشل: {error}",
+    },
+    "zh": {
+      "title": "评价你的护士", "dashboard": "仪表板",
+      "secureTitle": "🔒 安全验证评价 — 含客户照片 + 邮箱 + 时间",
+      "secureDesc": "只有预订了这位护士且工作已标记为已完成客户才能评价。你的评价 + 照片会显示在首页上供所有人查看。",
+      "notFound": "未找到", "noEmail": "无邮箱",
+      "completedTitle": "📅 待评价的已完成预订",
+      "noPhone": "❌ 未找到电话。请先预订。",
+      "loading": "正在加载已完成预订...",
+      "allRated": "✅ 所有已完成工作已评价! {count} 条评价 — 显示在首页上。",
+      "status": "状态: {status} • 服务: {service}", "rateBtn": "⭐ 评价",
+      "rateTitle": "⭐ 评价 {nurse}", "bookingLabel": "预订: {id} • {time}",
+      "selectRating": "选择评价",
+      "r1": "差 - 需要改进", "r2": "一般 - 还行", "r3": "好 - 满意", "r4": "很好 - 开心", "r5": "优秀 - 杰出!",
+      "experience": "你的体验 *", "commentHint": "写下你的体验...",
+      "clientName": "客户姓名", "clientPhone": "客户电话", "clientEmail": "客户邮箱", "clientPhoto": "客户照片链接",
+      "submitting": "⏳ 提交中...", "submitBtn": "⭐ 提交评价 — 含照片 + 邮箱", "cancel": "取消",
+      "footer": "你在这里评价 → 保存到 publicReviews + homepageReviews，含客户照片 + 邮箱 + 时间\n显示在首页上，平均 4.9",
+      "pleaseSelect": "请选择 1-5 星", "noBooking": "未选择预订", "pleaseWrite": "请写下你的体验 (评论)",
+      "submitted": "✅ 评价已提交! ⭐{rating} — 客户: {name} • 电话: {phone} • 邮箱: {email} • 照片: {photo} • 时间: {time}\n\"{comment}\" — 现在显示在首页上，附带你的照片!",
+      "failed": "失败: {error}",
+    },
+    "hi": {
+      "title": "अपनी नर्स को रेट करें", "dashboard": "डैशबोर्ड",
+      "secureTitle": "🔒 सुरक्षित सत्यापित रेटिंग — ग्राहक फोटो + ईमेल + समय के साथ",
+      "secureDesc": "केवल वह ग्राहक जिसने इस नर्स को बुक किया और जिसका काम पूर्ण के रूप में चिह्नित है, रेट कर सकता है। आपकी रेटिंग + फोटो होमपेज पर सभी के लिए दिखाई देती है।",
+      "notFound": "नहीं मिला", "noEmail": "ईमेल नहीं",
+      "completedTitle": "📅 रेट करने के लिए पूर्ण बुकिंग",
+      "noPhone": "❌ फोन नहीं मिला। पहले बुक करें।",
+      "loading": "पूर्ण बुकिंग लोड हो रही हैं...",
+      "allRated": "✅ सभी पूर्ण कार्य रेट किए गए! {count} रेटिंग — वे होमपेज पर दिखती हैं।",
+      "status": "स्थिति: {status} • सेवा: {service}", "rateBtn": "⭐ रेट करें",
+      "rateTitle": "⭐ {nurse} को रेट करें", "bookingLabel": "बुकिंग: {id} • {time}",
+      "selectRating": "रेटिंग चुनें",
+      "r1": "खराब - सुधार की जरूरत", "r2": "ठीक - ओके", "r3": "अच्छा - संतुष्ट", "r4": "बहुत अच्छा - खुश", "r5": "उत्कृष्ट - शानदार!",
+      "experience": "आपका अनुभव *", "commentHint": "अपना अनुभव लिखें...",
+      "clientName": "ग्राहक का नाम", "clientPhone": "ग्राहक का फोन", "clientEmail": "ग्राहक का ईमेल", "clientPhoto": "ग्राहक फोटो URL",
+      "submitting": "⏳ भेज रहे हैं...", "submitBtn": "⭐ रेटिंग भेजें — फोटो + ईमेल के साथ", "cancel": "रद्द करें",
+      "footer": "आप यहाँ रेट करते हैं → publicReviews + homepageReviews में ग्राहक फोटो + ईमेल + समय के साथ सहेजा जाता है\nहोमपेज पर 4.9 AVG के साथ दिखता है",
+      "pleaseSelect": "1-5 स्टार चुनें", "noBooking": "कोई बुकिंग नहीं चुनी", "pleaseWrite": "कृपया अपना अनुभव लिखें (टिप्पणी)",
+      "submitted": "✅ रेटिंग भेजी गई! ⭐{rating} — ग्राहक: {name} • फोन: {phone} • ईमेल: {email} • फोटो: {photo} • समय: {time}\n\"{comment}\" — अब आपकी फोटो के साथ होमपेज पर दिखती है!",
+      "failed": "विफल: {error}",
+    },
+    "sw": {
+      "title": "MKADIRIE MUUGUZI WAKO", "dashboard": "Dashibodi",
+      "secureTitle": "🔒 Ukadiriaji Uliothibitishwa Salama — Na Picha Ya Mteja + Barua Pepe + Muda",
+      "secureDesc": "Mteja aliyembook muuguzi huyu tu na ambaye kazi yake imewekwa alama KAMILIKA anaweza kukadiria. Ukadiriaji wako + picha inaonekana kwenye ukurasa wa mwanzo kwa kila mtu.",
+      "notFound": "Haijapatikana", "noEmail": "Hakuna barua pepe",
+      "completedTitle": "📅 Booking Zilizokamilika Za Kukadiria",
+      "noPhone": "❌ Hakuna simu iliyopatikana. Book kwanza.",
+      "loading": "Inapakia booking zilizokamilika...",
+      "allRated": "✅ Kazi zote zilizokamilika zimekadiriwa! {count} ukadiriaji — zinaonekana kwenye ukurasa wa mwanzo.",
+      "status": "Hali: {status} • Huduma: {service}", "rateBtn": "⭐ Kadiria",
+      "rateTitle": "⭐ Mkadiri {nurse}", "bookingLabel": "Booking: {id} • {time}",
+      "selectRating": "Chagua ukadiriaji",
+      "r1": "Mbaya - Inahitaji kuboreshwa", "r2": "Wastani - Sawa", "r3": "Nzuri - Nimeridhika", "r4": "Nzuri Sana - Nimefurahi", "r5": "Bora - Ya Kipekee!",
+      "experience": "UZOEFU WAKO *", "commentHint": "Andika uzoefu wako...",
+      "clientName": "JINA LA MTEJA", "clientPhone": "SIMU YA MTEJA", "clientEmail": "BARUA PEPE YA MTEJA", "clientPhoto": "URL YA PICHA YA MTEJA",
+      "submitting": "⏳ Inatuma...", "submitBtn": "⭐ Tuma Ukadiriaji — Na Picha + Barua Pepe", "cancel": "Ghairi",
+      "footer": "Unakadiria hapa → Inahifadhiwa kwenye publicReviews + homepageReviews na picha ya mteja + barua pepe + muda\nInaonekana kwenye ukurasa wa mwanzo na 4.9 AVG",
+      "pleaseSelect": "Chagua nyota 1-5", "noBooking": "Hakuna booking iliyochaguliwa", "pleaseWrite": "Andika uzoefu wako (maoni)",
+      "submitted": "✅ Ukadiriaji umetumwa! ⭐{rating} — Mteja: {name} • Simu: {phone} • Barua pepe: {email} • Picha: {photo} • Muda: {time}\n\"{comment}\" — Sasa inaonekana kwenye ukurasa wa mwanzo na picha yako!",
+      "failed": "Imeshindwa: {error}",
+    },
+    "yo": {
+      "title": "ṢE IDIYELẸ NỌỌSI RẸ", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Idiyele Ti A Ti Jẹrisi Ailewu — Pẹlu Foto Alabara + Email + Akoko",
+      "secureDesc": "Alabara ti o book Nọọsi yii nikan ti iṣẹ rẹ ti samisi PARI ni o le ṣe idiyele. Idiyele rẹ + foto han lori oju-iwe ile fun gbogbo eniyan.",
+      "notFound": "Ko ri", "noEmail": "Ko si email",
+      "completedTitle": "📅 Awọn Booking Ti Pari Lati Ṣe Idiyele",
+      "noPhone": "❌ Ko ri foonu. Book kọkọ.",
+      "loading": "N gbe awọn booking ti pari...",
+      "allRated": "✅ Gbogbo iṣẹ ti pari ti ṣe idiyele! {count} idiyele — wọn han lori oju-iwe ile.",
+      "status": "Ipo: {status} • Iṣẹ: {service}", "rateBtn": "⭐ Ṣe Idiyele",
+      "rateTitle": "⭐ Ṣe Idiyele {nurse}", "bookingLabel": "Booking: {id} • {time}",
+      "selectRating": "Yan idiyele",
+      "r1": "Buburu - Nilo ilọsiwaju", "r2": "Deede - Okay", "r3": "Dara - Inudidun", "r4": "Dara Pupọ - Ayọ", "r5": "O tayọ - Iyatọ!",
+      "experience": "IRIRI RẸ *", "commentHint": "Kọ iriri rẹ...",
+      "clientName": "ORUKỌ ALABARA", "clientPhone": "FOONU ALABARA", "clientEmail": "EMAIL ALABARA", "clientPhoto": "FOTO ALABARA URL",
+      "submitting": "⏳ Nfi ranṣẹ...", "submitBtn": "⭐ Fi Idiyele Ranṣẹ — Pẹlu Foto + Email", "cancel": "Fagile",
+      "footer": "O ṣe idiyele nibi → Fipamọ si publicReviews + homepageReviews pẹlu foto alabara + email + akoko\nHan lori oju-iwe ile pẹlu 4.9 AVG",
+      "pleaseSelect": "Yan 1-5 irawọ", "noBooking": "Ko yan booking", "pleaseWrite": "Kọ iriri rẹ (comment)",
+      "submitted": "✅ Idiyele ti fi ranṣẹ! ⭐{rating} — Alabara: {name} • Foonu: {phone} • Email: {email} • Foto: {photo} • Akoko: {time}\n\"{comment}\" — Bayi o han lori oju-iwe ile pẹlu foto rẹ!",
+      "failed": "Kuna: {error}",
+    },
+    "ig": {
+      "title": "NYOCHA NỌỌSỤ GỊ", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Ntụle Enyochara Echekwara — Na Foto Onye Ahịa + Email + Oge",
+      "secureDesc": "Naanị onye ahịa debanyere Nọọsụ a na ọrụ ya akara COMPLETED nwere ike nyocha. Ntụle gị + foto na-apụta na homepage maka onye ọ bụla.",
+      "notFound": "Ahụghị", "noEmail": "Enweghị email",
+      "completedTitle": "📅 Booking Emechara Ị Ga-enyocha",
+      "noPhone": "❌ Ahụghị ekwentị. Debanye aha mbụ.",
+      "loading": "Na-ebu booking emechara...",
+      "allRated": "✅ Enyochala ọrụ niile emechara! {count} ntụle — ha na-apụta na homepage.",
+      "status": "Ọnọdụ: {status} • Ọrụ: {service}", "rateBtn": "⭐ Nyocha",
+      "rateTitle": "⭐ Nyocha {nurse}", "bookingLabel": "Booking: {id} • {time}",
+      "selectRating": "Họrọ ntụle",
+      "r1": "Ọjọọ - Chọrọ nkwalite", "r2": "Ọkara - Okay", "r3": "Ọma - Afọ ojuju", "r4": "Ọma nke ukwuu - Obi ụtọ", "r5": "Kachasị mma - Pụrụ iche!",
+      "experience": "AHỤMAHỤ GỊ *", "commentHint": "Dee ahụmahụ gị...",
+      "clientName": "AHA ONYE AHỊA", "clientPhone": "EKWENTỊ ONYE AHỊA", "clientEmail": "EMAIL ONYE AHỊA", "clientPhoto": "URL FOTO ONYE AHỊA",
+      "submitting": "⏳ Na-eziga...", "submitBtn": "⭐ Zipu Ntụle — Na Foto + Email", "cancel": "Kagbuo",
+      "footer": "Ị na-enyocha ebe a → Echekwara na publicReviews + homepageReviews na foto onye ahịa + email + oge\nNa-apụta na homepage na 4.9 AVG",
+      "pleaseSelect": "Họrọ kpakpando 1-5", "noBooking": "Ahọrọghị booking", "pleaseWrite": "Dee ahụmahụ gị (comment)",
+      "submitted": "✅ Ezitela ntụle! ⭐{rating} — Onye Ahịa: {name} • Ekwentị: {phone} • Email: {email} • Foto: {photo} • Oge: {time}\n\"{comment}\" — Ugbu a na-apụta na homepage na foto gị!",
+      "failed": "Dara: {error}",
+    },
+    "ha": {
+      "title": "YIWA NURSE ƘIMA", "dashboard": "Dashboard",
+      "secureTitle": "🔒 Ƙima Da Aka Tabbatar Amintacce — Da Hoton Abokin Ciniki + Email + Lokaci",
+      "secureDesc": "Abokin ciniki da ya yi booking wannan nurse kaɗai kuma wanda aka yi wa alamar COMPLETED ne zai iya yiwa ƙima. Ƙimanka + hotonka suna bayyana a shafin gida ga kowa.",
+      "notFound": "Ba a samu ba", "noEmail": "Babu email",
+      "completedTitle": "📅 Booking Da Aka Kammala Don Yiwa Ƙima",
+      "noPhone": "❌ Ba a sami waya ba. Yi booking da farko.",
+      "loading": "Ana loda booking da aka kammala...",
+      "allRated": "✅ An yiwa duk ayyukan da aka kammala ƙima! {count} ƙima — suna bayyana a shafin gida.",
+      "status": "Matsayi: {status} • Sabis: {service}", "rateBtn": "⭐ Yi Ƙima",
+      "rateTitle": "⭐ Yiwa {nurse} Ƙima", "bookingLabel": "Booking: {id} • {time}",
+      "selectRating": "Zaɓi ƙima",
+      "r1": "Mara kyau - Yana buƙatar ingantawa", "r2": "Matsakaici - Okay", "r3": "Mai kyau - Na gamsu", "r4": "Mai kyau sosai - Na ji daɗi", "r5": "Mafi kyau - Na musamman!",
+      "experience": "KWAREWARKA *", "commentHint": "Rubuta kwarewarka...",
+      "clientName": "SUNAN ABOKIN CINIKI", "clientPhone": "WAYAR ABOKIN CINIKI", "clientEmail": "EMAIL ABOKIN CINIKI", "clientPhoto": "URL HOTON ABOKIN CINIKI",
+      "submitting": "⏳ Ana aikawa...", "submitBtn": "⭐ Aika Ƙima — Da Hoto + Email", "cancel": "Soke",
+      "footer": "Kana yiwa ƙima anan → Ana ajiyewa a publicReviews + homepageReviews da hoton abokin ciniki + email + lokaci\nYana bayyana a shafin gida da 4.9 AVG",
+      "pleaseSelect": "Zaɓi taurari 1-5", "noBooking": "Ba a zaɓi booking ba", "pleaseWrite": "Rubuta kwarewarka (comment)",
+      "submitted": "✅ An aika ƙima! ⭐{rating} — Abokin Ciniki: {name} • Waya: {phone} • Email: {email} • Hoto: {photo} • Lokaci: {time}\n\"{comment}\" — Yanzu yana bayyana a shafin gida da hotonka!",
+      "failed": "Ta kasa: {error}",
+    },
+    "ru": {
+      "title": "ОЦЕНИТЕ ВАШУ МЕДСЕСТРУ", "dashboard": "Панель",
+      "secureTitle": "🔒 Безопасная Проверенная Оценка — С Фото Клиента + Email + Время",
+      "secureDesc": "Только клиент, забронировавший эту медсестру и чья работа отмечена как ЗАВЕРШЁННАЯ, может оценить. Ваша оценка + фото появляется на главной странице для всех.",
+      "notFound": "Не найдено", "noEmail": "Нет email",
+      "completedTitle": "📅 Завершённые Бронирования Для Оценки",
+      "noPhone": "❌ Телефон не найден. Сначала забронируйте.",
+      "loading": "Загрузка завершённых бронирований...",
+      "allRated": "✅ Все завершённые работы оценены! {count} оценок — они на главной странице.",
+      "status": "Статус: {status} • Услуга: {service}", "rateBtn": "⭐ Оценить",
+      "rateTitle": "⭐ Оценить {nurse}", "bookingLabel": "Бронирование: {id} • {time}",
+      "selectRating": "Выберите оценку",
+      "r1": "Плохо - Нужно улучшение", "r2": "Удовлетворительно - Okay", "r3": "Хорошо - Доволен", "r4": "Очень Хорошо - Рад", "r5": "Отлично - Выдающе!",
+      "experience": "ВАШ ОПЫТ *", "commentHint": "Напишите ваш опыт...",
+      "clientName": "ИМЯ КЛИЕНТА", "clientPhone": "ТЕЛЕФОН КЛИЕНТА", "clientEmail": "EMAIL КЛИЕНТА", "clientPhoto": "ФОТО КЛИЕНТА URL",
+      "submitting": "⏳ Отправка...", "submitBtn": "⭐ Отправить Оценку — С Фото + Email", "cancel": "Отмена",
+      "footer": "Вы оцениваете здесь → Сохраняется в publicReviews + homepageReviews с фото клиента + email + время\nПоказывается на главной странице с 4.9 СР",
+      "pleaseSelect": "Выберите 1-5 звёзд", "noBooking": "Бронирование не выбрано", "pleaseWrite": "Напишите ваш опыт (комментарий)",
+      "submitted": "✅ Оценка отправлена! ⭐{rating} — Клиент: {name} • Телефон: {phone} • Email: {email} • Фото: {photo} • Время: {time}\n\"{comment}\" — Теперь появляется на главной странице с вашим фото!",
+      "failed": "Не удалось: {error}",
+    },
+    "tr": {
+      "title": "HEMŞİRENİ PUANLA", "dashboard": "Panel",
+      "secureTitle": "🔒 Güvenli Doğrulanmış Puan — Müşteri Fotoğrafı + E-posta + Saat İle",
+      "secureDesc": "Yalnızca bu hemşireyi rezerve eden ve işi TAMAMLANDI olarak işaretlenen müşteri puanlayabilir. Puanınız + fotoğrafınız ana sayfada herkes için görünür.",
+      "notFound": "Bulunamadı", "noEmail": "E-posta yok",
+      "completedTitle": "📅 Puanlanacak Tamamlanmış Rezervasyonlar",
+      "noPhone": "❌ Telefon bulunamadı. Önce rezervasyon yapın.",
+      "loading": "Tamamlanmış rezervasyonlar yükleniyor...",
+      "allRated": "✅ Tüm tamamlanmış işler puanlandı! {count} puan — ana sayfada görünüyorlar.",
+      "status": "Durum: {status} • Hizmet: {service}", "rateBtn": "⭐ Puanla",
+      "rateTitle": "⭐ {nurse} Puanla", "bookingLabel": "Rezervasyon: {id} • {time}",
+      "selectRating": "Puan seçin",
+      "r1": "Kötü - İyileştirme gerekli", "r2": "Orta - İdare eder", "r3": "İyi - Memnun", "r4": "Çok İyi - Mutlu", "r5": "Mükemmel - Olağanüstü!",
+      "experience": "DENEYİMİN *", "commentHint": "Deneyimini yaz...",
+      "clientName": "MÜŞTERİ ADI", "clientPhone": "MÜŞTERİ TELEFONU", "clientEmail": "MÜŞTERİ E-POSTA", "clientPhoto": "MÜŞTERİ FOTOĞRAF URL",
+      "submitting": "⏳ Gönderiliyor...", "submitBtn": "⭐ Puan Gönder — Fotoğraf + E-posta İle", "cancel": "İptal",
+      "footer": "Burada puanlıyorsun → publicReviews + homepageReviews içine müşteri fotoğrafı + e-posta + saat ile kaydedilir\nAna sayfada 4.9 ORT ile gösterilir",
+      "pleaseSelect": "1-5 yıldız seçin", "noBooking": "Rezervasyon seçilmedi", "pleaseWrite": "Deneyimini yaz (yorum)",
+      "submitted": "✅ Puan gönderildi! ⭐{rating} — Müşteri: {name} • Telefon: {phone} • E-posta: {email} • Fotoğraf: {photo} • Saat: {time}\n\"{comment}\" — Şimdi ana sayfada fotoğrafınla görünüyor!",
+      "failed": "Başarısız: {error}",
+    },
+    "ko": {
+      "title": "간호사 평가하기", "dashboard": "대시보드",
+      "secureTitle": "🔒 안전한 검증 평가 — 고객 사진 + 이메일 + 시간 포함",
+      "secureDesc": "이 간호사를 예약했고 작업이 완료로 표시된 고객만 평가할 수 있습니다. 평가 + 사진은 홈페이지에 모든 사람에게 표시됩니다.",
+      "notFound": "찾을 수 없음", "noEmail": "이메일 없음",
+      "completedTitle": "📅 평가할 완료된 예약",
+      "noPhone": "❌ 전화번호를 찾을 수 없습니다. 먼저 예약하세요.",
+      "loading": "완료된 예약 로드 중...",
+      "allRated": "✅ 완료된 모든 작업이 평가되었습니다! {count}개 평가 — 홈페이지에 표시됩니다.",
+      "status": "상태: {status} • 서비스: {service}", "rateBtn": "⭐ 평가",
+      "rateTitle": "⭐ {nurse} 평가하기", "bookingLabel": "예약: {id} • {time}",
+      "selectRating": "평가 선택",
+      "r1": "나쁨 - 개선 필요", "r2": "보통 - 괜찮음", "r3": "좋음 - 만족", "r4": "매우 좋음 - 행복", "r5": "최고 - 탁월!",
+      "experience": "귀하의 경험 *", "commentHint": "경험을 작성하세요...",
+      "clientName": "고객 이름", "clientPhone": "고객 전화번호", "clientEmail": "고객 이메일", "clientPhoto": "고객 사진 URL",
+      "submitting": "⏳ 제출 중...", "submitBtn": "⭐ 평가 제출 — 사진 + 이메일 포함", "cancel": "취소",
+      "footer": "여기서 평가합니다 → 고객 사진 + 이메일 + 시간과 함께 publicReviews + homepageReviews에 저장\n홈페이지에 4.9 평균으로 표시",
+      "pleaseSelect": "1-5 별을 선택하세요", "noBooking": "예약이 선택되지 않았습니다", "pleaseWrite": "경험을 작성하세요 (댓글)",
+      "submitted": "✅ 평가가 제출되었습니다! ⭐{rating} — 고객: {name} • 전화: {phone} • 이메일: {email} • 사진: {photo} • 시간: {time}\n\"{comment}\" — 이제 사진과 함께 홈페이지에 표시됩니다!",
+      "failed": "실패: {error}",
+    },
+    "ja": {
+      "title": "看護師を評価", "dashboard": "ダッシュボード",
+      "secureTitle": "🔒 安全な検証済み評価 — クライアント写真 + メール + 時刻付き",
+      "secureDesc": "この看護師を予約し、仕事が完了とマークされたクライアントのみが評価できます。あなたの評価 + 写真はホームページに全員向けに表示されます。",
+      "notFound": "見つかりません", "noEmail": "メールなし",
+      "completedTitle": "📅 評価する完了済み予約",
+      "noPhone": "❌ 電話が見つかりません。まず予約してください。",
+      "loading": "完了済み予約を読み込み中...",
+      "allRated": "✅ 完了した仕事はすべて評価済み! {count} 件の評価 — ホームページに表示されます。",
+      "status": "ステータス: {status} • サービス: {service}", "rateBtn": "⭐ 評価",
+      "rateTitle": "⭐ {nurse} を評価", "bookingLabel": "予約: {id} • {time}",
+      "selectRating": "評価を選択",
+      "r1": "悪い - 改善が必要", "r2": "普通 - まあまあ", "r3": "良い - 満足", "r4": "とても良い - 嬉しい", "r5": "素晴らしい - 傑出!",
+      "experience": "あなたの体験 *", "commentHint": "体験を書いてください...",
+      "clientName": "クライアント名", "clientPhone": "クライアント電話", "clientEmail": "クライアントメール", "clientPhoto": "クライアント写真 URL",
+      "submitting": "⏳ 送信中...", "submitBtn": "⭐ 評価を送信 — 写真 + メール付き", "cancel": "キャンセル",
+      "footer": "ここで評価します → クライアント写真 + メール + 時刻付きで publicReviews + homepageReviews に保存\nホームページに 4.9 平均で表示",
+      "pleaseSelect": "1-5 星を選択してください", "noBooking": "予約が選択されていません", "pleaseWrite": "体験を書いてください (コメント)",
+      "submitted": "✅ 評価を送信しました! ⭐{rating} — クライアント: {name} • 電話: {phone} • メール: {email} • 写真: {photo} • 時刻: {time}\n\"{comment}\" — 写真付きでホームページに表示されるようになりました!",
+      "failed": "失敗: {error}",
+    },
+    "pl": {
+      "title": "OCEŃ SWOJĄ PIELĘGNIARKĘ", "dashboard": "Panel",
+      "secureTitle": "🔒 Bezpieczna Zweryfikowana Ocena — Ze Zdjęciem Klienta + Email + Czas",
+      "secureDesc": "Tylko klient, który zarezerwował tę pielęgniarkę i którego praca jest oznaczona jako UKOŃCZONA, może ocenić. Twoja ocena + zdjęcie pojawia się na stronie głównej dla wszystkich.",
+      "notFound": "Nie znaleziono", "noEmail": "Brak email",
+      "completedTitle": "📅 Ukończone Rezerwacje Do Oceny",
+      "noPhone": "❌ Nie znaleziono telefonu. Najpierw zarezerwuj.",
+      "loading": "Ładowanie ukończonych rezerwacji...",
+      "allRated": "✅ Wszystkie ukończone prace ocenione! {count} ocen — pojawiają się na stronie głównej.",
+      "status": "Status: {status} • Usługa: {service}", "rateBtn": "⭐ Oceń",
+      "rateTitle": "⭐ Oceń {nurse}", "bookingLabel": "Rezerwacja: {id} • {time}",
+      "selectRating": "Wybierz ocenę",
+      "r1": "Słabo - Wymaga poprawy", "r2": "Dostatecznie - Okay", "r3": "Dobrze - Zadowolony", "r4": "Bardzo Dobrze - Szczęśliwy", "r5": "Doskonale - Wybitnie!",
+      "experience": "TWOJE DOŚWIADCZENIE *", "commentHint": "Napisz swoje doświadczenie...",
+      "clientName": "IMIĘ KLIENTA", "clientPhone": "TELEFON KLIENTA", "clientEmail": "EMAIL KLIENTA", "clientPhoto": "ZDJĘCIE KLIENTA URL",
+      "submitting": "⏳ Wysyłanie...", "submitBtn": "⭐ Wyślij Ocenę — Ze Zdjęciem + Email", "cancel": "Anuluj",
+      "footer": "Oceniasz tutaj → Zapisuje do publicReviews + homepageReviews ze zdjęciem klienta + email + czas\nPokazuje na stronie głównej z 4.9 ŚR",
+      "pleaseSelect": "Wybierz 1-5 gwiazdek", "noBooking": "Nie wybrano rezerwacji", "pleaseWrite": "Napisz swoje doświadczenie (komentarz)",
+      "submitted": "✅ Ocena wysłana! ⭐{rating} — Klient: {name} • Telefon: {phone} • Email: {email} • Zdjęcie: {photo} • Czas: {time}\n\"{comment}\" — Teraz pojawia się na stronie głównej z Twoim zdjęciem!",
+      "failed": "Nie udało się: {error}",
+    },
+  };
 }
