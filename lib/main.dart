@@ -66,9 +66,6 @@ import 'screens/rating.dart';
 import 'screens/refund_query.dart';
 import 'screens/sos.dart';
 
-// Language rebuild notifier - lives in main.dart so your existing main_translations.dart does NOT need to change.
-final ValueNotifier<int> langNotifier = ValueNotifier<int>(0);
-
 // NO HARDCODED CEO PASSWORD HERE - Play Store safe.
 // CEO login uses Firebase Auth (email + password typed by CEO) + Firestore ceoAccess check.
 
@@ -215,18 +212,11 @@ void main() async {
   runApp(const LoveCareApp());
 }
 
-class LoveCareApp extends StatefulWidget {
+class LoveCareApp extends StatelessWidget {
   const LoveCareApp({super.key});
   @override
-  State<LoveCareApp> createState() => _LoveCareAppState();
-}
-class _LoveCareAppState extends State<LoveCareApp> {
-  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: langNotifier,
-      builder: (context, _) {
-      return MaterialApp(
+    return MaterialApp(
         title: 'Love Care Global',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -271,32 +261,32 @@ class _LoveCareAppState extends State<LoveCareApp> {
           bottomNavigationBarTheme: const BottomNavigationBarThemeData(backgroundColor: Color(0xFF4A0A26), selectedItemColor: Color(0xFFF8BBD0), unselectedItemColor: Colors.white60),
           iconTheme: const IconThemeData(color: Colors.white),
         ),
-        home: StartupGate(),
+        home: const StartupGate(),
         routes: {
-          '/auth-choice': (context) => AuthChoicePage(),
-          '/client-login': (context) => ClientLoginPage(),
-          '/client-registration': (context) => ClientRegistrationPage(),
-          '/nurse-login': (context) => NurseLoginPage(),
-          '/nurse-registration': (context) => NurseRegistrationPage(),
-          '/community': (context) => CommunityGuidelinesPage(),
-          '/privacy': (context) => PrivacyPolicyPage(),
-          '/refund': (context) => RefundPolicyPage(),
-          '/delete-account': (context) => DeleteAccountPolicyPage(),
-          '/terms': (context) => TermsAndConditionsPage(),
-          '/health-disclaimer': (context) => HealthDisclaimerPage(),
-          '/home': (context) => LoveCareHomePage(),
-          '/lc-ceo-9x7k2q-2026': (context) => CEOPasswordGate(),
-          '/ceo-control': (context) => CeoControlPage(),
-          '/ceo-bookings-progress': (context) => CEOBookingProgressScreen(),
-          '/ceo-complainant': (context) => CEOComplainantScreen(),
-          '/ceo-control-chat': (context) => CEOControlChatScreen(),
-          '/ceo-control-pricing': (context) => CEOControlPricingScreen(),
-          '/ceo-finance': (context) => CEOFinanceScreen(),
-          '/ceo-notification-room': (context) => CEONotificationRoomScreen(),
-          '/ceo-penalize': (context) => CEOPenalizeScreen(),
-          '/ceo-refund-management': (context) => CEORefundManagementScreen(),
-          '/ceo-registration-center': (context) => CEORegistrationCenterScreen(),
-          '/hr-page': (context) => HRPageScreen(),
+          '/auth-choice': (context) => const AuthChoicePage(),
+          '/client-login': (context) => const ClientLoginPage(),
+          '/client-registration': (context) => const ClientRegistrationPage(),
+          '/nurse-login': (context) => const NurseLoginPage(),
+          '/nurse-registration': (context) => const NurseRegistrationPage(),
+          '/community': (context) => const CommunityGuidelinesPage(),
+          '/privacy': (context) => const PrivacyPolicyPage(),
+          '/refund': (context) => const RefundPolicyPage(),
+          '/delete-account': (context) => const DeleteAccountPolicyPage(),
+          '/terms': (context) => const TermsAndConditionsPage(),
+          '/health-disclaimer': (context) => const HealthDisclaimerPage(),
+          '/home': (context) => const LoveCareHomePage(),
+          '/lc-ceo-9x7k2q-2026': (context) => const CEOPasswordGate(),
+          '/ceo-control': (context) => const CeoControlPage(),
+          '/ceo-bookings-progress': (context) => const CEOBookingProgressScreen(),
+          '/ceo-complainant': (context) => const CEOComplainantScreen(),
+          '/ceo-control-chat': (context) => const CEOControlChatScreen(),
+          '/ceo-control-pricing': (context) => const CEOControlPricingScreen(),
+          '/ceo-finance': (context) => const CEOFinanceScreen(),
+          '/ceo-notification-room': (context) => const CEONotificationRoomScreen(),
+          '/ceo-penalize': (context) => const CEOPenalizeScreen(),
+          '/ceo-refund-management': (context) => const CEORefundManagementScreen(),
+          '/ceo-registration-center': (context) => const CEORegistrationCenterScreen(),
+          '/hr-page': (context) => const HRPageScreen(),
           '/staff-login': (context) => StaffLoginPage(),
           '/ceo-login': (context) => StaffLoginPage(),
           '/create-access': (context) => CEOCreateAccessPage(),
@@ -306,21 +296,21 @@ class _LoveCareAppState extends State<LoveCareApp> {
           '/ceo-notifications': (context) => StaffVisitsMonitorPage(),
           '/force-delete': (context) => CEOForceWipeEmailPage(),
           '/sound-settings': (context) => SoundSettingsScreen(),
-          '/ceo-dashboard': (context) => CEOPasswordGate(),
-          '/chat-room': (context) => ChatRoomScreen(),
-          '/nurse-group-chat': (context) => NurseGroupChatScreen(),
-          '/alert-settings': (context) { final a = ModalRoute.of(context)?.settings.arguments; return AlertSettingsScreen(userId: a is Map ? (a['userId'] ?? a['uid'] ?? '').toString() : '', role: a is Map ? (a['role'] ?? '').toString() : (a is String ? a : '')); },
-          '/book-nurse': (context) => BookNurseScreen(),
+          '/ceo-dashboard': (context) => const CEOPasswordGate(),
+          '/chat-room': (context) => const ChatRoomScreen(),
+          '/nurse-group-chat': (context) => const NurseGroupChatScreen(),
+          '/alert-settings': (context) => const AlertSettingsScreen(),
+          '/book-nurse': (context) => const BookNurseScreen(),
           '/client-dashboard': (context) => ClientDashboardScreen(),
-          '/client-settings': (context) => ClientSettingsScreen(),
+          '/client-settings': (context) => const ClientSettingsScreen(),
           '/my-bookings': (context) => MyBookingsScreen(),
-          '/my-job-offer': (context) => MyJobOfferScreen(),
-          '/my-job-offers': (context) => MyJobOfferScreen(),
-          '/nurse-settings': (context) => NurseSettingsScreen(),
-          '/nurse-dashboard': (context) => NurseDashboardScreen(),
-          '/rating': (context) => RatingScreen(),
-          '/refund-query': (context) => RefundQueryScreen(),
-          '/sos': (context) => SOSScreen(),
+          '/my-job-offer': (context) => const MyJobOfferScreen(),
+          '/my-job-offers': (context) => const MyJobOfferScreen(),
+          '/nurse-settings': (context) => const NurseSettingsScreen(),
+          '/nurse-dashboard': (context) => const NurseDashboardScreen(),
+          '/rating': (context) => const RatingScreen(),
+          '/refund-query': (context) => const RefundQueryScreen(),
+          '/sos': (context) => const SOSScreen(),
         },
         onGenerateRoute: (settings) {
           final args = settings.arguments;
@@ -342,11 +332,11 @@ class _LoveCareAppState extends State<LoveCareApp> {
               return MaterialPageRoute(builder: (_) => SoundSettingsScreen(), settings: settings);
             case '/my-job-offer':
             case '/my-job-offers':
-              return MaterialPageRoute(builder: (_) => MyJobOfferScreen(), settings: settings);
+              return MaterialPageRoute(builder: (_) => const MyJobOfferScreen(), settings: settings);
             case '/nurse-settings':
-              return MaterialPageRoute(builder: (_) => NurseSettingsScreen(), settings: settings);
+              return MaterialPageRoute(builder: (_) => const NurseSettingsScreen(), settings: settings);
             case '/ceo-dashboard':
-              return MaterialPageRoute(builder: (_) => CEOPasswordGate(), settings: settings);
+              return MaterialPageRoute(builder: (_) => const CEOPasswordGate(), settings: settings);
             case '/ceo-live-tracking-map':
               return MaterialPageRoute(builder: (_) => CEOLiveTrackingMapScreen(params: args is Map<String, dynamic> ? args : null));
             case '/client-complaint':
@@ -354,32 +344,30 @@ class _LoveCareAppState extends State<LoveCareApp> {
             case '/nurse-complaint':
               return MaterialPageRoute(builder: (_) => NurseComplaintScreen(params: args is Map<String, dynamic> ? args : null));
             case '/alert-settings-role':
-              return MaterialPageRoute(builder: (_) => AlertSettingsScreen(userId: args is Map ? (args['userId'] ?? args['uid'] ?? '').toString() : '', role: args is String ? args : (args is Map ? (args['role'] ?? '').toString() : '')));
+              return MaterialPageRoute(builder: (_) => AlertSettingsScreen(role: args is String ? args : null));
             case '/health-disclaimer':
-              return MaterialPageRoute(builder: (_) => HealthDisclaimerPage(), settings: settings);
+              return MaterialPageRoute(builder: (_) => const HealthDisclaimerPage(), settings: settings);
             default:
               return null;
           }
         },
-        onUnknownRoute: (settings) => MaterialPageRoute(builder: (context) => LoveCareHomePage()),
-    );
-      },
+        onUnknownRoute: (settings) => MaterialPageRoute(builder: (context) => const LoveCareHomePage()),
     );
   }
 }
 
 // ================= STARTUP GATE =================
 class StartupGate extends StatelessWidget {
-  StartupGate({super.key});
+  const StartupGate({super.key});
   Future<Widget> _decide() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       final prefs = await SharedPreferences.getInstance();
       final clientPending = prefs.getBool('client_pending_verification') == true;
       final nursePending = prefs.getBool('nurse_pending_verification') == true;
-      if (user == null) return LoveCareHomePage();
-      if (clientPending) return ClientRegistrationPage();
-      if (nursePending) return NurseRegistrationPage();
+      if (user == null) return const LoveCareHomePage();
+      if (clientPending) return const ClientRegistrationPage();
+      if (nursePending) return const NurseRegistrationPage();
       try { await user.reload(); } catch (_) {}
       final fresh = FirebaseAuth.instance.currentUser ?? user;
       final uid = fresh.uid;
@@ -407,7 +395,7 @@ class StartupGate extends StatelessWidget {
             await prefs.setBool('client_pending_verification', false);
             return ClientDashboardScreen();
           } else {
-            return ClientLoginPage();
+            return const ClientLoginPage();
           }
         }
       } catch (_) {}
@@ -417,15 +405,15 @@ class StartupGate extends StatelessWidget {
         if (nDoc.exists || pDoc.exists) {
           final d = nDoc.exists ? (nDoc.data() ?? {}) : (pDoc.data() ?? {});
           if (fresh.emailVerified && d['isApproved'] == true) {
-            return NurseDashboardScreen();
+            return const NurseDashboardScreen();
           }
-          return NurseLoginPage();
+          return const NurseLoginPage();
         }
       } catch (_) {}
-      if (fresh.emailVerified) return ClientLoginPage();
-      return LoveCareHomePage();
+      if (fresh.emailVerified) return const ClientLoginPage();
+      return const LoveCareHomePage();
     } catch (_) {
-      return LoveCareHomePage();
+      return const LoveCareHomePage();
     }
   }
   @override
@@ -445,7 +433,7 @@ class StartupGate extends StatelessWidget {
 
 // ================= CEO PASSWORD GATE - NO HARDCODED PASSWORD - ENGLISH ONLY =================
 class CEOPasswordGate extends StatefulWidget {
-  CEOPasswordGate({super.key});
+  const CEOPasswordGate({super.key});
   @override
   State<CEOPasswordGate> createState() => _CEOPasswordGateState();
 }
@@ -487,7 +475,7 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
       }
       print('CEO LOGGED IN UID: $uid');
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => CEODashboardScreen()));
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CEODashboardScreen()));
     } on FirebaseAuthException catch (e) {
       String msg = e.message ?? 'Login failed';
       if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
@@ -550,7 +538,7 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
 }
 
 class LoveCareHomePage extends StatefulWidget {
-  LoveCareHomePage({super.key});
+  const LoveCareHomePage({super.key});
   @override
   State<LoveCareHomePage> createState() => _LoveCareHomePageState();
 }
@@ -652,7 +640,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
                 icon: const Icon(Icons.language, color: Colors.white),
                 dropdownColor: const Color(0xFF880E4F),
                 items: MainTranslations.langs.map((e) => DropdownMenuItem(value: e['code']!, child: Text(e['name']!, style: const TextStyle(color: Colors.white, fontSize: 13)))).toList(),
-                onChanged: (v) async { if (v != null) { await MainTranslations.setLang(v); langNotifier.value++; setState(() {}); } },
+                onChanged: (v) async { if (v != null) { await MainTranslations.setLang(v); setState(() {}); } },
               ),
             ),
           ],
