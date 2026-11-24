@@ -1,609 +1,328 @@
-// client_login_translations.dart
-// FILE 6 - Client Login - ONLY SCREEN WORDS - ALL 22 LANGUAGES
-// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
-// ONE FILE - Drop in lib/screens
-// NOTE: Country names stay in English in all languages - dial-code dropdown.
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'client_registration.dart';
 
-class ClientLoginTranslations {
-  static const Map<String, Map<String, String>> all = {
+class ClientLoginPage extends StatefulWidget {
+  const ClientLoginPage({super.key});
+  @override
+  State<ClientLoginPage> createState() => _ClientLoginPageState();
+}
 
-    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
-    "en": {
-      "title": "Client Login",
-      "back": "Back",
-      "loginWithPhone": "Login with Phone Number",
-      "enterPhone": "Enter phone you registered with + your password.",
-      "country": "Country",
-      "other": "Other",
-      "phoneNumber": "Phone Number",
-      "phoneHint": "e.g. 241234567",
-      "yourCountryCode": "Your Country Code",
-      "countryCodeHint": "e.g. +999",
-      "fullNumber": "Full number: {phone}",
-      "fullNumberEmpty": "Full number: ...",
-      "password": "Password",
-      "enterPhonePass": "Enter Phone Number + Password",
-      "finding": "Finding your account by phone...",
-      "noAccount": "No account found for phone {phone}. Check country code + number, or Register first.",
-      "belongsToNurse": "This phone belongs to a NURSE. Use Nurse Login.",
-      "pending": "Your account is still PENDING. Go to Register -> Enter SMS OTP to verify first.",
-      "welcome": "Welcome! Logged in with phone {phone}",
-      "loginFailed": "Login failed: {e}",
-      "loginBtn": "LOGIN",
-      "noAccountRegister": "No account? Register with Phone",
-    },
+class _ClientLoginPageState extends State<ClientLoginPage> {
+  // CLIENT LOGIN: Phone Number + Password ONLY.
+  // No Email box, No Username box, No SMS OTP, No Gmail link.
+  // App finds hidden email by phone behind scene, then login with email + password.
+  // Hidden email = real email OR 233...@phone.lovecare (saved during registration)
+  // Auth user has phoneNumber saved (linked during OTP verify), so Console shows phone.
+  final _phone = TextEditingController();
+  final _pass = TextEditingController();
+  bool _loading = false;
+  bool _obscure = true;
+  String _status = '';
 
-    // 2. TWI - CLIENT + NURSE ONLY
-    "tw": {
-      "title": "Ɔkra Login",
-      "back": "San Akyi",
-      "loginWithPhone": "Login Ne Phone Number",
-      "enterPhone": "Fa phone a wode kyerɛw din no + wo password.",
-      "country": "Ɔman",
-      "other": "Foforo",
-      "phoneNumber": "Phone Number",
-      "phoneHint": "s.b. 241234567",
-      "yourCountryCode": "Wo Ɔman Code",
-      "countryCodeHint": "s.b. +999",
-      "fullNumber": "Phone a ɛyɛ pɛ: {phone}",
-      "fullNumberEmpty": "Phone a ɛyɛ pɛ: ...",
-      "password": "Password",
-      "enterPhonePass": "Fa Phone Number + Password",
-      "finding": "Reyɛ wo account a ɛwɔ phone so...",
-      "noAccount": "Account biara nni hɔ ma phone {phone}. Hwɛ ɔman code + number, anaa Kyerɛw Din daa.",
-      "belongsToNurse": "Phone yi yɛ NƐƐSE dea. Fa Nɛɛse Login.",
-      "pending": "Wo account da so PENDING. Kɔ Register -> Fa SMS OTP kɔ verify daa.",
-      "welcome": "Maakye! Wɔa login ne phone {phone}",
-      "loginFailed": "Login antumi: {e}",
-      "loginBtn": "LOGIN",
-      "noAccountRegister": "Account biara nni hɔ? Kyerɛw Din ne Phone",
-    },
-
-    // 3. GA
-    "ga": {
-      "title": "Mɔ Login",
-      "back": "Kumase",
-      "loginWithPhone": "Login Kɛ Phone Number",
-      "enterPhone": "Ŋmɛ phone nɔ okɛ ŋmɛ nii + o password.",
-      "country": "Shikpɔŋ",
-      "other": "Kroko",
-      "phoneNumber": "Phone Number",
-      "phoneHint": "y.e. 241234567",
-      "yourCountryCode": "O Shikpɔŋ Code",
-      "countryCodeHint": "y.e. +999",
-      "fullNumber": "Phone nɔ fɛɛ: {phone}",
-      "fullNumberEmpty": "Phone nɔ fɛɛ: ...",
-      "password": "Password",
-      "enterPhonePass": "Ŋmɛ Phone Number + Password",
-      "finding": "Mitao o account yɛ phone nɔ...",
-      "noAccount": "Account ko bɛ hã phone {phone}. Kwɛ shikpɔŋ code + number, aloo Ŋmɛ Nii daa.",
-      "belongsToNurse": "Phone nɛɛ yɛ NƐƐSE nɔ. Tsu Nɛɛse Login.",
-      "pending": "O account da so PENDING. Ya Register -> Ŋmɛ SMS OTP koni otsu daa.",
-      "welcome": "Otsa! O login kɛ phone {phone}",
-      "loginFailed": "Login egbotwe: {e}",
-      "loginBtn": "LOGIN",
-      "noAccountRegister": "Account bɛ? Ŋmɛ Nii kɛ Phone",
-    },
-
-    // 4. EWE
-    "ee": {
-      "title": "Ame Login",
-      "back": "Trɔ Megbe",
-      "loginWithPhone": "Login Kple Phone Number",
-      "enterPhone": "Ŋlɔ phone si nètsɔ ŋkɔ na + wò password.",
-      "country": "Dukɔ",
-      "other": "Bubu",
-      "phoneNumber": "Phone Number",
-      "phoneHint": "l. 241234567",
-      "yourCountryCode": "Wò Dukɔ Code",
-      "countryCodeHint": "l. +999",
-      "fullNumber": "Phone bliboa: {phone}",
-      "fullNumberEmpty": "Phone bliboa: ...",
-      "password": "Password",
-      "enterPhonePass": "Ŋlɔ Phone Number + Password",
-      "finding": "Le didi wò account to phone dzi...",
-      "noAccount": "Account aɖeke meli na phone {phone} o. Kpɔ dukɔ code + number ɖa, alo Ŋkɔ Ŋlɔ Gbã.",
-      "belongsToNurse": "Phone sia nye NƆNƆVIA tɔ. Zã Nɔnɔvia Login.",
-      "pending": "Wò account gale PENDING. Yi Ŋkɔ Ŋlɔ -> Ŋlɔ SMS OTP be nàɖo kpe edzi gbã.",
-      "welcome": "Ŋdi! Ège ɖe eme kple phone {phone}",
-      "loginFailed": "Login medze o: {e}",
-      "loginBtn": "LOGIN",
-      "noAccountRegister": "Account meli o? Ŋkɔ Ŋlɔ kple Phone",
-    },
-
-    // 5. DUTCH
-    "nl": {
-      "title": "Klant Login",
-      "back": "Terug",
-      "loginWithPhone": "Inloggen met Telefoonnummer",
-      "enterPhone": "Voer telefoon in waarmee je registreerde + je wachtwoord.",
-      "country": "Land",
-      "other": "Anders",
-      "phoneNumber": "Telefoonnummer",
-      "phoneHint": "bijv. 241234567",
-      "yourCountryCode": "Jouw Landcode",
-      "countryCodeHint": "bijv. +999",
-      "fullNumber": "Volledig nummer: {phone}",
-      "fullNumberEmpty": "Volledig nummer: ...",
-      "password": "Wachtwoord",
-      "enterPhonePass": "Voer Telefoonnummer + Wachtwoord in",
-      "finding": "Je account zoeken op telefoon...",
-      "noAccount": "Geen account gevonden voor telefoon {phone}. Controleer landcode + nummer, of Registreer eerst.",
-      "belongsToNurse": "Deze telefoon hoort bij een VERPLEEGKUNDIGE. Gebruik Verpleegkundige Login.",
-      "pending": "Je account is nog IN AFWACHTING. Ga naar Registreer -> Voer SMS OTP in om eerst te verifiëren.",
-      "welcome": "Welkom! Ingelogd met telefoon {phone}",
-      "loginFailed": "Inloggen mislukt: {e}",
-      "loginBtn": "LOGIN",
-      "noAccountRegister": "Geen account? Registreer met Telefoon",
-    },
-
-    // 6. FRENCH
-    "fr": {
-      "title": "Connexion Client",
-      "back": "Retour",
-      "loginWithPhone": "Connexion avec Numéro de Téléphone",
-      "enterPhone": "Entrez le téléphone avec lequel vous vous êtes inscrit + votre mot de passe.",
-      "country": "Pays",
-      "other": "Autre",
-      "phoneNumber": "Numéro de Téléphone",
-      "phoneHint": "ex. 241234567",
-      "yourCountryCode": "Votre Indicatif Pays",
-      "countryCodeHint": "ex. +999",
-      "fullNumber": "Numéro complet: {phone}",
-      "fullNumberEmpty": "Numéro complet: ...",
-      "password": "Mot de passe",
-      "enterPhonePass": "Entrez Numéro de Téléphone + Mot de passe",
-      "finding": "Recherche de votre compte par téléphone...",
-      "noAccount": "Aucun compte trouvé pour le téléphone {phone}. Vérifiez indicatif + numéro, ou Inscrivez-vous d'abord.",
-      "belongsToNurse": "Ce téléphone appartient à une INFIRMIÈRE. Utilisez Connexion Infirmière.",
-      "pending": "Votre compte est encore EN ATTENTE. Allez à Inscription -> Entrez SMS OTP pour vérifier d'abord.",
-      "welcome": "Bienvenue! Connecté avec téléphone {phone}",
-      "loginFailed": "Connexion échouée: {e}",
-      "loginBtn": "CONNEXION",
-      "noAccountRegister": "Pas de compte? Inscrivez-vous avec Téléphone",
-    },
-
-    // 7. GERMAN
-    "de": {
-      "title": "Kunden Login",
-      "back": "Zurück",
-      "loginWithPhone": "Login mit Telefonnummer",
-      "enterPhone": "Gib Telefon ein, mit dem du dich registriert hast + dein Passwort.",
-      "country": "Land",
-      "other": "Andere",
-      "phoneNumber": "Telefonnummer",
-      "phoneHint": "z.B. 241234567",
-      "yourCountryCode": "Deine Landesvorwahl",
-      "countryCodeHint": "z.B. +999",
-      "fullNumber": "Vollständige Nummer: {phone}",
-      "fullNumberEmpty": "Vollständige Nummer: ...",
-      "password": "Passwort",
-      "enterPhonePass": "Telefonnummer + Passwort eingeben",
-      "finding": "Dein Konto wird per Telefon gesucht...",
-      "noAccount": "Kein Konto für Telefon {phone} gefunden. Prüfe Landesvorwahl + Nummer, oder Registriere dich zuerst.",
-      "belongsToNurse": "Dieses Telefon gehört einer KRANKENSCHWESTER. Nutze Krankenschwester Login.",
-      "pending": "Dein Konto ist noch AUSSTEHEND. Gehe zu Registrieren -> Gib SMS OTP ein, um zuerst zu verifizieren.",
-      "welcome": "Willkommen! Eingeloggt mit Telefon {phone}",
-      "loginFailed": "Login fehlgeschlagen: {e}",
-      "loginBtn": "LOGIN",
-      "noAccountRegister": "Kein Konto? Registriere mit Telefon",
-    },
-
-    // 8. SPANISH
-    "es": {
-      "title": "Inicio Sesión Cliente",
-      "back": "Atrás",
-      "loginWithPhone": "Iniciar Sesión con Número de Teléfono",
-      "enterPhone": "Ingresa el teléfono con el que te registraste + tu contraseña.",
-      "country": "País",
-      "other": "Otro",
-      "phoneNumber": "Número de Teléfono",
-      "phoneHint": "ej. 241234567",
-      "yourCountryCode": "Tu Código de País",
-      "countryCodeHint": "ej. +999",
-      "fullNumber": "Número completo: {phone}",
-      "fullNumberEmpty": "Número completo: ...",
-      "password": "Contraseña",
-      "enterPhonePass": "Ingresa Número de Teléfono + Contraseña",
-      "finding": "Buscando tu cuenta por teléfono...",
-      "noAccount": "No se encontró cuenta para teléfono {phone}. Revisa código de país + número, o Regístrate primero.",
-      "belongsToNurse": "Este teléfono pertenece a una ENFERMERA. Usa Inicio Sesión Enfermera.",
-      "pending": "Tu cuenta sigue PENDIENTE. Ve a Registrar -> Ingresa SMS OTP para verificar primero.",
-      "welcome": "¡Bienvenido! Sesión iniciada con teléfono {phone}",
-      "loginFailed": "Inicio de sesión fallido: {e}",
-      "loginBtn": "INICIAR SESIÓN",
-      "noAccountRegister": "¿Sin cuenta? Regístrate con Teléfono",
-    },
-
-    // 9. ITALIAN
-    "it": {
-      "title": "Login Cliente",
-      "back": "Indietro",
-      "loginWithPhone": "Accedi con Numero di Telefono",
-      "enterPhone": "Inserisci il telefono con cui ti sei registrato + la tua password.",
-      "country": "Paese",
-      "other": "Altro",
-      "phoneNumber": "Numero di Telefono",
-      "phoneHint": "es. 241234567",
-      "yourCountryCode": "Il Tuo Prefisso Paese",
-      "countryCodeHint": "es. +999",
-      "fullNumber": "Numero completo: {phone}",
-      "fullNumberEmpty": "Numero completo: ...",
-      "password": "Password",
-      "enterPhonePass": "Inserisci Numero di Telefono + Password",
-      "finding": "Ricerca del tuo account per telefono...",
-      "noAccount": "Nessun account trovato per telefono {phone}. Controlla prefisso + numero, o Registrati prima.",
-      "belongsToNurse": "Questo telefono appartiene a un'INFERMIERA. Usa Login Infermiera.",
-      "pending": "Il tuo account è ancora IN ATTESA. Vai a Registrazione -> Inserisci SMS OTP per verificare prima.",
-      "welcome": "Benvenuto! Accesso con telefono {phone}",
-      "loginFailed": "Accesso fallito: {e}",
-      "loginBtn": "ACCEDI",
-      "noAccountRegister": "Nessun account? Registrati con Telefono",
-    },
-
-    // 10. PORTUGUESE
-    "pt": {
-      "title": "Login Cliente",
-      "back": "Voltar",
-      "loginWithPhone": "Entrar com Número de Telefone",
-      "enterPhone": "Digite o telefone com que você se cadastrou + sua senha.",
-      "country": "País",
-      "other": "Outro",
-      "phoneNumber": "Número de Telefone",
-      "phoneHint": "ex. 241234567",
-      "yourCountryCode": "Seu Código de País",
-      "countryCodeHint": "ex. +999",
-      "fullNumber": "Número completo: {phone}",
-      "fullNumberEmpty": "Número completo: ...",
-      "password": "Senha",
-      "enterPhonePass": "Digite Número de Telefone + Senha",
-      "finding": "Procurando sua conta por telefone...",
-      "noAccount": "Nenhuma conta encontrada para telefone {phone}. Verifique código de país + número, ou Cadastre-se primeiro.",
-      "belongsToNurse": "Este telefone pertence a uma ENFERMEIRA. Use Login Enfermeira.",
-      "pending": "Sua conta ainda está PENDENTE. Vá para Cadastro -> Digite SMS OTP para verificar primeiro.",
-      "welcome": "Bem-vindo! Logado com telefone {phone}",
-      "loginFailed": "Falha no login: {e}",
-      "loginBtn": "ENTRAR",
-      "noAccountRegister": "Sem conta? Cadastre-se com Telefone",
-    },
-
-    // 11. ARABIC
-    "ar": {
-      "title": "دخول العميل",
-      "back": "رجوع",
-      "loginWithPhone": "الدخول برقم الهاتف",
-      "enterPhone": "أدخل الهاتف الذي سجلت به + كلمة المرور.",
-      "country": "الدولة",
-      "other": "أخرى",
-      "phoneNumber": "رقم الهاتف",
-      "phoneHint": "مثال 241234567",
-      "yourCountryCode": "رمز بلدك",
-      "countryCodeHint": "مثال +999",
-      "fullNumber": "الرقم الكامل: {phone}",
-      "fullNumberEmpty": "الرقم الكامل: ...",
-      "password": "كلمة المرور",
-      "enterPhonePass": "أدخل رقم الهاتف + كلمة المرور",
-      "finding": "جارٍ البحث عن حسابك بالهاتف...",
-      "noAccount": "لم يتم العثور على حساب للهاتف {phone}. تحقق من رمز الدولة + الرقم، أو سجّل أولاً.",
-      "belongsToNurse": "هذا الهاتف يخص ممرضة. استخدم دخول الممرضة.",
-      "pending": "حسابك لا يزال معلقاً. اذهب إلى التسجيل -> أدخل رمز SMS للتحقق أولاً.",
-      "welcome": "أهلاً! تم الدخول بالهاتف {phone}",
-      "loginFailed": "فشل الدخول: {e}",
-      "loginBtn": "دخول",
-      "noAccountRegister": "لا حساب؟ سجّل بالهاتف",
-    },
-
-    // 12. CHINESE
-    "zh": {
-      "title": "客户登录",
-      "back": "返回",
-      "loginWithPhone": "使用电话号码登录",
-      "enterPhone": "输入您注册时用的电话 + 您的密码。",
-      "country": "国家",
-      "other": "其他",
-      "phoneNumber": "电话号码",
-      "phoneHint": "例如 241234567",
-      "yourCountryCode": "您的国家区号",
-      "countryCodeHint": "例如 +999",
-      "fullNumber": "完整号码: {phone}",
-      "fullNumberEmpty": "完整号码: ...",
-      "password": "密码",
-      "enterPhonePass": "输入电话号码 + 密码",
-      "finding": "正在通过电话查找您的账户...",
-      "noAccount": "未找到电话 {phone} 的账户。请检查国家区号 + 号码，或先注册。",
-      "belongsToNurse": "此电话属于护士。请使用护士登录。",
-      "pending": "您的账户仍在待审核。请到注册 -> 输入短信 OTP 先验证。",
-      "welcome": "欢迎！已使用电话 {phone} 登录",
-      "loginFailed": "登录失败: {e}",
-      "loginBtn": "登录",
-      "noAccountRegister": "没有账户？用电话注册",
-    },
-
-    // 13. HINDI
-    "hi": {
-      "title": "ग्राहक लॉगिन",
-      "back": "पीछे",
-      "loginWithPhone": "फ़ोन नंबर से लॉगिन करें",
-      "enterPhone": "वह फ़ोन डालें जिससे आपने रजिस्टर किया + आपका पासवर्ड।",
-      "country": "देश",
-      "other": "अन्य",
-      "phoneNumber": "फ़ोन नंबर",
-      "phoneHint": "जैसे 241234567",
-      "yourCountryCode": "आपका देश कोड",
-      "countryCodeHint": "जैसे +999",
-      "fullNumber": "पूरा नंबर: {phone}",
-      "fullNumberEmpty": "पूरा नंबर: ...",
-      "password": "पासवर्ड",
-      "enterPhonePass": "फ़ोन नंबर + पासवर्ड डालें",
-      "finding": "फ़ोन से आपका खाता ढूंढ रहे हैं...",
-      "noAccount": "फ़ोन {phone} के लिए कोई खाता नहीं मिला। देश कोड + नंबर जांचें, या पहले रजिस्टर करें।",
-      "belongsToNurse": "यह फ़ोन एक नर्स का है। नर्स लॉगिन इस्तेमाल करें।",
-      "pending": "आपका खाता अभी लंबित है। रजिस्टर पर जाएं -> पहले सत्यापित करने के लिए SMS OTP डालें।",
-      "welcome": "स्वागत है! फ़ोन {phone} से लॉगिन हुआ",
-      "loginFailed": "लॉगिन विफल: {e}",
-      "loginBtn": "लॉगिन",
-      "noAccountRegister": "खाता नहीं है? फ़ोन से रजिस्टर करें",
-    },
-
-    // 14. SWAHILI
-    "sw": {
-      "title": "Kuingia Mteja",
-      "back": "Rudi",
-      "loginWithPhone": "Ingia na Namba Ya Simu",
-      "enterPhone": "Ingiza simu uliyosajili nayo + nenosiri lako.",
-      "country": "Nchi",
-      "other": "Nyingine",
-      "phoneNumber": "Namba Ya Simu",
-      "phoneHint": "mf. 241234567",
-      "yourCountryCode": "Msimbo Wako Wa Nchi",
-      "countryCodeHint": "mf. +999",
-      "fullNumber": "Namba kamili: {phone}",
-      "fullNumberEmpty": "Namba kamili: ...",
-      "password": "Nenosiri",
-      "enterPhonePass": "Ingiza Namba Ya Simu + Nenosiri",
-      "finding": "Inatafuta akaunti yako kwa simu...",
-      "noAccount": "Hakuna akaunti iliyopatikana kwa simu {phone}. Angalia msimbo wa nchi + namba, au Jisajili kwanza.",
-      "belongsToNurse": "Simu hii ni ya MUUGUZI. Tumia Kuingia Muuguzi.",
-      "pending": "Akaunti yako bado INASUBIRI. Nenda kwa Jisajili -> Ingiza SMS OTP ili kuthibitisha kwanza.",
-      "welcome": "Karibu! Umeingia na simu {phone}",
-      "loginFailed": "Kuingia kumeshindikana: {e}",
-      "loginBtn": "INGIA",
-      "noAccountRegister": "Huna akaunti? Jisajili na Simu",
-    },
-
-    // 15. YORUBA
-    "yo": {
-      "title": "Alabara Login",
-      "back": "Pada",
-      "loginWithPhone": "Login Pẹlu Nọmba Foonu",
-      "enterPhone": "Tẹ foonu ti o fi forukọsilẹ + ọrọ igbaniwọle rẹ.",
-      "country": "Orilẹ-ede",
-      "other": "Miiran",
-      "phoneNumber": "Nọmba Foonu",
-      "phoneHint": "ap. 241234567",
-      "yourCountryCode": "Koodu Orilẹ-ede Rẹ",
-      "countryCodeHint": "ap. +999",
-      "fullNumber": "Nọmba kikun: {phone}",
-      "fullNumberEmpty": "Nọmba kikun: ...",
-      "password": "Ọrọ Igbaniwọle",
-      "enterPhonePass": "Tẹ Nọmba Foonu + Ọrọ Igbaniwọle",
-      "finding": "Nwa account rẹ nipa foonu...",
-      "noAccount": "Ko si account fun foonu {phone}. Ṣayẹwo koodu orilẹ-ede + nọmba, tabi Forukọsilẹ ni akọkọ.",
-      "belongsToNurse": "Foonu yi jẹ ti NỌỌSI. Lo Nọọsi Login.",
-      "pending": "Account rẹ ṣi PENDING. Lọ si Forukọsilẹ -> Tẹ SMS OTP lati jẹrisi ni akọkọ.",
-      "welcome": "Kaabo! O ti login pẹlu foonu {phone}",
-      "loginFailed": "Login kuna: {e}",
-      "loginBtn": "LOGIN",
-      "noAccountRegister": "Ko si account? Forukọsilẹ pẹlu Foonu",
-    },
-
-    // 16. IGBO
-    "ig": {
-      "hi": "Ndewo, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Onye Ahịa",
-      "banner1": "Kwụọ 20% Ego CEO n'ime app iji debe. Kwụọ 80% EGO N'AKA nye nọọsụ mgbe ọrụ gasịrị.",
-      "banner2": "CEO anaghị akwụ nọọsụ mgbe ọ bụla. Nọọsụ jụ = FULL 20% nkwụghachi. Ị kagbuo tupu mmalite = CEO na-ejide 20%.",
-      "bookNurse": "Debe Nọọsụ",
-      "nurseOnline": "Nọọsụ {count} nọ n'online",
-      "noNurseOnline": "Enweghị nọọsụ nọ n'online ugbu a",
-      "myBookings": "Booking M",
-      "bookings": "Booking {count}",
-      "bookNurse20": "Debe Nọọsụ - 20% iji Debe",
-      "ceoFeeOnly": "Naanị 20% Ego CEO",
-      "sos": "SOS Mberede",
-      "emergencyHelp": "Enyemaka mberede",
-      "complaint": "Mkpesa",
-      "reportIssue": "Kọọ nsogbu",
-      "rateNurse": "Tụọ Nọọsụ",
-      "rateYourNurse": "Tụọ nọọsụ gị",
-      "refundQuery": "Ajụjụ Nkwụghachi",
-      "refundHelp": "Enyemaka nkwụghachi",
-      "confirmCashPaid": "Kwenye Ego Akwụgoro",
-      "cashToNurse": "80% ego n'aka nye nọọsụ",
-      "settings": "Ntọala",
-      "profileAlerts": "Profaịlụ na ọkwa",
-      "logout": "Pụọ",
-      "signOutSafely": "Pụọ n'enweghị nsogbu",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 17. HAUSA
-    "ha": {
-      "title": "Shigar Abokin Ciniki",
-      "back": "Koma",
-      "loginWithPhone": "Shiga da Lambar Waya",
-      "enterPhone": "Shigar da wayar da ka yi rajista da ita + kalmar sirri.",
-      "country": "Ƙasa",
-      "other": "Wani",
-      "phoneNumber": "Lambar Waya",
-      "phoneHint": "misali 241234567",
-      "yourCountryCode": "Lambar Ƙasarka",
-      "countryCodeHint": "misali +999",
-      "fullNumber": "Cikakken lamba: {phone}",
-      "fullNumberEmpty": "Cikakken lamba: ...",
-      "password": "Kalmar Sirri",
-      "enterPhonePass": "Shigar da Lambar Waya + Kalmar Sirri",
-      "finding": "Ana neman asusunka ta waya...",
-      "noAccount": "Babu asusu da aka samu don waya {phone}. Duba lambar ƙasa + lamba, ko Yi Rajista da farko.",
-      "belongsToNurse": "Wannan wayar ta NURSE ce. Yi amfani da Shigar Nurse.",
-      "pending": "Asusunka har yanzu YANA JIRA. Je zuwa Rajista -> Shigar da SMS OTP don tabbatarwa da farko.",
-      "welcome": "Barka da zuwa! Ka shiga da waya {phone}",
-      "loginFailed": "Shiga ya kasa: {e}",
-      "loginBtn": "SHIGA",
-      "noAccountRegister": "Babu asusu? Yi Rajista da Waya",
-    },
-
-    // 18. RUSSIAN
-    "ru": {
-      "title": "Вход Клиента",
-      "back": "Назад",
-      "loginWithPhone": "Вход по Номеру Телефона",
-      "enterPhone": "Введите телефон, с которым вы регистрировались + ваш пароль.",
-      "country": "Страна",
-      "other": "Другая",
-      "phoneNumber": "Номер Телефона",
-      "phoneHint": "напр. 241234567",
-      "yourCountryCode": "Ваш Код Страны",
-      "countryCodeHint": "напр. +999",
-      "fullNumber": "Полный номер: {phone}",
-      "fullNumberEmpty": "Полный номер: ...",
-      "password": "Пароль",
-      "enterPhonePass": "Введите Номер Телефона + Пароль",
-      "finding": "Поиск вашего аккаунта по телефону...",
-      "noAccount": "Аккаунт для телефона {phone} не найден. Проверьте код страны + номер, или сначала Зарегистрируйтесь.",
-      "belongsToNurse": "Этот телефон принадлежит МЕДСЕСТРЕ. Используйте Вход Медсестры.",
-      "pending": "Ваш аккаунт все еще ОЖИДАЕТ. Перейдите к Регистрации -> Введите SMS OTP для проверки сначала.",
-      "welcome": "Добро пожаловать! Вход с телефоном {phone}",
-      "loginFailed": "Ошибка входа: {e}",
-      "loginBtn": "ВОЙТИ",
-      "noAccountRegister": "Нет аккаунта? Зарегистрируйтесь по Телефону",
-    },
-
-    // 19. TURKISH
-    "tr": {
-      "title": "Müşteri Girişi",
-      "back": "Geri",
-      "loginWithPhone": "Telefon Numarası ile Giriş",
-      "enterPhone": "Kayıt olduğunuz telefonu + şifrenizi girin.",
-      "country": "Ülke",
-      "other": "Diğer",
-      "phoneNumber": "Telefon Numarası",
-      "phoneHint": "örn. 241234567",
-      "yourCountryCode": "Ülke Kodunuz",
-      "countryCodeHint": "örn. +999",
-      "fullNumber": "Tam numara: {phone}",
-      "fullNumberEmpty": "Tam numara: ...",
-      "password": "Şifre",
-      "enterPhonePass": "Telefon Numarası + Şifre Girin",
-      "finding": "Hesabınız telefonla aranıyor...",
-      "noAccount": "Telefon {phone} için hesap bulunamadı. Ülke kodu + numarayı kontrol edin, veya önce Kaydolun.",
-      "belongsToNurse": "Bu telefon bir HEMŞİREYE ait. Hemşire Girişi kullanın.",
-      "pending": "Hesabınız hala BEKLİYOR. Kayıt Ol'a gidin -> Önce doğrulamak için SMS OTP girin.",
-      "welcome": "Hoş geldiniz! Telefon {phone} ile giriş yapıldı",
-      "loginFailed": "Giriş başarısız: {e}",
-      "loginBtn": "GİRİŞ",
-      "noAccountRegister": "Hesabınız yok mu? Telefonla Kaydolun",
-    },
-
-    // 20. KOREAN
-    "ko": {
-      "title": "고객 로그인",
-      "back": "뒤로",
-      "loginWithPhone": "전화번호로 로그인",
-      "enterPhone": "등록한 전화번호 + 비밀번호를 입력하세요.",
-      "country": "국가",
-      "other": "기타",
-      "phoneNumber": "전화번호",
-      "phoneHint": "예: 241234567",
-      "yourCountryCode": "귀하의 국가 코드",
-      "countryCodeHint": "예: +999",
-      "fullNumber": "전체 번호: {phone}",
-      "fullNumberEmpty": "전체 번호: ...",
-      "password": "비밀번호",
-      "enterPhonePass": "전화번호 + 비밀번호 입력",
-      "finding": "전화로 계정을 찾는 중...",
-      "noAccount": "전화 {phone}에 대한 계정을 찾을 수 없습니다. 국가 코드 + 번호를 확인하거나 먼저 가입하세요.",
-      "belongsToNurse": "이 전화는 간호사의 것입니다. 간호사 로그인을 사용하세요.",
-      "pending": "계정이 아직 보류 중입니다. 등록으로 이동 -> 먼저 확인하려면 SMS OTP를 입력하세요.",
-      "welcome": "환영합니다! 전화 {phone}로 로그인했습니다",
-      "loginFailed": "로그인 실패: {e}",
-      "loginBtn": "로그인",
-      "noAccountRegister": "계정이 없나요? 전화로 가입하기",
-    },
-
-    // 21. JAPANESE
-    "ja": {
-      "title": "クライアント ログイン",
-      "back": "戻る",
-      "loginWithPhone": "電話番号でログイン",
-      "enterPhone": "登録した電話番号 + パスワードを入力してください。",
-      "country": "国",
-      "other": "その他",
-      "phoneNumber": "電話番号",
-      "phoneHint": "例 241234567",
-      "yourCountryCode": "あなたの国コード",
-      "countryCodeHint": "例 +999",
-      "fullNumber": "フル番号: {phone}",
-      "fullNumberEmpty": "フル番号: ...",
-      "password": "パスワード",
-      "enterPhonePass": "電話番号 + パスワードを入力",
-      "finding": "電話でアカウントを検索中...",
-      "noAccount": "電話 {phone} のアカウントが見つかりません。国コード + 番号を確認するか、まず登録してください。",
-      "belongsToNurse": "この電話は看護師のものです。看護師ログインを使用してください。",
-      "pending": "アカウントはまだ保留中です。登録へ -> まず確認するためにSMS OTPを入力してください。",
-      "welcome": "ようこそ！電話 {phone} でログインしました",
-      "loginFailed": "ログイン失敗: {e}",
-      "loginBtn": "ログイン",
-      "noAccountRegister": "アカウントがありませんか? 電話で登録",
-    },
-
-    // 22. POLISH
-    "pl": {
-      "title": "Logowanie Klienta",
-      "back": "Wróć",
-      "loginWithPhone": "Zaloguj się Numerem Telefonu",
-      "enterPhone": "Wpisz telefon, którym się zarejestrowałeś + swoje hasło.",
-      "country": "Kraj",
-      "other": "Inny",
-      "phoneNumber": "Numer Telefonu",
-      "phoneHint": "np. 241234567",
-      "yourCountryCode": "Twój Kod Kraju",
-      "countryCodeHint": "np. +999",
-      "fullNumber": "Pełny numer: {phone}",
-      "fullNumberEmpty": "Pełny numer: ...",
-      "password": "Hasło",
-      "enterPhonePass": "Wpisz Numer Telefonu + Hasło",
-      "finding": "Szukanie Twojego konta po telefonie...",
-      "noAccount": "Nie znaleziono konta dla telefonu {phone}. Sprawdź kod kraju + numer, lub Zarejestruj się najpierw.",
-      "belongsToNurse": "Ten telefon należy do PIELĘGNIARKI. Użyj Logowania Pielęgniarki.",
-      "pending": "Twoje konto jest nadal OCZEKUJĄCE. Idź do Rejestracji -> Wpisz SMS OTP, aby najpierw zweryfikować.",
-      "welcome": "Witamy! Zalogowano telefonem {phone}",
-      "loginFailed": "Logowanie nieudane: {e}",
-      "loginBtn": "ZALOGUJ",
-      "noAccountRegister": "Brak konta? Zarejestruj się Telefonem",
-    },
-  };
-
-  // ---------- THE RULE ----------
-  // CEO = English ONLY. Nurse + Client = chosen language.
-  static String get(String lang, String key) {
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
-  }
-
-  static String getForRole(String role, String lang, String key) {
-    if (role.toLowerCase() == 'ceo') {
-      return all['en']?[key] ?? key;
+  static const List<Map<String, String>> _countries = [
+    {"name": "Ghana", "code": "+233"},
+    {"name": "Nigeria", "code": "+234"},
+    {"name": "Kenya", "code": "+254"},
+    {"name": "South Africa", "code": "+27"},
+    {"name": "United States", "code": "+1"},
+    {"name": "Canada", "code": "+1"},
+    {"name": "United Kingdom", "code": "+44"},
+    {"name": "India", "code": "+91"},
+    {"name": "Australia", "code": "+61"},
+    {"name": "Germany", "code": "+49"},
+    {"name": "France", "code": "+33"},
+    {"name": "Togo", "code": "+228"},
+    {"name": "Benin", "code": "+229"},
+    {"name": "Côte d'Ivoire", "code": "+225"},
+    {"name": "Senegal", "code": "+221"},
+    {"name": "Mali", "code": "+223"},
+    {"name": "Burkina Faso", "code": "+226"},
+    {"name": "Niger", "code": "+227"},
+    {"name": "Cameroon", "code": "+237"},
+    {"name": "Uganda", "code": "+256"},
+    {"name": "Tanzania", "code": "+255"},
+    {"name": "Ethiopia", "code": "+251"},
+    {"name": "Egypt", "code": "+20"},
+    {"name": "Morocco", "code": "+212"},
+    {"name": "Brazil", "code": "+55"},
+    {"name": "Mexico", "code": "+52"},
+    {"name": "Spain", "code": "+34"},
+    {"name": "Italy", "code": "+39"},
+    {"name": "Netherlands", "code": "+31"},
+    {"name": "Belgium", "code": "+32"},
+    {"name": "Switzerland", "code": "+41"},
+    {"name": "Sweden", "code": "+46"},
+    {"name": "Norway", "code": "+47"},
+    {"name": "Denmark", "code": "+45"},
+    {"name": "Portugal", "code": "+351"},
+    {"name": "Turkey", "code": "+90"},
+    {"name": "UAE", "code": "+971"},
+    {"name": "Saudi Arabia", "code": "+966"},
+    {"name": "Qatar", "code": "+974"},
+    {"name": "China", "code": "+86"},
+    {"name": "Japan", "code": "+81"},
+    {"name": "South Korea", "code": "+82"},
+    {"name": "Singapore", "code": "+65"},
+    {"name": "Malaysia", "code": "+60"},
+    {"name": "Indonesia", "code": "+62"},
+    {"name": "Philippines", "code": "+63"},
+    {"name": "Pakistan", "code": "+92"},
+    {"name": "Bangladesh", "code": "+880"},
+  ];
+  String _selectedCountry = 'Ghana|+233';
+  final _otherCode = TextEditingController();
+  bool get _isOtherCountry => _selectedCountry == 'Other|';
+  String get _selectedCountryName => _isOtherCountry ? 'Other' : _selectedCountry.split('|')[0];
+  String get _selectedDialCode {
+    if (_isOtherCountry) {
+      var c = _otherCode.text.trim();
+      if (!c.startsWith('+')) c = '+$c';
+      return c;
     }
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
+    return _selectedCountry.split('|')[1];
+  }
+  String get _fullPhone {
+    var local = _phone.text.trim().replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    if (local.startsWith('+')) return local;
+    if (local.startsWith('00')) return '+${local.substring(2)}';
+    if (local.startsWith('0')) local = local.substring(1);
+    return _selectedDialCode.replaceAll(' ', '') + local;
+  }
+  String get _phoneDigits => _fullPhone.replaceAll(RegExp(r'[^0-9]'), '');
+
+  @override
+  void dispose() {
+    _phone.dispose();
+    _pass.dispose();
+    _otherCode.dispose();
+    super.dispose();
   }
 
-  static String getWith(String role, String lang, String key, Map<String, String> params) {
-    String raw = getForRole(role, lang, key);
-    params.forEach((k, v) {
-      raw = raw.replaceAll('{$k}', v);
-    });
-    return raw;
+  // Find hidden email by phone - 4 places: phones index, clients RTDB, CEO RTDB, Firestore
+  // phones/<digits> = email is fastest. Registration file now saves it.
+  Future<String?> _findEmailByPhone(String fullPhone, String digits) async {
+    final db = FirebaseDatabase.instance;
+    // 1. Fast index: phones/<digits> = hidden email
+    try {
+      final s = await db.ref('phones/$digits').get();
+      if (s.exists) {
+        final v = s.value;
+        if (v is String && v.contains('@')) return v.toLowerCase();
+        if (v is Map && v['email'] != null) return (v['email'] as String).toLowerCase();
+      }
+    } catch (_) {}
+    // 2. Scan clients RTDB - for old clients wey no get phones/ index yet
+    try {
+      final s = await db.ref('clients').get();
+      if (s.exists && s.value is Map) {
+        for (final e in (s.value as Map).values) {
+          if (e is! Map) continue;
+          final p = (e['phone'] ?? e['phoneNumber'] ?? e['authPhone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
+          final em = (e['email'] ?? e['clientEmail'] ?? '').toString().toLowerCase();
+          if (p.isNotEmpty && (p == digits || p.endsWith(digits) || digits.endsWith(p)) && em.contains('@')) return em;
+        }
+      }
+    } catch (_) {}
+    // 3. Scan ceoRegistrationCenter/clients
+    try {
+      final s = await db.ref('ceoRegistrationCenter/clients').get();
+      if (s.exists && s.value is Map) {
+        for (final e in (s.value as Map).values) {
+          if (e is! Map) continue;
+          final p = (e['phone'] ?? e['phoneNumber'] ?? e['authPhone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
+          final em = (e['email'] ?? e['clientEmail'] ?? '').toString().toLowerCase();
+          if (p.isNotEmpty && (p == digits || p.endsWith(digits) || digits.endsWith(p)) && em.contains('@')) return em;
+        }
+      }
+    } catch (_) {}
+    // 4. Firestore fallback
+    try {
+      final q = await FirebaseFirestore.instance.collection('clients').where('phone', isEqualTo: fullPhone).limit(1).get();
+      if (q.docs.isNotEmpty) return (q.docs.first.data()['email'] ?? '').toString().toLowerCase();
+    } catch (_) {}
+    // 5. Last fallback: hidden email pattern - if client registered with no real email
+    // This lets phone-only clients login even if phones/ index missing
+    return '$digits@phone.lovecare';
+  }
+
+  // CLIENT RULE: OTP verified = Approved. If DB still says pending but otpVerified true, auto-fix am here.
+  // CEO does NOT approve Client.
+  Future<void> _autoApproveIfOtpVerified(String uid) async {
+    try {
+      final s = await FirebaseDatabase.instance.ref('clients/$uid').get();
+      if (s.exists) {
+        final m = s.value as Map;
+        if (m['otpVerified'] == true || m['emailVerified'] == true || m['phoneVerified'] == true) {
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          final fix = <String, Object?>{
+            'isApproved': true, 'approved': true, 'status': 'approved', 'approvalStatus': 'approved',
+            'canLogin': true, 'isComplete': true, 'hasAll4': true, 'updatedAt': nowMs,
+          };
+          await FirebaseDatabase.instance.ref('clients/$uid').update(fix);
+          await FirebaseDatabase.instance.ref('ceoRegistrationCenter/clients/$uid').update(fix).catchError((_) {});
+          await FirebaseDatabase.instance.ref('client_registrations/$uid').update(fix).catchError((_) {});
+          await FirebaseFirestore.instance.collection('clients').doc(uid).set(fix, SetOptions(merge: true)).catchError((_) {});
+          return;
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _login() async {
+    if (_phone.text.trim().isEmpty || _pass.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter Phone Number + Password')));
+      return;
+    }
+    setState(() { _loading = true; _status = 'Finding your account by phone...'; });
+    try {
+      final email = await _findEmailByPhone(_fullPhone, _phoneDigits);
+      if (email == null || email.isEmpty) {
+        throw Exception('No account found for phone $_fullPhone. Check country code + number, or Register first.');
+      }
+      // Block Nurse trying Client login - One Email = One Role
+      final nurseCheck = await FirebaseFirestore.instance.collection('nurses').where('email', isEqualTo: email).limit(1).get();
+      if (nurseCheck.docs.isNotEmpty) throw Exception('This phone belongs to a NURSE. Use Nurse Login.');
+
+      // Login with hidden email + password behind scene - Client only sees Phone + Password
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: _pass.text.trim());
+      final uid = cred.user!.uid;
+
+      // AUTH SAVES PHONE CHECK - log if Auth phone missing (old accounts)
+      try {
+        final authPhone = cred.user?.phoneNumber;
+        final dbPhoneSnap = await FirebaseDatabase.instance.ref('clients/$uid/phone').get();
+        final dbPhone = dbPhoneSnap.exists ? dbPhoneSnap.value.toString() : '';
+        if ((authPhone == null || authPhone.isEmpty) && dbPhone.isNotEmpty) {
+          print('AUTH PHONE MISSING for $uid, DB phone = $dbPhone. Old account created before phone-link fix. New registers will have Auth phone.');
+          await FirebaseDatabase.instance.ref('clients/$uid').update({'authPhone': dbPhone}).catchError((_) {});
+        } else {
+          print('AUTH LOGIN OK: uid=$uid email=${cred.user?.email} phone=${authPhone ?? dbPhone}');
+        }
+      } catch (_) {}
+
+      await _autoApproveIfOtpVerified(uid);
+
+      // Check approved - OTP verified = approved
+      bool approved = false;
+      final snap = await FirebaseDatabase.instance.ref('clients/$uid').get();
+      if (snap.exists) {
+        final m = snap.value as Map;
+        approved = m['isApproved'] == true || m['status'] == 'approved' || m['otpVerified'] == true || m['emailVerified'] == true || m['phoneVerified'] == true;
+      }
+      if (!approved) {
+        final fs = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
+        if (fs.exists) {
+          final d = fs.data()!;
+          approved = d['isApproved'] == true || d['status'] == 'approved' || d['otpVerified'] == true || d['emailVerified'] == true || d['phoneVerified'] == true;
+        }
+      }
+      if (!approved) {
+        await FirebaseAuth.instance.signOut();
+        throw Exception('Your account is still PENDING. Go to Register -> Enter SMS OTP to verify first.');
+      }
+
+      // Save phone index so next login is faster + Auth phone in sync
+      try {
+        await FirebaseDatabase.instance.ref('phones/$_phoneDigits').set(email);
+        await FirebaseDatabase.instance.ref('clientsByPhone/$_phoneDigits').set(uid);
+        if (cred.user?.phoneNumber != null && cred.user!.phoneNumber!.isNotEmpty) {
+          await FirebaseDatabase.instance.ref('clients/$uid').update({'authPhone': cred.user!.phoneNumber, 'phone': _fullPhone, 'phoneNumber': _fullPhone}).catchError((_) {});
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() { _loading = false; _status = ''; });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Welcome! Logged in with phone $_fullPhone')));
+      Navigator.of(context).pushReplacementNamed('/client-dashboard');
+    } catch (e) {
+      if (mounted) setState(() { _loading = false; _status = ''; });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: $e'), backgroundColor: Colors.red));
+    }
+  }
+
+  // BACK ONLY - left arrow always goes to main.dart Home Page '/home'
+  // Right arrow deleted as requested.
+  void _goBack() {
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // ===== FIXED: BACK ONLY - LEFT ARROW TO main.dart HOME =====
+      appBar: AppBar(
+        title: const Text('Client Login'),
+        backgroundColor: Colors.purple,
+        foregroundColor: Colors.white,
+        automaticallyImplyLeading: false, // stop Flutter from hiding arrow
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, size: 28),
+          tooltip: 'Back',
+          onPressed: _goBack,
+        ),
+        // NO actions - right arrow deleted
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const Icon(Icons.phone_android, size: 60, color: Colors.purple),
+          const SizedBox(height: 10),
+          const Text('Login with Phone Number', textAlign: TextAlign.center, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text('Enter phone you registered with + your password.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+          const SizedBox(height: 20),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(
+              flex: 2,
+              child: DropdownButtonFormField<String>(
+                value: _selectedCountry,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: 'Country'),
+                items: [
+                  ..._countries.map((c) => DropdownMenuItem<String>(value: '${c['name']}|${c['code']}', child: Text('${c['name']} (${c['code']})', overflow: TextOverflow.ellipsis))),
+                  const DropdownMenuItem<String>(value: 'Other|', child: Text('Other')),
+                ],
+                onChanged: (v) { if (v != null) setState(() => _selectedCountry = v); },
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              flex: 3,
+              child: TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone Number', hintText: 'e.g. 241234567')),
+            ),
+          ]),
+          if (_isOtherCountry)
+            Padding(padding: const EdgeInsets.only(top: 8), child: TextField(controller: _otherCode, keyboardType: TextInputType.phone, onChanged: (_) => setState(() {}), decoration: const InputDecoration(labelText: 'Your Country Code', hintText: 'e.g. +999'))),
+          const SizedBox(height: 4),
+          Align(alignment: Alignment.centerLeft, child: Text('Full number: ${_phone.text.trim().isEmpty ? '...' : _fullPhone}', style: const TextStyle(fontSize: 12, color: Colors.grey))),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _pass,
+            obscureText: _obscure,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              suffixIcon: IconButton(icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscure = !_obscure)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_status.isNotEmpty) Text(_status, textAlign: TextAlign.center, style: const TextStyle(color: Colors.purple)),
+          const SizedBox(height: 8),
+          _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ElevatedButton(
+                  onPressed: _login,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, padding: const EdgeInsets.symmetric(vertical: 14)),
+                  child: const Text('LOGIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ClientRegistrationPage())),
+            child: const Text('No account? Register with Phone'),
+          ),
+        ]),
+      ),
+    );
   }
 }
