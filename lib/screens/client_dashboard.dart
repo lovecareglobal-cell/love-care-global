@@ -1,734 +1,292 @@
-// client_dashboard_translations.dart
-// FILE 4 - Client Dashboard - ONLY SCREEN WORDS - ALL 22 LANGUAGES
-// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
-// ONE FILE - Drop in lib/screens
+import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class ClientDashboardTranslations {
-  static const Map<String, Map<String, String>> all = {
+/// Client Dashboard - CLIENT ONLY
+/// - NEW 20/80 RULE: Client pays ONLY 20% CEO fee in app to book.
+///   Nurse cash 80% is paid CASH by client to nurse AFTER work. CEO never sends money to nurse.
+/// - 50% DELETED: 'Book Nurse 50%' button + '/book-nurse-50' route DELETED.
+/// - 'Increase Payment / Top up booking' DELETED (that was old 50% balance top-up).
+///   Replaced with 'Confirm Cash Paid' -> /my-bookings (80% cash to nurse).
+/// - Terms banner: Nurse rejects = full 20% refund. Client cancels before start = CEO keeps 20%.
+///   Client cancels after start = CEO keeps 20% + client pays nurse cash for days worked.
+/// - My Job Offer removed - na for NURSES only (kept).
 
-    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
-    "en": {
-      "hi": "Hi, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Client",
-      "banner1": "Pay 20% CEO fee in app to book. Pay 80% CASH to nurse after work.",
-      "banner2": "CEO never pays nurse. Nurse rejects = full 20% refund. You cancel before start = CEO keeps 20%.",
-      "bookNurse": "Book Nurse",
-      "nurseOnline": "{count} nurse online",
-      "noNurseOnline": "No nurse online now",
-      "myBookings": "My Bookings",
-      "bookings": "{count} Bookings",
-      "bookNurse20": "Book Nurse - 20% to Book",
-      "ceoFeeOnly": "20% CEO fee only",
-      "sos": "SOS Emergency",
-      "emergencyHelp": "Emergency help",
-      "complaint": "Complaint",
-      "reportIssue": "Report issue",
-      "rateNurse": "Rate Nurse",
-      "rateYourNurse": "Rate your nurse",
-      "refundQuery": "Refund Query",
-      "refundHelp": "Refund help",
-      "confirmCashPaid": "Confirm Cash Paid",
-      "cashToNurse": "80% cash to nurse",
-      "settings": "Settings",
-      "profileAlerts": "Profile & alerts",
-      "logout": "Logout",
-      "signOutSafely": "Sign out safely",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
+class ClientDashboardScreen extends StatefulWidget {
+  const ClientDashboardScreen({super.key});
+  @override
+  State<ClientDashboardScreen> createState() => _ClientDashboardScreenState();
+}
 
-    // 2. TWI - CLIENT + NURSE ONLY
-    "tw": {
-      "hi": "Maakye, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Ɔkra",
-      "banner1": "Tua 20% CEO fee wɔ app mu na kra. Tua 80% SIKA ma nɛɛse bere a adwuma wie.",
-      "banner2": "CEO ntua nɛɛse da. Nɛɛse po a = full 20% san. Wogyae ansa na adwuma ahyɛ ase a = CEO kura 20%.",
-      "bookNurse": "Kra Nɛɛse",
-      "nurseOnline": "Nɛɛse {count} yɛ online",
-      "noNurseOnline": "Nɛɛse biara nnyɛ online mprempren",
-      "myBookings": "Me Bookings",
-      "bookings": "Bookings {count}",
-      "bookNurse20": "Kra Nɛɛse - 20% na Kra",
-      "ceoFeeOnly": "20% CEO fee nko",
-      "sos": "SOS Ntɛm",
-      "emergencyHelp": "Ntɛm mmoa",
-      "complaint": "Asɛm",
-      "reportIssue": "Bɔ haw ho amanneɛ",
-      "rateNurse": "Bu Nɛɛse",
-      "rateYourNurse": "Bu wo nɛɛse",
-      "refundQuery": "San Bisa",
-      "refundHelp": "San mmoa",
-      "confirmCashPaid": "Hyɛ Sika A Wɔatua",
-      "cashToNurse": "80% sika ma nɛɛse",
-      "settings": "Nsiesiei",
-      "profileAlerts": "Profile ne nsɛm",
-      "logout": "Fi Mu",
-      "signOutSafely": "Fi mu dwoodwoo",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
+class _ClientDashboardScreenState extends State<ClientDashboardScreen> {
+  String clientName = 'Client';
+  String clientPhone = '';
+  int myBookingsCount = 0;
+  int liveNursesCount = 0;
+  DateTime ghanaNow = DateTime.now().toUtc();
+  bool _disposed = false;
 
-    // 3. GA
-    "ga": {
-      "hi": "Otsa, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Mɔ",
-      "banner1": "Haa 20% CEO fee yɛ app mli koni ohala. Haa 80% SHIKA hã nɛɛse nitsumɔ sɛɛ.",
-      "banner2": "CEO ehaa nɛɛse gbɛɛŋ. Nɛɛse ekoo = full 20% tsɔɔ. Ofo ansa na nitsumɔ shishi = CEO hie 20%.",
-      "bookNurse": "Hala Nɛɛse",
-      "nurseOnline": "Nɛɛse {count} yɛ online",
-      "noNurseOnline": "Nɛɛse ko nyɛ online sane",
-      "myBookings": "Mi Bookings",
-      "bookings": "Bookings {count}",
-      "bookNurse20": "Hala Nɛɛse - 20% koni ohala",
-      "ceoFeeOnly": "20% CEO fee kɛkɛ",
-      "sos": "SOS Ntɛm",
-      "emergencyHelp": "Ntɛm yelikɛbu",
-      "complaint": "Sane",
-      "reportIssue": "Gbee haw",
-      "rateNurse": "Bu Nɛɛse",
-      "rateYourNurse": "Bu o nɛɛse",
-      "refundQuery": "Tsɔɔ Bisa",
-      "refundHelp": "Tsɔɔ yelikɛbu",
-      "confirmCashPaid": "Sa Shika Ahaa",
-      "cashToNurse": "80% shika hã nɛɛse",
-      "settings": "Nsiesiei",
-      "profileAlerts": "Profile kɛ sane",
-      "logout": "Je Mli",
-      "signOutSafely": "Je mli kpakpa",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
+  StreamSubscription<DatabaseEvent>? _bookingsSub;
+  StreamSubscription<DatabaseEvent>? _liveSub;
+  Timer? _clockTimer;
 
-    // 4. EWE
-    "ee": {
-      "hi": "Ŋdi, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Ame",
-      "banner1": "Xe 20% CEO fee le app me be nàbia. Xe 80% GA na nɔnɔvia ne dɔ wu.",
-      "banner2": "CEO mexe nɔnɔvia gbede. Nɔnɔvia gbe = FULL 20% trɔ. Èɖe le gbɔ na dɔ nadze = CEO lé 20%.",
-      "bookNurse": "Bia Nɔnɔvia",
-      "nurseOnline": "Nɔnɔvia {count} le online",
-      "noNurseOnline": "Nɔnɔvia aɖeke mele online fifi o",
-      "myBookings": "Nye Bookings",
-      "bookings": "Bookings {count}",
-      "bookNurse20": "Bia Nɔnɔvia - 20% be nàbia",
-      "ceoFeeOnly": "20% CEO fee ɖeɖe",
-      "sos": "SOS Kpekpe",
-      "emergencyHelp": "Kpekpe kpekpe",
-      "complaint": "Nya",
-      "reportIssue": "Gblɔ nya",
-      "rateNurse": "Ðo Nɔnɔvia",
-      "rateYourNurse": "Ðo wò nɔnɔvia",
-      "refundQuery": "Ga Trɔ Bisa",
-      "refundHelp": "Ga trɔ kpekpe",
-      "confirmCashPaid": "Ðo Ðe Ga Woxe",
-      "cashToNurse": "80% ga na nɔnɔvia",
-      "settings": "Ðoɖowo",
-      "profileAlerts": "Profile kple nyawo",
-      "logout": "Do Go",
-      "signOutSafely": "Do go dedie",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 5. DUTCH
-    "nl": {
-      "hi": "Hoi, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Klant",
-      "banner1": "Betaal 20% CEO kosten in app om te boeken. Betaal 80% CONTANT aan verpleegkundige na werk.",
-      "banner2": "CEO betaalt verpleegkundige nooit. Verpleegkundige weigert = volledige 20% terugbetaling. U annuleert voor start = CEO houdt 20%.",
-      "bookNurse": "Boek Verpleegkundige",
-      "nurseOnline": "{count} verpleegkundige online",
-      "noNurseOnline": "Geen verpleegkundige online nu",
-      "myBookings": "Mijn Boekingen",
-      "bookings": "{count} Boekingen",
-      "bookNurse20": "Boek Verpleegkundige - 20% om te Boeken",
-      "ceoFeeOnly": "Alleen 20% CEO kosten",
-      "sos": "SOS Noodgeval",
-      "emergencyHelp": "Noodhulp",
-      "complaint": "Klacht",
-      "reportIssue": "Rapporteer probleem",
-      "rateNurse": "Beoordeel Verpleegkundige",
-      "rateYourNurse": "Beoordeel je verpleegkundige",
-      "refundQuery": "Terugbetaling Vraag",
-      "refundHelp": "Terugbetaling hulp",
-      "confirmCashPaid": "Bevestig Contant Betaald",
-      "cashToNurse": "80% contant aan verpleegkundige",
-      "settings": "Instellingen",
-      "profileAlerts": "Profiel & meldingen",
-      "logout": "Uitloggen",
-      "signOutSafely": "Veilig uitloggen",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 6. FRENCH
-    "fr": {
-      "hi": "Salut, {name}",
-      "online": "{count} EN LIGNE",
-      "onlineDot": "{count} EN LIGNE • {time}",
-      "clientDefault": "Client",
-      "banner1": "Payez 20% Frais CEO dans l'app pour réserver. Payez 80% EN ESPÈCES à l'infirmière après le travail.",
-      "banner2": "CEO ne paie jamais l'infirmière. Infirmière refuse = remboursement complet 20%. Vous annulez avant début = CEO garde 20%.",
-      "bookNurse": "Réserver Infirmière",
-      "nurseOnline": "{count} infirmière en ligne",
-      "noNurseOnline": "Aucune infirmière en ligne maintenant",
-      "myBookings": "Mes Réservations",
-      "bookings": "{count} Réservations",
-      "bookNurse20": "Réserver Infirmière - 20% pour Réserver",
-      "ceoFeeOnly": "20% Frais CEO seulement",
-      "sos": "SOS Urgence",
-      "emergencyHelp": "Aide d'urgence",
-      "complaint": "Plainte",
-      "reportIssue": "Signaler un problème",
-      "rateNurse": "Noter Infirmière",
-      "rateYourNurse": "Noter votre infirmière",
-      "refundQuery": "Demande Remboursement",
-      "refundHelp": "Aide remboursement",
-      "confirmCashPaid": "Confirmer Espèces Payées",
-      "cashToNurse": "80% espèces à l'infirmière",
-      "settings": "Paramètres",
-      "profileAlerts": "Profil & alertes",
-      "logout": "Déconnexion",
-      "signOutSafely": "Déconnexion en sécurité",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 7. GERMAN
-    "de": {
-      "hi": "Hallo, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Kunde",
-      "banner1": "Zahlen Sie 20% CEO-Gebühr in App zum Buchen. Zahlen Sie 80% BAR an Krankenschwester nach der Arbeit.",
-      "banner2": "CEO zahlt Krankenschwester nie. Krankenschwester lehnt ab = volle 20% Erstattung. Sie stornieren vor Start = CEO behält 20%.",
-      "bookNurse": "Krankenschwester Buchen",
-      "nurseOnline": "{count} Krankenschwester online",
-      "noNurseOnline": "Keine Krankenschwester online jetzt",
-      "myBookings": "Meine Buchungen",
-      "bookings": "{count} Buchungen",
-      "bookNurse20": "Krankenschwester Buchen - 20% zum Buchen",
-      "ceoFeeOnly": "Nur 20% CEO-Gebühr",
-      "sos": "SOS Notfall",
-      "emergencyHelp": "Nothilfe",
-      "complaint": "Beschwerde",
-      "reportIssue": "Problem melden",
-      "rateNurse": "Krankenschwester Bewerten",
-      "rateYourNurse": "Ihre Krankenschwester bewerten",
-      "refundQuery": "Erstattung Anfrage",
-      "refundHelp": "Erstattung Hilfe",
-      "confirmCashPaid": "Bar Bezahlt Bestätigen",
-      "cashToNurse": "80% bar an Krankenschwester",
-      "settings": "Einstellungen",
-      "profileAlerts": "Profil & Benachrichtigungen",
-      "logout": "Abmelden",
-      "signOutSafely": "Sicher abmelden",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 8. SPANISH
-    "es": {
-      "hi": "Hola, {name}",
-      "online": "{count} EN LÍNEA",
-      "onlineDot": "{count} EN LÍNEA • {time}",
-      "clientDefault": "Cliente",
-      "banner1": "Paga 20% Tarifa CEO en app para reservar. Paga 80% EN EFECTIVO a la enfermera después del trabajo.",
-      "banner2": "CEO nunca paga a la enfermera. Enfermera rechaza = reembolso completo 20%. Cancelas antes de inicio = CEO se queda 20%.",
-      "bookNurse": "Reservar Enfermera",
-      "nurseOnline": "{count} enfermera en línea",
-      "noNurseOnline": "Ninguna enfermera en línea ahora",
-      "myBookings": "Mis Reservas",
-      "bookings": "{count} Reservas",
-      "bookNurse20": "Reservar Enfermera - 20% para Reservar",
-      "ceoFeeOnly": "Solo 20% Tarifa CEO",
-      "sos": "SOS Emergencia",
-      "emergencyHelp": "Ayuda de emergencia",
-      "complaint": "Queja",
-      "reportIssue": "Reportar problema",
-      "rateNurse": "Calificar Enfermera",
-      "rateYourNurse": "Califica tu enfermera",
-      "refundQuery": "Consulta Reembolso",
-      "refundHelp": "Ayuda reembolso",
-      "confirmCashPaid": "Confirmar Efectivo Pagado",
-      "cashToNurse": "80% efectivo a enfermera",
-      "settings": "Ajustes",
-      "profileAlerts": "Perfil & alertas",
-      "logout": "Cerrar Sesión",
-      "signOutSafely": "Cerrar sesión con seguridad",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 9. ITALIAN
-    "it": {
-      "hi": "Ciao, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Cliente",
-      "banner1": "Paga 20% Commissione CEO in app per prenotare. Paga 80% IN CONTANTI all'infermiera dopo il lavoro.",
-      "banner2": "CEO non paga mai l'infermiera. Infermiera rifiuta = rimborso completo 20%. Annulli prima dell'inizio = CEO tiene 20%.",
-      "bookNurse": "Prenota Infermiera",
-      "nurseOnline": "{count} infermiera online",
-      "noNurseOnline": "Nessuna infermiera online ora",
-      "myBookings": "Le Mie Prenotazioni",
-      "bookings": "{count} Prenotazioni",
-      "bookNurse20": "Prenota Infermiera - 20% per Prenotare",
-      "ceoFeeOnly": "Solo 20% Commissione CEO",
-      "sos": "SOS Emergenza",
-      "emergencyHelp": "Aiuto emergenza",
-      "complaint": "Reclamo",
-      "reportIssue": "Segnala problema",
-      "rateNurse": "Valuta Infermiera",
-      "rateYourNurse": "Valuta la tua infermiera",
-      "refundQuery": "Richiesta Rimborso",
-      "refundHelp": "Aiuto rimborso",
-      "confirmCashPaid": "Conferma Contanti Pagati",
-      "cashToNurse": "80% contanti all'infermiera",
-      "settings": "Impostazioni",
-      "profileAlerts": "Profilo & avvisi",
-      "logout": "Esci",
-      "signOutSafely": "Esci in sicurezza",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 10. PORTUGUESE
-    "pt": {
-      "hi": "Olá, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Cliente",
-      "banner1": "Pague 20% Taxa CEO no app para reservar. Pague 80% EM DINHEIRO à enfermeira após o trabalho.",
-      "banner2": "CEO nunca paga à enfermeira. Enfermeira recusa = reembolso total 20%. Você cancela antes do início = CEO fica com 20%.",
-      "bookNurse": "Reservar Enfermeira",
-      "nurseOnline": "{count} enfermeira online",
-      "noNurseOnline": "Nenhuma enfermeira online agora",
-      "myBookings": "Minhas Reservas",
-      "bookings": "{count} Reservas",
-      "bookNurse20": "Reservar Enfermeira - 20% para Reservar",
-      "ceoFeeOnly": "Apenas 20% Taxa CEO",
-      "sos": "SOS Emergência",
-      "emergencyHelp": "Ajuda de emergência",
-      "complaint": "Reclamação",
-      "reportIssue": "Reportar problema",
-      "rateNurse": "Avaliar Enfermeira",
-      "rateYourNurse": "Avalie sua enfermeira",
-      "refundQuery": "Consulta Reembolso",
-      "refundHelp": "Ajuda reembolso",
-      "confirmCashPaid": "Confirmar Dinheiro Pago",
-      "cashToNurse": "80% dinheiro à enfermeira",
-      "settings": "Configurações",
-      "profileAlerts": "Perfil & alertas",
-      "logout": "Sair",
-      "signOutSafely": "Sair com segurança",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 11. ARABIC
-    "ar": {
-      "hi": "مرحباً، {name}",
-      "online": "{count} متصل",
-      "onlineDot": "{count} متصل • {time}",
-      "clientDefault": "عميل",
-      "banner1": "ادفع 20% رسوم المدير في التطبيق للحجز. ادفع 80% نقداً للممرضة بعد العمل.",
-      "banner2": "المدير لا يدفع للممرضة أبداً. الممرضة ترفض = استرداد كامل 20%. تلغي قبل البدء = المدير يحتفظ بـ 20%.",
-      "bookNurse": "حجز ممرضة",
-      "nurseOnline": "{count} ممرضة متصلة",
-      "noNurseOnline": "لا ممرضة متصلة الآن",
-      "myBookings": "حجوزاتي",
-      "bookings": "{count} حجوزات",
-      "bookNurse20": "حجز ممرضة - 20% للحجز",
-      "ceoFeeOnly": "20% رسوم المدير فقط",
-      "sos": "طوارئ SOS",
-      "emergencyHelp": "مساعدة طارئة",
-      "complaint": "شكوى",
-      "reportIssue": "الإبلاغ عن مشكلة",
-      "rateNurse": "تقييم الممرضة",
-      "rateYourNurse": "قيّم ممرضتك",
-      "refundQuery": "استفسار استرداد",
-      "refundHelp": "مساعدة استرداد",
-      "confirmCashPaid": "تأكيد الدفع النقدي",
-      "cashToNurse": "80% نقداً للممرضة",
-      "settings": "الإعدادات",
-      "profileAlerts": "الملف والتنبيهات",
-      "logout": "تسجيل الخروج",
-      "signOutSafely": "تسجيل خروج آمن",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 12. CHINESE
-    "zh": {
-      "hi": "你好，{name}",
-      "online": "{count} 在线",
-      "onlineDot": "{count} 在线 • {time}",
-      "clientDefault": "客户",
-      "banner1": "在应用中支付 20% CEO 费用以预订。工作后现金支付护士 80%。",
-      "banner2": "CEO 从不支付护士。护士拒绝 = 全额退还 20%。开始前取消 = CEO 保留 20%。",
-      "bookNurse": "预订护士",
-      "nurseOnline": "{count} 名护士在线",
-      "noNurseOnline": "现在没有护士在线",
-      "myBookings": "我的预订",
-      "bookings": "{count} 个预订",
-      "bookNurse20": "预订护士 - 20% 预订",
-      "ceoFeeOnly": "仅 20% CEO 费用",
-      "sos": "SOS 紧急",
-      "emergencyHelp": "紧急帮助",
-      "complaint": "投诉",
-      "reportIssue": "报告问题",
-      "rateNurse": "评价护士",
-      "rateYourNurse": "评价您的护士",
-      "refundQuery": "退款查询",
-      "refundHelp": "退款帮助",
-      "confirmCashPaid": "确认现金已付",
-      "cashToNurse": "80% 现金给护士",
-      "settings": "设置",
-      "profileAlerts": "个人资料和提醒",
-      "logout": "退出登录",
-      "signOutSafely": "安全退出",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 13. HINDI
-    "hi": {
-      "hi": "नमस्ते, {name}",
-      "online": "{count} ऑनलाइन",
-      "onlineDot": "{count} ऑनलाइन • {time}",
-      "clientDefault": "ग्राहक",
-      "banner1": "बुक करने के लिए ऐप में 20% CEO शुल्क भुगतान करें। काम के बाद नर्स को 80% नकद भुगतान करें।",
-      "banner2": "CEO कभी नर्स को भुगतान नहीं करता। नर्स अस्वीकार करती है = पूरा 20% रिफंड। शुरू से पहले रद्द करते हैं = CEO 20% रखता है।",
-      "bookNurse": "नर्स बुक करें",
-      "nurseOnline": "{count} नर्स ऑनलाइन",
-      "noNurseOnline": "अभी कोई नर्स ऑनलाइन नहीं है",
-      "myBookings": "मेरी बुकिंग",
-      "bookings": "{count} बुकिंग",
-      "bookNurse20": "नर्स बुक करें - बुक करने के लिए 20%",
-      "ceoFeeOnly": "केवल 20% CEO शुल्क",
-      "sos": "SOS आपातकाल",
-      "emergencyHelp": "आपातकालीन सहायता",
-      "complaint": "शिकायत",
-      "reportIssue": "समस्या की रिपोर्ट करें",
-      "rateNurse": "नर्स को रेट करें",
-      "rateYourNurse": "अपनी नर्स को रेट करें",
-      "refundQuery": "रिफंड पूछताछ",
-      "refundHelp": "रिफंड सहायता",
-      "confirmCashPaid": "नकद भुगतान की पुष्टि करें",
-      "cashToNurse": "नर्स को 80% नकद",
-      "settings": "सेटिंग्स",
-      "profileAlerts": "प्रोफ़ाइल और अलर्ट",
-      "logout": "लॉगआउट",
-      "signOutSafely": "सुरक्षित रूप से साइन आउट करें",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 14. SWAHILI
-    "sw": {
-      "hi": "Habari, {name}",
-      "online": "{count} MTANDAONI",
-      "onlineDot": "{count} MTANDAONI • {time}",
-      "clientDefault": "Mteja",
-      "banner1": "Lipa 20% Ada Ya CEO kwenye app ili kuweka. Lipa 80% PESA TASLIMU kwa muuguzi baada ya kazi.",
-      "banner2": "CEO hamlipi muuguzi kamwe. Muuguzi akikataa = marejesho kamili 20%. Ukighairi kabla ya kuanza = CEO anabaki na 20%.",
-      "bookNurse": "Weka Muuguzi",
-      "nurseOnline": "Muuguzi {count} mtandaoni",
-      "noNurseOnline": "Hakuna muuguzi mtandaoni sasa",
-      "myBookings": "Booking Zangu",
-      "bookings": "Booking {count}",
-      "bookNurse20": "Weka Muuguzi - 20% Kuweka",
-      "ceoFeeOnly": "20% Ada Ya CEO tu",
-      "sos": "SOS Dharura",
-      "emergencyHelp": "Msaada wa dharura",
-      "complaint": "Malalamiko",
-      "reportIssue": "Ripoti tatizo",
-      "rateNurse": "Kadiria Muuguzi",
-      "rateYourNurse": "Kadiria muuguzi wako",
-      "refundQuery": "Swali La Marejesho",
-      "refundHelp": "Msaada wa marejesho",
-      "confirmCashPaid": "Thibitisha Pesa Imelipwa",
-      "cashToNurse": "80% pesa taslimu kwa muuguzi",
-      "settings": "Mipangilio",
-      "profileAlerts": "Wasifu na arifa",
-      "logout": "Toka",
-      "signOutSafely": "Toka kwa usalama",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 15. YORUBA
-    "yo": {
-      "hi": "Ẹ n lẹ, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Alabara",
-      "banner1": "San 20% Owo CEO ni app lati gba. San 80% OWO NI ỌWỌ fun nọọsi lẹyin iṣẹ.",
-      "banner2": "CEO ko san nọọsi laelae. Nọọsi kọ = FULL 20% pada. O fagile ṣaaju ibẹrẹ = CEO pa 20% mọ.",
-      "bookNurse": "Gba Nọọsi",
-      "nurseOnline": "Nọọsi {count} wa online",
-      "noNurseOnline": "Ko si nọọsi online bayi",
-      "myBookings": "Booking Mi",
-      "bookings": "Booking {count}",
-      "bookNurse20": "Gba Nọọsi - 20% lati Gba",
-      "ceoFeeOnly": "20% Owo CEO nikan",
-      "sos": "SOS Pajawiri",
-      "emergencyHelp": "Iranlọwọ pajawiri",
-      "complaint": "Ẹbẹ",
-      "reportIssue": "Jabọ iṣoro",
-      "rateNurse": "Dí Nọọsi",
-      "rateYourNurse": "Dí nọọsi rẹ",
-      "refundQuery": "Ibeere Pada",
-      "refundHelp": "Iranlọwọ pada",
-      "confirmCashPaid": "Jẹrisi Owo Ti San",
-      "cashToNurse": "80% owo ni ọwọ fun nọọsi",
-      "settings": "Ètò",
-      "profileAlerts": "Profile ati akiyesi",
-      "logout": "Jade",
-      "signOutSafely": "Jade lailewu",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 16. IGBO
-    "ig": {
-      "hi": "Ndewo, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Onye Ahịa",
-      "banner1": "Kwụọ 20% Ego CEO n'ime app iji debe. Kwụọ 80% EGO N'AKA nye nọọsụ mgbe ọrụ gasịrị.",
-      "banner2": "CEO anaghị akwụ nọọsụ mgbe ọ bụla. Nọọsụ jụ = FULL 20% nkwụghachi. Ị kagbuo tupu mmalite = CEO na-ejide 20%.",
-      "bookNurse": "Debe Nọọsụ",
-      "nurseOnline": "Nọọsụ {count} nọ n'online",
-      "noNurseOnline": "Enweghị nọọsụ nọ n'online ugbu a",
-      "myBookings": "Booking M",
-      "bookings": "Booking {count}",
-      "bookNurse20": "Debe Nọọsụ - 20% iji Debe",
-      "ceoFeeOnly": "Naanị 20% Ego CEO",
-      "sos": "SOS Mberede",
-      "emergencyHelp": "Enyemaka mberede",
-      "complaint": "Mkpesa",
-      "reportIssue": "Kọọ nsogbu",
-      "rateNurse": "Tụọ Nọọsụ",
-      "rateYourNurse": "Tụọ nọọsụ gị",
-      "refundQuery": "Ajụjụ Nkwụghachi",
-      "refundHelp": "Enyemaka nkwụghachi",
-      "confirmCashPaid": "Kwenye Ego Akwụgoro",
-      "cashToNurse": "80% ego n'aka nye nọọsụ",
-      "settings": "Ntọala",
-      "profileAlerts": "Profaịlụ na ọkwa",
-      "logout": "Pụọ",
-      "signOutSafely": "Pụọ n'enweghị nsogbu",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 17. HAUSA
-    "ha": {
-      "hi": "Sannu, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Abokin Ciniki",
-      "banner1": "Biya 20% Kuɗin CEO a app don yin booking. Biya 80% KUƊI ga nurse bayan aiki.",
-      "banner2": "CEO baya biyan nurse kwata-kwata. Nurse ta ƙi = FULL 20% maidowa. Ka soke kafin farawa = CEO ya riƙe 20%.",
-      "bookNurse": "Yi Nurse",
-      "nurseOnline": "Nurse {count} na online",
-      "noNurseOnline": "Babu nurse a online yanzu",
-      "myBookings": "Booking Na",
-      "bookings": "Booking {count}",
-      "bookNurse20": "Yi Nurse - 20% don Yin Booking",
-      "ceoFeeOnly": "20% Kuɗin CEO kaɗai",
-      "sos": "SOS Gaggawa",
-      "emergencyHelp": "Taimakon gaggawa",
-      "complaint": "Koke",
-      "reportIssue": "Kai rahoton matsala",
-      "rateNurse": "Yiwa Nurse Maki",
-      "rateYourNurse": "Yiwa nurse naka maki",
-      "refundQuery": "Tambayar Maidowa",
-      "refundHelp": "Taimakon maidowa",
-      "confirmCashPaid": "Tabbatar An Biya Kuɗi",
-      "cashToNurse": "80% kuɗi ga nurse",
-      "settings": "Saituna",
-      "profileAlerts": "Bayanin martaba da sanarwa",
-      "logout": "Fita",
-      "signOutSafely": "Fita lafiya",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 18. RUSSIAN
-    "ru": {
-      "hi": "Привет, {name}",
-      "online": "{count} ОНЛАЙН",
-      "onlineDot": "{count} ОНЛАЙН • {time}",
-      "clientDefault": "Клиент",
-      "banner1": "Оплатите 20% комиссию CEO в приложении для бронирования. Оплатите 80% НАЛИЧНЫМИ медсестре после работы.",
-      "banner2": "CEO никогда не платит медсестре. Медсестра отказывается = полный возврат 20%. Вы отменяете до начала = CEO удерживает 20%.",
-      "bookNurse": "Забронировать Медсестру",
-      "nurseOnline": "{count} медсестра онлайн",
-      "noNurseOnline": "Сейчас нет медсестер онлайн",
-      "myBookings": "Мои Бронирования",
-      "bookings": "{count} Бронирований",
-      "bookNurse20": "Забронировать Медсестру - 20% для Бронирования",
-      "ceoFeeOnly": "Только 20% комиссия CEO",
-      "sos": "SOS Экстренно",
-      "emergencyHelp": "Экстренная помощь",
-      "complaint": "Жалоба",
-      "reportIssue": "Сообщить о проблеме",
-      "rateNurse": "Оценить Медсестру",
-      "rateYourNurse": "Оцените вашу медсестру",
-      "refundQuery": "Запрос Возврата",
-      "refundHelp": "Помощь с возвратом",
-      "confirmCashPaid": "Подтвердить Оплату Наличными",
-      "cashToNurse": "80% наличными медсестре",
-      "settings": "Настройки",
-      "profileAlerts": "Профиль и уведомления",
-      "logout": "Выйти",
-      "signOutSafely": "Безопасно выйти",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 19. TURKISH
-    "tr": {
-      "hi": "Merhaba, {name}",
-      "online": "{count} ÇEVRİMİÇİ",
-      "onlineDot": "{count} ÇEVRİMİÇİ • {time}",
-      "clientDefault": "Müşteri",
-      "banner1": "Rezervasyon için uygulamada %20 CEO ücreti ödeyin. İşten sonra hemşireye %80 NAKİT ödeyin.",
-      "banner2": "CEO hemşireye asla ödeme yapmaz. Hemşire reddederse = tam %20 iade. Başlamadan iptal ederseniz = CEO %20 tutar.",
-      "bookNurse": "Hemşire Rezerv Et",
-      "nurseOnline": "{count} hemşire çevrimiçi",
-      "noNurseOnline": "Şu an çevrimiçi hemşire yok",
-      "myBookings": "Rezervasyonlarım",
-      "bookings": "{count} Rezervasyon",
-      "bookNurse20": "Hemşire Rezerv Et - %20 ile Rezervasyon",
-      "ceoFeeOnly": "Sadece %20 CEO ücreti",
-      "sos": "SOS Acil",
-      "emergencyHelp": "Acil yardım",
-      "complaint": "Şikayet",
-      "reportIssue": "Sorun bildir",
-      "rateNurse": "Hemşireyi Değerlendir",
-      "rateYourNurse": "Hemşirenizi değerlendirin",
-      "refundQuery": "İade Sorgusu",
-      "refundHelp": "İade yardımı",
-      "confirmCashPaid": "Nakit Ödendiğini Onayla",
-      "cashToNurse": "Hemşireye %80 nakit",
-      "settings": "Ayarlar",
-      "profileAlerts": "Profil ve bildirimler",
-      "logout": "Çıkış Yap",
-      "signOutSafely": "Güvenli çıkış yap",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 20. KOREAN
-    "ko": {
-      "hi": "안녕하세요, {name}",
-      "online": "{count} 온라인",
-      "onlineDot": "{count} 온라인 • {time}",
-      "clientDefault": "고객",
-      "banner1": "예약하려면 앱에서 20% CEO 수수료를 지불하세요. 작업 후 간호사에게 80% 현금으로 지불하세요.",
-      "banner2": "CEO는 간호사에게 절대 지불하지 않습니다. 간호사 거절 = 전액 20% 환불. 시작 전 취소 = CEO가 20% 유지.",
-      "bookNurse": "간호사 예약",
-      "nurseOnline": "간호사 {count}명 온라인",
-      "noNurseOnline": "현재 온라인 간호사 없음",
-      "myBookings": "내 예약",
-      "bookings": "예약 {count}건",
-      "bookNurse20": "간호사 예약 - 20%로 예약",
-      "ceoFeeOnly": "20% CEO 수수료만",
-      "sos": "SOS 긴급",
-      "emergencyHelp": "긴급 도움",
-      "complaint": "불만",
-      "reportIssue": "문제 신고",
-      "rateNurse": "간호사 평가",
-      "rateYourNurse": "간호사 평가하기",
-      "refundQuery": "환불 문의",
-      "refundHelp": "환불 도움",
-      "confirmCashPaid": "현금 지불 확인",
-      "cashToNurse": "간호사에게 80% 현금",
-      "settings": "설정",
-      "profileAlerts": "프로필 및 알림",
-      "logout": "로그아웃",
-      "signOutSafely": "안전하게 로그아웃",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 21. JAPANESE
-    "ja": {
-      "hi": "こんにちは、{name}",
-      "online": "{count} オンライン",
-      "onlineDot": "{count} オンライン • {time}",
-      "clientDefault": "クライアント",
-      "banner1": "予約するにはアプリで20% CEO手数料を支払ってください。仕事後に看護師に80%現金で支払ってください。",
-      "banner2": "CEOは看護師に決して支払いません。看護師が拒否 = 全額20%返金。開始前にキャンセル = CEOが20%保持。",
-      "bookNurse": "看護師を予約",
-      "nurseOnline": "看護師 {count}人オンライン",
-      "noNurseOnline": "現在オンラインの看護師はいません",
-      "myBookings": "私の予約",
-      "bookings": "{count}件の予約",
-      "bookNurse20": "看護師を予約 - 20%で予約",
-      "ceoFeeOnly": "20% CEO手数料のみ",
-      "sos": "SOS 緊急",
-      "emergencyHelp": "緊急ヘルプ",
-      "complaint": "苦情",
-      "reportIssue": "問題を報告",
-      "rateNurse": "看護師を評価",
-      "rateYourNurse": "看護師を評価する",
-      "refundQuery": "返金問い合わせ",
-      "refundHelp": "返金ヘルプ",
-      "confirmCashPaid": "現金支払いを確認",
-      "cashToNurse": "看護師に80%現金",
-      "settings": "設定",
-      "profileAlerts": "プロフィールとアラート",
-      "logout": "ログアウト",
-      "signOutSafely": "安全にログアウト",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-
-    // 22. POLISH
-    "pl": {
-      "hi": "Cześć, {name}",
-      "online": "{count} ONLINE",
-      "onlineDot": "{count} ONLINE • {time}",
-      "clientDefault": "Klient",
-      "banner1": "Zapłać 20% opłaty CEO w aplikacji, aby zarezerwować. Zapłać 80% GOTÓWKĄ pielęgniarce po pracy.",
-      "banner2": "CEO nigdy nie płaci pielęgniarce. Pielęgniarka odrzuca = pełny zwrot 20%. Anulujesz przed startem = CEO zatrzymuje 20%.",
-      "bookNurse": "Zarezerwuj Pielęgniarkę",
-      "nurseOnline": "{count} pielęgniarka online",
-      "noNurseOnline": "Brak pielęgniarki online teraz",
-      "myBookings": "Moje Rezerwacje",
-      "bookings": "{count} Rezerwacji",
-      "bookNurse20": "Zarezerwuj Pielęgniarkę - 20% aby Zarezerwować",
-      "ceoFeeOnly": "Tylko 20% opłaty CEO",
-      "sos": "SOS Awaryjne",
-      "emergencyHelp": "Pomoc awaryjna",
-      "complaint": "Skarga",
-      "reportIssue": "Zgłoś problem",
-      "rateNurse": "Oceń Pielęgniarkę",
-      "rateYourNurse": "Oceń swoją pielęgniarkę",
-      "refundQuery": "Zapytanie o Zwrot",
-      "refundHelp": "Pomoc ze zwrotem",
-      "confirmCashPaid": "Potwierdź Zapłatę Gotówką",
-      "cashToNurse": "80% gotówką pielęgniarce",
-      "settings": "Ustawienia",
-      "profileAlerts": "Profil i alerty",
-      "logout": "Wyloguj",
-      "signOutSafely": "Wyloguj bezpiecznie",
-      "footer": "© 2026 Love Care Global - Accra, Ghana",
-    },
-  };
-
-  // ---------- THE RULE ----------
-  // CEO = English ONLY. Nurse + Client = chosen language.
-  static String get(String lang, String key) {
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
+  @override
+  void initState() {
+    super.initState();
+    _loadClient();
+    _listenBookingsCountLive();
+    _loadLiveNursesCount();
+    _startClock();
   }
 
-  static String getForRole(String role, String lang, String key) {
-    if (role.toLowerCase() == 'ceo') {
-      return all['en']?[key] ?? key;
-    }
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
+  @override
+  void dispose() {
+    _disposed = true;
+    _bookingsSub?.cancel();
+    _liveSub?.cancel();
+    _clockTimer?.cancel();
+    super.dispose();
   }
 
-  static String getWith(String role, String lang, String key, Map<String, String> params) {
-    String raw = getForRole(role, lang, key);
-    params.forEach((k, v) {
-      raw = raw.replaceAll('{$k}', v);
+  Future<void> _loadClient() async {
+    final prefs = await SharedPreferences.getInstance();
+    final auth = FirebaseAuth.instance.currentUser;
+    if (!mounted) return;
+    setState(() {
+      clientName = prefs.getString('clientName') ?? prefs.getString('fullName') ?? auth?.displayName ?? 'Client';
+      clientPhone = prefs.getString('clientPhone') ?? prefs.getString('phone') ?? auth?.phoneNumber ?? '';
     });
-    return raw;
+  }
+
+  String normPhone(String? p) {
+    if (p == null) return '';
+    var d = p.replaceAll(RegExp(r'[^0-9]'), '');
+    if (d.startsWith('233')) d = '0${d.substring(3)}';
+    if (d.length > 10) d = d.substring(d.length - 10);
+    return d;
+  }
+
+  void _listenBookingsCountLive() {
+    _bookingsSub?.cancel();
+    _bookingsSub = FirebaseDatabase.instance.ref('bookings').onValue.listen((e) {
+      if (_disposed || !mounted) return;
+      if (!e.snapshot.exists || e.snapshot.value == null) {
+        setState(() => myBookingsCount = 0);
+        return;
+      }
+      final val = e.snapshot.value;
+      int count = 0;
+      if (val is Map) {
+        val.forEach((k, v) {
+          if (v is Map) {
+            final s = '${v['status'] ?? ''}'.toLowerCase();
+            if (s.contains('complete') || s.contains('cancel') || s.contains('reject')) return;
+            final p = normPhone('${v['clientPhone'] ?? v['phone'] ?? ''}');
+            final u = '${v['clientId'] ?? v['userId'] ?? v['uid'] ?? ''}';
+            final myP = normPhone(clientPhone);
+            final myUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+            if ((myP.isEmpty && myUid.isEmpty) || p == myP || (u.isNotEmpty && u == myUid)) count++;
+          }
+        });
+      }
+      setState(() => myBookingsCount = count);
+    }, onError: (_) {});
+  }
+
+  void _loadLiveNursesCount() {
+    _liveSub?.cancel();
+    _liveSub = FirebaseDatabase.instance.ref('onlineNurses').onValue.listen((e) {
+      if (_disposed || !mounted) return;
+      int count = 0;
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (e.snapshot.exists && e.snapshot.value is Map) {
+        (e.snapshot.value as Map).forEach((k, v) {
+          if (v is Map) {
+            final isOnline = v['isOnline'] == true || v['online'] == true;
+            final lastSeen = int.tryParse('${v['lastSeen'] ?? v['timestamp'] ?? 0}') ?? 0;
+            if (isOnline) {
+              if (lastSeen == 0 || now - lastSeen < 2 * 60 * 1000) count++;
+            } else if (lastSeen != 0 && now - lastSeen < 2 * 60 * 1000 && !v.containsKey('isOnline')) {
+              count++;
+            }
+          } else if (v == true) count++;
+        });
+      }
+      setState(() => liveNursesCount = count);
+    });
+  }
+
+  void _startClock() {
+    _clockTimer?.cancel();
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_disposed || !mounted) return;
+      setState(() => ghanaNow = DateTime.now().toUtc());
+    });
+  }
+
+  String get ghanaTime => DateFormat('EEE • MMM d, y • hh:mm:ss a').format(ghanaNow);
+
+  Future<void> _logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    try { await FirebaseAuth.instance.signOut(); } catch (_) {}
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/home', (r) => false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const pink = Color(0xFFE91E63);
+    const darkPink = Color(0xFF880E4F);
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        backgroundColor: pink,
+        elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Hi, $clientName', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            Text('$liveNursesCount ONLINE • $ghanaTime', style: const TextStyle(color: Colors.white, fontSize: 12)),
+          ],
+        ),
+        actions: [
+          IconButton(icon: const Icon(Icons.notifications, color: Colors.white, size: 28), onPressed: () => Navigator.pushNamed(context, '/client-settings')),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: pink, borderRadius: BorderRadius.circular(20)),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 34,
+                    backgroundColor: Colors.white,
+                    child: Text(clientName.isNotEmpty ? clientName[0].toUpperCase() : 'C', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: pink)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(clientName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 2),
+                        // FIXED: Phone no go break into 2 lines again
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(clientPhone, maxLines: 1, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle)),
+                        const SizedBox(width: 6),
+                        Text('$liveNursesCount ONLINE', style: const TextStyle(color: darkPink, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            // NEW 20/80 BANNER - so client no go confuse again
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.12), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFF22C55E).withOpacity(0.4))),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Pay 20% CEO fee in app to book. Pay 80% CASH to nurse after work.', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  SizedBox(height: 4),
+                  Text('CEO never pays nurse. Nurse rejects = full 20% refund. You cancel before start = CEO keeps 20%.', style: TextStyle(fontSize: 11, color: Colors.black54)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ===== CLIENT DASHBOARD - ONLY BUTTONS - NO MY JOB OFFER =====
+            // My Job Offer removed - na for NURSES only
+            Row(children: [
+              Expanded(child: _button('Book Nurse', Icons.local_hospital, liveNursesCount > 0 ? '$liveNursesCount nurse online' : 'No nurse online now', pink, () => Navigator.pushNamed(context, '/book-nurse'))),
+              const SizedBox(width: 12),
+              Expanded(child: _button('My Bookings', Icons.calendar_today, '$myBookingsCount Bookings', pink, () => Navigator.pushNamed(context, '/my-bookings'))),
+            ]),
+            const SizedBox(height: 12),
+            Row(children: [
+              // 50% DELETED - replaced with 20% to Book (same /book-nurse page)
+              Expanded(child: _button('Book Nurse - 20% to Book', Icons.discount, '20% CEO fee only', pink, () => Navigator.pushNamed(context, '/book-nurse'))),
+              const SizedBox(width: 12),
+              Expanded(child: _button('SOS Emergency', Icons.sos, 'Emergency help', Colors.red, () => Navigator.pushNamed(context, '/sos'))),
+            ]),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: _button('Complaint', Icons.report_problem, 'Report issue', pink, () => Navigator.pushNamed(context, '/client-complaint'))),
+              const SizedBox(width: 12),
+              Expanded(child: _button('Rate Nurse', Icons.star, 'Rate your nurse', pink, () => Navigator.pushNamed(context, '/rating'))),
+            ]),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: _button('Refund Query', Icons.money_off, 'Refund help', pink, () => Navigator.pushNamed(context, '/refund-query'))),
+              const SizedBox(width: 12),
+              // Increase Payment (old 50% top-up) DELETED - replaced with Confirm Cash Paid
+              Expanded(child: _button('Confirm Cash Paid', Icons.money, '80% cash to nurse', pink, () => Navigator.pushNamed(context, '/my-bookings'))),
+            ]),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: _button('Settings', Icons.settings, 'Profile & alerts', pink, () => Navigator.pushNamed(context, '/client-settings'))),
+              const SizedBox(width: 12),
+              Expanded(child: _button('Logout', Icons.logout, 'Sign out safely', darkPink, _logout)),
+            ]),
+            const SizedBox(height: 16),
+
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+              child: Row(children: [const Icon(Icons.access_time, color: Colors.grey, size: 22), const SizedBox(width: 10), Expanded(child: Text(ghanaTime, style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold)))]),
+            ),
+            const SizedBox(height: 20),
+            const Text('© 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.grey, fontSize: 11)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _button(String title, IconData icon, String subtitle, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: color, size: 30),
+            const SizedBox(height: 14),
+            Text(title, style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(subtitle, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          ],
+        ),
+      ),
+    );
   }
 }
