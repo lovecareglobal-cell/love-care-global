@@ -1,613 +1,1198 @@
-import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:geolocator/geolocator.dart';
-import 'dart:convert';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:http/http.dart' as http;
+// nurse_dashboard_translations.dart
+// FILE - Nurse Dashboard (NURSE) - ONLY SCREEN WORDS - ALL 22 LANGUAGES
+// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
+// 20/80: Nurse sees ONLY her CASH (80%). NEVER total, NEVER CEO fee.
+// ONE FILE - Drop in lib/screens
 
-/// Nurse Dashboard - Flutter version of nurse-dashboard.html
-/// - loadNurse: SharedPreferences + RTDB nurses/{uid} (HTML also used Firestore — RTDB is source of truth in Flutter)
-/// - ONLINE / OFFLINE broadcast (same as HTML setOnlineNow / setOfflineNow):
-///   ONLINE: onlineNurses + nursePresence + liveNurseLocations + liveNurses + liveTracking + nurseLocations + nurses + allNurses + pending_nurses + pendingNurses
-///   OFFLINE: removes onlineNurses / live* , sets nursePresence offline, nurses/allNurses offline
-///   GPS fast (3s timeout, don't block online if GPS slow), onDisconnect cancels
-/// - Receiver-only sound: bookings child_changed shouldRing (lastChangedBy != nurse, not my own change, isMyBooking, within 2 min)
-///   + soundTriggers/{nurse, phone9, uid, emailKey} limit 5, delete after 5s
-/// - Stats: My bookings (pending / accepted / completed), Cash Earnings = 80% cash collected from client (NOT from CEO)
-/// - Booking cards: Accept / Reject (reject writes rejected_by_nurse + refund full 20% + sound trigger to client)
-/// - NEW 20/80 RULE: Nurse sees ONLY her cash (80%). NEVER total, NEVER CEO fee (20%).
-///   CEO NEVER pays nurse. Nurse collects CASH from client after work.
-///   Withdraw Earnings DELETED - replaced with Confirm Cash Received / My Job Offers.
-///   Accept = Lock nurse (Busy). Reject / Cash Received / Cancel = Unlock nurse (Available).
+class NurseDashboardTranslations {
+  static const Map<String, Map<String, String>> all = {
 
-class NurseDashboardScreen extends StatefulWidget {
-  const NurseDashboardScreen({super.key});
-  @override
-  State<NurseDashboardScreen> createState() => _NurseDashboardScreenState();
-}
+    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
+    "en": {
+      "title": "Nurse Dashboard",
+      "drawerJobOffers": "My Job Offers",
+      "drawerCashEarnings": "My Cash Earnings",
+      "drawerGroupChat": "Nurse Group Chat",
+      "drawerSoundSettings": "Sound Settings",
+      "drawerNurseSettings": "Nurse Settings",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Welcome, {name}",
+      "welcomeBack": "Welcome back",
+      "longSession": "♾️ Long session",
+      "onlineVisible": "🟢 ONLINE — Visible to clients",
+      "offlineHidden": "🔴 OFFLINE — Hidden from clients",
+      "onlineSub": "Clients can see you in book-nurse and book you!",
+      "offlineSub": "Clients CANNOT see you in book-nurse. Turn ON to appear.",
+      "goingOnline": "🟢 Going ONLINE... Broadcasting to all clients...",
+      "onlineNow": "🟢 ONLINE NOW — Visible to clients — 📍 {place} — 🟢 LIVE GPS ON: your photo will blink + move on client map",
+      "gpsSaved": "GPS saved",
+      "onlineFailed": "Online failed: {error}",
+      "goingOffline": "🔴 Going OFFLINE... Hiding from all clients...",
+      "offlineNow": "🔴 OFFLINE NOW — Hidden from all clients — Clients will NOT see you",
+      "offlineFailed": "Offline failed: {error}",
+      "statPending": "📅 Pending",
+      "statAccepted": "✅ Accepted",
+      "statCompleted": "🎉 Completed",
+      "cashTitle": "💰 Cash You Collect (80%) - Paid CASH by Client, NOT by CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "See My Job Offers",
+      "myBookings": "📋 My Bookings ({n})",
+      "noBookings": "No bookings yet. Go ONLINE to appear to clients.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Service: {service} • Location: {location}",
+      "collectCash": "You will collect CASH after work: {cash}",
+      "accept": "✅ Accept",
+      "reject": "❌ Reject",
+      "confirmCashBtn": "💵 Confirm Cash Received - {cash}",
+      "fabJobOffers": "My Job Offers",
+      "rejectTitle": "Reject Booking — Reason?",
+      "rejectHint": "e.g. Too far, busy",
+      "rejectNote": "Client gets FULL 20% refund and can book another nurse. You become Available again.",
+      "cancel": "Cancel",
+      "rejectBtn": "Reject",
+      "cashDialogTitle": "Confirm Cash Received?",
+      "cashDialogContent": "Confirm client paid you CASH: {cash}\nCEO does NOT pay you. After this you become Available again.",
+      "notYet": "Not Yet",
+      "yesCash": "Yes, Cash Received",
+      "toastAccepted": "✅ Booking accepted",
+      "toastRejected": "Rejected - Client gets full 20% refund - You are Available again",
+      "toastCash": "Cash confirmed - You are Available again",
+      "defaultClient": "Client",
+      "defaultInitial": "N",
+    },
 
-class _NurseDashboardScreenState extends State<NurseDashboardScreen> {
-  String currentNurseId = 'demo-nurse';
-  String _gpsPlaceName = '';
-  double? _gpsLat, _gpsLng;
-  String nurseName = 'Nurse', nurseEmail = '', nursePhone = '', nurseSpecialty = 'General Nursing', photoUrl = '';
-  bool isOnline = false;
-  String saveStatus = '';
-  List<Map> myBookings = [];
-  final AudioPlayer _player = AudioPlayer();
-  final Set<String> _seenRing = {};
-  // LIVE GPS - makes nurse photo blink + move on Client Live Map
-  StreamSubscription<Position>? _liveGpsSub;
-  Timer? _liveGpsTimer;
-  bool _liveGpsActive = false;
+    // 2. TWI
+    "tw": {
+      "title": "Nɛɛse Dashboard",
+      "drawerJobOffers": "Me Adwuma Offers",
+      "drawerCashEarnings": "Me Cash Earnings",
+      "drawerGroupChat": "Nɛɛse Group Chat",
+      "drawerSoundSettings": "Sound Settings",
+      "drawerNurseSettings": "Nɛɛse Settings",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Akwaaba, {name}",
+      "welcomeBack": "Akwaaba bio",
+      "longSession": "♾️ Bere tenten",
+      "onlineVisible": "🟢 ONLINE — Ɔkra hu wo",
+      "offlineHidden": "🔴 OFFLINE — Ɔkra nhu wo",
+      "onlineSub": "Ɔkra hu wo wɔ book-nurse na wobetumi book wo!",
+      "offlineSub": "Ɔkra NHU wo wɔ book-nurse. Sɔ ON na wɔahu wo.",
+      "goingOnline": "🟢 Reko ONLINE... Reko broadcast kɔma ɔkra nyinaa...",
+      "onlineNow": "🟢 ONLINE SEISEI — Ɔkra hu wo — 📍 {place} — 🟢 LIVE GPS ON: wo foto bɛblink + ɛbɛkeka wɔ ɔkra map so",
+      "gpsSaved": "GPS wɔakora",
+      "onlineFailed": "Online antumi: {error}",
+      "goingOffline": "🔴 Reko OFFLINE... Refi wo fi ɔkra nyinaa anim...",
+      "offlineNow": "🔴 OFFLINE SEISEI — Wɔafi wo fi ɔkra nyinaa anim — Ɔkra RENHU wo",
+      "offlineFailed": "Offline antumi: {error}",
+      "statPending": "📅 Twɛn",
+      "statAccepted": "✅ Wɔagye",
+      "statCompleted": "🎉 Wɔawie",
+      "cashTitle": "💰 Cash Wobɛboaboa (80%) - Ɔkra tua CASH, ƐNYƐ CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Hwɛ Me Adwuma Offers",
+      "myBookings": "📋 Me Bookings ({n})",
+      "noBookings": "Bookings biara nni hɔ. Kɔ ONLINE na ɔkra ahu wo.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Adwuma: {service} • Beae: {location}",
+      "collectCash": "Wobɛboaboa CASH wɔ adwuma akyi: {cash}",
+      "accept": "✅ Gye Tom",
+      "reject": "❌ Pow",
+      "confirmCashBtn": "💵 Hyɛ Cash Wɔagye Mu - {cash}",
+      "fabJobOffers": "Me Adwuma Offers",
+      "rejectTitle": "Pow Booking — Adɛn?",
+      "rejectHint": "s.b. Ɛware, mereyɛ adwuma",
+      "rejectNote": "Ɔkra nya refund 20% nyinaa na otumi book nɛɛse foforo. Wobɛyɛ Available bio.",
+      "cancel": "Gyae",
+      "rejectBtn": "Pow",
+      "cashDialogTitle": "Hyɛ Mu Sɛ Wɔagye Cash?",
+      "cashDialogContent": "Hyɛ mu sɛ ɔkra atua wo CASH: {cash}\nCEO NTUA wo. Eyi akyi wobɛyɛ Available bio.",
+      "notYet": "Ɛnnyaa",
+      "yesCash": "Yiw, Cash Wɔagye",
+      "toastAccepted": "✅ Wɔagye booking",
+      "toastRejected": "Wɔapow - Ɔkra nya refund 20% nyinaa - Woyɛ Available bio",
+      "toastCash": "Cash wɔahyɛ mu - Woyɛ Available bio",
+      "defaultClient": "Ɔkra",
+      "defaultInitial": "N",
+    },
 
-  @override
-  void initState() {
-    super.initState();
-    _loadNurse();
-    _startSoundListener();
-  }
+    // 3. GA
+    "ga": {
+      "title": "Nɛɛse Dashboard",
+      "drawerJobOffers": "Mi Nitsumɔ Offers",
+      "drawerCashEarnings": "Mi Cash Earnings",
+      "drawerGroupChat": "Nɛɛse Group Chat",
+      "drawerSoundSettings": "Sound Settings",
+      "drawerNurseSettings": "Nɛɛse Settings",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Otsaami, {name}",
+      "welcomeBack": "Otsaami eko",
+      "longSession": "♾️ Bere kɛkɛ",
+      "onlineVisible": "🟢 ONLINE — Mɔi wo",
+      "offlineHidden": "🔴 OFFLINE — Mɔi wo",
+      "onlineSub": "Mɔi wo yɛ book-nurse na amɛ ba nyɛ book o!",
+      "offlineSub": "Mɔi WO yɛ book-nurse. Tswa ON koni amɛ awo.",
+      "goingOnline": "🟢 Mii tee ONLINE... Mii broadcast hã mɔi fɛɛ...",
+      "onlineNow": "🟢 ONLINE SANE — Mɔi wo — 📍 {place} — 🟢 LIVE GPS ON: o foto ba blink + ba tsɔ yɛ mɔ map nɔ",
+      "gpsSaved": "GPS ato",
+      "onlineFailed": "Online eko: {error}",
+      "goingOffline": "🔴 Mii tee OFFLINE... Mii ŋɔɔ o kɛjɛ mɔi fɛɛ dɛŋ...",
+      "offlineNow": "🔴 OFFLINE SANE — Aŋɔɔ o kɛjɛ mɔi fɛɛ dɛŋ — Mɔi RENWO",
+      "offlineFailed": "Offline eko: {error}",
+      "statPending": "📅 Mii Twɛn",
+      "statAccepted": "✅ Ahe",
+      "statCompleted": "🎉 Agbe",
+      "cashTitle": "💰 Cash O Ba Ŋɔ (80%) - Mɔ Tua CASH, JE CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Kwɛ Mi Nitsumɔ Offers",
+      "myBookings": "📋 Mi Bookings ({n})",
+      "noBookings": "Bookings ko bɛ. Tee ONLINE koni mɔi awo.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Nitsumɔ: {service} • Hejɔɔ: {location}",
+      "collectCash": "O ba ŋɔ CASH yɛ nitsumɔ sɛɛ: {cash}",
+      "accept": "✅ He",
+      "reject": "❌ Kpɔ",
+      "confirmCashBtn": "💵 Shi Cash Aŋɔ - {cash}",
+      "fabJobOffers": "Mi Nitsumɔ Offers",
+      "rejectTitle": "Kpɔ Booking — Mɛɛ Hewɔ?",
+      "rejectHint": "s.b. Eko fioo, mii fee nitsumɔ",
+      "rejectNote": "Mɔ naa refund 20% fɛɛ na eba nyɛ book nɛɛse kroko. O ba fee Available eko.",
+      "cancel": "Fo",
+      "rejectBtn": "Kpɔ",
+      "cashDialogTitle": "Shi Sɛ Cash Aŋɔ?",
+      "cashDialogContent": "Shi sɛ mɔ tua o CASH: {cash}\nCEO ETUA o. Eyi sɛɛ o ba fee Available eko.",
+      "notYet": "Eko Da",
+      "yesCash": "Yɛ, Cash Aŋɔ",
+      "toastAccepted": "✅ Ahe booking",
+      "toastRejected": "Akpɔ - Mɔ naa refund 20% fɛɛ - O fee Available eko",
+      "toastCash": "Cash ashi mu - O fee Available eko",
+      "defaultClient": "Mɔ",
+      "defaultInitial": "N",
+    },
 
-  @override
-  void dispose() {
-    _stopLiveGps();
-    _player.dispose();
-    super.dispose();
-  }
+    // 4. EWE
+    "ee": {
+      "title": "Nɔnɔvia Dashboard",
+      "drawerJobOffers": "Nye Dɔ Offers",
+      "drawerCashEarnings": "Nye Cash Earnings",
+      "drawerGroupChat": "Nɔnɔvia Group Chat",
+      "drawerSoundSettings": "Sound Settings",
+      "drawerNurseSettings": "Nɔnɔvia Settings",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Woezɔ, {name}",
+      "welcomeBack": "Woezɔ gbugbɔ",
+      "longSession": "♾️ Ɣeyiɣi didi",
+      "onlineVisible": "🟢 ONLINE — Amewo kpɔa wò",
+      "offlineHidden": "🔴 OFFLINE — Amewo mekpɔa wò o",
+      "onlineSub": "Amewo kpɔa wò le book-nurse eye woate ŋu abook wò!",
+      "offlineSub": "Amewo MEKPƆA wò le book-nurse o. Dze ON be woakpɔ wò.",
+      "goingOnline": "🟢 Mele yiyi ONLINE... Le broadcast na amewo katã...",
+      "onlineNow": "🟢 ONLINE FIFIA — Amewo kpɔa wò — 📍 {place} — 🟢 LIVE GPS ON: wò foto a blink + aʋu le amewo ƒe map dzi",
+      "gpsSaved": "GPS wodzra ɖo",
+      "onlineFailed": "Online medze o: {error}",
+      "goingOffline": "🔴 Mele yiyi OFFLINE... Le ɣla wò tso amewo katã gbɔ...",
+      "offlineNow": "🔴 OFFLINE FIFIA — Woɣla tso amewo katã gbɔ — Amewo MEKPƆA wò o",
+      "offlineFailed": "Offline medze o: {error}",
+      "statPending": "📅 Le Lãm",
+      "statAccepted": "✅ Woxɔ",
+      "statCompleted": "🎉 Wowu",
+      "cashTitle": "💰 Cash Àxɔ (80%) - Ame xe CASH, MEGAA CEO o",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Kpɔ Nye Dɔ Offers",
+      "myBookings": "📋 Nye Bookings ({n})",
+      "noBookings": "Bookings aɖeke meli o. Yi ONLINE be amewo nakpɔ wò.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Dɔ: {service} • Teƒe: {location}",
+      "collectCash": "Àxɔ CASH le dɔ megbe: {cash}",
+      "accept": "✅ Xɔ",
+      "reject": "❌ Gbe",
+      "confirmCashBtn": "💵 Ðo Kpe Cash Woxɔ - {cash}",
+      "fabJobOffers": "Nye Dɔ Offers",
+      "rejectTitle": "Gbe Booking — Nu Ta?",
+      "rejectHint": "le kpɔɖeŋu me. Didina, mele dɔ wɔm",
+      "rejectNote": "Ame xɔ refund 20% bliboa eye ate ŋu abook nɔnɔvia bubu. Àzu Available gbugbɔ.",
+      "cancel": "Ðe Ða",
+      "rejectBtn": "Gbe",
+      "cashDialogTitle": "Ðo Kpe Be Woxɔ Cash?",
+      "cashDialogContent": "Ðo kpe be ame xe wò CASH: {cash}\nCEO MEXEA wò o. Le esia megbe àzu Available gbugbɔ.",
+      "notYet": "Meli o",
+      "yesCash": "Ɛ̃, Cash Woxɔ",
+      "toastAccepted": "✅ Woxɔ booking",
+      "toastRejected": "Wogbe - Ame xɔ refund 20% bliboa - Èzu Available gbugbɔ",
+      "toastCash": "Cash woɖo kpe - Èzu Available gbugbɔ",
+      "defaultClient": "Ame",
+      "defaultInitial": "N",
+    },
 
-  // ===== NEW 20/80 HELPERS - NURSE SEES ONLY HER CASH =====
-  double _nurseCash(Map b) {
-    double v(dynamic x) {
-      if (x == null) return 0;
-      if (x is num) return x.toDouble();
-      return double.tryParse(x.toString()) ?? 0;
-    }
-    double c = v(b['nurseCash']);
-    if (c > 0) return c;
-    c = v(b['nurseCashAmount']);
-    if (c > 0) return c;
-    c = v(b['amountYouWillCollectCash']);
-    if (c > 0) return c;
-    final total = v(b['totalAmount'] ?? b['total'] ?? b['amount']);
-    if (total > 0) return total * 0.80;
-    return 0;
-  }
-  String _nurseCashStr(Map b) {
-    final cur = (b['currency'] ?? 'GHS').toString();
-    return '$cur ${_nurseCash(b).toStringAsFixed(2)}';
-  }
-  bool get _hasActiveBooking {
-    return myBookings.any((b) {
-      final s = (b['status'] ?? '').toString().toLowerCase();
-      return s == 'pending' || s == 'new' || s == 'accepted' || s == 'on_the_way' || s == 'close' || s == 'completed';
-    });
-  }
-  Future<void> _lockNurse() async {
-    final uid = currentNurseId;
-    if (uid.isEmpty || uid == 'demo-nurse') return;
-    final bid = myBookings.isNotEmpty ? '${myBookings.first['id'] ?? ''}' : '';
-    try {
-      await FirebaseDatabase.instance.ref('nurses/$uid').update({'isAvailable': false, 'isBooked': true, 'isBusy': true, 'status': 'busy', 'currentBookingId': bid, 'currentBookingStatus': 'accepted'});
-    } catch (_) {}
-    try {
-      await FirebaseDatabase.instance.ref('onlineNurses/$uid').update({'isAvailable': false, 'isBooked': true, 'currentBookingId': bid});
-    } catch (_) {}
-  }
-  Future<void> _unlockNurse() async {
-    final uid = currentNurseId;
-    if (uid.isEmpty || uid == 'demo-nurse') return;
-    try {
-      await FirebaseDatabase.instance.ref('nurses/$uid').update({'isAvailable': true, 'isBooked': false, 'isBusy': false, 'status': 'available', 'currentBookingId': null, 'currentBookingStatus': null});
-    } catch (_) {}
-    try {
-      await FirebaseDatabase.instance.ref('onlineNurses/$uid').update({'isAvailable': true, 'isBooked': false, 'currentBookingId': null});
-    } catch (_) {}
-  }
+    // 5. DUTCH
+    "nl": {
+      "title": "Verpleegkundige Dashboard",
+      "drawerJobOffers": "Mijn Vacatures",
+      "drawerCashEarnings": "Mijn Contante Verdiensten",
+      "drawerGroupChat": "Verpleegkundige Groepschat",
+      "drawerSoundSettings": "Geluidsinstellingen",
+      "drawerNurseSettings": "Verpleegkundige Instellingen",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Welkom, {name}",
+      "welcomeBack": "Welkom terug",
+      "longSession": "♾️ Lange sessie",
+      "onlineVisible": "🟢 ONLINE — Zichtbaar voor klanten",
+      "offlineHidden": "🔴 OFFLINE — Verborgen voor klanten",
+      "onlineSub": "Klanten kunnen je zien in boek-verpleegkundige en je boeken!",
+      "offlineSub": "Klanten kunnen je NIET zien in boek-verpleegkundige. Zet AAN om te verschijnen.",
+      "goingOnline": "🟢 ONLINE gaan... Uitzenden naar alle klanten...",
+      "onlineNow": "🟢 NU ONLINE — Zichtbaar voor klanten — 📍 {place} — 🟢 LIVE GPS AAN: je foto knippert + beweegt op klantenkaart",
+      "gpsSaved": "GPS opgeslagen",
+      "onlineFailed": "Online mislukt: {error}",
+      "goingOffline": "🔴 OFFLINE gaan... Verbergen voor alle klanten...",
+      "offlineNow": "🔴 NU OFFLINE — Verborgen voor alle klanten — Klanten zien je NIET",
+      "offlineFailed": "Offline mislukt: {error}",
+      "statPending": "📅 In Afwachting",
+      "statAccepted": "✅ Geaccepteerd",
+      "statCompleted": "🎉 Voltooid",
+      "cashTitle": "💰 Contant Dat Je Verzamelt (80%) - CONTANT Betaald Door Klant, NIET Door CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Bekijk Mijn Vacatures",
+      "myBookings": "📋 Mijn Boekingen ({n})",
+      "noBookings": "Nog geen boekingen. Ga ONLINE om voor klanten te verschijnen.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Dienst: {service} • Locatie: {location}",
+      "collectCash": "Je verzamelt CONTANT na werk: {cash}",
+      "accept": "✅ Accepteren",
+      "reject": "❌ Weigeren",
+      "confirmCashBtn": "💵 Bevestig Contant Ontvangen - {cash}",
+      "fabJobOffers": "Mijn Vacatures",
+      "rejectTitle": "Boeking Weigeren — Reden?",
+      "rejectHint": "bijv. Te ver, druk",
+      "rejectNote": "Klant krijgt VOLLEDIGE 20% terugbetaling en kan een andere verpleegkundige boeken. Je wordt weer Beschikbaar.",
+      "cancel": "Annuleren",
+      "rejectBtn": "Weigeren",
+      "cashDialogTitle": "Bevestig Contant Ontvangen?",
+      "cashDialogContent": "Bevestig dat klant je CONTANT heeft betaald: {cash}\nCEO betaalt je NIET. Hierna word je weer Beschikbaar.",
+      "notYet": "Nog Niet",
+      "yesCash": "Ja, Contant Ontvangen",
+      "toastAccepted": "✅ Boeking geaccepteerd",
+      "toastRejected": "Geweigerd - Klant krijgt volledige 20% terugbetaling - Je bent weer Beschikbaar",
+      "toastCash": "Contant bevestigd - Je bent weer Beschikbaar",
+      "defaultClient": "Klant",
+      "defaultInitial": "N",
+    },
 
-  // ===== LIVE GPS - PHOTO BLINKING + MOVING ON CLIENT MAP =====
-  // WHY dot did NOT move before: _setOnlineNow saved GPS ONCE, then never again.
-  // Now: while ONLINE, send GPS every 10s + on every 10m move, to BOTH:
-  //  - RTDB liveNurseLocations / liveNurses / liveTracking (your existing source)
-  //  - Firestore nurses/{uid} (Live Map reads this - without it, dot never appears)
-  Future<void> _startLiveGps() async {
-    if (_liveGpsActive) return;
-    _liveGpsActive = true;
-    final uid = currentNurseId;
-    if (uid.isEmpty || uid == 'demo-nurse') return;
-    // 10s timer as backup (works even if phone is still)
-    _liveGpsTimer = Timer.periodic(const Duration(seconds: 10), (_) => _pushLiveGps());
-    // Movement stream - fires when nurse actually moves 10m+
-    try {
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) return;
-      _liveGpsSub = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high, distanceFilter: 10),
-      ).listen((pos) => _pushLiveGps(pos: pos), onError: (_) {});
-    } catch (_) {}
-  }
+    // 6. FRENCH
+    "fr": {
+      "title": "Tableau De Bord Infirmière",
+      "drawerJobOffers": "Mes Offres D'Emploi",
+      "drawerCashEarnings": "Mes Gains En Espèces",
+      "drawerGroupChat": "Chat De Groupe Infirmière",
+      "drawerSoundSettings": "Paramètres Son",
+      "drawerNurseSettings": "Paramètres Infirmière",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Bienvenue, {name}",
+      "welcomeBack": "Bon retour",
+      "longSession": "♾️ Longue session",
+      "onlineVisible": "🟢 EN LIGNE — Visible pour les clients",
+      "offlineHidden": "🔴 HORS LIGNE — Cachée pour les clients",
+      "onlineSub": "Les clients peuvent te voir dans réserver-infirmière et te réserver!",
+      "offlineSub": "Les clients NE PEUVENT PAS te voir dans réserver-infirmière. Active pour apparaître.",
+      "goingOnline": "🟢 Passage EN LIGNE... Diffusion à tous les clients...",
+      "onlineNow": "🟢 MAINTENANT EN LIGNE — Visible pour les clients — 📍 {place} — 🟢 GPS EN DIRECT ACTIVÉ: ta photo clignote + bouge sur la carte client",
+      "gpsSaved": "GPS enregistré",
+      "onlineFailed": "Échec en ligne: {error}",
+      "goingOffline": "🔴 Passage HORS LIGNE... Masquage pour tous les clients...",
+      "offlineNow": "🔴 MAINTENANT HORS LIGNE — Cachée pour tous les clients — Les clients NE te verront PAS",
+      "offlineFailed": "Échec hors ligne: {error}",
+      "statPending": "📅 En Attente",
+      "statAccepted": "✅ Acceptée",
+      "statCompleted": "🎉 Terminé",
+      "cashTitle": "💰 Espèces Que Tu Collectes (80%) - Payées en ESPÈCES par le Client, PAS par le CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Voir Mes Offres D'Emploi",
+      "myBookings": "📋 Mes Réservations ({n})",
+      "noBookings": "Aucune réservation. Passe EN LIGNE pour apparaître aux clients.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Service: {service} • Lieu: {location}",
+      "collectCash": "Tu collecteras ESPÈCES après travail: {cash}",
+      "accept": "✅ Accepter",
+      "reject": "❌ Refuser",
+      "confirmCashBtn": "💵 Confirmer Espèces Reçues - {cash}",
+      "fabJobOffers": "Mes Offres D'Emploi",
+      "rejectTitle": "Refuser Réservation — Raison?",
+      "rejectHint": "ex. Trop loin, occupée",
+      "rejectNote": "Le client reçoit un remboursement COMPLET de 20% et peut réserver une autre infirmière. Tu redeviens Disponible.",
+      "cancel": "Annuler",
+      "rejectBtn": "Refuser",
+      "cashDialogTitle": "Confirmer Espèces Reçues?",
+      "cashDialogContent": "Confirme que le client t'a payé en ESPÈCES: {cash}\nLe CEO ne te paie PAS. Après cela tu redeviens Disponible.",
+      "notYet": "Pas Encore",
+      "yesCash": "Oui, Espèces Reçues",
+      "toastAccepted": "✅ Réservation acceptée",
+      "toastRejected": "Refusé - Le client reçoit remboursement complet 20% - Tu es à nouveau Disponible",
+      "toastCash": "Espèces confirmées - Tu es à nouveau Disponible",
+      "defaultClient": "Client",
+      "defaultInitial": "N",
+    },
 
-  Future<void> _pushLiveGps({Position? pos}) async {
-    if (!_liveGpsActive) return;
-    final uid = currentNurseId;
-    if (uid.isEmpty || uid == 'demo-nurse') return;
-    try {
-      pos ??= await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 8));
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final lat = pos.latitude, lng = pos.longitude;
-      if (mounted) setState(() { _gpsLat = lat; _gpsLng = lng; });
-      // RTDB - your existing live nodes
-      final db = FirebaseDatabase.instance;
-      final rtdbUpdate = {'lat': lat, 'lng': lng, 'latitude': lat, 'longitude': lng, 'gpsLat': lat, 'gpsLng': lng, 'lastSeen': now, 'lastGpsAt': now, 'gpsUpdatedAt': now, 'updatedAt': now, 'isOnline': true, 'status': 'online'};
-      await Future.wait([
-        db.ref('liveNurseLocations/$uid').update(rtdbUpdate),
-        db.ref('liveNurses/$uid').update(rtdbUpdate),
-        db.ref('liveTracking/$uid').update(rtdbUpdate),
-        db.ref('onlineNurses/$uid').update(rtdbUpdate),
-        db.ref('nurses/$uid').update(rtdbUpdate),
-      ]).catchError((_) {});
-      // FIRESTORE - Live Map (live_nurse_map.dart) reads nurses/{uid} where isOnline==true
-      // Without this, client Live Map sees NOTHING even though RTDB has the nurse.
-      await FirebaseFirestore.instance.collection('nurses').doc(uid).set({
-        'lat': lat, 'lng': lng, 'latitude': lat, 'longitude': lng,
-        'isOnline': true, 'status': 'online',
-        'name': nurseName, 'fullName': nurseName,
-        'photoUrl': photoUrl, 'photo': photoUrl, 'photoURL': photoUrl,
-        'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty,
-        'location': _gpsPlaceName, 'placeName': _gpsPlaceName,
-        'lastSeen': FieldValue.serverTimestamp(), 'updatedAt': FieldValue.serverTimestamp(),
-        'uid': uid,
-      }, SetOptions(merge: true)).catchError((_) {});
-    } catch (_) {}
-  }
+    // 7. GERMAN
+    "de": {
+      "title": "Krankenschwester Dashboard",
+      "drawerJobOffers": "Meine Jobangebote",
+      "drawerCashEarnings": "Meine Bargeld-Verdienste",
+      "drawerGroupChat": "Krankenschwester Gruppenchat",
+      "drawerSoundSettings": "Toneinstellungen",
+      "drawerNurseSettings": "Krankenschwester Einstellungen",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Willkommen, {name}",
+      "welcomeBack": "Willkommen zurück",
+      "longSession": "♾️ Lange Sitzung",
+      "onlineVisible": "🟢 ONLINE — Sichtbar für Kunden",
+      "offlineHidden": "🔴 OFFLINE — Verborgen für Kunden",
+      "onlineSub": "Kunden können dich in Krankenschwester-buchen sehen und dich buchen!",
+      "offlineSub": "Kunden können dich NICHT in Krankenschwester-buchen sehen. Schalte EIN um zu erscheinen.",
+      "goingOnline": "🟢 Gehe ONLINE... Sende an alle Kunden...",
+      "onlineNow": "🟢 JETZT ONLINE — Sichtbar für Kunden — 📍 {place} — 🟢 LIVE GPS AN: dein Foto blinkt + bewegt sich auf Kundenkarte",
+      "gpsSaved": "GPS gespeichert",
+      "onlineFailed": "Online fehlgeschlagen: {error}",
+      "goingOffline": "🔴 Gehe OFFLINE... Verstecke vor allen Kunden...",
+      "offlineNow": "🔴 JETZT OFFLINE — Verborgen vor allen Kunden — Kunden werden dich NICHT sehen",
+      "offlineFailed": "Offline fehlgeschlagen: {error}",
+      "statPending": "📅 Ausstehend",
+      "statAccepted": "✅ Akzeptiert",
+      "statCompleted": "🎉 Abgeschlossen",
+      "cashTitle": "💰 Bargeld Das Du Sammelst (80%) - BAR Bezahlt Vom Kunden, NICHT Vom CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Meine Jobangebote Ansehen",
+      "myBookings": "📋 Meine Buchungen ({n})",
+      "noBookings": "Noch keine Buchungen. Gehe ONLINE um für Kunden zu erscheinen.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Dienst: {service} • Ort: {location}",
+      "collectCash": "Du sammelst BARGELD nach Arbeit: {cash}",
+      "accept": "✅ Annehmen",
+      "reject": "❌ Ablehnen",
+      "confirmCashBtn": "💵 Bargeld Erhalten Bestätigen - {cash}",
+      "fabJobOffers": "Meine Jobangebote",
+      "rejectTitle": "Buchung Ablehnen — Grund?",
+      "rejectHint": "z.B. Zu weit, beschäftigt",
+      "rejectNote": "Kunde erhält VOLLE 20% Erstattung und kann eine andere Krankenschwester buchen. Du wirst wieder Verfügbar.",
+      "cancel": "Abbrechen",
+      "rejectBtn": "Ablehnen",
+      "cashDialogTitle": "Bargeld Erhalten Bestätigen?",
+      "cashDialogContent": "Bestätige, dass Kunde dir BARGELD gezahlt hat: {cash}\nCEO zahlt dich NICHT. Danach wirst du wieder Verfügbar.",
+      "notYet": "Noch Nicht",
+      "yesCash": "Ja, Bargeld Erhalten",
+      "toastAccepted": "✅ Buchung angenommen",
+      "toastRejected": "Abgelehnt - Kunde erhält volle 20% Erstattung - Du bist wieder Verfügbar",
+      "toastCash": "Bargeld bestätigt - Du bist wieder Verfügbar",
+      "defaultClient": "Kunde",
+      "defaultInitial": "N",
+    },
 
-  Future<void> _stopLiveGps() async {
-    _liveGpsActive = false;
-    _liveGpsTimer?.cancel(); _liveGpsTimer = null;
-    try { await _liveGpsSub?.cancel(); } catch (_) {}
-    _liveGpsSub = null;
-  }
+    // 8. SPANISH
+    "es": {
+      "title": "Panel De Enfermera",
+      "drawerJobOffers": "Mis Ofertas De Trabajo",
+      "drawerCashEarnings": "Mis Ganancias En Efectivo",
+      "drawerGroupChat": "Chat Grupal Enfermera",
+      "drawerSoundSettings": "Ajustes De Sonido",
+      "drawerNurseSettings": "Ajustes De Enfermera",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Bienvenida, {name}",
+      "welcomeBack": "Bienvenida de nuevo",
+      "longSession": "♾️ Sesión larga",
+      "onlineVisible": "🟢 EN LÍNEA — Visible para clientes",
+      "offlineHidden": "🔴 FUERA DE LÍNEA — Oculta para clientes",
+      "onlineSub": "¡Los clientes pueden verte en reservar-enfermera y reservarte!",
+      "offlineSub": "Los clientes NO PUEDEN verte en reservar-enfermera. Activa para aparecer.",
+      "goingOnline": "🟢 Poniéndose EN LÍNEA... Transmitiendo a todos los clientes...",
+      "onlineNow": "🟢 AHORA EN LÍNEA — Visible para clientes — 📍 {place} — 🟢 GPS EN VIVO ACTIVADO: tu foto parpadeará + se moverá en el mapa del cliente",
+      "gpsSaved": "GPS guardado",
+      "onlineFailed": "Error en línea: {error}",
+      "goingOffline": "🔴 Poniéndose FUERA DE LÍNEA... Ocultando de todos los clientes...",
+      "offlineNow": "🔴 AHORA FUERA DE LÍNEA — Oculta para todos los clientes — Los clientes NO te verán",
+      "offlineFailed": "Error fuera de línea: {error}",
+      "statPending": "📅 Pendiente",
+      "statAccepted": "✅ Aceptada",
+      "statCompleted": "🎉 Completado",
+      "cashTitle": "💰 Efectivo Que Recoges (80%) - Pagado en EFECTIVO por el Cliente, NO por el CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Ver Mis Ofertas De Trabajo",
+      "myBookings": "📋 Mis Reservas ({n})",
+      "noBookings": "Sin reservas aún. Ponte EN LÍNEA para aparecer a clientes.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Servicio: {service} • Ubicación: {location}",
+      "collectCash": "Recogerás EFECTIVO después del trabajo: {cash}",
+      "accept": "✅ Aceptar",
+      "reject": "❌ Rechazar",
+      "confirmCashBtn": "💵 Confirmar Efectivo Recibido - {cash}",
+      "fabJobOffers": "Mis Ofertas De Trabajo",
+      "rejectTitle": "¿Rechazar Reserva — Motivo?",
+      "rejectHint": "ej. Demasiado lejos, ocupada",
+      "rejectNote": "Cliente recibe reembolso COMPLETO 20% y puede reservar otra enfermera. Vuelves a estar Disponible.",
+      "cancel": "Cancelar",
+      "rejectBtn": "Rechazar",
+      "cashDialogTitle": "¿Confirmar Efectivo Recibido?",
+      "cashDialogContent": "Confirma que cliente te pagó en EFECTIVO: {cash}\nCEO NO te paga. Después de esto vuelves a estar Disponible.",
+      "notYet": "Todavía No",
+      "yesCash": "Sí, Efectivo Recibido",
+      "toastAccepted": "✅ Reserva aceptada",
+      "toastRejected": "Rechazado - Cliente recibe reembolso completo 20% - Vuelves a estar Disponible",
+      "toastCash": "Efectivo confirmado - Vuelves a estar Disponible",
+      "defaultClient": "Cliente",
+      "defaultInitial": "N",
+    },
 
-  String _firstString(Map d, List<String> keys) {
-    for (final k in keys) {
-      final v = d[k];
-      if (v != null && v.toString().trim().isNotEmpty) return v.toString().trim();
-    }
-    return '';
-  }
+    // 9. ITALIAN
+    "it": {
+      "title": "Dashboard Infermiera",
+      "drawerJobOffers": "Le Mie Offerte Di Lavoro",
+      "drawerCashEarnings": "I Miei Guadagni In Contanti",
+      "drawerGroupChat": "Chat Di Gruppo Infermiera",
+      "drawerSoundSettings": "Impostazioni Audio",
+      "drawerNurseSettings": "Impostazioni Infermiera",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Benvenuta, {name}",
+      "welcomeBack": "Bentornata",
+      "longSession": "♾️ Sessione lunga",
+      "onlineVisible": "🟢 ONLINE — Visibile ai clienti",
+      "offlineHidden": "🔴 OFFLINE — Nascosta ai clienti",
+      "onlineSub": "I clienti possono vederti in prenota-infermiera e prenotarti!",
+      "offlineSub": "I clienti NON POSSONO vederti in prenota-infermiera. Attiva per apparire.",
+      "goingOnline": "🟢 Vado ONLINE... Trasmissione a tutti i clienti...",
+      "onlineNow": "🟢 ORA ONLINE — Visibile ai clienti — 📍 {place} — 🟢 GPS LIVE ATTIVO: la tua foto lampeggerà + si muoverà sulla mappa cliente",
+      "gpsSaved": "GPS salvato",
+      "onlineFailed": "Online non riuscito: {error}",
+      "goingOffline": "🔴 Vado OFFLINE... Nascondo da tutti i clienti...",
+      "offlineNow": "🔴 ORA OFFLINE — Nascosta a tutti i clienti — I clienti NON ti vedranno",
+      "offlineFailed": "Offline non riuscito: {error}",
+      "statPending": "📅 In Attesa",
+      "statAccepted": "✅ Accettata",
+      "statCompleted": "🎉 Completato",
+      "cashTitle": "💰 Contanti Che Raccogli (80%) - Pagati in CONTANTI Dal Cliente, NON Dal CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Vedi Le Mie Offerte Di Lavoro",
+      "myBookings": "📋 Le Mie Prenotazioni ({n})",
+      "noBookings": "Nessuna prenotazione. Vai ONLINE per apparire ai clienti.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Servizio: {service} • Posizione: {location}",
+      "collectCash": "Raccoglierai CONTANTI dopo lavoro: {cash}",
+      "accept": "✅ Accetta",
+      "reject": "❌ Rifiuta",
+      "confirmCashBtn": "💵 Conferma Contanti Ricevuti - {cash}",
+      "fabJobOffers": "Le Mie Offerte Di Lavoro",
+      "rejectTitle": "Rifiutare Prenotazione — Motivo?",
+      "rejectHint": "es. Troppo lontano, occupata",
+      "rejectNote": "Il cliente riceve rimborso COMPLETO 20% e può prenotare un'altra infermiera. Torni Disponibile.",
+      "cancel": "Annulla",
+      "rejectBtn": "Rifiuta",
+      "cashDialogTitle": "Confermare Contanti Ricevuti?",
+      "cashDialogContent": "Conferma che cliente ti ha pagato in CONTANTI: {cash}\nIl CEO NON ti paga. Dopo questo torni Disponibile.",
+      "notYet": "Non Ancora",
+      "yesCash": "Sì, Contanti Ricevuti",
+      "toastAccepted": "✅ Prenotazione accettata",
+      "toastRejected": "Rifiutato - Il cliente riceve rimborso completo 20% - Sei di nuovo Disponibile",
+      "toastCash": "Contanti confermati - Sei di nuovo Disponibile",
+      "defaultClient": "Cliente",
+      "defaultInitial": "N",
+    },
 
-  Future<void> _loadNurse() async {
-    final prefs = await SharedPreferences.getInstance();
-    final authUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final uid = authUid.isNotEmpty
-        ? authUid
-        : (prefs.getString('lcg_nurse_uid') ?? prefs.getString('uid') ?? prefs.getString('nurseUid') ?? '');
-    if (uid.isEmpty) { setState(() => currentNurseId = 'demo-nurse'); return; }
-    setState(() => currentNurseId = uid);
-    var photo = prefs.getString('nursePhotoURL') ?? prefs.getString('nursePhoto') ?? prefs.getString('photoUrl') ?? prefs.getString('photoURL') ?? '';
-    var name = prefs.getString('nurseName') ?? prefs.getString('fullName') ?? prefs.getString('displayName') ?? '';
-    var email = prefs.getString('nurseEmail') ?? prefs.getString('email') ?? prefs.getString('currentNurseEmail') ?? FirebaseAuth.instance.currentUser?.email ?? '';
-    var phone = prefs.getString('nursePhone') ?? prefs.getString('phone') ?? '';
-    var spec = prefs.getString('nurseSpecialty') ?? prefs.getString('specialty') ?? '';
-    var place = prefs.getString('nursePlaceName') ?? prefs.getString('placeName') ?? prefs.getString('location') ?? '';
-    try {
-      var doc = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
-      if (!doc.exists) doc = await FirebaseFirestore.instance.collection('nurse_registrations').doc(uid).get();
-      if (doc.exists && doc.data() != null) {
-        final dd = doc.data()!;
-        final p = _firstString(dd, ['photoUrl', 'photoURL', 'photo', 'profilePhoto', 'imageUrl']);
-        if (p.isNotEmpty) photo = p;
-        final n = _firstString(dd, ['fullName', 'name', 'displayName']);
-        if (n.isNotEmpty) name = n;
-        if (dd['email'] != null) email = dd['email'].toString();
-        if (dd['phone'] != null) phone = dd['phone'].toString();
-        final s = _firstString(dd, ['specialty', 'specialtyType']);
-        if (s.isNotEmpty) spec = s;
-        final pl = _firstString(dd, ['placeName', 'location', 'address', 'gpsActualName']);
-        if (pl.isNotEmpty) place = pl;
-        if (dd['latitude'] is num) _gpsLat = (dd['latitude'] as num).toDouble();
-        if (dd['longitude'] is num) _gpsLng = (dd['longitude'] as num).toDouble();
-      }
-    } catch (_) {}
-    try {
-      final snap = await FirebaseDatabase.instance.ref('nurses/$uid').get();
-      if (snap.exists) {
-        final dd = Map<String, dynamic>.from(snap.value as Map);
-        final p = _firstString(dd, ['photoUrl', 'photoURL', 'photo', 'profilePhoto']);
-        if (p.isNotEmpty) photo = p;
-        final n = _firstString(dd, ['fullName', 'name', 'displayName']);
-        if (n.isNotEmpty) name = n;
-        if (dd['email'] != null) email = dd['email'].toString();
-        if (dd['phone'] != null) phone = dd['phone'].toString();
-        final s = _firstString(dd, ['specialty']);
-        if (s.isNotEmpty) spec = s;
-        final pl = _firstString(dd, ['placeName', 'location', 'address', 'gpsActualName']);
-        if (pl.isNotEmpty) place = pl;
-      }
-    } catch (_) {}
-    try {
-      await prefs.setString('lcg_nurse_uid', uid);
-      if (name.isNotEmpty) await prefs.setString('nurseName', name);
-      if (photo.isNotEmpty) await prefs.setString('nursePhotoURL', photo);
-      if (email.isNotEmpty) await prefs.setString('nurseEmail', email);
-      if (phone.isNotEmpty) await prefs.setString('nursePhone', phone);
-      if (place.isNotEmpty) await prefs.setString('nursePlaceName', place);
-    } catch (_) {}
-    if (!mounted) return;
-    setState(() {
-      nurseName = name.isEmpty ? 'Nurse' : name;
-      nurseEmail = email; nursePhone = phone; nurseSpecialty = spec.isEmpty ? 'General Nursing' : spec; photoUrl = photo;
-      _gpsPlaceName = place;
-    });
-    await _checkOnlineStatus(uid);
-    _loadMyBookings();
-  }
+    // 10. PORTUGUESE
+    "pt": {
+      "title": "Painel Da Enfermeira",
+      "drawerJobOffers": "Minhas Ofertas De Trabalho",
+      "drawerCashEarnings": "Meus Ganhos Em Dinheiro",
+      "drawerGroupChat": "Chat Em Grupo Enfermeira",
+      "drawerSoundSettings": "Configurações De Som",
+      "drawerNurseSettings": "Configurações Da Enfermeira",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Bem-vinda, {name}",
+      "welcomeBack": "Bem-vinda de volta",
+      "longSession": "♾️ Sessão longa",
+      "onlineVisible": "🟢 ONLINE — Visível para clientes",
+      "offlineHidden": "🔴 OFFLINE — Oculta para clientes",
+      "onlineSub": "Clientes podem ver você em reservar-enfermeira e reservar você!",
+      "offlineSub": "Clientes NÃO PODEM ver você em reservar-enfermeira. Ative para aparecer.",
+      "goingOnline": "🟢 Indo ONLINE... Transmitindo para todos os clientes...",
+      "onlineNow": "🟢 AGORA ONLINE — Visível para clientes — 📍 {place} — 🟢 GPS AO VIVO LIGADO: sua foto vai piscar + mover no mapa do cliente",
+      "gpsSaved": "GPS salvo",
+      "onlineFailed": "Falha online: {error}",
+      "goingOffline": "🔴 Indo OFFLINE... Ocultando de todos os clientes...",
+      "offlineNow": "🔴 AGORA OFFLINE — Oculta para todos os clientes — Clientes NÃO verão você",
+      "offlineFailed": "Falha offline: {error}",
+      "statPending": "📅 Pendente",
+      "statAccepted": "✅ Aceita",
+      "statCompleted": "🎉 Concluído",
+      "cashTitle": "💰 Dinheiro Que Você Coleta (80%) - Pago em DINHEIRO Pelo Cliente, NÃO Pelo CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Ver Minhas Ofertas De Trabalho",
+      "myBookings": "📋 Minhas Reservas ({n})",
+      "noBookings": "Sem reservas ainda. Fique ONLINE para aparecer para clientes.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Serviço: {service} • Localização: {location}",
+      "collectCash": "Você coletará DINHEIRO após trabalho: {cash}",
+      "accept": "✅ Aceitar",
+      "reject": "❌ Rejeitar",
+      "confirmCashBtn": "💵 Confirmar Dinheiro Recebido - {cash}",
+      "fabJobOffers": "Minhas Ofertas De Trabalho",
+      "rejectTitle": "Rejeitar Reserva — Motivo?",
+      "rejectHint": "ex. Muito longe, ocupada",
+      "rejectNote": "Cliente recebe reembolso TOTAL 20% e pode reservar outra enfermeira. Você fica Disponível novamente.",
+      "cancel": "Cancelar",
+      "rejectBtn": "Rejeitar",
+      "cashDialogTitle": "Confirmar Dinheiro Recebido?",
+      "cashDialogContent": "Confirme que cliente te pagou em DINHEIRO: {cash}\nCEO NÃO te paga. Depois disso você fica Disponível novamente.",
+      "notYet": "Ainda Não",
+      "yesCash": "Sim, Dinheiro Recebido",
+      "toastAccepted": "✅ Reserva aceita",
+      "toastRejected": "Rejeitado - Cliente recebe reembolso total 20% - Você está Disponível novamente",
+      "toastCash": "Dinheiro confirmado - Você está Disponível novamente",
+      "defaultClient": "Cliente",
+      "defaultInitial": "N",
+    },
 
-  Future<void> _checkOnlineStatus(String uid) async {
-    try {
-      final snap = await FirebaseDatabase.instance.ref('onlineNurses/$uid').get();
-      final snap2 = await FirebaseDatabase.instance.ref('nursePresence/$uid').get();
-      final online = (snap.exists && (snap.value as Map)['isOnline'] == true) || (snap2.exists && (snap2.value as Map)['isOnline'] == true);
-      setState(() => isOnline = online);
-      // RESUME LIVE GPS if already online (app was closed + reopened while online)
-      if (online) _startLiveGps();
-    } catch (_) {}
-  }
+    // 11. ARABIC
+    "ar": {
+      "title": "لوحة الممرضة",
+      "drawerJobOffers": "عروض عملي",
+      "drawerCashEarnings": "أرباحي النقدية",
+      "drawerGroupChat": "دردشة مجموعة الممرضات",
+      "drawerSoundSettings": "إعدادات الصوت",
+      "drawerNurseSettings": "إعدادات الممرضة",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "أهلاً، {name}",
+      "welcomeBack": "أهلاً بعودتك",
+      "longSession": "♾️ جلسة طويلة",
+      "onlineVisible": "🟢 متصلة — ظاهرة للعملاء",
+      "offlineHidden": "🔴 غير متصلة — مخفية عن العملاء",
+      "onlineSub": "العملاء يمكنهم رؤيتك في حجز-ممرضة وحجزك!",
+      "offlineSub": "العملاء لا يمكنهم رؤيتك في حجز-ممرضة. شغّلي لتظهري.",
+      "goingOnline": "🟢 جارٍ الاتصال... بث لجميع العملاء...",
+      "onlineNow": "🟢 الآن متصلة — ظاهرة للعملاء — 📍 {place} — 🟢 GPS مباشر تشغيل: صورتك ستومض + تتحرك على خريطة العميل",
+      "gpsSaved": "تم حفظ GPS",
+      "onlineFailed": "فشل الاتصال: {error}",
+      "goingOffline": "🔴 جارٍ قطع الاتصال... إخفاء عن جميع العملاء...",
+      "offlineNow": "🔴 الآن غير متصلة — مخفية عن جميع العملاء — العملاء لن يروك",
+      "offlineFailed": "فشل قطع الاتصال: {error}",
+      "statPending": "📅 قيد الانتظار",
+      "statAccepted": "✅ مقبول",
+      "statCompleted": "🎉 مكتمل",
+      "cashTitle": "💰 النقد الذي تجمعينه (80%) - مدفوع نقداً من العميل، ليس من المدير",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "عرض عروض عملي",
+      "myBookings": "📋 حجوزاتي ({n})",
+      "noBookings": "لا حجوزات بعد. اذهبي ONLINE لتظهري للعملاء.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "الخدمة: {service} • الموقع: {location}",
+      "collectCash": "ستجمعين نقداً بعد العمل: {cash}",
+      "accept": "✅ قبول",
+      "reject": "❌ رفض",
+      "confirmCashBtn": "💵 تأكيد استلام النقد - {cash}",
+      "fabJobOffers": "عروض عملي",
+      "rejectTitle": "رفض الحجز — السبب؟",
+      "rejectHint": "مثال: بعيد جداً، مشغولة",
+      "rejectNote": "العميل يحصل على استرداد كامل 20% ويمكنه حجز ممرضة أخرى. تصبحين متاحة مرة أخرى.",
+      "cancel": "إلغاء",
+      "rejectBtn": "رفض",
+      "cashDialogTitle": "تأكيد استلام النقد؟",
+      "cashDialogContent": "أكّدي أن العميل دفع لك نقداً: {cash}\nالمدير لا يدفع لك. بعد هذا تصبحين متاحة مرة أخرى.",
+      "notYet": "ليس بعد",
+      "yesCash": "نعم، تم استلام النقد",
+      "toastAccepted": "✅ تم قبول الحجز",
+      "toastRejected": "تم الرفض - العميل يحصل على استرداد كامل 20% - أنت متاحة مرة أخرى",
+      "toastCash": "تم تأكيد النقد - أنت متاحة مرة أخرى",
+      "defaultClient": "العميل",
+      "defaultInitial": "N",
+    },
 
-  String _placeNameFromPlacemark(Placemark p) {
-    final parts = <String>[];
-    void add(String? v) {
-      final s = (v ?? '').trim();
-      if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
-    }
-    add(p.subLocality);
-    add(p.locality);
-    add(p.subAdministrativeArea);
-    add(p.administrativeArea);
-    add(p.country);
-    return parts.join(', ');
-  }
+    // 12. CHINESE
+    "zh": {
+      "title": "护士仪表板",
+      "drawerJobOffers": "我的工作邀请",
+      "drawerCashEarnings": "我的现金收入",
+      "drawerGroupChat": "护士群聊",
+      "drawerSoundSettings": "声音设置",
+      "drawerNurseSettings": "护士设置",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "欢迎, {name}",
+      "welcomeBack": "欢迎回来",
+      "longSession": "♾️ 长会话",
+      "onlineVisible": "🟢 在线 — 客户可见",
+      "offlineHidden": "🔴 离线 — 对客户隐藏",
+      "onlineSub": "客户可以在预订护士中看到你并预订你!",
+      "offlineSub": "客户无法在预订护士中看到你。打开以显示。",
+      "goingOnline": "🟢 正在上线... 向所有客户广播...",
+      "onlineNow": "🟢 现在在线 — 客户可见 — 📍 {place} — 🟢 实时 GPS 开启: 你的照片将在客户地图上闪烁 + 移动",
+      "gpsSaved": "GPS 已保存",
+      "onlineFailed": "上线失败: {error}",
+      "goingOffline": "🔴 正在下线... 对所有客户隐藏...",
+      "offlineNow": "🔴 现在离线 — 对所有客户隐藏 — 客户将看不到你",
+      "offlineFailed": "下线失败: {error}",
+      "statPending": "📅 待处理",
+      "statAccepted": "✅ 已接受",
+      "statCompleted": "🎉 已完成",
+      "cashTitle": "💰 你收取的现金 (80%) - 由客户以现金支付, 不是 CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "查看我的工作邀请",
+      "myBookings": "📋 我的预订 ({n})",
+      "noBookings": "尚无预订。请上线以向客户展示。",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "服务: {service} • 地点: {location}",
+      "collectCash": "工作后你将收取现金: {cash}",
+      "accept": "✅ 接受",
+      "reject": "❌ 拒绝",
+      "confirmCashBtn": "💵 确认已收到现金 - {cash}",
+      "fabJobOffers": "我的工作邀请",
+      "rejectTitle": "拒绝预订 — 原因?",
+      "rejectHint": "例如: 太远, 忙",
+      "rejectNote": "客户获得 20% 全额退款, 可以预订另一位护士。你将再次可用。",
+      "cancel": "取消",
+      "rejectBtn": "拒绝",
+      "cashDialogTitle": "确认已收到现金?",
+      "cashDialogContent": "确认客户已向你支付现金: {cash}\nCEO 不向你付款。此后你将再次可用。",
+      "notYet": "尚未",
+      "yesCash": "是, 已收到现金",
+      "toastAccepted": "✅ 预订已接受",
+      "toastRejected": "已拒绝 - 客户获得 20% 全额退款 - 你再次可用",
+      "toastCash": "现金已确认 - 你再次可用",
+      "defaultClient": "客户",
+      "defaultInitial": "N",
+    },
 
-  Future<String> _placeNameFromWeb(double lat, double lng) async {
-    String joinParts(List<String?> values) {
-      final parts = <String>[];
-      for (final v in values) {
-        final s = (v ?? '').trim();
-        if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
-      }
-      return parts.join(', ');
-    }
-    try {
-      final uri = Uri.parse('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$lat&longitude=$lng&localityLanguage=en');
-      final res = await http.get(uri).timeout(const Duration(seconds: 8));
-      if (res.statusCode == 200) {
-        final j = jsonDecode(res.body) as Map<String, dynamic>;
-        final name = joinParts([j['locality']?.toString(), j['city']?.toString(), j['principalSubdivision']?.toString(), j['countryName']?.toString()]);
-        if (name.isNotEmpty) return name;
-      }
-    } catch (_) {}
-    try {
-      final uri = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1');
-      final res = await http.get(uri, headers: {'Accept': 'application/json'}).timeout(const Duration(seconds: 8));
-      if (res.statusCode == 200) {
-        final j = jsonDecode(res.body) as Map<String, dynamic>;
-        final addr = (j['address'] as Map<String, dynamic>?) ?? {};
-        final name = joinParts([addr['suburb']?.toString() ?? addr['neighbourhood']?.toString(), addr['city']?.toString() ?? addr['town']?.toString() ?? addr['village']?.toString(), addr['state']?.toString(), addr['country']?.toString()]);
-        if (name.isNotEmpty) return name;
-      }
-    } catch (_) {}
-    return '';
-  }
+    // 13. HINDI
+    "hi": {
+      "title": "नर्स डैशबोर्ड",
+      "drawerJobOffers": "मेरे नौकरी के प्रस्ताव",
+      "drawerCashEarnings": "मेरी नकद कमाई",
+      "drawerGroupChat": "नर्स ग्रुप चैट",
+      "drawerSoundSettings": "ध्वनि सेटिंग्स",
+      "drawerNurseSettings": "नर्स सेटिंग्स",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "स्वागत है, {name}",
+      "welcomeBack": "फिर से स्वागत है",
+      "longSession": "♾️ लंबा सत्र",
+      "onlineVisible": "🟢 ONLINE — ग्राहकों को दिखाई दे रही हैं",
+      "offlineHidden": "🔴 OFFLINE — ग्राहकों से छिपी हुई हैं",
+      "onlineSub": "ग्राहक आपको book-nurse में देख सकते हैं और बुक कर सकते हैं!",
+      "offlineSub": "ग्राहक आपको book-nurse में नहीं देख सकते। दिखने के लिए ON करें।",
+      "goingOnline": "🟢 ONLINE जा रही हैं... सभी ग्राहकों को प्रसारित कर रही हैं...",
+      "onlineNow": "🟢 अब ONLINE — ग्राहकों को दिखाई दे रही हैं — 📍 {place} — 🟢 LIVE GPS चालू: आपकी फोटो ग्राहक के नक्शे पर झपकेगी + चलेगी",
+      "gpsSaved": "GPS सहेजा गया",
+      "onlineFailed": "Online विफल: {error}",
+      "goingOffline": "🔴 OFFLINE जा रही हैं... सभी ग्राहकों से छिप रही हैं...",
+      "offlineNow": "🔴 अब OFFLINE — सभी ग्राहकों से छिपी हुई हैं — ग्राहक आपको नहीं देखेंगे",
+      "offlineFailed": "Offline विफल: {error}",
+      "statPending": "📅 लंबित",
+      "statAccepted": "✅ स्वीकार",
+      "statCompleted": "🎉 पूर्ण",
+      "cashTitle": "💰 नकद जो आप एकत्र करती हैं (80%) - ग्राहक द्वारा नकद भुगतान, CEO द्वारा नहीं",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "मेरे नौकरी के प्रस्ताव देखें",
+      "myBookings": "📋 मेरी बुकिंग ({n})",
+      "noBookings": "अभी तक कोई बुकिंग नहीं। ग्राहकों को दिखने के लिए ONLINE जाएँ।",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "सेवा: {service} • स्थान: {location}",
+      "collectCash": "काम के बाद आप नकद एकत्र करेंगी: {cash}",
+      "accept": "✅ स्वीकार करें",
+      "reject": "❌ अस्वीकार करें",
+      "confirmCashBtn": "💵 नकद प्राप्ति की पुष्टि करें - {cash}",
+      "fabJobOffers": "मेरे नौकरी के प्रस्ताव",
+      "rejectTitle": "बुकिंग अस्वीकार करें — कारण?",
+      "rejectHint": "जैसे: बहुत दूर, व्यस्त",
+      "rejectNote": "ग्राहक को पूर्ण 20% रिफंड मिलता है और दूसरी नर्स बुक कर सकता है। आप फिर से उपलब्ध हो जाती हैं।",
+      "cancel": "रद्द करें",
+      "rejectBtn": "अस्वीकार करें",
+      "cashDialogTitle": "नकद प्राप्ति की पुष्टि करें?",
+      "cashDialogContent": "पुष्टि करें कि ग्राहक ने आपको नकद भुगतान किया: {cash}\nCEO आपको भुगतान नहीं करता। इसके बाद आप फिर से उपलब्ध हो जाती हैं।",
+      "notYet": "अभी नहीं",
+      "yesCash": "हाँ, नकद प्राप्त",
+      "toastAccepted": "✅ बुकिंग स्वीकार की गई",
+      "toastRejected": "अस्वीकार किया - ग्राहक को पूर्ण 20% रिफंड - आप फिर से उपलब्ध हैं",
+      "toastCash": "नकद की पुष्टि - आप फिर से उपलब्ध हैं",
+      "defaultClient": "ग्राहक",
+      "defaultInitial": "N",
+    },
 
-  Future<Map<String, dynamic>> _getLocationFast() async {
-    try {
-      var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
-      if (perm == LocationPermission.deniedForever || perm == LocationPermission.denied) throw Exception('GPS permission denied');
-      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 10));
-      String place = '';
-      try {
-        final marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
-        if (marks.isNotEmpty) place = _placeNameFromPlacemark(marks.first);
-      } catch (_) {}
-      if (place.isEmpty) place = await _placeNameFromWeb(pos.latitude, pos.longitude);
-      _gpsLat = pos.latitude; _gpsLng = pos.longitude; _gpsPlaceName = place;
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setDouble('nurseLat', pos.latitude);
-      await prefs.setDouble('nurseLng', pos.longitude);
-      if (place.isNotEmpty) await prefs.setString('nursePlaceName', place);
-      return {'lat': pos.latitude, 'lng': pos.longitude, 'place': place};
-    } catch (_) {
-      final prefs = await SharedPreferences.getInstance();
-      final lat = prefs.getDouble('nurseLat') ?? _gpsLat ?? 0;
-      final lng = prefs.getDouble('nurseLng') ?? _gpsLng ?? 0;
-      final place = prefs.getString('nursePlaceName') ?? _gpsPlaceName;
-      return {'lat': lat, 'lng': lng, 'place': place};
-    }
-  }
+    // 14. SWAHILI
+    "sw": {
+      "title": "Dashibodi Ya Muuguzi",
+      "drawerJobOffers": "Matoleo Yangu Ya Kazi",
+      "drawerCashEarnings": "Mapato Yangu Ya Taslimu",
+      "drawerGroupChat": "Gumzo La Kikundi La Wauguzi",
+      "drawerSoundSettings": "Mipangilio Ya Sauti",
+      "drawerNurseSettings": "Mipangilio Ya Muuguzi",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Karibu, {name}",
+      "welcomeBack": "Karibu tena",
+      "longSession": "♾️ Kikao kirefu",
+      "onlineVisible": "🟢 ONLINE — Inaonekana kwa wateja",
+      "offlineHidden": "🔴 OFFLINE — Imefichwa kwa wateja",
+      "onlineSub": "Wateja wanaweza kukuona katika weka-muuguzi na kukuweka!",
+      "offlineSub": "Wateja HAWAEZI kukuona katika weka-muuguzi. Washa ili uonekane.",
+      "goingOnline": "🟢 Inaenda ONLINE... Inatangaza kwa wateja wote...",
+      "onlineNow": "🟢 SASA ONLINE — Inaonekana kwa wateja — 📍 {place} — 🟢 GPS MOJA KWA MOJA IMEWASHWA: picha yako itaangaza + kusonga kwenye ramani ya mteja",
+      "gpsSaved": "GPS imehifadhiwa",
+      "onlineFailed": "Online imeshindwa: {error}",
+      "goingOffline": "🔴 Inaenda OFFLINE... Inajificha kwa wateja wote...",
+      "offlineNow": "🔴 SASA OFFLINE — Imefichwa kwa wateja wote — Wateja HAWATAKUONA",
+      "offlineFailed": "Offline imeshindwa: {error}",
+      "statPending": "📅 Inasubiri",
+      "statAccepted": "✅ Imekubaliwa",
+      "statCompleted": "🎉 Imekamilika",
+      "cashTitle": "💰 Taslimu Unayokusanya (80%) - Imelipwa TASLIMU na Mteja, SI CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Ona Matoleo Yangu Ya Kazi",
+      "myBookings": "📋 Booking Zangu ({n})",
+      "noBookings": "Hakuna booking bado. Nenda ONLINE ili uonekane kwa wateja.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Huduma: {service} • Mahali: {location}",
+      "collectCash": "Utakusanya TASLIMU baada ya kazi: {cash}",
+      "accept": "✅ Kubali",
+      "reject": "❌ Kataa",
+      "confirmCashBtn": "💵 Thibitisha Taslimu Imepokelewa - {cash}",
+      "fabJobOffers": "Matoleo Yangu Ya Kazi",
+      "rejectTitle": "Kataa Booking — Sababu?",
+      "rejectHint": "mf. Mbali sana, nina shughuli",
+      "rejectNote": "Mteja anapata marejesho KAMILI 20% na anaweza kuweka muuguzi mwingine. Unakuwa Anapatikana tena.",
+      "cancel": "Ghairi",
+      "rejectBtn": "Kataa",
+      "cashDialogTitle": "Thibitisha Taslimu Imepokelewa?",
+      "cashDialogContent": "Thibitisha mteja amekulipa TASLIMU: {cash}\nCEO HAKULIPI. Baada ya hii unakuwa Anapatikana tena.",
+      "notYet": "Bado",
+      "yesCash": "Ndiyo, Taslimu Imepokelewa",
+      "toastAccepted": "✅ Booking imekubaliwa",
+      "toastRejected": "Imekataliwa - Mteja anapata marejesho kamili 20% - Unapatikana tena",
+      "toastCash": "Taslimu imethibitishwa - Unapatikana tena",
+      "defaultClient": "Mteja",
+      "defaultInitial": "N",
+    },
 
-  Future<void> _setOnlineNow() async {
-    final uid = currentNurseId;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final timeStr = DateTime.now().toString();
-    setState(() { isOnline = true; saveStatus = '🟢 Going ONLINE... Broadcasting to all clients...'; });
-    final loc = await _getLocationFast();
-    // If nurse has active booking, she is ONLINE but NOT Available for new bookings
-    final bool busy = _hasActiveBooking;
-    final payload = {
-      'isOnline': true, 'online': true, 'isAvailable': !busy, 'available': !busy, 'status': busy ? 'busy' : 'online', 'presence': 'online',
-      'lastSeen': now, 'lastActive': now, 'lastOnline': now, 'onlineAt': now, 'updatedAt': now, 'lastUpdate': now, 'timeStr': timeStr,
-      'fullName': nurseName, 'name': nurseName, 'photoURL': photoUrl, 'photo': photoUrl, 'photoUrl': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty,
-      'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'],
-      'gpsLat': loc['lat'], 'gpsLng': loc['lng'], 'locationLat': loc['lat'], 'locationLng': loc['lng'],
-      'location': loc['place'], 'placeName': loc['place'], 'address': loc['place'], 'gpsActualName': loc['place'], 'gpsPlaceName': loc['place'],
-      'lastGpsAt': now, 'gpsUpdatedAt': now,
-      'uid': uid, 'id': uid, 'isApproved': true, 'instantOnline': true, 'broadcastAt': now,
-    };
-    final db = FirebaseDatabase.instance;
-    try {
-      await Future.wait([
-        db.ref('onlineNurses/$uid').set(payload),
-        db.ref('nursePresence/$uid').set({'status': 'online', 'isOnline': true, 'lastSeen': now, 'onlineAt': now, 'timeStr': timeStr}),
-        db.ref('liveNurseLocations/$uid').set(payload),
-        db.ref('liveNurses/$uid').set(payload),
-        db.ref('liveTracking/$uid').set(payload),
-        db.ref('nurseLocations/$uid').update({'isLive': true, 'isOnline': true, 'status': 'online', 'lat': loc['lat'], 'lng': loc['lng'], 'lastSeen': now, 'updatedAt': now}),
-        db.ref('nurses/$uid').update({'isOnline': true, 'online': true, 'isAvailable': !busy, 'status': busy ? 'busy' : 'online', 'lastSeen': now, 'lastOnline': now, 'onlineAt': now, 'timeStr': timeStr, 'fullName': nurseName, 'name': nurseName, 'photoUrl': photoUrl, 'photoURL': photoUrl, 'photo': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty, 'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'], 'gpsLat': loc['lat'], 'gpsLng': loc['lng'], 'location': loc['place'], 'placeName': loc['place'], 'address': loc['place'], 'gpsActualName': loc['place'], 'lastGpsAt': now}),
-        db.ref('allNurses/$uid').update({'isOnline': true, 'status': 'online', 'lastSeen': now, 'onlineAt': now, 'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'], 'location': loc['place'], 'placeName': loc['place']}),
-        db.ref('pending_nurses/$uid').update({'isOnline': true, 'status': 'online'}),
-        db.ref('pendingNurses/$uid').update({'isOnline': true, 'status': 'online'}),
-      ]);
-      db.ref('onlineNurses/$uid').onDisconnect().remove();
-      db.ref('nursePresence/$uid').onDisconnect().set({'status': 'offline', 'isOnline': false, 'lastSeen': now});
-      // START LIVE GPS - photo now blinks + moves on Client Live Map
-      _startLiveGps();
-      // Also push this first location to Firestore at once (Live Map needs Firestore, not only RTDB)
-      try { await FirebaseFirestore.instance.collection('nurses').doc(uid).set({'lat': loc['lat'], 'lng': loc['lng'], 'latitude': loc['lat'], 'longitude': loc['lng'], 'isOnline': true, 'status': 'online', 'name': nurseName, 'fullName': nurseName, 'photoUrl': photoUrl, 'photo': photoUrl, 'photoURL': photoUrl, 'email': nurseEmail, 'phone': nursePhone, 'specialty': nurseSpecialty, 'location': loc['place'], 'placeName': loc['place'], 'lastSeen': FieldValue.serverTimestamp(), 'uid': uid}, SetOptions(merge: true)); } catch (_) {}
-      if (mounted) setState(() { _gpsPlaceName = (loc['place'] ?? '').toString(); saveStatus = '🟢 ONLINE NOW — Visible to clients — 📍 ${_gpsPlaceName.isNotEmpty ? _gpsPlaceName : 'GPS saved'} — 🟢 LIVE GPS ON: your photo will blink + move on client map'; });
-    } catch (e) { setState(() => saveStatus = 'Online failed: $e'); }
-  }
+    // 15. YORUBA
+    "yo": {
+      "title": "Dashboard Nọọsi",
+      "drawerJobOffers": "Awọn Ipese Iṣẹ Mi",
+      "drawerCashEarnings": "Awọn Owo Ori Mi",
+      "drawerGroupChat": "Chat Ẹgbẹ Nọọsi",
+      "drawerSoundSettings": "Eto Ohun",
+      "drawerNurseSettings": "Eto Nọọsi",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Ẹ n lẹ, {name}",
+      "welcomeBack": "Ẹ n lẹ pada",
+      "longSession": "♾️ Igba pipẹ",
+      "onlineVisible": "🟢 ONLINE — Awọn alabara ri ọ",
+      "offlineHidden": "🔴 OFFLINE — Awọn alabara ko ri ọ",
+      "onlineSub": "Awọn alabara le ri ọ ninu book-nọọsi ki wọn si book ọ!",
+      "offlineSub": "Awọn alabara KO LE ri ọ ninu book-nọọsi. Tan ON lati farahan.",
+      "goingOnline": "🟢 Nlọ ONLINE... Ntan kaakiri si gbogbo awọn alabara...",
+      "onlineNow": "🟢 BAYI ONLINE — Awọn alabara ri ọ — 📍 {place} — 🟢 LIVE GPS TAN: fọto rẹ yoo paju + yoo gbe lori maapu alabara",
+      "gpsSaved": "GPS ti fipamọ",
+      "onlineFailed": "Online kuna: {error}",
+      "goingOffline": "🔴 Nlọ OFFLINE... Nfi ara pamọ kuro lọdọ gbogbo awọn alabara...",
+      "offlineNow": "🔴 BAYI OFFLINE — Ti fi pamọ kuro lọdọ gbogbo awọn alabara — Awọn alabara KO RI Ọ",
+      "offlineFailed": "Offline kuna: {error}",
+      "statPending": "📅 Nduro",
+      "statAccepted": "✅ A Gba",
+      "statCompleted": "🎉 Pari",
+      "cashTitle": "💰 Owo Ori Iwọ N Gba (80%) - Alabara san ni OWO ORI, KI I ṢE CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Wo Awọn Ipese Iṣẹ Mi",
+      "myBookings": "📋 Awọn Booking Mi ({n})",
+      "noBookings": "Ko si booking sibẹ. Lọ ONLINE lati farahan si awọn alabara.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Iṣẹ: {service} • Ibi: {location}",
+      "collectCash": "Iwọ yoo gba OWO ORI lẹhin iṣẹ: {cash}",
+      "accept": "✅ Gba",
+      "reject": "❌ Kọ",
+      "confirmCashBtn": "💵 Jẹrisi Owo Ori Gba - {cash}",
+      "fabJobOffers": "Awọn Ipese Iṣẹ Mi",
+      "rejectTitle": "Kọ Booking — Idi?",
+      "rejectHint": "apẹẹrẹ. Jinna pupọ, mo n ṣiṣẹ",
+      "rejectNote": "Alabara gba agbapada KIKUN 20% o si le ṣe booking nọọsi miiran. Iwọ di Wa sibẹ.",
+      "cancel": "Fagile",
+      "rejectBtn": "Kọ",
+      "cashDialogTitle": "Jẹrisi Owo Ori Gba?",
+      "cashDialogContent": "Jẹrisi pe alabara san ọ ni OWO ORI: {cash}\nCEO KO san ọ. Lẹhin eyi iwọ di Wa sibẹ.",
+      "notYet": "Ko Sibẹ",
+      "yesCash": "Bẹẹni, Owo Ori Gba",
+      "toastAccepted": "✅ Ti gba booking",
+      "toastRejected": "Ti kọ - Alabara gba agbapada kikun 20% - Iwọ Wa sibẹ",
+      "toastCash": "Owo ori ti jẹrisi - Iwọ Wa sibẹ",
+      "defaultClient": "Alabara",
+      "defaultInitial": "N",
+    },
 
-  Future<void> _setOfflineNow() async {
-    // STOP LIVE GPS - dot disappears from Client Live Map
-    await _stopLiveGps();
-    try { await FirebaseFirestore.instance.collection('nurses').doc(currentNurseId).set({'isOnline': false, 'status': 'offline', 'lastSeen': FieldValue.serverTimestamp()}, SetOptions(merge: true)); } catch (_) {}
-    final uid = currentNurseId;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final timeStr = DateTime.now().toString();
-    setState(() { isOnline = false; saveStatus = '🔴 Going OFFLINE... Hiding from all clients...'; });
-    final db = FirebaseDatabase.instance;
-    try {
-      await Future.wait([
-        db.ref('onlineNurses/$uid').remove(),
-        db.ref('liveNurseLocations/$uid').remove(),
-        db.ref('liveNurses/$uid').remove(),
-        db.ref('liveTracking/$uid').remove(),
-        db.ref('nurseLocations/$uid').update({'isLive': false, 'isOnline': false, 'status': 'offline', 'lastSeen': now, 'updatedAt': now}).catchError((_) async { await db.ref('nurseLocations/$uid').remove(); }),
-        db.ref('nursePresence/$uid').set({'status': 'offline', 'isOnline': false, 'lastSeen': now, 'offlineAt': now, 'timeStr': timeStr}),
-        db.ref('nurses/$uid').update({'isOnline': false, 'online': false, 'isAvailable': false, 'status': 'offline', 'lastSeen': now, 'lastOffline': now, 'offlineAt': now, 'timeStr': timeStr}),
-        db.ref('allNurses/$uid').update({'isOnline': false, 'status': 'offline', 'lastSeen': now, 'offlineAt': now}),
-        db.ref('pending_nurses/$uid').update({'isOnline': false, 'status': 'offline'}),
-        db.ref('pendingNurses/$uid').update({'isOnline': false, 'status': 'offline'}),
-      ]);
-      db.ref('onlineNurses/$uid').onDisconnect().cancel();
-      db.ref('nursePresence/$uid').onDisconnect().cancel();
-      setState(() => saveStatus = '🔴 OFFLINE NOW — Hidden from all clients — Clients will NOT see you');
-    } catch (e) { setState(() => saveStatus = 'Offline failed: $e'); }
-  }
+    // 16. IGBO
+    "ig": {
+      "title": "Dashboard Nọọsụ",
+      "drawerJobOffers": "Onyinye Ọrụ M",
+      "drawerCashEarnings": "Ego Nkiti M Na-enweta",
+      "drawerGroupChat": "Nkàta Otu Nọọsụ",
+      "drawerSoundSettings": "Ntọala Ụda",
+      "drawerNurseSettings": "Ntọala Nọọsụ",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Nnọọ, {name}",
+      "welcomeBack": "Nnọọ ọzọ",
+      "longSession": "♾️ Oge ogologo",
+      "onlineVisible": "🟢 ONLINE — Ndị ahịa na-ahụ gị",
+      "offlineHidden": "🔴 OFFLINE — Zoro ndị ahịa",
+      "onlineSub": "Ndị ahịa nwere ike ịhụ gị na book-nọọsụ ma book gị!",
+      "offlineSub": "Ndị ahịa APỤGHỊ ịhụ gị na book-nọọsụ. Gbanwuo ON ka a hụ gị.",
+      "goingOnline": "🟢 Na-aga ONLINE... Na-ezisa ndị ahịa niile...",
+      "onlineNow": "🟢 UGBU A ONLINE — Ndị ahịa na-ahụ gị — 📍 {place} — 🟢 LIVE GPS NA-ARỤ ỌRỤ: foto gị ga-egbuke + ga-agagharị na map onye ahịa",
+      "gpsSaved": "Echekwara GPS",
+      "onlineFailed": "Online dara: {error}",
+      "goingOffline": "🔴 Na-aga OFFLINE... Na-ezo ndị ahịa niile...",
+      "offlineNow": "🔴 UGBU A OFFLINE — Zoro ndị ahịa niile — Ndị ahịa AGAGHỊ ahụ gị",
+      "offlineFailed": "Offline dara: {error}",
+      "statPending": "📅 Na-echere",
+      "statAccepted": "✅ Anabatala",
+      "statCompleted": "🎉 Emechara",
+      "cashTitle": "💰 Ego Nkiti Ị Na-anakọta (80%) - Onye Ahịa Kwụrụ EGO NKITI, Ọ BỤGHỊ CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Hụ Onyinye Ọrụ M",
+      "myBookings": "📋 Bookings M ({n})",
+      "noBookings": "Enweghị booking ugbu a. Gaa ONLINE ka ndị ahịa hụ gị.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Ọrụ: {service} • Ebe: {location}",
+      "collectCash": "Ị ga-anakọta EGO NKITI mgbe ọrụ gasịrị: {cash}",
+      "accept": "✅ Nabata",
+      "reject": "❌ Jụ",
+      "confirmCashBtn": "💵 Kwenye Ego Nkiti Anatara - {cash}",
+      "fabJobOffers": "Onyinye Ọrụ M",
+      "rejectTitle": "Jụ Booking — Ihe Mere?",
+      "rejectHint": "dịka: Dị anya, na-arụ ọrụ",
+      "rejectNote": "Onye ahịa na-enweta nkwụghachi ZURU EZU 20% ma nwee ike book nọọsụ ọzọ. Ị na-aghọ Available ọzọ.",
+      "cancel": "Kagbuo",
+      "rejectBtn": "Jụ",
+      "cashDialogTitle": "Kwenye Ego Nkiti Anatara?",
+      "cashDialogContent": "Kwenye na onye ahịa kwụrụ gị EGO NKITI: {cash}\nCEO ANAGHỊ akwụ gị ụgwọ. Mgbe nke a gasịrị ị na-aghọ Available ọzọ.",
+      "notYet": "Ọbụbeghị",
+      "yesCash": "Ee, Ego Nkiti Anatara",
+      "toastAccepted": "✅ Anabatala booking",
+      "toastRejected": "Ajụla - Onye ahịa na-enweta nkwụghachi zuru ezu 20% - Ị dị Available ọzọ",
+      "toastCash": "Ego nkiti ekwenye - Ị dị Available ọzọ",
+      "defaultClient": "Onye Ahịa",
+      "defaultInitial": "N",
+    },
 
-  void _toggleOnline(bool v) { if (v) _setOnlineNow(); else _setOfflineNow(); }
+    // 17. HAUSA
+    "ha": {
+      "title": "Dashboard Nurse",
+      "drawerJobOffers": "Tayoyin Aikina",
+      "drawerCashEarnings": "Kuɗin Tsabta Na",
+      "drawerGroupChat": "Hira Ta Ƙungiyar Nurse",
+      "drawerSoundSettings": "Saitunan Sauti",
+      "drawerNurseSettings": "Saitunan Nurse",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Barka da zuwa, {name}",
+      "welcomeBack": "Barka da dawowa",
+      "longSession": "♾️ Zama mai tsawo",
+      "onlineVisible": "🟢 ONLINE — Abokan ciniki na gan ka",
+      "offlineHidden": "🔴 OFFLINE — An ɓoye ka ga abokan ciniki",
+      "onlineSub": "Abokan ciniki za su iya gan ka a cikin book-nurse su yi book ka!",
+      "offlineSub": "Abokan ciniki BA ZA SU iya gan ka a cikin book-nurse ba. Kunna ON don ka bayyana.",
+      "goingOnline": "🟢 Ana zuwa ONLINE... Ana watsawa ga duk abokan ciniki...",
+      "onlineNow": "🟢 YANZU ONLINE — Abokan ciniki na gan ka — 📍 {place} — 🟢 LIVE GPS A KUNNE: hotonka zai yi walƙiya + zai motsa a taswirar abokin ciniki",
+      "gpsSaved": "An ajiye GPS",
+      "onlineFailed": "Online ya kasa: {error}",
+      "goingOffline": "🔴 Ana zuwa OFFLINE... Ana ɓoye ka ga duk abokan ciniki...",
+      "offlineNow": "🔴 YANZU OFFLINE — An ɓoye ka ga duk abokan ciniki — Abokan ciniki BA ZA SU gan ka ba",
+      "offlineFailed": "Offline ya kasa: {error}",
+      "statPending": "📅 Ana Jira",
+      "statAccepted": "✅ An Karɓa",
+      "statCompleted": "🎉 An Kammala",
+      "cashTitle": "💰 Kuɗi Tsabta Da Ka Ke Tattarawa (80%) - Abokin Ciniki Ya Biya KUƊI TSABTA, BA CEO BA",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Duba Tayoyin Aikina",
+      "myBookings": "📋 Bookings Na ({n})",
+      "noBookings": "Babu booking tukuna. Je ONLINE don abokan ciniki su gan ka.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Sabis: {service} • Wuri: {location}",
+      "collectCash": "Za ka tattara KUƊI TSABTA bayan aiki: {cash}",
+      "accept": "✅ Karɓa",
+      "reject": "❌ Ƙi",
+      "confirmCashBtn": "💵 Tabbatar Kuɗi Tsabta An Karɓa - {cash}",
+      "fabJobOffers": "Tayoyin Aikina",
+      "rejectTitle": "Ƙi Booking — Dalili?",
+      "rejectHint": "misali: Yayi nisa, ina aiki",
+      "rejectNote": "Abokin ciniki yana samun cikakken kuɗi 20% kuma zai iya yin book wata nurse. Ka zama Available kuma.",
+      "cancel": "Soke",
+      "rejectBtn": "Ƙi",
+      "cashDialogTitle": "Tabbatar Kuɗi Tsabta An Karɓa?",
+      "cashDialogContent": "Tabbatar abokin ciniki ya biya ka KUƊI TSABTA: {cash}\nCEO BA YA biyan ka. Bayan wannan ka zama Available kuma.",
+      "notYet": "Ba Tukuna Ba",
+      "yesCash": "I, Kuɗi Tsabta An Karɓa",
+      "toastAccepted": "✅ An karɓi booking",
+      "toastRejected": "An ƙi - Abokin ciniki yana samun cikakken kuɗi 20% - Ka zama Available kuma",
+      "toastCash": "Kuɗi tsabta an tabbatar - Ka zama Available kuma",
+      "defaultClient": "Abokin Ciniki",
+      "defaultInitial": "N",
+    },
 
-  // ---- My Bookings ----
-  Future<Map<String, String>> _getMyIds() async {
-    final prefs = await SharedPreferences.getInstance();
-    final phones = <String>[];
-    final emails = <String>[];
-    final uids = <String>[];
-    for (final k in prefs.getKeys()) {
-      final v = prefs.getString(k) ?? '';
-      final kl = k.toLowerCase();
-      if (kl.contains('phone')) { final p = v.replaceAll(RegExp(r'[^0-9]'), ''); if (p.length >= 9) phones.add(p.substring(p.length - 9)); }
-      if (kl.contains('email')) emails.add(v.toLowerCase().trim());
-      if (kl.contains('uid') || k == 'id') uids.add(v);
-    }
-    return {'phones': phones.join(','), 'emails': emails.join(','), 'uids': uids.join(',')};
-  }
+    // 18. RUSSIAN
+    "ru": {
+      "title": "Панель Медсестры",
+      "drawerJobOffers": "Мои Предложения Работы",
+      "drawerCashEarnings": "Мои Наличные Доходы",
+      "drawerGroupChat": "Групповой Чат Медсестёр",
+      "drawerSoundSettings": "Настройки Звука",
+      "drawerNurseSettings": "Настройки Медсестры",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Добро пожаловать, {name}",
+      "welcomeBack": "С возвращением",
+      "longSession": "♾️ Длинная сессия",
+      "onlineVisible": "🟢 В СЕТИ — Видна клиентам",
+      "offlineHidden": "🔴 НЕ В СЕТИ — Скрыта от клиентов",
+      "onlineSub": "Клиенты могут видеть тебя в бронировании-медсестры и бронировать тебя!",
+      "offlineSub": "Клиенты НЕ МОГУТ видеть тебя в бронировании-медсестры. Включи, чтобы появиться.",
+      "goingOnline": "🟢 Выхожу В СЕТЬ... Трансляция всем клиентам...",
+      "onlineNow": "🟢 СЕЙЧАС В СЕТИ — Видна клиентам — 📍 {place} — 🟢 LIVE GPS ВКЛ: твоё фото будет мигать + двигаться на карте клиента",
+      "gpsSaved": "GPS сохранён",
+      "onlineFailed": "Выход в сеть не удался: {error}",
+      "goingOffline": "🔴 Ухожу НЕ В СЕТЬ... Скрываюсь от всех клиентов...",
+      "offlineNow": "🔴 СЕЙЧАС НЕ В СЕТИ — Скрыта от всех клиентов — Клиенты НЕ увидят тебя",
+      "offlineFailed": "Уход не в сеть не удался: {error}",
+      "statPending": "📅 В Ожидании",
+      "statAccepted": "✅ Принято",
+      "statCompleted": "🎉 Завершено",
+      "cashTitle": "💰 Наличные Которые Ты Собираешь (80%) - Оплачены НАЛИЧНЫМИ Клиентом, НЕ CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Посмотреть Мои Предложения Работы",
+      "myBookings": "📋 Мои Бронирования ({n})",
+      "noBookings": "Пока нет бронирований. Перейдите В СЕТЬ, чтобы появиться клиентам.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Услуга: {service} • Местоположение: {location}",
+      "collectCash": "Вы соберёте НАЛИЧНЫЕ после работы: {cash}",
+      "accept": "✅ Принять",
+      "reject": "❌ Отклонить",
+      "confirmCashBtn": "💵 Подтвердить Наличные Получены - {cash}",
+      "fabJobOffers": "Мои Предложения Работы",
+      "rejectTitle": "Отклонить Бронирование — Причина?",
+      "rejectHint": "напр. Слишком далеко, занята",
+      "rejectNote": "Клиент получает ПОЛНЫЙ возврат 20% и может забронировать другую медсестру. Вы снова становитесь Доступной.",
+      "cancel": "Отмена",
+      "rejectBtn": "Отклонить",
+      "cashDialogTitle": "Подтвердить Наличные Получены?",
+      "cashDialogContent": "Подтвердите, что клиент заплатил вам НАЛИЧНЫМИ: {cash}\nCEO НЕ платит вам. После этого вы снова становитесь Доступной.",
+      "notYet": "Ещё Нет",
+      "yesCash": "Да, Наличные Получены",
+      "toastAccepted": "✅ Бронирование принято",
+      "toastRejected": "Отклонено - Клиент получает полный возврат 20% - Вы снова Доступны",
+      "toastCash": "Наличные подтверждены - Вы снова Доступны",
+      "defaultClient": "Клиент",
+      "defaultInitial": "N",
+    },
 
-  bool _isMyBooking(Map v) {
-    final nurseId = (v['nurseId'] ?? v['selectedNurseId'] ?? '').toString();
-    if (nurseId == currentNurseId) return true;
-    final phone = (v['nursePhone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
-    if (phone.isNotEmpty && nursePhone.isNotEmpty && phone.endsWith(nursePhone.replaceAll(RegExp(r'[^0-9]'), '').substring(nursePhone.replaceAll(RegExp(r'[^0-9]'), '').length - 9))) return true;
-    final email = (v['nurseEmail'] ?? '').toString().toLowerCase();
-    if (email.isNotEmpty && email == nurseEmail.toLowerCase()) return true;
-    return false;
-  }
+    // 19. TURKISH
+    "tr": {
+      "title": "Hemşire Paneli",
+      "drawerJobOffers": "İş Tekliflerim",
+      "drawerCashEarnings": "Nakit Kazançlarım",
+      "drawerGroupChat": "Hemşire Grup Sohbeti",
+      "drawerSoundSettings": "Ses Ayarları",
+      "drawerNurseSettings": "Hemşire Ayarları",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Hoş geldin, {name}",
+      "welcomeBack": "Tekrar hoş geldin",
+      "longSession": "♾️ Uzun oturum",
+      "onlineVisible": "🟢 ÇEVRİMİÇİ — Müşteriler için görünür",
+      "offlineHidden": "🔴 ÇEVRİMDIŞI — Müşterilerden gizli",
+      "onlineSub": "Müşteriler seni hemşire-rezervasyonda görebilir ve rezerve edebilir!",
+      "offlineSub": "Müşteriler seni hemşire-rezervasyonda GÖREMEZ. Görünmek için AÇ.",
+      "goingOnline": "🟢 ÇEVRİMİÇİ oluyor... Tüm müşterilere yayınlanıyor...",
+      "onlineNow": "🟢 ŞİMDİ ÇEVRİMİÇİ — Müşteriler için görünür — 📍 {place} — 🟢 CANLI GPS AÇIK: fotoğrafın müşteri haritasında yanıp sönecek + hareket edecek",
+      "gpsSaved": "GPS kaydedildi",
+      "onlineFailed": "Çevrimiçi başarısız: {error}",
+      "goingOffline": "🔴 ÇEVRİMDIŞI oluyor... Tüm müşterilerden gizleniyor...",
+      "offlineNow": "🔴 ŞİMDİ ÇEVRİMDIŞI — Tüm müşterilerden gizli — Müşteriler seni GÖRMEYECEK",
+      "offlineFailed": "Çevrimdışı başarısız: {error}",
+      "statPending": "📅 Beklemede",
+      "statAccepted": "✅ Kabul Edildi",
+      "statCompleted": "🎉 Tamamlandı",
+      "cashTitle": "💰 Topladığın Nakit (%80) - Müşteri Tarafından NAKİT Ödendi, CEO Tarafından DEĞİL",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "İş Tekliflerimi Gör",
+      "myBookings": "📋 Rezervasyonlarım ({n})",
+      "noBookings": "Henüz rezervasyon yok. Müşterilere görünmek için ÇEVRİMİÇİ olun.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Hizmet: {service} • Konum: {location}",
+      "collectCash": "İşten sonra NAKİT toplayacaksınız: {cash}",
+      "accept": "✅ Kabul Et",
+      "reject": "❌ Reddet",
+      "confirmCashBtn": "💵 Nakit Alındığını Onayla - {cash}",
+      "fabJobOffers": "İş Tekliflerim",
+      "rejectTitle": "Rezervasyonu Reddet — Neden?",
+      "rejectHint": "örn. Çok uzak, meşgul",
+      "rejectNote": "Müşteri TAM %20 iade alır ve başka bir hemşire rezerve edebilir. Tekrar Müsait olursunuz.",
+      "cancel": "İptal",
+      "rejectBtn": "Reddet",
+      "cashDialogTitle": "Nakit Alındığını Onayla?",
+      "cashDialogContent": "Müşterinin size NAKİT ödediğini onaylayın: {cash}\nCEO size ÖDEMEZ. Bundan sonra tekrar Müsait olursunuz.",
+      "notYet": "Henüz Değil",
+      "yesCash": "Evet, Nakit Alındı",
+      "toastAccepted": "✅ Rezervasyon kabul edildi",
+      "toastRejected": "Reddedildi - Müşteri tam %20 iade alır - Tekrar Müsait oldun",
+      "toastCash": "Nakit onaylandı - Tekrar Müsait oldun",
+      "defaultClient": "Müşteri",
+      "defaultInitial": "N",
+    },
 
-  void _loadMyBookings() {
-    FirebaseDatabase.instance.ref('bookings').onValue.listen((e) {
-      if (!e.snapshot.exists) { setState(() => myBookings = []); return; }
-      final map = e.snapshot.value as Map;
-      List<Map> list = [];
-      map.forEach((k, val) {
-        final v = Map<String, dynamic>.from(val as Map);
-        if (_isMyBooking(v)) list.add({...v, 'id': k});
-      });
-      list.sort((a, b) => ((b['createdAt'] ?? b['time'] ?? 0) as num).compareTo((a['createdAt'] ?? a['time'] ?? 0) as num));
-      setState(() => myBookings = list);
-    });
-  }
+    // 20. KOREAN
+    "ko": {
+      "title": "간호사 대시보드",
+      "drawerJobOffers": "내 작업 제안",
+      "drawerCashEarnings": "내 현금 수입",
+      "drawerGroupChat": "간호사 그룹 채팅",
+      "drawerSoundSettings": "소리 설정",
+      "drawerNurseSettings": "간호사 설정",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "환영합니다, {name}",
+      "welcomeBack": "다시 오신 것을 환영합니다",
+      "longSession": "♾️ 긴 세션",
+      "onlineVisible": "🟢 온라인 — 고객에게 표시됨",
+      "offlineHidden": "🔴 오프라인 — 고객에게 숨김",
+      "onlineSub": "고객이 간호사 예약에서 당신을 보고 예약할 수 있습니다!",
+      "offlineSub": "고객이 간호사 예약에서 당신을 볼 수 없습니다. 표시하려면 켜세요.",
+      "goingOnline": "🟢 온라인으로 전환 중... 모든 고객에게 방송 중...",
+      "onlineNow": "🟢 지금 온라인 — 고객에게 표시됨 — 📍 {place} — 🟢 실시간 GPS 켜짐: 당신의 사진이 고객 지도에서 깜빡이며 + 이동합니다",
+      "gpsSaved": "GPS 저장됨",
+      "onlineFailed": "온라인 실패: {error}",
+      "goingOffline": "🔴 오프라인으로 전환 중... 모든 고객에게 숨기는 중...",
+      "offlineNow": "🔴 지금 오프라인 — 모든 고객에게 숨김 — 고객이 당신을 보지 못합니다",
+      "offlineFailed": "오프라인 실패: {error}",
+      "statPending": "📅 대기 중",
+      "statAccepted": "✅ 수락됨",
+      "statCompleted": "🎉 완료됨",
+      "cashTitle": "💰 당신이 수집하는 현금 (80%) - 고객이 현금으로 지불, CEO가 아님",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "내 작업 제안 보기",
+      "myBookings": "📋 내 예약 ({n})",
+      "noBookings": "아직 예약이 없습니다. 고객에게 표시되려면 온라인으로 가세요.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "서비스: {service} • 위치: {location}",
+      "collectCash": "작업 후 현금을 수집합니다: {cash}",
+      "accept": "✅ 수락",
+      "reject": "❌ 거부",
+      "confirmCashBtn": "💵 현금 수령 확인 - {cash}",
+      "fabJobOffers": "내 작업 제안",
+      "rejectTitle": "예약 거부 — 이유?",
+      "rejectHint": "예: 너무 멀다, 바쁘다",
+      "rejectNote": "고객은 20% 전액 환불을 받고 다른 간호사를 예약할 수 있습니다. 당신은 다시 이용 가능해집니다.",
+      "cancel": "취소",
+      "rejectBtn": "거부",
+      "cashDialogTitle": "현금 수령 확인?",
+      "cashDialogContent": "고객이 당신에게 현금을 지불했음을 확인하세요: {cash}\nCEO는 당신에게 지불하지 않습니다. 이후 당신은 다시 이용 가능해집니다.",
+      "notYet": "아직 아님",
+      "yesCash": "예, 현금 수령함",
+      "toastAccepted": "✅ 예약이 수락됨",
+      "toastRejected": "거부됨 - 고객은 20% 전액 환불 받음 - 당신은 다시 이용 가능",
+      "toastCash": "현금 확인됨 - 당신은 다시 이용 가능",
+      "defaultClient": "고객",
+      "defaultInitial": "N",
+    },
 
-  // ---- Receiver-only sound ----
-  bool _shouldRing(Map v) {
-    if (v['lastChangedBy'] == 'nurse') return false;
-    if (v['lastChangedUid'] == currentNurseId) return false;
-    if (!_isMyBooking(v)) return false;
-    final t = (v['lastChangedAt'] ?? v['time'] ?? v['createdAt'] ?? 0) as num;
-    if (DateTime.now().millisecondsSinceEpoch - t > 120000) return false;
-    return true;
-  }
+    // 21. JAPANESE
+    "ja": {
+      "title": "看護師ダッシュボード",
+      "drawerJobOffers": "私の仕事のオファー",
+      "drawerCashEarnings": "私の現金収入",
+      "drawerGroupChat": "看護師グループチャット",
+      "drawerSoundSettings": "サウンド設定",
+      "drawerNurseSettings": "看護師設定",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "ようこそ, {name}",
+      "welcomeBack": "おかえりなさい",
+      "longSession": "♾️ 長いセッション",
+      "onlineVisible": "🟢 オンライン — クライアントに表示",
+      "offlineHidden": "🔴 オフライン — クライアントから非表示",
+      "onlineSub": "クライアントは看護師予約であなたを見て予約できます!",
+      "offlineSub": "クライアントは看護師予約であなたを見ることができません。表示するには ON にしてください。",
+      "goingOnline": "🟢 オンラインにしています... 全クライアントに配信中...",
+      "onlineNow": "🟢 現在オンライン — クライアントに表示 — 📍 {place} — 🟢 ライブ GPS ON: あなたの写真がクライアントマップで点滅 + 移動します",
+      "gpsSaved": "GPS 保存済み",
+      "onlineFailed": "オンライン失敗: {error}",
+      "goingOffline": "🔴 オフラインにしています... 全クライアントから非表示にしています...",
+      "offlineNow": "🔴 現在オフライン — 全クライアントから非表示 — クライアントはあなたを見ません",
+      "offlineFailed": "オフライン失敗: {error}",
+      "statPending": "📅 保留中",
+      "statAccepted": "✅ 承認済み",
+      "statCompleted": "🎉 完了",
+      "cashTitle": "💰 あなたが集める現金 (80%) - クライアントが現金で支払い、CEO ではありません",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "私の仕事のオファーを見る",
+      "myBookings": "📋 私の予約 ({n})",
+      "noBookings": "まだ予約がありません。クライアントに表示するにはオンラインにしてください。",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "サービス: {service} • 場所: {location}",
+      "collectCash": "仕事の後に現金を集めます: {cash}",
+      "accept": "✅ 承認",
+      "reject": "❌ 拒否",
+      "confirmCashBtn": "💵 現金受領を確認 - {cash}",
+      "fabJobOffers": "私の仕事のオファー",
+      "rejectTitle": "予約を拒否 — 理由?",
+      "rejectHint": "例: 遠すぎる、忙しい",
+      "rejectNote": "クライアントは 20% 全額返金を受け、別の看護師を予約できます。あなたは再び利用可能になります。",
+      "cancel": "キャンセル",
+      "rejectBtn": "拒否",
+      "cashDialogTitle": "現金受領を確認?",
+      "cashDialogContent": "クライアントがあなたに現金を支払ったことを確認してください: {cash}\nCEO はあなたに支払いません。この後、あなたは再び利用可能になります。",
+      "notYet": "まだ",
+      "yesCash": "はい、現金受領済み",
+      "toastAccepted": "✅ 予約が承認されました",
+      "toastRejected": "拒否されました - クライアントは 20% 全額返金を受けます - あなたは再び利用可能です",
+      "toastCash": "現金が確認されました - あなたは再び利用可能です",
+      "defaultClient": "クライアント",
+      "defaultInitial": "N",
+    },
 
-  void _startSoundListener() {
-    FirebaseDatabase.instance.ref('bookings').onChildChanged.listen((e) {
-      if (!e.snapshot.exists) return;
-      final v = Map<String, dynamic>.from(e.snapshot.value as Map);
-      final k = '${e.snapshot.key}_${v['status']}_${v['lastChangedAt'] ?? 0}';
-      if (_seenRing.contains(k)) return;
-      _seenRing.add(k);
-      if (_shouldRing(v)) {
-        _playCustomSound();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🔔 New reply - ${v['status'] ?? ''}')));
-      }
-    });
-    // soundTriggers/{nurse, phone9, uid, emailKey}
-    _getMyIds().then((ids) {
-      final keys = <String>['nurse'];
-      final phone9 = nursePhone.replaceAll(RegExp(r'[^0-9]'), '');
-      if (phone9.length >= 9) keys.add(phone9.substring(phone9.length - 9));
-      keys.add(currentNurseId);
-      if (nurseEmail.isNotEmpty) keys.add(nurseEmail.replaceAll(RegExp(r'[.@]'), '_'));
-      for (final key in keys) {
-        if (key.isEmpty) continue;
-        FirebaseDatabase.instance.ref('soundTriggers/$key').limitToLast(5).onChildAdded.listen((e) {
-          if (!e.snapshot.exists) return;
-          final v = Map<String, dynamic>.from(e.snapshot.value as Map);
-          if (DateTime.now().millisecondsSinceEpoch - ((v['time'] ?? 0) as num) > 120000) return;
-          if (v['fromRole'] == 'nurse') return;
-          if (v['fromUid'] == currentNurseId) return;
-          _playCustomSound();
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('🔔 ${v['title'] ?? v['status'] ?? 'New reply'}')));
-          Future.delayed(const Duration(seconds: 5), () => FirebaseDatabase.instance.ref('soundTriggers/$key/${e.snapshot.key}').remove().catchError((_) {}));
-        });
-      }
-    });
-  }
-
-  Future<void> _playCustomSound() async {
-    final prefs = await SharedPreferences.getInstance();
-    final custom = prefs.getString('lcg_custom_song');
-    if (custom != null && custom.isNotEmpty) {
-      try { await _player.play(UrlSource(custom)); return; } catch (_) {}
-    }
-    try { await _player.play(AssetSource('sounds/default.mp3')); } catch (_) {}
-  }
-
-  Future<void> _sendSoundTrigger(String toRole, Map data) async {
-    try {
-      await FirebaseDatabase.instance.ref('soundTriggers/$toRole').push().set({'fromRole': 'nurse', 'fromUid': currentNurseId, 'time': DateTime.now().millisecondsSinceEpoch, ...data});
-    } catch (_) {}
-  }
-
-  Future<void> _acceptBooking(Map b) async {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    await FirebaseDatabase.instance.ref('bookings/${b['id']}').update({'status': 'accepted', 'acceptedAt': now, 'acceptedBy': currentNurseId, 'lastChangedBy': 'nurse', 'lastChangedUid': currentNurseId, 'lastChangedAt': now});
-    await _lockNurse();
-    await _sendSoundTrigger('client', {'bookingId': b['id'], 'status': 'accepted', 'title': '✅ Nurse Don Accept!'});
-    await FirebaseDatabase.instance.ref('nurseNotifications/${b['clientUid'] ?? b['clientId'] ?? ''}').push().set({'title': '✅ Nurse Accepted', 'message': 'Nurse $nurseName accepted booking ${b['id']}', 'bookingId': b['id'], 'type': 'accepted', 'createdAt': now}).catchError((_) {});
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Booking accepted')));
-  }
-
-  Future<void> _rejectBooking(Map b) async {
-    final reason = await showDialog<String>(context: context, builder: (_) {
-      final c = TextEditingController();
-      return AlertDialog(title: const Text('Reject Booking — Reason?'), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: c, decoration: const InputDecoration(hintText: 'e.g. Too far, busy')), const SizedBox(height: 8), const Text('Client gets FULL 20% refund and can book another nurse. You become Available again.', style: TextStyle(fontSize: 11, color: Colors.grey))]), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, c.text), child: const Text('Reject'))]);
-    });
-    if (reason == null) return;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    await FirebaseDatabase.instance.ref('bookings/${b['id']}').update({'status': 'rejected_by_nurse', 'rejectedAt': now, 'rejectedBy': currentNurseId, 'rejectedByNurseId': currentNurseId, 'rejectedByNurseName': nurseName, 'rejectReason': reason, 'lastChangedBy': 'nurse', 'lastChangedUid': currentNurseId, 'lastChangedAt': now, 'refundCeoFee': true, 'refundStatus': 'refund_due_full_20', 'cancelTermsApplied': 'nurse_rejects_refund_full_20'});
-    await _unlockNurse();
-    await _sendSoundTrigger('client', {'bookingId': b['id'], 'status': 'rejected_by_nurse', 'title': 'Nurse rejected - Full 20% refund due to you'});
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rejected - Client gets full 20% refund - You are Available again')));
-  }
-
-  Future<void> _confirmCashReceived(Map b) async {
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Confirm Cash Received?'), content: Text('Confirm client paid you CASH: ${_nurseCashStr(b)}\nCEO does NOT pay you. After this you become Available again.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not Yet')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Cash Received'))]));
-    if (confirm != true) return;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    await FirebaseDatabase.instance.ref('bookings/${b['id']}').update({'status': 'cash_received_by_nurse', 'lastChangedBy': 'nurse', 'lastChangedUid': currentNurseId, 'lastChangedAt': now, 'cashPaidToNurse': true, 'nurseCashPaid': true, 'cashConfirmedByNurse': true, 'cashConfirmedAt': now});
-    await _unlockNurse();
-    await _sendSoundTrigger('client', {'bookingId': b['id'], 'status': 'cash_received_by_nurse', 'title': 'Nurse confirmed cash received'});
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cash confirmed - You are Available again')));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final pending = myBookings.where((b) => (b['status'] ?? '').toString().toLowerCase() == 'pending').length;
-    final accepted = myBookings.where((b) => (b['status'] ?? '').toString().toLowerCase() == 'accepted').length;
-    final completed = myBookings.where((b) => (b['status'] ?? '').toString().toLowerCase() == 'completed' || (b['status'] ?? '').toString().toLowerCase() == 'done').length;
-    double earnings = 0;
-    for (final b in myBookings) {
-      final s = (b['status'] ?? '').toString().toLowerCase();
-      if (s == 'completed' || s == 'done' || s == 'cash_received_by_nurse' || s == 'cash_confirmed_by_client' || s == 'client_confirmed_finished') earnings += _nurseCash(b);
-    }
-    return Scaffold(
-      backgroundColor: const Color(0xFF0E0A1C),
-      appBar: AppBar(title: const Text('Nurse Dashboard', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [IconButton(icon: const Icon(Icons.settings), onPressed: () => Navigator.pushNamed(context, '/nurse-settings')), IconButton(icon: const Icon(Icons.notifications), onPressed: () => Navigator.pushNamed(context, '/sound-settings'))]),
-      drawer: Drawer(child: Container(color: const Color(0xFF120E26), child: ListView(padding: EdgeInsets.zero, children: [
-        DrawerHeader(decoration: const BoxDecoration(color: Color(0xFF1C1238)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [CircleAvatar(radius: 28, backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null, child: photoUrl.isEmpty ? Text(nurseName.isNotEmpty ? nurseName[0] : 'N') : null), const SizedBox(height: 8), Text(nurseName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), Text(nurseEmail, style: const TextStyle(color: Colors.white60, fontSize: 11))])),
-        ListTile(title: const Text('My Job Offers', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/my-job-offers'); }),
-        ListTile(title: const Text('My Cash Earnings', style: TextStyle(color: Color(0xFFFACC15))), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/my-job-offers'); }),
-        ListTile(title: const Text('Nurse Group Chat', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/nurse-group-chat'); }),
-        ListTile(title: const Text('Sound Settings', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/sound-settings'); }),
-        ListTile(title: const Text('Nurse Settings', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/nurse-settings'); }),
-        ListTile(title: const Text('🚨 SOS', style: TextStyle(color: Colors.red)), onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/sos'); }),
-      ]))),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(children: [
-          // Profile
-          Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20)), child: Row(children: [
-            Stack(children: [CircleAvatar(radius: 32, backgroundImage: photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null, child: photoUrl.isEmpty ? Text(nurseName.isNotEmpty ? nurseName[0] : 'N', style: const TextStyle(fontSize: 24)) : null), Positioned(right: 0, bottom: 0, child: Container(width: 14, height: 14, decoration: BoxDecoration(color: isOnline ? Colors.green : Colors.red, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2))))]),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Welcome, $nurseName', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), const Text('Welcome back', style: TextStyle(color: Color(0xFFC4B5FD), fontSize: 13)), Text(nurseEmail, style: const TextStyle(color: Colors.white60, fontSize: 11)), Text(nursePhone, style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11)), Text(nurseSpecialty, style: const TextStyle(color: Colors.white60, fontSize: 11)), if (_gpsPlaceName.isNotEmpty) Text('📍 $_gpsPlaceName', style: const TextStyle(color: Color(0xFF86EFAC), fontSize: 11))])),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), decoration: BoxDecoration(color: Colors.green.withOpacity(0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.green.withOpacity(0.2))), child: const Text('♾️ Long session', style: TextStyle(color: Color(0xFF86EFAC), fontSize: 10))),
-          ])),
-          const SizedBox(height: 12),
-          // Online Toggle
-          Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20)), child: Column(children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(isOnline ? '🟢 ONLINE — Visible to clients' : '🔴 OFFLINE — Hidden from clients', style: TextStyle(fontWeight: FontWeight.bold, color: isOnline ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5))), Text(isOnline ? 'Clients can see you in book-nurse and book you!' : 'Clients CANNOT see you in book-nurse. Turn ON to appear.', style: const TextStyle(color: Colors.white60, fontSize: 11))]), Switch(value: isOnline, onChanged: _toggleOnline)]),
-            if (saveStatus.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(saveStatus, style: const TextStyle(color: Colors.white60, fontSize: 11))),
-          ])),
-          const SizedBox(height: 12),
-          // Stats
-          Row(children: [
-            Expanded(child: _stat('📅 Pending', '$pending', Colors.orange)),
-            const SizedBox(width: 8),
-            Expanded(child: _stat('✅ Accepted', '$accepted', Colors.green)),
-            const SizedBox(width: 8),
-            Expanded(child: _stat('🎉 Completed', '$completed', Colors.blue)),
-          ]),
-          const SizedBox(height: 8),
-          Container(width: double.infinity, padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFFFACC15).withOpacity(0.12), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFFACC15).withOpacity(0.3))), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('💰 Cash You Collect (80%) - Paid CASH by Client, NOT by CEO', style: TextStyle(fontWeight: FontWeight.bold)), Text('GHS ${earnings.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFFFACC15))), const SizedBox(height: 6), SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/my-job-offers'), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFACC15)), child: const Text('See My Job Offers', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))))])),
-          const SizedBox(height: 12),
-          // My Bookings
-          Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(20)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('📋 My Bookings (${myBookings.length})', style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (myBookings.isEmpty) const Text('No bookings yet. Go ONLINE to appear to clients.', style: TextStyle(color: Colors.white60)),
-            ...myBookings.take(20).map((b) {
-              final s = (b['status'] ?? '').toString().toLowerCase();
-              return Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(14)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text('${b['id']} — ${b['clientName'] ?? 'Client'}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: s == 'pending' ? Colors.orange.withOpacity(0.2) : s == 'accepted' ? Colors.green.withOpacity(0.2) : s == 'completed' ? Colors.blue.withOpacity(0.2) : Colors.red.withOpacity(0.2), borderRadius: BorderRadius.circular(999)), child: Text(s.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))]),
-                const SizedBox(height: 4),
-                Text('Service: ${b['service'] ?? b['serviceType'] ?? ''} • Location: ${b['location'] ?? ''}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
-                Container(margin: const EdgeInsets.only(top: 6), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF22C55E).withOpacity(0.4))), child: Row(children: [const Icon(Icons.money, color: Colors.greenAccent, size: 18), const SizedBox(width: 6), Expanded(child: Text('You will collect CASH after work: ${_nurseCashStr(b)}', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13)))])),
-                if (s == 'pending') Row(children: [Expanded(child: ElevatedButton(onPressed: () => _acceptBooking(b), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('✅ Accept'))), const SizedBox(width: 8), Expanded(child: ElevatedButton(onPressed: () => _rejectBooking(b), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('❌ Reject')))]),
-                if (s == 'accepted' || s == 'completed' || s == 'close') Padding(padding: const EdgeInsets.only(top: 8), child: SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => _confirmCashReceived(b), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: Text('💵 Confirm Cash Received - ${_nurseCashStr(b)}', style: const TextStyle(fontSize: 12))))),
-              ]));
-            }),
-          ])),
-          const SizedBox(height: 20),
-        ]),
-      ),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => Navigator.pushNamed(context, '/my-job-offers'), backgroundColor: const Color(0xFFFACC15), label: const Text('My Job Offers', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold))),
-    );
-  }
-
-  Widget _stat(String label, String value, Color color) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16)), child: Column(children: [Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)), const SizedBox(height: 4), Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11), textAlign: TextAlign.center)]));
+    // 22. POLISH
+    "pl": {
+      "title": "Panel Pielęgniarki",
+      "drawerJobOffers": "Moje Oferty Pracy",
+      "drawerCashEarnings": "Moje Zarobki Gotówkowe",
+      "drawerGroupChat": "Czat Grupowy Pielęgniarek",
+      "drawerSoundSettings": "Ustawienia Dźwięku",
+      "drawerNurseSettings": "Ustawienia Pielęgniarki",
+      "drawerSOS": "🚨 SOS",
+      "welcome": "Witaj, {name}",
+      "welcomeBack": "Witaj ponownie",
+      "longSession": "♾️ Długa sesja",
+      "onlineVisible": "🟢 ONLINE — Widoczna dla klientów",
+      "offlineHidden": "🔴 OFFLINE — Ukryta przed klientami",
+      "onlineSub": "Klienci mogą Cię zobaczyć w rezerwacji-pielęgniarki i Cię zarezerwować!",
+      "offlineSub": "Klienci NIE MOGĄ Cię zobaczyć w rezerwacji-pielęgniarki. Włącz, aby się pojawić.",
+      "goingOnline": "🟢 Przechodzę ONLINE... Nadawanie do wszystkich klientów...",
+      "onlineNow": "🟢 TERAZ ONLINE — Widoczna dla klientów — 📍 {place} — 🟢 LIVE GPS WŁĄCZONY: Twoje zdjęcie będzie migać + poruszać się na mapie klienta",
+      "gpsSaved": "GPS zapisany",
+      "onlineFailed": "Online nie powiodło się: {error}",
+      "goingOffline": "🔴 Przechodzę OFFLINE... Ukrywanie przed wszystkimi klientami...",
+      "offlineNow": "🔴 TERAZ OFFLINE — Ukryta przed wszystkimi klientami — Klienci NIE zobaczą Cię",
+      "offlineFailed": "Offline nie powiodło się: {error}",
+      "statPending": "📅 Oczekujące",
+      "statAccepted": "✅ Zaakceptowane",
+      "statCompleted": "🎉 Ukończone",
+      "cashTitle": "💰 Gotówka Którą Zbierasz (80%) - Płacona GOTÓWKĄ Przez Klienta, NIE Przez CEO",
+      "cashAmount": "GHS {amount}",
+      "seeJobOffers": "Zobacz Moje Oferty Pracy",
+      "myBookings": "📋 Moje Rezerwacje ({n})",
+      "noBookings": "Brak rezerwacji. Przejdź ONLINE, aby pojawić się klientom.",
+      "bookingCard": "{id} — {client}",
+      "serviceLocation": "Usługa: {service} • Lokalizacja: {location}",
+      "collectCash": "Zbierzesz GOTÓWKĘ po pracy: {cash}",
+      "accept": "✅ Akceptuj",
+      "reject": "❌ Odrzuć",
+      "confirmCashBtn": "💵 Potwierdź Otrzymanie Gotówki - {cash}",
+      "fabJobOffers": "Moje Oferty Pracy",
+      "rejectTitle": "Odrzucić Rezerwację — Powód?",
+      "rejectHint": "np. Za daleko, zajęta",
+      "rejectNote": "Klient otrzymuje PEŁNY zwrot 20% i może zarezerwować inną pielęgniarkę. Znowu stajesz się Dostępna.",
+      "cancel": "Anuluj",
+      "rejectBtn": "Odrzuć",
+      "cashDialogTitle": "Potwierdzić Otrzymanie Gotówki?",
+      "cashDialogContent": "Potwierdź, że klient zapłacił Ci GOTÓWKĄ: {cash}\nCEO Ci NIE płaci. Po tym znowu stajesz się Dostępna.",
+      "notYet": "Jeszcze Nie",
+      "yesCash": "Tak, Gotówka Otrzymana",
+      "toastAccepted": "✅ Rezerwacja zaakceptowana",
+      "toastRejected": "Odrzucono - Klient otrzymuje pełny zwrot 20% - Znowu jesteś Dostępna",
+      "toastCash": "Gotówka potwierdzona - Znowu jesteś Dostępna",
+      "defaultClient": "Klient",
+      "defaultInitial": "N",
+    },
+  };
 }
