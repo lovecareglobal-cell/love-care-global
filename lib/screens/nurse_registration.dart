@@ -1,1043 +1,665 @@
-// nurse_registration_translations.dart
-// FILE - Nurse Registration (NURSE) - ONLY SCREEN WORDS - ALL 22 LANGUAGES
-// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
-// ONE FILE - Drop in lib/screens
+import 'dart:convert';
+import 'dart:io' show File;
+import 'dart:typed_data';
 
-class NurseRegistrationTranslations {
-  static const Map<String, Map<String, String>> all = {
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
 
-    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
-    "en": {
-      "title": "Nurse Registration",
-      "personal": "Personal Details",
-      "fullName": "Full Name", "fullNameHint": "e.g. Ama Mensah", "errFullName": "Enter full name",
-      "email": "Email", "emailHint": "e.g. ama@email.com", "errEmail": "Enter email", "errEmailValid": "Enter valid email",
-      "phone": "Phone / WhatsApp", "phoneHint": "e.g. +233 20 123 4567", "errPhone": "Enter phone number",
-      "locationTitle": "Your Location (Live GPS)", "locationLabel": "Location - Live GPS", "locationHint": "Tap Pick Live GPS - place name fills itself",
-      "pickGPS": "Pick Live GPS", "gettingGPS": "Getting GPS...", "gpsPicked": "GPS: {coords} - tap again to re-pick", "gpsNote": "Turn on GPS first. Place name is filled automatically - you do not type it.",
-      "password": "Password", "errPassword": "Password must be at least 8 characters",
-      "weak": "Weak", "medium": "Medium", "strong": "Strong", "veryStrong": "Very strong", "strongPass": "Strong password ✓",
-      "documents": "Documents",
-      "photo": "Photo", "pickPhoto": "Pick Photo", "video": "Video", "pickVideo": "Pick Video", "cv": "CV", "pickCV": "Pick CV",
-      "pinTitle": "Nursing PIN", "pinNumber": "Nursing PIN Number", "pinHint": "e.g. PIN123456", "errPin": "Enter PIN Number", "pinCard": "PIN Card", "pickPIN": "Pick PIN",
-      "idTitle": "ID Verification", "idCountry": "ID Country - All countries (same as Client)", "errCountry": "Select ID Country",
-      "idType": "ID Type - Select your ID", "idTypeHint1": "Select ID Country first", "idTypeHint2": "Select your ID", "errIdType": "Select ID Type",
-      "showingIDs": "Showing IDs for {country} • {n} options • Passport / National ID / Driving Licence work for every country",
-      "idNumber": "ID Number (as printed on your ID)", "idNumberHint": "Select ID Country + ID Type first", "errIdNumber": "Enter ID Number",
-      "idAuto": "ID is AUTO-SCANNED - put it inside the box, turn on flash if dark. It snaps by itself when clear + steady.",
-      "idFront": "Upload ID - FRONT", "scanFront": "Scan Front", "pickFirst": "Pick ID Country + ID Type first",
-      "idBack": "Upload ID - BACK", "scanBack": "Scan Back", "backRequired": "Back of {type} (required)", "autoScan": "Auto-scan (box + flash)",
-      "cert": "Upload Certificate", "pickCert": "Pick Cert",
-      "licenceTitle": "Licence", "licenceNumber": "Licence Number", "licenceHint": "e.g. LIC123456 / NMC123456", "errLicence": "Enter Licence Number", "licenceFile": "Upload Licence", "pickLicence": "Pick Licence",
-      "checkIdBtn": "🔍 CHECK MY ID AGAIN", "checkingId": "Checking ID... reading photo...",
-      "idVerified": "ID verified: number on your ID matches what you typed.",
-      "formatFail": "❌ Format check failed", "expected": "Expected: {example}", "noText": "Could not read the ID photo. Retake it straight, in good light, no glare.",
-      "noTextDetail": "❌ No text found on ID photo", "tipFlash": "Tip: fill the frame, turn on flash if dark",
-      "mismatch": "Number on ID photo does not match what you typed. Check both and try again.",
-      "typed": "❌ Typed: {typed}", "photoRead": "❌ Photo read as: {text}", "idCheckFail": "ID check failed: {error}. Try retaking the photo.", "ocrError": "❌ OCR error",
-      "experience": "Experience", "specialty": "Specialty", "errSpecialty": "Select specialty", "yearsExp": "Years of Experience", "errExperience": "Select experience",
-      "specGeneral": "General Nursing", "specMidwifery": "Midwifery", "specICU": "ICU / Critical Care", "specPaed": "Paediatric Nursing", "specMental": "Mental Health", "specCommunity": "Community Health", "specEmergency": "Emergency / A&E", "specTheatre": "Theatre / Surgical",
-      "exp1": "0-1 years", "exp2": "1-3 years", "exp3": "3-5 years", "exp4": "5-10 years", "exp5": "10+ years",
-      "submit": "SUBMIT REGISTRATION",
-      "fillAll": "Please fill all required fields - scroll up to see the red error.",
-      "checkIdFirst": "Please tap CHECK MY ID AGAIN and make sure it says ID verified first.",
-      "pickPhotoErr": "Please pick a Photo", "pickCVEerr": "Please pick your CV", "pickPINCardErr": "Please pick your PIN Card",
-      "scanIdErr": "Please scan FRONT + BACK of your ID", "pickCertErr": "Please pick your Certificate", "pickLicenceErr": "Please pick your Licence",
-      "enterLicenceErr": "Please enter your Licence Number", "enterPinErr": "Please enter your PIN Number",
-      "emailClientBlock": "This email is already registered as a CLIENT. One email cannot be both Client and Nurse.",
-      "emailRegistered": "This email is already registered. Login instead - or use a different email.",
-      "creating": "Creating account...", "uploading": "Uploading documents... please keep the app open", "saving": "Saving registration...",
-      "signupFail": "Sign-up failed ({code})", "uploadFail": "Upload failed ({code}): {msg}", "uploadFail2": "Upload failed: {error}",
-      "fileReadFail": "Could not read that file. Please try again.", "videoTooLarge": "Video is too large. Please pick a video under 100 MB.",
-      "pickerFail": "Picker failed: {error}", "idScanFail": "ID scan failed: {error}", "pickCountryTypeFirst": "Pick ID Country + ID Type first",
-      "scanned": "Scanned {side} of {type} ({country})", "selected": "{kind} selected: {name}", "enterIdFirst": "Enter ID Number first", "scanFrontFirst": "Scan FRONT of ID first",
-    },
+import '../models/id_catalog.dart';
 
-    // 2. TWI
-    "tw": {
-      "title": "Nɛɛse Registration",
-      "personal": "Wo Ho Nsɛm",
-      "fullName": "Din Nyinaa", "fullNameHint": "s.b. Ama Mensah", "errFullName": "Fa din nyinaa",
-      "email": "Email", "emailHint": "s.b. ama@email.com", "errEmail": "Fa email", "errEmailValid": "Fa email a ɛyɛ paa",
-      "phone": "Phone / WhatsApp", "phoneHint": "s.b. +233 20 123 4567", "errPhone": "Fa phone number",
-      "locationTitle": "Wo Beae (Live GPS)", "locationLabel": "Beae - Live GPS", "locationHint": "Tap Pick Live GPS - beae din hyɛ mu ankasa",
-      "pickGPS": "Pick Live GPS", "gettingGPS": "Rehwehwɛ GPS...", "gpsPicked": "GPS: {coords} - tap bio na fa bio", "gpsNote": "Sɔ GPS ON kane. Beae din hyɛ mu ankasa - wonkyerɛw.",
-      "password": "Password", "errPassword": "Password ɛsɛ sɛ ɛyɛ characters 8 anaa nea ɛboro saa",
-      "weak": "Mmere", "medium": "Mfinimfini", "strong": "Den", "veryStrong": "Den paa", "strongPass": "Password den ✓",
-      "documents": "Nwoma",
-      "photo": "Foto", "pickPhoto": "Pick Foto", "video": "Video", "pickVideo": "Pick Video", "cv": "CV", "pickCV": "Pick CV",
-      "pinTitle": "Nursing PIN", "pinNumber": "Nursing PIN Number", "pinHint": "s.b. PIN123456", "errPin": "Fa PIN Number", "pinCard": "PIN Card", "pickPIN": "Pick PIN",
-      "idTitle": "ID Verification", "idCountry": "ID Country - Ɔman nyinaa (sɛ Client)", "errCountry": "Paw ID Country",
-      "idType": "ID Type - Paw wo ID", "idTypeHint1": "Paw ID Country kane", "idTypeHint2": "Paw wo ID", "errIdType": "Paw ID Type",
-      "showingIDs": "Rekyerɛ IDs ma {country} • {n} options • Passport / National ID / Driving Licence yɛ adwuma ma ɔman nyinaa",
-      "idNumber": "ID Number (sɛnea ɛwɔ wo ID so)", "idNumberHint": "Paw ID Country + ID Type kane", "errIdNumber": "Fa ID Number",
-      "idAuto": "ID yɛ AUTO-SCANNED - fa hyɛ box mu, sɔ flash sɛ ɛyɛ sum. Ɛtwa ankasa sɛ ɛda adi + ɛgyina.",
-      "idFront": "Fa ID - ANIM", "scanFront": "Scan Anim", "pickFirst": "Paw ID Country + ID Type kane",
-      "idBack": "Fa ID - AKYI", "scanBack": "Scan Akyi", "backRequired": "Akyi {type} (ehia)", "autoScan": "Auto-scan (box + flash)",
-      "cert": "Fa Certificate", "pickCert": "Pick Cert",
-      "licenceTitle": "Licence", "licenceNumber": "Licence Number", "licenceHint": "s.b. LIC123456 / NMC123456", "errLicence": "Fa Licence Number", "licenceFile": "Fa Licence", "pickLicence": "Pick Licence",
-      "checkIdBtn": "🔍 CHECK ME ID BIO", "checkingId": "Rehwɛ ID... rekenkan foto...",
-      "idVerified": "ID wɔahyɛ mu: number a ɛwɔ wo ID so ne nea wokyerɛwee no yɛ pɛ.",
-      "formatFail": "❌ Format check antumi", "expected": "Wɔhwɛ: {example}", "noText": "Wontumi nkenkan ID foto. Fa bio tẽẽ, wɔ hann pa mu, glare nni mu.",
-      "noTextDetail": "❌ Wɔanhu nsɛm biara wɔ ID foto so", "tipFlash": "Tip: hyɛ frame mu, sɔ flash sɛ ɛyɛ sum",
-      "mismatch": "Number a ɛwɔ ID foto so ne nea wokyerɛwee no nyɛ pɛ. Hwɛ abien no na bɔ mmɔden bio.",
-      "typed": "❌ Wokyerɛwee: {typed}", "photoRead": "❌ Foto kenkan sɛ: {text}", "idCheckFail": "ID check antumi: {error}. Fa foto bio.", "ocrError": "❌ OCR mfomso",
-      "experience": "Suahunu", "specialty": "Specialty", "errSpecialty": "Paw specialty", "yearsExp": "Mfe a Woayɛ Adwuma", "errExperience": "Paw suahunu",
-      "specGeneral": "General Nursing", "specMidwifery": "Midwifery", "specICU": "ICU / Critical Care", "specPaed": "Paediatric Nursing", "specMental": "Mental Health", "specCommunity": "Community Health", "specEmergency": "Emergency / A&E", "specTheatre": "Theatre / Surgical",
-      "exp1": "0-1 mfe", "exp2": "1-3 mfe", "exp3": "3-5 mfe", "exp4": "5-10 mfe", "exp5": "10+ mfe",
-      "submit": "FA REGISTRATION KƆ",
-      "fillAll": "Hyɛ fields a ehia nyinaa mu - scroll kɔ soro na hwɛ mfomso kɔkɔɔ.",
-      "checkIdFirst": "Tap CHECK ME ID BIO na hwɛ sɛ ɛka sɛ ID wɔahyɛ mu kane.",
-      "pickPhotoErr": "Pick Foto", "pickCVEerr": "Pick wo CV", "pickPINCardErr": "Pick wo PIN Card",
-      "scanIdErr": "Scan ANIM + AKYI wo ID", "pickCertErr": "Pick wo Certificate", "pickLicenceErr": "Pick wo Licence",
-      "enterLicenceErr": "Fa wo Licence Number", "enterPinErr": "Fa wo PIN Number",
-      "emailClientBlock": "Saa email yi wɔakyerɛw din sɛ ƆKRA. Email baako ntumi nyɛ Client ne Nurse.",
-      "emailRegistered": "Saa email yi wɔakyerɛw din dada. Login mmom - anaa fa email foforo.",
-      "creating": "Reyɛ account...", "uploading": "Reupload nwoma... fa app no bue", "saving": "Rekora registration...",
-      "signupFail": "Sign-up antumi ({code})", "uploadFail": "Upload antumi ({code}): {msg}", "uploadFail2": "Upload antumi: {error}",
-      "fileReadFail": "Wontumi nkenkan saa file no. Bɔ mmɔden bio.", "videoTooLarge": "Video no sõ dodo. Pick video a ɛnyɛ 100 MB.",
-      "pickerFail": "Picker antumi: {error}", "idScanFail": "ID scan antumi: {error}", "pickCountryTypeFirst": "Paw ID Country + ID Type kane",
-      "scanned": "Wɔa-scan {side} {type} ({country})", "selected": "{kind} wɔapaw: {name}", "enterIdFirst": "Fa ID Number kane", "scanFrontFirst": "Scan ANIM ID kane",
-    },
+class NurseRegistrationPage extends StatefulWidget {
+  const NurseRegistrationPage({super.key});
+  @override
+  State<NurseRegistrationPage> createState() => _NurseRegistrationPageState();
+}
 
-    // 3. GA
-    "ga": {
-      "title": "Nɛɛse Registration",
-      "personal": "Ohe Nsɛm",
-      "fullName": "Gbɛi Fɛɛ", "fullNameHint": "s.b. Ama Mensah", "errFullName": "Ŋmɛ gbɛi fɛɛ",
-      "email": "Email", "emailHint": "s.b. ama@email.com", "errEmail": "Ŋmɛ email", "errEmailValid": "Ŋmɛ email a hi",
-      "phone": "Phone / WhatsApp", "phoneHint": "s.b. +233 20 123 4567", "errPhone": "Ŋmɛ phone number",
-      "locationTitle": "O Hejɔɔ (Live GPS)", "locationLabel": "Hejɔɔ - Live GPS", "locationHint": "Tap Pick Live GPS - hejɔɔ gbɛi baa mli ankasa",
-      "pickGPS": "Pick Live GPS", "gettingGPS": "Mii taomɔ GPS...", "gpsPicked": "GPS: {coords} - tap eko koni o fee eko", "gpsNote": "Tswa GPS ON kane. Hejɔɔ gbɛi baa mli ankasa - oŋmɛɛ.",
-      "password": "Password", "errPassword": "Password esa akɛ efee characters 8 loo ebɛɔ nɔ",
-      "weak": "Mfɛɛ", "medium": "Mfinimfini", "strong": "Mli wa", "veryStrong": "Mli wa paa", "strongPass": "Password mli wa ✓",
-      "documents": "Wolo",
-      "photo": "Foto", "pickPhoto": "Pick Foto", "video": "Video", "pickVideo": "Pick Video", "cv": "CV", "pickCV": "Pick CV",
-      "pinTitle": "Nursing PIN", "pinNumber": "Nursing PIN Number", "pinHint": "s.b. PIN123456", "errPin": "Ŋmɛ PIN Number", "pinCard": "PIN Card", "pickPIN": "Pick PIN",
-      "idTitle": "ID Verification", "idCountry": "ID Country - Maŋ fɛɛ (sɛ Mɔ)", "errCountry": "Hala ID Country",
-      "idType": "ID Type - Hala o ID", "idTypeHint1": "Hala ID Country kane", "idTypeHint2": "Hala o ID", "errIdType": "Hala ID Type",
-      "showingIDs": "Mii tsɔɔ IDs hã {country} • {n} options • Passport / National ID / Driving Licence feo nitsumɔ hã maŋ fɛɛ",
-      "idNumber": "ID Number (sɛ bɔ ni aŋmɛ yɛ o ID nɔ)", "idNumberHint": "Hala ID Country + ID Type kane", "errIdNumber": "Ŋmɛ ID Number",
-      "idAuto": "ID ji AUTO-SCANNED - fee mli yɛ box mli, tswa flash kɛ eji sum. Eba mli ankasa kɛ eda adi + edamɔ.",
-      "idFront": "Fee ID - HIƐ", "scanFront": "Scan Hiɛ", "pickFirst": "Hala ID Country + ID Type kane",
-      "idBack": "Fee ID - SƐƐ", "scanBack": "Scan Sɛɛ", "backRequired": "Sɛɛ {type} (ehia)", "autoScan": "Auto-scan (box + flash)",
-      "cert": "Fee Certificate", "pickCert": "Pick Cert",
-      "licenceTitle": "Licence", "licenceNumber": "Licence Number", "licenceHint": "s.b. LIC123456 / NMC123456", "errLicence": "Ŋmɛ Licence Number", "licenceFile": "Fee Licence", "pickLicence": "Pick Licence",
-      "checkIdBtn": "🔍 KWƐ MI ID EKO", "checkingId": "Mii kwɛ ID... mii kanɛ foto...",
-      "idVerified": "ID ashi mu: number a yɔ o ID nɔ kɛ nɔ ni oŋmɛ no ji kome.",
-      "formatFail": "❌ Format check eko", "expected": "Mii kwɛ: {example}", "noText": "Wɔnyɛɛ kanɛ ID foto. Fee eko tẽẽ, yɛ la pa mli, glare bɛ.",
-      "noTextDetail": "❌ Wɔnaa wolo ko yɛ ID foto nɔ", "tipFlash": "Tip: hyɛ frame mli, tswa flash kɛ eji sum",
-      "mismatch": "Number a yɔ ID foto nɔ kɛ nɔ ni oŋmɛ no nyɛɛ kome. Kwɛ enyɔ no na bɔ mɔdɛn eko.",
-      "typed": "❌ Oŋmɛ: {typed}", "photoRead": "❌ Foto kanɛ sɛ: {text}", "idCheckFail": "ID check eko: {error}. Fee foto eko.", "ocrError": "❌ OCR mfomso",
-      "experience": "Nitsumɔ Suahunu", "specialty": "Specialty", "errSpecialty": "Hala specialty", "yearsExp": "Afi ni Ofee Nitsumɔ", "errExperience": "Hala suahunu",
-      "specGeneral": "General Nursing", "specMidwifery": "Midwifery", "specICU": "ICU / Critical Care", "specPaed": "Paediatric Nursing", "specMental": "Mental Health", "specCommunity": "Community Health", "specEmergency": "Emergency / A&E", "specTheatre": "Theatre / Surgical",
-      "exp1": "0-1 afi", "exp2": "1-3 afi", "exp3": "3-5 afi", "exp4": "5-10 afi", "exp5": "10+ afi",
-      "submit": "FEE REGISTRATION KƐTEE",
-      "fillAll": "Hyɛ fields a ehia fɛɛ mli - scroll kɛtee soro na kwɛ mfomso tsuru.",
-      "checkIdFirst": "Tap KWƐ MI ID EKO na kwɛ sɛ ekɛɛ ID ashi mu kane.",
-      "pickPhotoErr": "Pick Foto", "pickCVEerr": "Pick o CV", "pickPINCardErr": "Pick o PIN Card",
-      "scanIdErr": "Scan HIƐ + SƐƐ o ID", "pickCertErr": "Pick o Certificate", "pickLicenceErr": "Pick o Licence",
-      "enterLicenceErr": "Ŋmɛ o Licence Number", "enterPinErr": "Ŋmɛ o PIN Number",
-      "emailClientBlock": "Saa email nɛɛ aŋmɛ gbɛi sɛ MƆ. Email kome enyɛ fee Mɔ kɛ Nɛɛse.",
-      "emailRegistered": "Saa email nɛɛ aŋmɛ gbɛi momo. Ŋmɛ mli mmom - loo fee email kroko.",
-      "creating": "Mii fee account...", "uploading": "Mii fee wolo kɛtee... fee app no bue", "saving": "Mii to registration...",
-      "signupFail": "Sign-up eko ({code})", "uploadFail": "Upload eko ({code}): {msg}", "uploadFail2": "Upload eko: {error}",
-      "fileReadFail": "Wɔnyɛɛ kanɛ saa file nɛɛ. Bɔ mɔdɛn eko.", "videoTooLarge": "Video nɛɛ wa dodo. Pick video a waaa 100 MB.",
-      "pickerFail": "Picker eko: {error}", "idScanFail": "ID scan eko: {error}", "pickCountryTypeFirst": "Hala ID Country + ID Type kane",
-      "scanned": "A-scan {side} {type} ({country})", "selected": "{kind} ahala: {name}", "enterIdFirst": "Ŋmɛ ID Number kane", "scanFrontFirst": "Scan HIƐ ID kane",
-    },
+class _NurseRegistrationPageState extends State<NurseRegistrationPage> {
+  final _formKey = GlobalKey<FormState>();
+  static const primary = Color(0xFF880E4F);
+  static const primaryLight = Color(0xFFFDE7F0);
+  static const greenStrong = Color(0xFF2E9E4A);
 
-    // 4. EWE
-    "ee": {
-      "title": "Nɔnɔvia Registration",
-      "personal": "Wò Ŋutɔ Ŋuti Nyatakakawo",
-      "fullName": "Ŋkɔ Bliboa", "fullNameHint": "le kpɔɖeŋu me. Ama Mensah", "errFullName": "Ðo ŋkɔ bliboa",
-      "email": "Email", "emailHint": "le kpɔɖeŋu me. ama@email.com", "errEmail": "Ðo email", "errEmailValid": "Ðo email si le nyui",
-      "phone": "Phone / WhatsApp", "phoneHint": "le kpɔɖeŋu me. +233 20 123 4567", "errPhone": "Ðo phone number",
-      "locationTitle": "Wò Teƒe (Live GPS)", "locationLabel": "Teƒe - Live GPS", "locationHint": "Zi Pick Live GPS - teƒe ŋkɔ yia ɖe eme le eɖokui si",
-      "pickGPS": "Pick Live GPS", "gettingGPS": "Le GPS xɔm...", "gpsPicked": "GPS: {coords} - zi gbugbɔ be nàɖo gbugbɔ", "gpsNote": "Dze GPS ON gbã. Teƒe ŋkɔ yia ɖe eme le eɖokui si - mèŋlɔe o.",
-      "password": "Password", "errPassword": "Password ele be wòanye ŋɔŋlɔ 8 alo wu nenema",
-      "weak": "Gbɔdzɔ", "medium": "Dome", "strong": "Sesẽ", "veryStrong": "Sesẽ ŋutɔ", "strongPass": "Password sesẽ ✓",
-      "documents": "Agbalẽwo",
-      "photo": "Foto", "pickPhoto": "Pick Foto", "video": "Video", "pickVideo": "Pick Video", "cv": "CV", "pickCV": "Pick CV",
-      "pinTitle": "Nursing PIN", "pinNumber": "Nursing PIN Number", "pinHint": "le kpɔɖeŋu me. PIN123456", "errPin": "Ðo PIN Number", "pinCard": "PIN Card", "pickPIN": "Pick PIN",
-      "idTitle": "ID Verification", "idCountry": "ID Country - Dukɔwo katã (abe Ame ene)", "errCountry": "Tia ID Country",
-      "idType": "ID Type - Tia wò ID", "idTypeHint1": "Tia ID Country gbã", "idTypeHint2": "Tia wò ID", "errIdType": "Tia ID Type",
-      "showingIDs": "Le IDs fiam na {country} • {n} tiatia • Passport / National ID / Driving Licence wɔa dɔ na dukɔ sia dukɔ",
-      "idNumber": "ID Number (abe alesi woŋlɔe ɖe wò ID dzi)", "idNumberHint": "Tia ID Country + ID Type gbã", "errIdNumber": "Ðo ID Number",
-      "idAuto": "ID nye AUTO-SCANNED - ɖoe ɖe box la me, dze flash ne viviti. Etoa le eɖokui si ne ekɔ + enɔ te.",
-      "idFront": "Ðo ID - ŊGƆGƆ", "scanFront": "Scan Ŋgɔgɔ", "pickFirst": "Tia ID Country + ID Type gbã",
-      "idBack": "Ðo ID - MEGbe", "scanBack": "Scan Megbe", "backRequired": "Megbe {type} (hiã)", "autoScan": "Auto-scan (box + flash)",
-      "cert": "Ðo Certificate", "pickCert": "Pick Cert",
-      "licenceTitle": "Licence", "licenceNumber": "Licence Number", "licenceHint": "le kpɔɖeŋu me. LIC123456 / NMC123456", "errLicence": "Ðo Licence Number", "licenceFile": "Ðo Licence", "pickLicence": "Pick Licence",
-      "checkIdBtn": "🔍 KPƆ NYE ID GBUGBƆ", "checkingId": "Le ID kpɔm... le foto hlẽm...",
-      "idVerified": "ID woɖo kpe: xexlẽme si le wò ID dzi kple nusi nèŋlɔ la sɔ.",
-      "formatFail": "❌ Format check medze o", "expected": "Wole mɔ kpɔm: {example}", "noText": "Mate ŋu aɖo ID foto o. Ðoe gbugbɔ dzɔdzɔe, le kekeli nyui me, glare meli o.",
-      "noTextDetail": "❌ Womekpɔ nuŋɔŋlɔ aɖeke le ID foto dzi o", "tipFlash": "Tip: yi frame la me, dze flash ne viviti",
-      "mismatch": "Xexlẽme si le ID foto dzi kple nusi nèŋlɔ la mesɔ o. Kpɔ eveawo ne nàdze agbagba gbugbɔ.",
-      "typed": "❌ Nèŋlɔ: {typed}", "photoRead": "❌ Foto hlẽ abe: {text}", "idCheckFail": "ID check medze o: {error}. Ðe foto gbugbɔ.", "ocrError": "❌ OCR vodada",
-      "experience": "Nuteƒekpɔkpɔ", "specialty": "Specialty", "errSpecialty": "Tia specialty", "yearsExp": "ƒe Siwo Nèwɔ Dɔ", "errExperience": "Tia nuteƒekpɔkpɔ",
-      "specGeneral": "General Nursing", "specMidwifery": "Midwifery", "specICU": "ICU / Critical Care", "specPaed": "Paediatric Nursing", "specMental": "Mental Health", "specCommunity": "Community Health", "specEmergency": "Emergency / A&E", "specTheatre": "Theatre / Surgical",
-      "exp1": "ƒe 0-1", "exp2": "ƒe 1-3", "exp3": "ƒe 3-5", "exp4": "ƒe 5-10", "exp5": "ƒe 10+",
-      "submit": "ÐO REGISTRATION ÐA",
-      "fillAll": "Yi fields siwo hiã katã me - yi dzi be nàkpɔ vodada dzĩ la.",
-      "checkIdFirst": "Zi KPƆ NYE ID GBUGBƆ ne nàkpɔe be wògblɔ be ID woɖo kpe gbã.",
-      "pickPhotoErr": "Tia Foto", "pickCVEerr": "Tia wò CV", "pickPINCardErr": "Tia wò PIN Card",
-      "scanIdErr": "Scan ŊGƆGƆ + MEGBE wò ID", "pickCertErr": "Tia wò Certificate", "pickLicenceErr": "Tia wò Licence",
-      "enterLicenceErr": "Ðo wò Licence Number", "enterPinErr": "Ðo wò PIN Number",
-      "emailClientBlock": "Email sia woŋlɔ ŋkɔ abe AME ene. Email ɖeka mate ŋu anye Ame kple Nɔnɔvia o.",
-      "emailRegistered": "Email sia woŋlɔ ŋkɔ vɔ. Ge ɖe eme boŋ - alo zã email bubu.",
-      "creating": "Le account wɔm...", "uploading": "Le agbalẽwo ɖom... dzra app la ʋu", "saving": "Le registration dzram ɖo...",
-      "signupFail": "Sign-up medze o ({code})", "uploadFail": "Upload medze o ({code}): {msg}", "uploadFail2": "Upload medze o: {error}",
-      "fileReadFail": "Mate ŋu aɖo file sia o. Dze agbagba gbugbɔ.", "videoTooLarge": "Video la lolo ŋutɔ. Tia video si menye 100 MB o.",
-      "pickerFail": "Picker medze o: {error}", "idScanFail": "ID scan medze o: {error}", "pickCountryTypeFirst": "Tia ID Country + ID Type gbã",
-      "scanned": "Wo scan {side} {type} ({country})", "selected": "{kind} wotia: {name}", "enterIdFirst": "Ðo ID Number gbã", "scanFrontFirst": "Scan ŊGƆGƆ ID gbã",
-    },
+  final _fullNameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _pinNumberController = TextEditingController();
+  final _idNumberController = TextEditingController();
+  final _licenceNumberController = TextEditingController();
+  final _locationController = TextEditingController();
+  double? _gpsLat;
+  double? _gpsLng;
+  bool _locating = false;
 
-    // 5. DUTCH
-    "nl": {
-      "title": "Verpleegkundige Registratie",
-      "personal": "Persoonlijke Gegevens",
-      "fullName": "Volledige Naam", "fullNameHint": "bijv. Ama Mensah", "errFullName": "Voer volledige naam in",
-      "email": "Email", "emailHint": "bijv. ama@email.com", "errEmail": "Voer email in", "errEmailValid": "Voer geldige email in",
-      "phone": "Telefoon / WhatsApp", "phoneHint": "bijv. +233 20 123 4567", "errPhone": "Voer telefoonnummer in",
-      "locationTitle": "Jouw Locatie (Live GPS)", "locationLabel": "Locatie - Live GPS", "locationHint": "Tik Kies Live GPS - plaatsnaam vult zichzelf",
-      "pickGPS": "Kies Live GPS", "gettingGPS": "GPS ophalen...", "gpsPicked": "GPS: {coords} - tik opnieuw om opnieuw te kiezen", "gpsNote": "Zet eerst GPS aan. Plaatsnaam wordt automatisch ingevuld - je typt het niet.",
-      "password": "Wachtwoord", "errPassword": "Wachtwoord moet minimaal 8 tekens zijn",
-      "weak": "Zwak", "medium": "Gemiddeld", "strong": "Sterk", "veryStrong": "Zeer sterk", "strongPass": "Sterk wachtwoord ✓",
-      "documents": "Documenten",
-      "photo": "Foto", "pickPhoto": "Kies Foto", "video": "Video", "pickVideo": "Kies Video", "cv": "CV", "pickCV": "Kies CV",
-      "pinTitle": "Verpleegkundige PIN", "pinNumber": "Verpleegkundige PIN Nummer", "pinHint": "bijv. PIN123456", "errPin": "Voer PIN Nummer in", "pinCard": "PIN Kaart", "pickPIN": "Kies PIN",
-      "idTitle": "ID Verificatie", "idCountry": "ID Land - Alle landen (zelfde als Klant)", "errCountry": "Selecteer ID Land",
-      "idType": "ID Type - Selecteer je ID", "idTypeHint1": "Selecteer eerst ID Land", "idTypeHint2": "Selecteer je ID", "errIdType": "Selecteer ID Type",
-      "showingIDs": "Toont IDs voor {country} • {n} opties • Paspoort / Nationale ID / Rijbewijs werkt voor elk land",
-      "idNumber": "ID Nummer (zoals op je ID)", "idNumberHint": "Selecteer eerst ID Land + ID Type", "errIdNumber": "Voer ID Nummer in",
-      "idAuto": "ID wordt AUTO-GESCAND - leg het in het vak, zet flits aan als het donker is. Het maakt zelf foto als het helder + stil is.",
-      "idFront": "Upload ID - VOORKANT", "scanFront": "Scan Voorkant", "pickFirst": "Selecteer eerst ID Land + ID Type",
-      "idBack": "Upload ID - ACHTERKANT", "scanBack": "Scan Achterkant", "backRequired": "Achterkant van {type} (verplicht)", "autoScan": "Auto-scan (vak + flits)",
-      "cert": "Upload Certificaat", "pickCert": "Kies Cert",
-      "licenceTitle": "Licentie", "licenceNumber": "Licentie Nummer", "licenceHint": "bijv. LIC123456 / NMC123456", "errLicence": "Voer Licentie Nummer in", "licenceFile": "Upload Licentie", "pickLicence": "Kies Licentie",
-      "checkIdBtn": "🔍 CONTROLEER MIJN ID OPNIEUW", "checkingId": "ID controleren... foto lezen...",
-      "idVerified": "ID geverifieerd: nummer op je ID komt overeen met wat je typte.",
-      "formatFail": "❌ Formaatcontrole mislukt", "expected": "Verwacht: {example}", "noText": "Kon ID foto niet lezen. Maak opnieuw recht, in goed licht, geen schittering.",
-      "noTextDetail": "❌ Geen tekst gevonden op ID foto", "tipFlash": "Tip: vul het frame, zet flits aan als het donker is",
-      "mismatch": "Nummer op ID foto komt niet overeen met wat je typte. Controleer beide en probeer opnieuw.",
-      "typed": "❌ Getypt: {typed}", "photoRead": "❌ Foto gelezen als: {text}", "idCheckFail": "ID controle mislukt: {error}. Probeer foto opnieuw.", "ocrError": "❌ OCR fout",
-      "experience": "Ervaring", "specialty": "Specialiteit", "errSpecialty": "Selecteer specialiteit", "yearsExp": "Jaren Ervaring", "errExperience": "Selecteer ervaring",
-      "specGeneral": "Algemene Verpleging", "specMidwifery": "Verloskunde", "specICU": "ICU / Intensieve Zorg", "specPaed": "Kinderverpleging", "specMental": "Geestelijke Gezondheid", "specCommunity": "Gemeenschapsgezondheid", "specEmergency": "Spoed / A&E", "specTheatre": "Operatie / Chirurgisch",
-      "exp1": "0-1 jaar", "exp2": "1-3 jaar", "exp3": "3-5 jaar", "exp4": "5-10 jaar", "exp5": "10+ jaar",
-      "submit": "REGISTRATIE VERZENDEN",
-      "fillAll": "Vul alle verplichte velden in - scroll omhoog om de rode fout te zien.",
-      "checkIdFirst": "Tik CONTROLEER MIJN ID OPNIEUW en zorg dat er eerst ID geverifieerd staat.",
-      "pickPhotoErr": "Kies een Foto", "pickCVEerr": "Kies je CV", "pickPINCardErr": "Kies je PIN Kaart",
-      "scanIdErr": "Scan VOOR- + ACHTERKANT van je ID", "pickCertErr": "Kies je Certificaat", "pickLicenceErr": "Kies je Licentie",
-      "enterLicenceErr": "Voer je Licentie Nummer in", "enterPinErr": "Voer je PIN Nummer in",
-      "emailClientBlock": "Deze email is al geregistreerd als KLANT. Eén email kan niet zowel Klant als Verpleegkundige zijn.",
-      "emailRegistered": "Deze email is al geregistreerd. Login in plaats daarvan - of gebruik een andere email.",
-      "creating": "Account aanmaken...", "uploading": "Documenten uploaden... houd app open", "saving": "Registratie opslaan...",
-      "signupFail": "Aanmelden mislukt ({code})", "uploadFail": "Upload mislukt ({code}): {msg}", "uploadFail2": "Upload mislukt: {error}",
-      "fileReadFail": "Kon dat bestand niet lezen. Probeer opnieuw.", "videoTooLarge": "Video is te groot. Kies een video onder 100 MB.",
-      "pickerFail": "Kiezer mislukt: {error}", "idScanFail": "ID scan mislukt: {error}", "pickCountryTypeFirst": "Selecteer eerst ID Land + ID Type",
-      "scanned": "{side} van {type} gescand ({country})", "selected": "{kind} geselecteerd: {name}", "enterIdFirst": "Voer eerst ID Nummer in", "scanFrontFirst": "Scan eerst VOORKANT van ID",
-    },
+  String? _selectedCountry;
+  IdTypeOption? _selectedIdType;
+  String? _selectedSpecialty;
+  String? _selectedExperience;
+  bool _obscurePassword = true;
 
-    // 6. FRENCH
-    "fr": {
-      "title": "Inscription Infirmière",
-      "personal": "Détails Personnels",
-      "fullName": "Nom Complet", "fullNameHint": "ex. Ama Mensah", "errFullName": "Entrez nom complet",
-      "email": "Email", "emailHint": "ex. ama@email.com", "errEmail": "Entrez email", "errEmailValid": "Entrez email valide",
-      "phone": "Téléphone / WhatsApp", "phoneHint": "ex. +233 20 123 4567", "errPhone": "Entrez numéro de téléphone",
-      "locationTitle": "Votre Position (GPS Live)", "locationLabel": "Position - GPS Live", "locationHint": "Appuie Choisir GPS Live - le nom du lieu se remplit seul",
-      "pickGPS": "Choisir GPS Live", "gettingGPS": "Récupération GPS...", "gpsPicked": "GPS: {coords} - appuie à nouveau pour re-choisir", "gpsNote": "Active GPS d'abord. Le nom du lieu se remplit automatiquement - tu ne le tapes pas.",
-      "password": "Mot de passe", "errPassword": "Le mot de passe doit faire au moins 8 caractères",
-      "weak": "Faible", "medium": "Moyen", "strong": "Fort", "veryStrong": "Très fort", "strongPass": "Mot de passe fort ✓",
-      "documents": "Documents",
-      "photo": "Photo", "pickPhoto": "Choisir Photo", "video": "Vidéo", "pickVideo": "Choisir Vidéo", "cv": "CV", "pickCV": "Choisir CV",
-      "pinTitle": "PIN Infirmière", "pinNumber": "Numéro PIN Infirmière", "pinHint": "ex. PIN123456", "errPin": "Entrez Numéro PIN", "pinCard": "Carte PIN", "pickPIN": "Choisir PIN",
-      "idTitle": "Vérification ID", "idCountry": "Pays ID - Tous pays (comme Client)", "errCountry": "Sélectionnez Pays ID",
-      "idType": "Type ID - Sélectionnez votre ID", "idTypeHint1": "Sélectionnez Pays ID d'abord", "idTypeHint2": "Sélectionnez votre ID", "errIdType": "Sélectionnez Type ID",
-      "showingIDs": "Affichage IDs pour {country} • {n} options • Passeport / Carte Nationale / Permis fonctionne pour tous pays",
-      "idNumber": "Numéro ID (comme sur votre ID)", "idNumberHint": "Sélectionnez Pays ID + Type ID d'abord", "errIdNumber": "Entrez Numéro ID",
-      "idAuto": "ID est AUTO-SCANNÉ - mettez-le dans le cadre, allumez flash si sombre. Il prend seul quand clair + stable.",
-      "idFront": "Télécharger ID - DEVANT", "scanFront": "Scanner Devant", "pickFirst": "Sélectionnez Pays ID + Type ID d'abord",
-      "idBack": "Télécharger ID - DOS", "scanBack": "Scanner Dos", "backRequired": "Dos de {type} (requis)", "autoScan": "Auto-scan (cadre + flash)",
-      "cert": "Télécharger Certificat", "pickCert": "Choisir Cert",
-      "licenceTitle": "Licence", "licenceNumber": "Numéro Licence", "licenceHint": "ex. LIC123456 / NMC123456", "errLicence": "Entrez Numéro Licence", "licenceFile": "Télécharger Licence", "pickLicence": "Choisir Licence",
-      "checkIdBtn": "🔍 VÉRIFIER MON ID À NOUVEAU", "checkingId": "Vérification ID... lecture photo...",
-      "idVerified": "ID vérifié: le numéro sur votre ID correspond à ce que vous avez tapé.",
-      "formatFail": "❌ Échec contrôle format", "expected": "Attendu: {example}", "noText": "Impossible de lire la photo ID. Reprenez droit, en bonne lumière, sans reflet.",
-      "noTextDetail": "❌ Aucun texte trouvé sur photo ID", "tipFlash": "Astuce: remplissez le cadre, allumez flash si sombre",
-      "mismatch": "Le numéro sur photo ID ne correspond pas à ce que vous avez tapé. Vérifiez les deux et réessayez.",
-      "typed": "❌ Tapé: {typed}", "photoRead": "❌ Photo lue comme: {text}", "idCheckFail": "Échec vérification ID: {error}. Reprenez la photo.", "ocrError": "❌ Erreur OCR",
-      "experience": "Expérience", "specialty": "Spécialité", "errSpecialty": "Sélectionnez spécialité", "yearsExp": "Années D'Expérience", "errExperience": "Sélectionnez expérience",
-      "specGeneral": "Soins Généraux", "specMidwifery": "Sage-femme", "specICU": "USI / Soins Intensifs", "specPaed": "Soins Pédiatriques", "specMental": "Santé Mentale", "specCommunity": "Santé Communautaire", "specEmergency": "Urgence / A&E", "specTheatre": "Bloc / Chirurgical",
-      "exp1": "0-1 an", "exp2": "1-3 ans", "exp3": "3-5 ans", "exp4": "5-10 ans", "exp5": "10+ ans",
-      "submit": "ENVOYER INSCRIPTION",
-      "fillAll": "Remplissez tous les champs requis - faites défiler vers le haut pour voir l'erreur rouge.",
-      "checkIdFirst": "Appuyez VÉRIFIER MON ID À NOUVEAU et assurez-vous qu'il dit ID vérifié d'abord.",
-      "pickPhotoErr": "Choisissez une Photo", "pickCVEerr": "Choisissez votre CV", "pickPINCardErr": "Choisissez votre Carte PIN",
-      "scanIdErr": "Scannez DEVANT + DOS de votre ID", "pickCertErr": "Choisissez votre Certificat", "pickLicenceErr": "Choisissez votre Licence",
-      "enterLicenceErr": "Entrez votre Numéro Licence", "enterPinErr": "Entrez votre Numéro PIN",
-      "emailClientBlock": "Cet email est déjà enregistré comme CLIENT. Un email ne peut pas être à la fois Client et Infirmière.",
-      "emailRegistered": "Cet email est déjà enregistré. Connectez-vous plutôt - ou utilisez un autre email.",
-      "creating": "Création compte...", "uploading": "Téléchargement documents... gardez app ouverte", "saving": "Enregistrement inscription...",
-      "signupFail": "Échec inscription ({code})", "uploadFail": "Échec téléchargement ({code}): {msg}", "uploadFail2": "Échec téléchargement: {error}",
-      "fileReadFail": "Impossible de lire ce fichier. Réessayez.", "videoTooLarge": "Vidéo trop grande. Choisissez une vidéo de moins de 100 Mo.",
-      "pickerFail": "Échec sélecteur: {error}", "idScanFail": "Échec scan ID: {error}", "pickCountryTypeFirst": "Sélectionnez Pays ID + Type ID d'abord",
-      "scanned": "{side} de {type} scanné ({country})", "selected": "{kind} sélectionné: {name}", "enterIdFirst": "Entrez Numéro ID d'abord", "scanFrontFirst": "Scannez DEVANT de l'ID d'abord",
-    },
+  String? _photoName; Uint8List? _photoBytes;
+  String? _videoName; Uint8List? _videoBytes;
+  String? _cvName; Uint8List? _cvBytes;
+  String? _pinCardName; Uint8List? _pinCardBytes;
+  String? _idFrontName; Uint8List? _idFrontBytes;
+  String? _idBackName; Uint8List? _idBackBytes;
+  String? _certificateName; Uint8List? _certificateBytes;
+  String? _licenceName; Uint8List? _licenceBytes;
 
-    // 7. GERMAN
-    "de": {
-      "title": "Krankenschwester Registrierung",
-      "personal": "Persönliche Angaben",
-      "fullName": "Vollständiger Name", "fullNameHint": "z.B. Ama Mensah", "errFullName": "Vollständigen Namen eingeben",
-      "email": "Email", "emailHint": "z.B. ama@email.com", "errEmail": "Email eingeben", "errEmailValid": "Gültige Email eingeben",
-      "phone": "Telefon / WhatsApp", "phoneHint": "z.B. +233 20 123 4567", "errPhone": "Telefonnummer eingeben",
-      "locationTitle": "Dein Standort (Live GPS)", "locationLabel": "Standort - Live GPS", "locationHint": "Tippe Live GPS Wählen - Ortsname füllt sich selbst",
-      "pickGPS": "Live GPS Wählen", "gettingGPS": "GPS wird geholt...", "gpsPicked": "GPS: {coords} - tippe erneut um neu zu wählen", "gpsNote": "Schalte zuerst GPS ein. Ortsname wird automatisch gefüllt - du tippst ihn nicht.",
-      "password": "Passwort", "errPassword": "Passwort muss mindestens 8 Zeichen sein",
-      "weak": "Schwach", "medium": "Mittel", "strong": "Stark", "veryStrong": "Sehr stark", "strongPass": "Starkes Passwort ✓",
-      "documents": "Dokumente",
-      "photo": "Foto", "pickPhoto": "Foto Wählen", "video": "Video", "pickVideo": "Video Wählen", "cv": "CV", "pickCV": "CV Wählen",
-      "pinTitle": "Krankenschwester PIN", "pinNumber": "Krankenschwester PIN Nummer", "pinHint": "z.B. PIN123456", "errPin": "PIN Nummer eingeben", "pinCard": "PIN Karte", "pickPIN": "PIN Wählen",
-      "idTitle": "ID Verifizierung", "idCountry": "ID Land - Alle Länder (wie Kunde)", "errCountry": "ID Land wählen",
-      "idType": "ID Typ - Wähle deine ID", "idTypeHint1": "Wähle zuerst ID Land", "idTypeHint2": "Wähle deine ID", "errIdType": "ID Typ wählen",
-      "showingIDs": "Zeigt IDs für {country} • {n} Optionen • Reisepass / Personalausweis / Führerschein funktioniert für jedes Land",
-      "idNumber": "ID Nummer (wie auf deiner ID)", "idNumberHint": "Wähle zuerst ID Land + ID Typ", "errIdNumber": "ID Nummer eingeben",
-      "idAuto": "ID wird AUTO-GESCANNT - leg sie in den Rahmen, schalte Blitz ein wenn dunkel. Sie knipst selbst wenn klar + ruhig.",
-      "idFront": "ID Hochladen - VORNE", "scanFront": "Vorne Scannen", "pickFirst": "Wähle zuerst ID Land + ID Typ",
-      "idBack": "ID Hochladen - HINTEN", "scanBack": "Hinten Scannen", "backRequired": "Hinten von {type} (erforderlich)", "autoScan": "Auto-Scan (Rahmen + Blitz)",
-      "cert": "Zertifikat Hochladen", "pickCert": "Cert Wählen",
-      "licenceTitle": "Lizenz", "licenceNumber": "Lizenz Nummer", "licenceHint": "z.B. LIC123456 / NMC123456", "errLicence": "Lizenz Nummer eingeben", "licenceFile": "Lizenz Hochladen", "pickLicence": "Lizenz Wählen",
-      "checkIdBtn": "🔍 MEINE ID ERNEUT PRÜFEN", "checkingId": "ID prüfen... Foto lesen...",
-      "idVerified": "ID verifiziert: Nummer auf deiner ID stimmt mit deiner Eingabe überein.",
-      "formatFail": "❌ Formatprüfung fehlgeschlagen", "expected": "Erwartet: {example}", "noText": "ID Foto konnte nicht gelesen werden. Mach erneut gerade, in gutem Licht, ohne Blendung.",
-      "noTextDetail": "❌ Kein Text auf ID Foto gefunden", "tipFlash": "Tipp: Fülle den Rahmen, schalte Blitz ein wenn dunkel",
-      "mismatch": "Nummer auf ID Foto stimmt nicht mit deiner Eingabe überein. Prüfe beide und versuche erneut.",
-      "typed": "❌ Getippt: {typed}", "photoRead": "❌ Foto gelesen als: {text}", "idCheckFail": "ID Prüfung fehlgeschlagen: {error}. Mach Foto erneut.", "ocrError": "❌ OCR Fehler",
-      "experience": "Erfahrung", "specialty": "Fachgebiet", "errSpecialty": "Fachgebiet wählen", "yearsExp": "Jahre Erfahrung", "errExperience": "Erfahrung wählen",
-      "specGeneral": "Allgemeine Pflege", "specMidwifery": "Hebamme", "specICU": "Intensiv / Kritische Pflege", "specPaed": "Kinderpflege", "specMental": "Psychische Gesundheit", "specCommunity": "Gemeindegesundheit", "specEmergency": "Notfall / A&E", "specTheatre": "OP / Chirurgisch",
-      "exp1": "0-1 Jahre", "exp2": "1-3 Jahre", "exp3": "3-5 Jahre", "exp4": "5-10 Jahre", "exp5": "10+ Jahre",
-      "submit": "REGISTRIERUNG ABSENDEN",
-      "fillAll": "Fülle alle Pflichtfelder aus - scrolle hoch um den roten Fehler zu sehen.",
-      "checkIdFirst": "Tippe MEINE ID ERNEUT PRÜFEN und stelle sicher, dass zuerst ID verifiziert steht.",
-      "pickPhotoErr": "Wähle ein Foto", "pickCVEerr": "Wähle deinen CV", "pickPINCardErr": "Wähle deine PIN Karte",
-      "scanIdErr": "Scanne VORNE + HINTEN deiner ID", "pickCertErr": "Wähle dein Zertifikat", "pickLicenceErr": "Wähle deine Lizenz",
-      "enterLicenceErr": "Gib deine Lizenz Nummer ein", "enterPinErr": "Gib deine PIN Nummer ein",
-      "emailClientBlock": "Diese Email ist bereits als KUNDE registriert. Eine Email kann nicht sowohl Kunde als auch Krankenschwester sein.",
-      "emailRegistered": "Diese Email ist bereits registriert. Logge dich stattdessen ein - oder nutze eine andere Email.",
-      "creating": "Konto erstellen...", "uploading": "Dokumente hochladen... App offen halten", "saving": "Registrierung speichern...",
-      "signupFail": "Anmeldung fehlgeschlagen ({code})", "uploadFail": "Upload fehlgeschlagen ({code}): {msg}", "uploadFail2": "Upload fehlgeschlagen: {error}",
-      "fileReadFail": "Datei konnte nicht gelesen werden. Versuche erneut.", "videoTooLarge": "Video ist zu groß. Wähle ein Video unter 100 MB.",
-      "pickerFail": "Auswahl fehlgeschlagen: {error}", "idScanFail": "ID Scan fehlgeschlagen: {error}", "pickCountryTypeFirst": "Wähle zuerst ID Land + ID Typ",
-      "scanned": "{side} von {type} gescannt ({country})", "selected": "{kind} gewählt: {name}", "enterIdFirst": "Gib zuerst ID Nummer ein", "scanFrontFirst": "Scanne zuerst VORNE der ID",
-    },
+  final ImagePicker _picker = ImagePicker();
+  String? _uploadStatus;
 
-    // 8. SPANISH
-    "es": {
-      "title": "Registro Enfermera",
-      "personal": "Detalles Personales",
-      "fullName": "Nombre Completo", "fullNameHint": "ej. Ama Mensah", "errFullName": "Ingresa nombre completo",
-      "email": "Correo", "emailHint": "ej. ama@email.com", "errEmail": "Ingresa correo", "errEmailValid": "Ingresa correo válido",
-      "phone": "Teléfono / WhatsApp", "phoneHint": "ej. +233 20 123 4567", "errPhone": "Ingresa número de teléfono",
-      "locationTitle": "Tu Ubicación (GPS En Vivo)", "locationLabel": "Ubicación - GPS En Vivo", "locationHint": "Toca Elegir GPS En Vivo - el nombre del lugar se llena solo",
-      "pickGPS": "Elegir GPS En Vivo", "gettingGPS": "Obteniendo GPS...", "gpsPicked": "GPS: {coords} - toca de nuevo para re-elegir", "gpsNote": "Enciende GPS primero. El nombre del lugar se llena automáticamente - no lo escribes.",
-      "password": "Contraseña", "errPassword": "La contraseña debe tener al menos 8 caracteres",
-      "weak": "Débil", "medium": "Media", "strong": "Fuerte", "veryStrong": "Muy fuerte", "strongPass": "Contraseña fuerte ✓",
-      "documents": "Documentos",
-      "photo": "Foto", "pickPhoto": "Elegir Foto", "video": "Video", "pickVideo": "Elegir Video", "cv": "CV", "pickCV": "Elegir CV",
-      "pinTitle": "PIN Enfermera", "pinNumber": "Número PIN Enfermera", "pinHint": "ej. PIN123456", "errPin": "Ingresa Número PIN", "pinCard": "Tarjeta PIN", "pickPIN": "Elegir PIN",
-      "idTitle": "Verificación ID", "idCountry": "País ID - Todos los países (igual que Cliente)", "errCountry": "Selecciona País ID",
-      "idType": "Tipo ID - Selecciona tu ID", "idTypeHint1": "Selecciona País ID primero", "idTypeHint2": "Selecciona tu ID", "errIdType": "Selecciona Tipo ID",
-      "showingIDs": "Mostrando IDs para {country} • {n} opciones • Pasaporte / ID Nacional / Licencia de Conducir funciona para todos los países",
-      "idNumber": "Número ID (como en tu ID)", "idNumberHint": "Selecciona País ID + Tipo ID primero", "errIdNumber": "Ingresa Número ID",
-      "idAuto": "ID es AUTO-ESCANEADO - ponlo dentro del cuadro, enciende flash si está oscuro. Toma solo cuando está claro + estable.",
-      "idFront": "Subir ID - FRENTE", "scanFront": "Escanear Frente", "pickFirst": "Selecciona País ID + Tipo ID primero",
-      "idBack": "Subir ID - REVERSO", "scanBack": "Escanear Reverso", "backRequired": "Reverso de {type} (requerido)", "autoScan": "Auto-escaneo (cuadro + flash)",
-      "cert": "Subir Certificado", "pickCert": "Elegir Cert",
-      "licenceTitle": "Licencia", "licenceNumber": "Número Licencia", "licenceHint": "ej. LIC123456 / NMC123456", "errLicence": "Ingresa Número Licencia", "licenceFile": "Subir Licencia", "pickLicence": "Elegir Licencia",
-      "checkIdBtn": "🔍 REVISAR MI ID DE NUEVO", "checkingId": "Revisando ID... leyendo foto...",
-      "idVerified": "ID verificado: el número en tu ID coincide con lo que escribiste.",
-      "formatFail": "❌ Falló control de formato", "expected": "Esperado: {example}", "noText": "No se pudo leer la foto ID. Tómala de nuevo derecha, con buena luz, sin reflejo.",
-      "noTextDetail": "❌ No se encontró texto en foto ID", "tipFlash": "Consejo: llena el marco, enciende flash si está oscuro",
-      "mismatch": "El número en foto ID no coincide con lo que escribiste. Revisa ambos e inténtalo de nuevo.",
-      "typed": "❌ Escrito: {typed}", "photoRead": "❌ Foto leída como: {text}", "idCheckFail": "Falló revisión ID: {error}. Retoma la foto.", "ocrError": "❌ Error OCR",
-      "experience": "Experiencia", "specialty": "Especialidad", "errSpecialty": "Selecciona especialidad", "yearsExp": "Años De Experiencia", "errExperience": "Selecciona experiencia",
-      "specGeneral": "Enfermería General", "specMidwifery": "Partería", "specICU": "UCI / Cuidados Críticos", "specPaed": "Enfermería Pediátrica", "specMental": "Salud Mental", "specCommunity": "Salud Comunitaria", "specEmergency": "Emergencia / A&E", "specTheatre": "Quirófano / Quirúrgico",
-      "exp1": "0-1 años", "exp2": "1-3 años", "exp3": "3-5 años", "exp4": "5-10 años", "exp5": "10+ años",
-      "submit": "ENVIAR REGISTRO",
-      "fillAll": "Completa todos los campos requeridos - desplázate hacia arriba para ver el error rojo.",
-      "checkIdFirst": "Toca REVISAR MI ID DE NUEVO y asegúrate de que diga ID verificado primero.",
-      "pickPhotoErr": "Elige una Foto", "pickCVEerr": "Elige tu CV", "pickPINCardErr": "Elige tu Tarjeta PIN",
-      "scanIdErr": "Escanea FRENTE + REVERSO de tu ID", "pickCertErr": "Elige tu Certificado", "pickLicenceErr": "Elige tu Licencia",
-      "enterLicenceErr": "Ingresa tu Número Licencia", "enterPinErr": "Ingresa tu Número PIN",
-      "emailClientBlock": "Este correo ya está registrado como CLIENTE. Un correo no puede ser Cliente y Enfermera.",
-      "emailRegistered": "Este correo ya está registrado. Inicia sesión en su lugar - o usa otro correo.",
-      "creating": "Creando cuenta...", "uploading": "Subiendo documentos... mantén app abierta", "saving": "Guardando registro...",
-      "signupFail": "Registro fallido ({code})", "uploadFail": "Subida fallida ({code}): {msg}", "uploadFail2": "Subida fallida: {error}",
-      "fileReadFail": "No se pudo leer ese archivo. Inténtalo de nuevo.", "videoTooLarge": "Video demasiado grande. Elige un video menor a 100 MB.",
-      "pickerFail": "Falló selector: {error}", "idScanFail": "Falló escaneo ID: {error}", "pickCountryTypeFirst": "Selecciona País ID + Tipo ID primero",
-      "scanned": "{side} de {type} escaneado ({country})", "selected": "{kind} seleccionado: {name}", "enterIdFirst": "Ingresa Número ID primero", "scanFrontFirst": "Escanea FRENTE de ID primero",
-    },
+  bool _idCheckAttempted = false;
+  bool _idCheckPassed = false;
+  String? _idCheckMessage;
+  List<String> _idCheckDetails = [];
+  bool _isCheckingId = false;
+  bool _isSubmitting = false;
 
-    // 9. ITALIAN
-    "it": {
-      "title": "Registrazione Infermiera",
-      "personal": "Dettagli Personali",
-      "fullName": "Nome Completo", "fullNameHint": "es. Ama Mensah", "errFullName": "Inserisci nome completo",
-      "email": "Email", "emailHint": "es. ama@email.com", "errEmail": "Inserisci email", "errEmailValid": "Inserisci email valida",
-      "phone": "Telefono / WhatsApp", "phoneHint": "es. +233 20 123 4567", "errPhone": "Inserisci numero di telefono",
-      "locationTitle": "La Tua Posizione (GPS Live)", "locationLabel": "Posizione - GPS Live", "locationHint": "Tocca Scegli GPS Live - il nome del luogo si compila da solo",
-      "pickGPS": "Scegli GPS Live", "gettingGPS": "Recupero GPS...", "gpsPicked": "GPS: {coords} - tocca di nuovo per re-scegliere", "gpsNote": "Accendi GPS prima. Il nome del luogo si compila automaticamente - non lo scrivi.",
-      "password": "Password", "errPassword": "La password deve avere almeno 8 caratteri",
-      "weak": "Debole", "medium": "Media", "strong": "Forte", "veryStrong": "Molto forte", "strongPass": "Password forte ✓",
-      "documents": "Documenti",
-      "photo": "Foto", "pickPhoto": "Scegli Foto", "video": "Video", "pickVideo": "Scegli Video", "cv": "CV", "pickCV": "Scegli CV",
-      "pinTitle": "PIN Infermiera", "pinNumber": "Numero PIN Infermiera", "pinHint": "es. PIN123456", "errPin": "Inserisci Numero PIN", "pinCard": "Tessera PIN", "pickPIN": "Scegli PIN",
-      "idTitle": "Verifica ID", "idCountry": "Paese ID - Tutti i paesi (come Cliente)", "errCountry": "Seleziona Paese ID",
-      "idType": "Tipo ID - Seleziona il tuo ID", "idTypeHint1": "Seleziona Paese ID prima", "idTypeHint2": "Seleziona il tuo ID", "errIdType": "Seleziona Tipo ID",
-      "showingIDs": "Mostra ID per {country} • {n} opzioni • Passaporto / Carta Nazionale / Patente funziona per ogni paese",
-      "idNumber": "Numero ID (come sul tuo ID)", "idNumberHint": "Seleziona Paese ID + Tipo ID prima", "errIdNumber": "Inserisci Numero ID",
-      "idAuto": "ID è AUTO-SCANSIONATO - mettilo dentro il riquadro, accendi flash se buio. Scatta da solo quando chiaro + fermo.",
-      "idFront": "Carica ID - FRONTE", "scanFront": "Scansiona Fronte", "pickFirst": "Seleziona Paese ID + Tipo ID prima",
-      "idBack": "Carica ID - RETRO", "scanBack": "Scansiona Retro", "backRequired": "Retro di {type} (richiesto)", "autoScan": "Auto-scan (riquadro + flash)",
-      "cert": "Carica Certificato", "pickCert": "Scegli Cert",
-      "licenceTitle": "Licenza", "licenceNumber": "Numero Licenza", "licenceHint": "es. LIC123456 / NMC123456", "errLicence": "Inserisci Numero Licenza", "licenceFile": "Carica Licenza", "pickLicence": "Scegli Licenza",
-      "checkIdBtn": "🔍 CONTROLLA IL MIO ID DI NUOVO", "checkingId": "Controllo ID... lettura foto...",
-      "idVerified": "ID verificato: il numero sul tuo ID corrisponde a quello che hai digitato.",
-      "formatFail": "❌ Controllo formato fallito", "expected": "Previsto: {example}", "noText": "Impossibile leggere la foto ID. Rifalla dritta, in buona luce, senza riflessi.",
-      "noTextDetail": "❌ Nessun testo trovato su foto ID", "tipFlash": "Suggerimento: riempi il riquadro, accendi flash se buio",
-      "mismatch": "Il numero su foto ID non corrisponde a quello che hai digitato. Controlla entrambi e riprova.",
-      "typed": "❌ Digitato: {typed}", "photoRead": "❌ Foto letta come: {text}", "idCheckFail": "Controllo ID fallito: {error}. Rifai la foto.", "ocrError": "❌ Errore OCR",
-      "experience": "Esperienza", "specialty": "Specialità", "errSpecialty": "Seleziona specialità", "yearsExp": "Anni Di Esperienza", "errExperience": "Seleziona esperienza",
-      "specGeneral": "Infermieristica Generale", "specMidwifery": "Ostetricia", "specICU": "Terapia Intensiva / Critica", "specPaed": "Infermieristica Pediatrica", "specMental": "Salute Mentale", "specCommunity": "Salute Comunitaria", "specEmergency": "Emergenza / Pronto Soccorso", "specTheatre": "Sala Operatoria / Chirurgico",
-      "exp1": "0-1 anni", "exp2": "1-3 anni", "exp3": "3-5 anni", "exp4": "5-10 anni", "exp5": "10+ anni",
-      "submit": "INVIA REGISTRAZIONE",
-      "fillAll": "Compila tutti i campi richiesti - scorri su per vedere l'errore rosso.",
-      "checkIdFirst": "Tocca CONTROLLA IL MIO ID DI NUOVO e assicurati che dica ID verificato prima.",
-      "pickPhotoErr": "Scegli una Foto", "pickCVEerr": "Scegli il tuo CV", "pickPINCardErr": "Scegli la tua Tessera PIN",
-      "scanIdErr": "Scansiona FRONTE + RETRO del tuo ID", "pickCertErr": "Scegli il tuo Certificato", "pickLicenceErr": "Scegli la tua Licenza",
-      "enterLicenceErr": "Inserisci il tuo Numero Licenza", "enterPinErr": "Inserisci il tuo Numero PIN",
-      "emailClientBlock": "Questa email è già registrata come CLIENTE. Una email non può essere sia Cliente che Infermiera.",
-      "emailRegistered": "Questa email è già registrata. Accedi invece - o usa un'altra email.",
-      "creating": "Creazione account...", "uploading": "Caricamento documenti... tieni app aperta", "saving": "Salvataggio registrazione...",
-      "signupFail": "Registrazione fallita ({code})", "uploadFail": "Caricamento fallito ({code}): {msg}", "uploadFail2": "Caricamento fallito: {error}",
-      "fileReadFail": "Impossibile leggere quel file. Riprova.", "videoTooLarge": "Video troppo grande. Scegli un video sotto 100 MB.",
-      "pickerFail": "Selettore fallito: {error}", "idScanFail": "Scansione ID fallita: {error}", "pickCountryTypeFirst": "Seleziona Paese ID + Tipo ID prima",
-      "scanned": "{side} di {type} scansionato ({country})", "selected": "{kind} selezionato: {name}", "enterIdFirst": "Inserisci Numero ID prima", "scanFrontFirst": "Scansiona FRONTE ID prima",
-    },
+  List<IdTypeOption> get _idTypesForCountry => IdCatalog.forCountry(_selectedCountry);
 
-    // 10. PORTUGUESE
-    "pt": {
-      "title": "Registro Enfermeira",
-      "personal": "Detalhes Pessoais",
-      "fullName": "Nome Completo", "fullNameHint": "ex. Ama Mensah", "errFullName": "Digite nome completo",
-      "email": "Email", "emailHint": "ex. ama@email.com", "errEmail": "Digite email", "errEmailValid": "Digite email válido",
-      "phone": "Telefone / WhatsApp", "phoneHint": "ex. +233 20 123 4567", "errPhone": "Digite número de telefone",
-      "locationTitle": "Sua Localização (GPS Ao Vivo)", "locationLabel": "Localização - GPS Ao Vivo", "locationHint": "Toque Escolher GPS Ao Vivo - o nome do lugar se preenche sozinho",
-      "pickGPS": "Escolher GPS Ao Vivo", "gettingGPS": "Obtendo GPS...", "gpsPicked": "GPS: {coords} - toque novamente para re-escolher", "gpsNote": "Ligue GPS primeiro. O nome do lugar se preenche automaticamente - você não digita.",
-      "password": "Senha", "errPassword": "A senha deve ter pelo menos 8 caracteres",
-      "weak": "Fraca", "medium": "Média", "strong": "Forte", "veryStrong": "Muito forte", "strongPass": "Senha forte ✓",
-      "documents": "Documentos",
-      "photo": "Foto", "pickPhoto": "Escolher Foto", "video": "Vídeo", "pickVideo": "Escolher Vídeo", "cv": "CV", "pickCV": "Escolher CV",
-      "pinTitle": "PIN Enfermeira", "pinNumber": "Número PIN Enfermeira", "pinHint": "ex. PIN123456", "errPin": "Digite Número PIN", "pinCard": "Cartão PIN", "pickPIN": "Escolher PIN",
-      "idTitle": "Verificação ID", "idCountry": "País ID - Todos os países (igual Cliente)", "errCountry": "Selecione País ID",
-      "idType": "Tipo ID - Selecione seu ID", "idTypeHint1": "Selecione País ID primeiro", "idTypeHint2": "Selecione seu ID", "errIdType": "Selecione Tipo ID",
-      "showingIDs": "Mostrando IDs para {country} • {n} opções • Passaporte / ID Nacional / Carteira de Motorista funciona para todos os países",
-      "idNumber": "Número ID (como no seu ID)", "idNumberHint": "Selecione País ID + Tipo ID primeiro", "errIdNumber": "Digite Número ID",
-      "idAuto": "ID é AUTO-ESCANEADO - coloque dentro da caixa, ligue flash se escuro. Ele tira sozinho quando claro + estável.",
-      "idFront": "Enviar ID - FRENTE", "scanFront": "Escanear Frente", "pickFirst": "Selecione País ID + Tipo ID primeiro",
-      "idBack": "Enviar ID - VERSO", "scanBack": "Escanear Verso", "backRequired": "Verso de {type} (obrigatório)", "autoScan": "Auto-scan (caixa + flash)",
-      "cert": "Enviar Certificado", "pickCert": "Escolher Cert",
-      "licenceTitle": "Licença", "licenceNumber": "Número Licença", "licenceHint": "ex. LIC123456 / NMC123456", "errLicence": "Digite Número Licença", "licenceFile": "Enviar Licença", "pickLicence": "Escolher Licença",
-      "checkIdBtn": "🔍 VERIFICAR MEU ID NOVAMENTE", "checkingId": "Verificando ID... lendo foto...",
-      "idVerified": "ID verificado: o número no seu ID corresponde ao que você digitou.",
-      "formatFail": "❌ Falha verificação formato", "expected": "Esperado: {example}", "noText": "Não foi possível ler a foto ID. Tire novamente reta, com boa luz, sem brilho.",
-      "noTextDetail": "❌ Nenhum texto encontrado na foto ID", "tipFlash": "Dica: preencha o quadro, ligue flash se escuro",
-      "mismatch": "O número na foto ID não corresponde ao que você digitou. Verifique ambos e tente novamente.",
-      "typed": "❌ Digitado: {typed}", "photoRead": "❌ Foto lida como: {text}", "idCheckFail": "Falha verificação ID: {error}. Tire a foto novamente.", "ocrError": "❌ Erro OCR",
-      "experience": "Experiência", "specialty": "Especialidade", "errSpecialty": "Selecione especialidade", "yearsExp": "Anos De Experiência", "errExperience": "Selecione experiência",
-      "specGeneral": "Enfermagem Geral", "specMidwifery": "Obstetrícia", "specICU": "UTI / Cuidados Críticos", "specPaed": "Enfermagem Pediátrica", "specMental": "Saúde Mental", "specCommunity": "Saúde Comunitária", "specEmergency": "Emergência / A&E", "specTheatre": "Centro Cirúrgico / Cirúrgico",
-      "exp1": "0-1 anos", "exp2": "1-3 anos", "exp3": "3-5 anos", "exp4": "5-10 anos", "exp5": "10+ anos",
-      "submit": "ENVIAR REGISTRO",
-      "fillAll": "Preencha todos os campos obrigatórios - role para cima para ver o erro vermelho.",
-      "checkIdFirst": "Toque VERIFICAR MEU ID NOVAMENTE e certifique-se de que diz ID verificado primeiro.",
-      "pickPhotoErr": "Escolha uma Foto", "pickCVEerr": "Escolha seu CV", "pickPINCardErr": "Escolha seu Cartão PIN",
-      "scanIdErr": "Escaneie FRENTE + VERSO do seu ID", "pickCertErr": "Escolha seu Certificado", "pickLicenceErr": "Escolha sua Licença",
-      "enterLicenceErr": "Digite seu Número Licença", "enterPinErr": "Digite seu Número PIN",
-      "emailClientBlock": "Este email já está registrado como CLIENTE. Um email não pode ser Cliente e Enfermeira.",
-      "emailRegistered": "Este email já está registrado. Faça login em vez disso - ou use outro email.",
-      "creating": "Criando conta...", "uploading": "Enviando documentos... mantenha app aberto", "saving": "Salvando registro...",
-      "signupFail": "Falha cadastro ({code})", "uploadFail": "Falha envio ({code}): {msg}", "uploadFail2": "Falha envio: {error}",
-      "fileReadFail": "Não foi possível ler esse arquivo. Tente novamente.", "videoTooLarge": "Vídeo muito grande. Escolha um vídeo abaixo de 100 MB.",
-      "pickerFail": "Falha seletor: {error}", "idScanFail": "Falha escaneamento ID: {error}", "pickCountryTypeFirst": "Selecione País ID + Tipo ID primeiro",
-      "scanned": "{side} de {type} escaneado ({country})", "selected": "{kind} selecionado: {name}", "enterIdFirst": "Digite Número ID primeiro", "scanFrontFirst": "Escaneie FRENTE do ID primeiro",
-    },
+  int get _passwordStrength {
+    final p = _passwordController.text;
+    int score = 0;
+    if (p.length >= 8) score++;
+    if (RegExp(r'[A-Z]').hasMatch(p)) score++;
+    if (RegExp(r'[a-z]').hasMatch(p)) score++;
+    if (RegExp(r'[0-9]').hasMatch(p)) score++;
+    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(p)) score++;
+    return score;
+  }
 
-    // 11. ARABIC
-    "ar": {
-      "title": "تسجيل الممرضة",
-      "personal": "التفاصيل الشخصية",
-      "fullName": "الاسم الكامل", "fullNameHint": "مثال: Ama Mensah", "errFullName": "أدخل الاسم الكامل",
-      "email": "البريد", "emailHint": "مثال: ama@email.com", "errEmail": "أدخل البريد", "errEmailValid": "أدخل بريداً صالحاً",
-      "phone": "الهاتف / واتساب", "phoneHint": "مثال: +233 20 123 4567", "errPhone": "أدخل رقم الهاتف",
-      "locationTitle": "موقعك (GPS مباشر)", "locationLabel": "الموقع - GPS مباشر", "locationHint": "اضغط اختيار GPS مباشر - اسم المكان يملأ نفسه",
-      "pickGPS": "اختيار GPS مباشر", "gettingGPS": "جارٍ جلب GPS...", "gpsPicked": "GPS: {coords} - اضغط مجدداً لإعادة الاختيار", "gpsNote": "شغّل GPS أولاً. اسم المكان يملأ تلقائياً - لا تكتبه.",
-      "password": "كلمة المرور", "errPassword": "كلمة المرور يجب أن تكون 8 أحرف على الأقل",
-      "weak": "ضعيفة", "medium": "متوسطة", "strong": "قوية", "veryStrong": "قوية جداً", "strongPass": "كلمة مرور قوية ✓",
-      "documents": "المستندات",
-      "photo": "صورة", "pickPhoto": "اختيار صورة", "video": "فيديو", "pickVideo": "اختيار فيديو", "cv": "السيرة الذاتية", "pickCV": "اختيار CV",
-      "pinTitle": "PIN التمريض", "pinNumber": "رقم PIN التمريض", "pinHint": "مثال: PIN123456", "errPin": "أدخل رقم PIN", "pinCard": "بطاقة PIN", "pickPIN": "اختيار PIN",
-      "idTitle": "التحقق من الهوية", "idCountry": "بلد الهوية - كل البلدان (مثل العميل)", "errCountry": "اختر بلد الهوية",
-      "idType": "نوع الهوية - اختر هويتك", "idTypeHint1": "اختر بلد الهوية أولاً", "idTypeHint2": "اختر هويتك", "errIdType": "اختر نوع الهوية",
-      "showingIDs": "عرض هويات لـ {country} • {n} خيارات • جواز السفر / الهوية الوطنية / رخصة القيادة تعمل لكل بلد",
-      "idNumber": "رقم الهوية (كما هو مطبوع على هويتك)", "idNumberHint": "اختر بلد الهوية + نوع الهوية أولاً", "errIdNumber": "أدخل رقم الهوية",
-      "idAuto": "الهوية تُمسح تلقائياً - ضعها داخل المربع، شغّل الفلاش إذا كان مظلماً. تلتقط بنفسها عندما تكون واضحة + ثابتة.",
-      "idFront": "رفع الهوية - الأمام", "scanFront": "مسح الأمام", "pickFirst": "اختر بلد الهوية + نوع الهوية أولاً",
-      "idBack": "رفع الهوية - الخلف", "scanBack": "مسح الخلف", "backRequired": "خلف {type} (مطلوب)", "autoScan": "مسح تلقائي (مربع + فلاش)",
-      "cert": "رفع الشهادة", "pickCert": "اختيار شهادة",
-      "licenceTitle": "الترخيص", "licenceNumber": "رقم الترخيص", "licenceHint": "مثال: LIC123456 / NMC123456", "errLicence": "أدخل رقم الترخيص", "licenceFile": "رفع الترخيص", "pickLicence": "اختيار ترخيص",
-      "checkIdBtn": "🔍 تحقق من هويتي مرة أخرى", "checkingId": "جارٍ التحقق من الهوية... قراءة الصورة...",
-      "idVerified": "تم التحقق من الهوية: الرقم على هويتك يطابق ما كتبته.",
-      "formatFail": "❌ فشل فحص التنسيق", "expected": "المتوقع: {example}", "noText": "تعذرت قراءة صورة الهوية. أعد التقاطها مستقيمة، في إضاءة جيدة، بدون لمعان.",
-      "noTextDetail": "❌ لم يتم العثور على نص في صورة الهوية", "tipFlash": "نصيحة: املأ الإطار، شغّل الفلاش إذا كان مظلماً",
-      "mismatch": "الرقم في صورة الهوية لا يطابق ما كتبته. تحقق من الاثنين وحاول مرة أخرى.",
-      "typed": "❌ كتبت: {typed}", "photoRead": "❌ الصورة قُرئت على أنها: {text}", "idCheckFail": "فشل التحقق من الهوية: {error}. حاول إعادة التقاط الصورة.", "ocrError": "❌ خطأ OCR",
-      "experience": "الخبرة", "specialty": "التخصص", "errSpecialty": "اختر التخصص", "yearsExp": "سنوات الخبرة", "errExperience": "اختر الخبرة",
-      "specGeneral": "تمريض عام", "specMidwifery": "القبالة", "specICU": "العناية المركزة / الحرجة", "specPaed": "تمريض الأطفال", "specMental": "الصحة النفسية", "specCommunity": "صحة المجتمع", "specEmergency": "الطوارئ / A&E", "specTheatre": "المسرح / الجراحة",
-      "exp1": "0-1 سنة", "exp2": "1-3 سنوات", "exp3": "3-5 سنوات", "exp4": "5-10 سنوات", "exp5": "10+ سنوات",
-      "submit": "إرسال التسجيل",
-      "fillAll": "املأ كل الحقول المطلوبة - مرر لأعلى لترى الخطأ الأحمر.",
-      "checkIdFirst": "اضغط تحقق من هويتي مرة أخرى وتأكد أنه يقول تم التحقق من الهوية أولاً.",
-      "pickPhotoErr": "اختر صورة", "pickCVEerr": "اختر سيرتك الذاتية", "pickPINCardErr": "اختر بطاقة PIN الخاصة بك",
-      "scanIdErr": "امسح الأمام + الخلف لهويتك", "pickCertErr": "اختر شهادتك", "pickLicenceErr": "اختر ترخيصك",
-      "enterLicenceErr": "أدخل رقم ترخيصك", "enterPinErr": "أدخل رقم PIN الخاص بك",
-      "emailClientBlock": "هذا البريد مسجل بالفعل كعميل. بريد واحد لا يمكن أن يكون عميلاً وممرضة.",
-      "emailRegistered": "هذا البريد مسجل بالفعل. سجّل دخول بدلاً من ذلك - أو استخدم بريداً آخر.",
-      "creating": "جارٍ إنشاء الحساب...", "uploading": "جارٍ رفع المستندات... أبقِ التطبيق مفتوحاً", "saving": "جارٍ حفظ التسجيل...",
-      "signupFail": "فشل التسجيل ({code})", "uploadFail": "فشل الرفع ({code}): {msg}", "uploadFail2": "فشل الرفع: {error}",
-      "fileReadFail": "تعذرت قراءة ذلك الملف. حاول مرة أخرى.", "videoTooLarge": "الفيديو كبير جداً. اختر فيديو أقل من 100 ميغا.",
-      "pickerFail": "فشل الاختيار: {error}", "idScanFail": "فشل مسح الهوية: {error}", "pickCountryTypeFirst": "اختر بلد الهوية + نوع الهوية أولاً",
-      "scanned": "تم مسح {side} {type} ({country})", "selected": "تم اختيار {kind}: {name}", "enterIdFirst": "أدخل رقم الهوية أولاً", "scanFrontFirst": "امسح أمام الهوية أولاً",
-    },
+  String get _passwordLabel {
+    switch (_passwordStrength) {
+      case 0:
+      case 1:
+        return 'Weak';
+      case 2:
+      case 3:
+        return 'Medium';
+      case 4:
+        return 'Strong';
+      default:
+        return 'Very strong';
+    }
+  }
 
-    // 12. CHINESE
-    "zh": {
-      "title": "护士注册",
-      "personal": "个人详情",
-      "fullName": "全名", "fullNameHint": "例如: Ama Mensah", "errFullName": "输入全名",
-      "email": "邮箱", "emailHint": "例如: ama@email.com", "errEmail": "输入邮箱", "errEmailValid": "输入有效邮箱",
-      "phone": "电话 / WhatsApp", "phoneHint": "例如: +233 20 123 4567", "errPhone": "输入电话号码",
-      "locationTitle": "你的位置 (实时 GPS)", "locationLabel": "位置 - 实时 GPS", "locationHint": "点击选择实时 GPS - 地名自动填充",
-      "pickGPS": "选择实时 GPS", "gettingGPS": "正在获取 GPS...", "gpsPicked": "GPS: {coords} - 再次点击重新选择", "gpsNote": "先打开 GPS。地名自动填充 - 你不用输入。",
-      "password": "密码", "errPassword": "密码至少 8 个字符",
-      "weak": "弱", "medium": "中等", "strong": "强", "veryStrong": "非常强", "strongPass": "强密码 ✓",
-      "documents": "文件",
-      "photo": "照片", "pickPhoto": "选择照片", "video": "视频", "pickVideo": "选择视频", "cv": "简历", "pickCV": "选择简历",
-      "pinTitle": "护理 PIN", "pinNumber": "护理 PIN 号码", "pinHint": "例如: PIN123456", "errPin": "输入 PIN 号码", "pinCard": "PIN 卡", "pickPIN": "选择 PIN",
-      "idTitle": "身份验证", "idCountry": "证件国家 - 所有国家 (同客户)", "errCountry": "选择证件国家",
-      "idType": "证件类型 - 选择你的证件", "idTypeHint1": "先选择证件国家", "idTypeHint2": "选择你的证件", "errIdType": "选择证件类型",
-      "showingIDs": "显示 {country} 的证件 • {n} 个选项 • 护照 / 国民身份证 / 驾驶证适用于每个国家",
-      "idNumber": "证件号码 (如证件上印刷)", "idNumberHint": "先选择证件国家 + 证件类型", "errIdNumber": "输入证件号码",
-      "idAuto": "证件自动扫描 - 放入框内, 黑暗时打开闪光灯。清晰 + 稳定时自动拍摄。",
-      "idFront": "上传证件 - 正面", "scanFront": "扫描正面", "pickFirst": "先选择证件国家 + 证件类型",
-      "idBack": "上传证件 - 背面", "scanBack": "扫描背面", "backRequired": "{type} 背面 (必需)", "autoScan": "自动扫描 (框 + 闪光灯)",
-      "cert": "上传证书", "pickCert": "选择证书",
-      "licenceTitle": "执照", "licenceNumber": "执照号码", "licenceHint": "例如: LIC123456 / NMC123456", "errLicence": "输入执照号码", "licenceFile": "上传执照", "pickLicence": "选择执照",
-      "checkIdBtn": "🔍 再次检查我的证件", "checkingId": "正在检查证件... 正在读取照片...",
-      "idVerified": "证件已验证: 证件上的号码与你输入的一致。",
-      "formatFail": "❌ 格式检查失败", "expected": "预期: {example}", "noText": "无法读取证件照片。请重新拍摄, 正直, 光线好, 无反光。",
-      "noTextDetail": "❌ 证件照片上未找到文字", "tipFlash": "提示: 填满框, 黑暗时打开闪光灯",
-      "mismatch": "证件照片上的号码与你输入的不匹配。请检查两者并重试。",
-      "typed": "❌ 输入: {typed}", "photoRead": "❌ 照片读取为: {text}", "idCheckFail": "证件检查失败: {error}。请重新拍摄照片。", "ocrError": "❌ OCR 错误",
-      "experience": "经验", "specialty": "专业", "errSpecialty": "选择专业", "yearsExp": "工作年限", "errExperience": "选择经验",
-      "specGeneral": "普通护理", "specMidwifery": "助产", "specICU": "ICU / 重症护理", "specPaed": "儿科护理", "specMental": "心理健康", "specCommunity": "社区健康", "specEmergency": "急诊 / A&E", "specTheatre": "手术室 / 外科",
-      "exp1": "0-1 年", "exp2": "1-3 年", "exp3": "3-5 年", "exp4": "5-10 年", "exp5": "10+ 年",
-      "submit": "提交注册",
-      "fillAll": "请填写所有必填字段 - 向上滚动查看红色错误。",
-      "checkIdFirst": "请点击再次检查我的证件, 并确保先显示证件已验证。",
-      "pickPhotoErr": "请选择照片", "pickCVEerr": "请选择你的简历", "pickPINCardErr": "请选择你的 PIN 卡",
-      "scanIdErr": "请扫描证件正面 + 背面", "pickCertErr": "请选择你的证书", "pickLicenceErr": "请选择你的执照",
-      "enterLicenceErr": "请输入你的执照号码", "enterPinErr": "请输入你的 PIN 号码",
-      "emailClientBlock": "此邮箱已注册为客户。一个邮箱不能同时是客户和护士。",
-      "emailRegistered": "此邮箱已注册。请改为登录 - 或使用其他邮箱。",
-      "creating": "正在创建账号...", "uploading": "正在上传文件... 请保持应用打开", "saving": "正在保存注册...",
-      "signupFail": "注册失败 ({code})", "uploadFail": "上传失败 ({code}): {msg}", "uploadFail2": "上传失败: {error}",
-      "fileReadFail": "无法读取该文件。请重试。", "videoTooLarge": "视频太大。请选择 100 MB 以下的视频。",
-      "pickerFail": "选择失败: {error}", "idScanFail": "证件扫描失败: {error}", "pickCountryTypeFirst": "先选择证件国家 + 证件类型",
-      "scanned": "已扫描 {type} 的 {side} ({country})", "selected": "已选择 {kind}: {name}", "enterIdFirst": "先输入证件号码", "scanFrontFirst": "先扫描证件正面",
-    },
+  @override
+  void dispose() {
+    _fullNameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _pinNumberController.dispose();
+    _idNumberController.dispose();
+    _licenceNumberController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
 
-    // 13. HINDI
-    "hi": {
-      "title": "नर्स पंजीकरण",
-      "personal": "व्यक्तिगत विवरण",
-      "fullName": "पूरा नाम", "fullNameHint": "जैसे: Ama Mensah", "errFullName": "पूरा नाम डालें",
-      "email": "ईमेल", "emailHint": "जैसे: ama@email.com", "errEmail": "ईमेल डालें", "errEmailValid": "मान्य ईमेल डालें",
-      "phone": "फोन / WhatsApp", "phoneHint": "जैसे: +233 20 123 4567", "errPhone": "फोन नंबर डालें",
-      "locationTitle": "आपका स्थान (लाइव GPS)", "locationLabel": "स्थान - लाइव GPS", "locationHint": "लाइव GPS चुनें टैप करें - जगह का नाम खुद भर जाएगा",
-      "pickGPS": "लाइव GPS चुनें", "gettingGPS": "GPS ले रहे हैं...", "gpsPicked": "GPS: {coords} - फिर से चुनने के लिए फिर टैप करें", "gpsNote": "पहले GPS चालू करें। जगह का नाम अपने आप भर जाता है - आप टाइप नहीं करतीं।",
-      "password": "पासवर्ड", "errPassword": "पासवर्ड कम से कम 8 अक्षरों का होना चाहिए",
-      "weak": "कमजोर", "medium": "मध्यम", "strong": "मजबूत", "veryStrong": "बहुत मजबूत", "strongPass": "मजबूत पासवर्ड ✓",
-      "documents": "दस्तावेज़",
-      "photo": "फोटो", "pickPhoto": "फोटो चुनें", "video": "वीडियो", "pickVideo": "वीडियो चुनें", "cv": "CV", "pickCV": "CV चुनें",
-      "pinTitle": "नर्सिंग PIN", "pinNumber": "नर्सिंग PIN नंबर", "pinHint": "जैसे: PIN123456", "errPin": "PIN नंबर डालें", "pinCard": "PIN कार्ड", "pickPIN": "PIN चुनें",
-      "idTitle": "ID सत्यापन", "idCountry": "ID देश - सभी देश (ग्राहक जैसा)", "errCountry": "ID देश चुनें",
-      "idType": "ID प्रकार - अपना ID चुनें", "idTypeHint1": "पहले ID देश चुनें", "idTypeHint2": "अपना ID चुनें", "errIdType": "ID प्रकार चुनें",
-      "showingIDs": "{country} के लिए IDs दिखा रहे हैं • {n} विकल्प • पासपोर्ट / राष्ट्रीय ID / ड्राइविंग लाइसेंस हर देश के लिए काम करता है",
-      "idNumber": "ID नंबर (जैसा आपके ID पर छपा है)", "idNumberHint": "पहले ID देश + ID प्रकार चुनें", "errIdNumber": "ID नंबर डालें",
-      "idAuto": "ID AUTO-SCANNED है - इसे बॉक्स में रखें, अंधेरा हो तो फ्लैश चालू करें। साफ़ + स्थिर होने पर खुद क्लिक हो जाता है।",
-      "idFront": "ID अपलोड करें - सामने", "scanFront": "सामने स्कैन करें", "pickFirst": "पहले ID देश + ID प्रकार चुनें",
-      "idBack": "ID अपलोड करें - पीछे", "scanBack": "पीछे स्कैन करें", "backRequired": "{type} का पीछे (आवश्यक)", "autoScan": "ऑटो-स्कैन (बॉक्स + फ्लैश)",
-      "cert": "प्रमाणपत्र अपलोड करें", "pickCert": "Cert चुनें",
-      "licenceTitle": "लाइसेंस", "licenceNumber": "लाइसेंस नंबर", "licenceHint": "जैसे: LIC123456 / NMC123456", "errLicence": "लाइसेंस नंबर डालें", "licenceFile": "लाइसेंस अपलोड करें", "pickLicence": "लाइसेंस चुनें",
-      "checkIdBtn": "🔍 मेरी ID फिर से जाँचें", "checkingId": "ID जाँच रहे हैं... फोटो पढ़ रहे हैं...",
-      "idVerified": "ID सत्यापित: आपके ID पर नंबर आपके टाइप किए हुए से मेल खाता है।",
-      "formatFail": "❌ प्रारूप जाँच विफल", "expected": "अपेक्षित: {example}", "noText": "ID फोटो नहीं पढ़ सके। सीधे फिर लें, अच्छी रोशनी में, बिना चमक के।",
-      "noTextDetail": "❌ ID फोटो पर कोई टेक्स्ट नहीं मिला", "tipFlash": "टिप: फ्रेम भरें, अंधेरा हो तो फ्लैश चालू करें",
-      "mismatch": "ID फोटो पर नंबर आपके टाइप किए हुए से मेल नहीं खाता। दोनों जाँचें और फिर प्रयास करें।",
-      "typed": "❌ टाइप किया: {typed}", "photoRead": "❌ फोटो पढ़ा गया: {text}", "idCheckFail": "ID जाँच विफल: {error}। फोटो फिर लें।", "ocrError": "❌ OCR त्रुटि",
-      "experience": "अनुभव", "specialty": "विशेषज्ञता", "errSpecialty": "विशेषज्ञता चुनें", "yearsExp": "अनुभव के वर्ष", "errExperience": "अनुभव चुनें",
-      "specGeneral": "सामान्य नर्सिंग", "specMidwifery": "दाई का काम", "specICU": "ICU / गंभीर देखभाल", "specPaed": "बाल नर्सिंग", "specMental": "मानसिक स्वास्थ्य", "specCommunity": "सामुदायिक स्वास्थ्य", "specEmergency": "आपातकालीन / A&E", "specTheatre": "थिएटर / सर्जिकल",
-      "exp1": "0-1 वर्ष", "exp2": "1-3 वर्ष", "exp3": "3-5 वर्ष", "exp4": "5-10 वर्ष", "exp5": "10+ वर्ष",
-      "submit": "पंजीकरण भेजें",
-      "fillAll": "सभी आवश्यक फ़ील्ड भरें - लाल त्रुटि देखने के लिए ऊपर स्क्रॉल करें।",
-      "checkIdFirst": "मेरी ID फिर से जाँचें टैप करें और सुनिश्चित करें कि पहले ID सत्यापित लिखा हो।",
-      "pickPhotoErr": "कृपया एक फोटो चुनें", "pickCVEerr": "कृपया अपना CV चुनें", "pickPINCardErr": "कृपया अपना PIN कार्ड चुनें",
-      "scanIdErr": "कृपया अपने ID का सामने + पीछे स्कैन करें", "pickCertErr": "कृपया अपना प्रमाणपत्र चुनें", "pickLicenceErr": "कृपया अपना लाइसेंस चुनें",
-      "enterLicenceErr": "कृपया अपना लाइसेंस नंबर डालें", "enterPinErr": "कृपया अपना PIN नंबर डालें",
-      "emailClientBlock": "यह ईमेल पहले से ग्राहक के रूप में पंजीकृत है। एक ईमेल ग्राहक और नर्स दोनों नहीं हो सकता।",
-      "emailRegistered": "यह ईमेल पहले से पंजीकृत है। इसके बजाय लॉगिन करें - या कोई अन्य ईमेल उपयोग करें।",
-      "creating": "खाता बना रहे हैं...", "uploading": "दस्तावेज़ अपलोड हो रहे हैं... ऐप खुला रखें", "saving": "पंजीकरण सहेज रहे हैं...",
-      "signupFail": "साइन-अप विफल ({code})", "uploadFail": "अपलोड विफल ({code}): {msg}", "uploadFail2": "अपलोड विफल: {error}",
-      "fileReadFail": "उस फ़ाइल को नहीं पढ़ सके। फिर प्रयास करें।", "videoTooLarge": "वीडियो बहुत बड़ा है। कृपया 100 MB से कम का वीडियो चुनें।",
-      "pickerFail": "चयनकर्ता विफल: {error}", "idScanFail": "ID स्कैन विफल: {error}", "pickCountryTypeFirst": "पहले ID देश + ID प्रकार चुनें",
-      "scanned": "{type} का {side} स्कैन किया गया ({country})", "selected": "{kind} चुना गया: {name}", "enterIdFirst": "पहले ID नंबर डालें", "scanFrontFirst": "पहले ID का सामने स्कैन करें",
-    },
+  void _onCountryChanged(String? country) {
+    setState(() {
+      _selectedCountry = country;
+      _selectedIdType = null;
+      _idNumberController.clear();
+      _idFrontName = null; _idFrontBytes = null;
+      _idBackName = null; _idBackBytes = null;
+      _idCheckAttempted = false;
+      _idCheckPassed = false;
+      _idCheckMessage = null;
+      _idCheckDetails = [];
+    });
+  }
 
-    // 14. SWAHILI
-    "sw": {
-      "title": "Usajili Wa Muuguzi",
-      "personal": "Maelezo Binafsi",
-      "fullName": "Jina Kamili", "fullNameHint": "mf. Ama Mensah", "errFullName": "Ingiza jina kamili",
-      "email": "Barua Pepe", "emailHint": "mf. ama@email.com", "errEmail": "Ingiza barua pepe", "errEmailValid": "Ingiza barua pepe sahihi",
-      "phone": "Simu / WhatsApp", "phoneHint": "mf. +233 20 123 4567", "errPhone": "Ingiza namba ya simu",
-      "locationTitle": "Mahali Pako (GPS Moja Kwa Moja)", "locationLabel": "Mahali - GPS Moja Kwa Moja", "locationHint": "Gusa Chagua GPS Moja Kwa Moja - jina la mahali linajijaza",
-      "pickGPS": "Chagua GPS Moja Kwa Moja", "gettingGPS": "Inapata GPS...", "gpsPicked": "GPS: {coords} - gusa tena kuchagua tena", "gpsNote": "Washa GPS kwanza. Jina la mahali linajijaza kiotomatiki - huandiki.",
-      "password": "Nenosiri", "errPassword": "Nenosiri lazima liwe na herufi 8 angalau",
-      "weak": "Dhaifu", "medium": "Wastani", "strong": "Imara", "veryStrong": "Imara sana", "strongPass": "Nenosiri imara ✓",
-      "documents": "Nyaraka",
-      "photo": "Picha", "pickPhoto": "Chagua Picha", "video": "Video", "pickVideo": "Chagua Video", "cv": "CV", "pickCV": "Chagua CV",
-      "pinTitle": "PIN Ya Uuguzi", "pinNumber": "Namba Ya PIN Ya Uuguzi", "pinHint": "mf. PIN123456", "errPin": "Ingiza Namba Ya PIN", "pinCard": "Kadi Ya PIN", "pickPIN": "Chagua PIN",
-      "idTitle": "Uthibitisho Wa Kitambulisho", "idCountry": "Nchi Ya Kitambulisho - Nchi zote (kama Mteja)", "errCountry": "Chagua Nchi Ya Kitambulisho",
-      "idType": "Aina Ya Kitambulisho - Chagua kitambulisho chako", "idTypeHint1": "Chagua Nchi Ya Kitambulisho kwanza", "idTypeHint2": "Chagua kitambulisho chako", "errIdType": "Chagua Aina Ya Kitambulisho",
-      "showingIDs": "Inaonyesha Vitambulisho vya {country} • {n} chaguo • Pasipoti / Kitambulisho Cha Taifa / Leseni Ya Kuendesha inafanya kazi kwa kila nchi",
-      "idNumber": "Namba Ya Kitambulisho (kama ilivyochapishwa)", "idNumberHint": "Chagua Nchi Ya Kitambulisho + Aina Ya Kitambulisho kwanza", "errIdNumber": "Ingiza Namba Ya Kitambulisho",
-      "idAuto": "Kitambulisho ni AUTO-SCANNED - kiweke ndani ya kisanduku, washa flash ikiwa ni giza. Kinapiga chenyewe kikiwa wazi + thabiti.",
-      "idFront": "Pakia Kitambulisho - MBELE", "scanFront": "Scan Mbele", "pickFirst": "Chagua Nchi Ya Kitambulisho + Aina Ya Kitambulisho kwanza",
-      "idBack": "Pakia Kitambulisho - NYUMA", "scanBack": "Scan Nyuma", "backRequired": "Nyuma ya {type} (inahitajika)", "autoScan": "Auto-scan (kisanduku + flash)",
-      "cert": "Pakia Cheti", "pickCert": "Chagua Cheti",
-      "licenceTitle": "Leseni", "licenceNumber": "Namba Ya Leseni", "licenceHint": "mf. LIC123456 / NMC123456", "errLicence": "Ingiza Namba Ya Leseni", "licenceFile": "Pakia Leseni", "pickLicence": "Chagua Leseni",
-      "checkIdBtn": "🔍 ANGALIA KITAMBULISHO CHANGU TENA", "checkingId": "Inaangalia Kitambulisho... inasoma picha...",
-      "idVerified": "Kitambulisho kimethibitishwa: namba kwenye kitambulisho chako inalingana na uliyoandika.",
-      "formatFail": "❌ Ukaguzi wa umbizo umeshindwa", "expected": "Inatarajiwa: {example}", "noText": "Haikuweza kusoma picha ya kitambulisho. Piga tena sawa, kwa mwanga mzuri, bila mng'ao.",
-      "noTextDetail": "❌ Hakuna maandishi yaliyopatikana kwenye picha ya kitambulisho", "tipFlash": "Kidokezo: jaza fremu, washa flash ikiwa ni giza",
-      "mismatch": "Namba kwenye picha ya kitambulisho hailingani na uliyoandika. Angalia zote mbili na ujaribu tena.",
-      "typed": "❌ Uliondika: {typed}", "photoRead": "❌ Picha imesomwa kama: {text}", "idCheckFail": "Ukaguzi wa kitambulisho umeshindwa: {error}. Piga picha tena.", "ocrError": "❌ Hitilafu ya OCR",
-      "experience": "Uzoefu", "specialty": "Utaalamu", "errSpecialty": "Chagua utaalamu", "yearsExp": "Miaka Ya Uzoefu", "errExperience": "Chagua uzoefu",
-      "specGeneral": "Uuguzi Wa Jumla", "specMidwifery": "Ukunga", "specICU": "ICU / Huduma Mahututi", "specPaed": "Uuguzi Wa Watoto", "specMental": "Afya Ya Akili", "specCommunity": "Afya Ya Jamii", "specEmergency": "Dharura / A&E", "specTheatre": "Ukurasa Wa Upasuaji / Upasuaji",
-      "exp1": "Miaka 0-1", "exp2": "Miaka 1-3", "exp3": "Miaka 3-5", "exp4": "Miaka 5-10", "exp5": "Miaka 10+",
-      "submit": "WASILISHA USAJILI",
-      "fillAll": "Jaza sehemu zote zinazohitajika - sogeza juu ili uone kosa jekundu.",
-      "checkIdFirst": "Gusa ANGALIA KITAMBULISHO CHANGU TENA na hakikisha inasema kitambulisho kimethibitishwa kwanza.",
-      "pickPhotoErr": "Tafadhali chagua Picha", "pickCVEerr": "Tafadhali chagua CV yako", "pickPINCardErr": "Tafadhali chagua Kadi Yako Ya PIN",
-      "scanIdErr": "Tafadhali scan MBELE + NYUMA ya kitambulisho chako", "pickCertErr": "Tafadhali chagua Cheti chako", "pickLicenceErr": "Tafadhali chagua Leseni yako",
-      "enterLicenceErr": "Tafadhali ingiza Namba Yako Ya Leseni", "enterPinErr": "Tafadhali ingiza Namba Yako Ya PIN",
-      "emailClientBlock": "Barua pepe hii tayari imesajiliwa kama MTEJA. Barua pepe moja haiwezi kuwa Mteja na Muuguzi.",
-      "emailRegistered": "Barua pepe hii tayari imesajiliwa. Ingia badala yake - au tumia barua pepe nyingine.",
-      "creating": "Inaunda akaunti...", "uploading": "Inapakia nyaraka... weka app wazi", "saving": "Inahifadhi usajili...",
-      "signupFail": "Kujisajili kumeshindwa ({code})", "uploadFail": "Kupakia kumeshindwa ({code}): {msg}", "uploadFail2": "Kupakia kumeshindwa: {error}",
-      "fileReadFail": "Haikuweza kusoma faili hiyo. Jaribu tena.", "videoTooLarge": "Video ni kubwa sana. Tafadhali chagua video chini ya 100 MB.",
-      "pickerFail": "Kichaguzi kimeshindwa: {error}", "idScanFail": "Scan ya kitambulisho imeshindwa: {error}", "pickCountryTypeFirst": "Chagua Nchi Ya Kitambulisho + Aina Ya Kitambulisho kwanza",
-      "scanned": "Imescan {side} ya {type} ({country})", "selected": "{kind} imechaguliwa: {name}", "enterIdFirst": "Ingiza Namba Ya Kitambulisho kwanza", "scanFrontFirst": "Scan MBELE ya kitambulisho kwanza",
-    },
+  void _onIdTypeChanged(IdTypeOption? type) {
+    setState(() {
+      _selectedIdType = type;
+      _idNumberController.clear();
+      _idFrontName = null; _idFrontBytes = null;
+      _idBackName = null; _idBackBytes = null;
+      _idCheckAttempted = false;
+      _idCheckPassed = false;
+      _idCheckMessage = null;
+      _idCheckDetails = [];
+    });
+  }
 
-    // 15. YORUBA
-    "yo": {
-      "title": "Iforukọsilẹ Nọọsi",
-      "personal": "Awọn Alaye Ti Ara Ẹni",
-      "fullName": "Orukọ Kikun", "fullNameHint": "apẹẹrẹ. Ama Mensah", "errFullName": "Fi orukọ kikun",
-      "email": "Email", "emailHint": "apẹẹrẹ. ama@email.com", "errEmail": "Fi email", "errEmailValid": "Fi email to tọ",
-      "phone": "Foonu / WhatsApp", "phoneHint": "apẹẹrẹ. +233 20 123 4567", "errPhone": "Fi nọmba foonu",
-      "locationTitle": "Ibi Rẹ (GPS Live)", "locationLabel": "Ibi - GPS Live", "locationHint": "Tẹ Yan GPS Live - orukọ ibi yoo kun funra rẹ",
-      "pickGPS": "Yan GPS Live", "gettingGPS": "Ngba GPS...", "gpsPicked": "GPS: {coords} - tẹ lẹẹkansi lati yan lẹẹkansi", "gpsNote": "Tan GPS kọkọ. Orukọ ibi yoo kun funrarẹ - iwọ ko kọ ọ.",
-      "password": "Password", "errPassword": "Password gbọdọ jẹ ohun kikọ 8 o kere ju",
-      "weak": "Alailagbara", "medium": "Aarin", "strong": "Lagbara", "veryStrong": "Lagbara pupọ", "strongPass": "Password lagbara ✓",
-      "documents": "Awọn Iwe",
-      "photo": "Foto", "pickPhoto": "Yan Foto", "video": "Fidio", "pickVideo": "Yan Fidio", "cv": "CV", "pickCV": "Yan CV",
-      "pinTitle": "PIN Nọọsi", "pinNumber": "Nọmba PIN Nọọsi", "pinHint": "apẹẹrẹ. PIN123456", "errPin": "Fi Nọmba PIN", "pinCard": "Kaadi PIN", "pickPIN": "Yan PIN",
-      "idTitle": "Ijerisi ID", "idCountry": "Orilẹ-ede ID - Gbogbo orilẹ-ede (bi Alabara)", "errCountry": "Yan Orilẹ-ede ID",
-      "idType": "Iru ID - Yan ID rẹ", "idTypeHint1": "Yan Orilẹ-ede ID kọkọ", "idTypeHint2": "Yan ID rẹ", "errIdType": "Yan Iru ID",
-      "showingIDs": "Nfi IDs han fun {country} • {n} aṣayan • Passport / ID Orilẹ-ede / Iwe-aṣẹ Awakọ n ṣiṣẹ fun gbogbo orilẹ-ede",
-      "idNumber": "Nọmba ID (bi a ti tẹ lori ID rẹ)", "idNumberHint": "Yan Orilẹ-ede ID + Iru ID kọkọ", "errIdNumber": "Fi Nọmba ID",
-      "idAuto": "ID jẹ AUTO-SCANNED - fi sinu apoti, tan filasi ti o ba ṣokunkun. O ya funra rẹ nigbati o ba mọ + duro.",
-      "idFront": "Gbe ID soke - IWaju", "scanFront": "Scan Iwaju", "pickFirst": "Yan Orilẹ-ede ID + Iru ID kọkọ",
-      "idBack": "Gbe ID soke - ẸYIN", "scanBack": "Scan Ẹyin", "backRequired": "Ẹyin {type} (nilo)", "autoScan": "Auto-scan (apoti + filasi)",
-      "cert": "Gbe Iwe-ẹri soke", "pickCert": "Yan Cert",
-      "licenceTitle": "Iwe-aṣẹ", "licenceNumber": "Nọmba Iwe-aṣẹ", "licenceHint": "apẹẹrẹ. LIC123456 / NMC123456", "errLicence": "Fi Nọmba Iwe-aṣẹ", "licenceFile": "Gbe Iwe-aṣẹ soke", "pickLicence": "Yan Iwe-aṣẹ",
-      "checkIdBtn": "🔍 ṢAYẸWO ID MI LẸẸKANSI", "checkingId": "Nṣayẹwo ID... nka foto...",
-      "idVerified": "A ti jẹrisi ID: nọmba lori ID rẹ ba ohun ti o tẹ mu.",
-      "formatFail": "❌ Ayẹwo ọna kọja kuna", "expected": "Ti n reti: {example}", "noText": "Ko le ka foto ID. Ya lẹẹkansi taara, ni imọlẹ to dara, laisi didan.",
-      "noTextDetail": "❌ Ko ri ọrọ kankan lori foto ID", "tipFlash": "Imọran: kun apoti, tan filasi ti o ba ṣokunkun",
-      "mismatch": "Nọmba lori foto ID ko ba ohun ti o tẹ mu. Ṣayẹwo mejeeji ki o tun gbiyanju.",
-      "typed": "❌ O tẹ: {typed}", "photoRead": "❌ Foto ka bi: {text}", "idCheckFail": "Ayẹwo ID kuna: {error}. Ya foto lẹẹkansi.", "ocrError": "❌ Aṣiṣe OCR",
-      "experience": "Iriri", "specialty": "Pataki", "errSpecialty": "Yan pataki", "yearsExp": "Ọdun Iriri", "errExperience": "Yan iriri",
-      "specGeneral": "Nọọsi Gbogbogbo", "specMidwifery": "Iṣẹ aboyun", "specICU": "ICU / Itọju Pataki", "specPaed": "Nọọsi Ọmọde", "specMental": "Ilera Ọpọlọ", "specCommunity": "Ilera Agbegbe", "specEmergency": "Pajawiri / A&E", "specTheatre": "Ile-iṣere / Iṣẹ abẹ",
-      "exp1": "Ọdun 0-1", "exp2": "Ọdun 1-3", "exp3": "Ọdun 3-5", "exp4": "Ọdun 5-10", "exp5": "Ọdun 10+",
-      "submit": "FI IFORUKỌSILẸ RÁNSẸ",
-      "fillAll": "Kun gbogbo awọn aaye ti a nilo - yi lọ soke lati ri aṣiṣe pupa.",
-      "checkIdFirst": "Tẹ ṢAYẸWO ID MI LẸẸKANSI ki o rii daju pe o sọ pe ID ti jẹrisi kọkọ.",
-      "pickPhotoErr": "Jọwọ yan Foto", "pickCVEerr": "Jọwọ yan CV rẹ", "pickPINCardErr": "Jọwọ yan Kaadi PIN rẹ",
-      "scanIdErr": "Jọwọ scan IWaju + ẸYIN ID rẹ", "pickCertErr": "Jọwọ yan Iwe-ẹri rẹ", "pickLicenceErr": "Jọwọ yan Iwe-aṣẹ rẹ",
-      "enterLicenceErr": "Jọwọ fi Nọmba Iwe-aṣẹ rẹ", "enterPinErr": "Jọwọ fi Nọmba PIN rẹ",
-      "emailClientBlock": "Email yi ti forukọsilẹ tẹlẹ bi ALABARA. Email kan ko le jẹ Alabara ati Nọọsi.",
-      "emailRegistered": "Email yi ti forukọsilẹ tẹlẹ. Wọle dipo - tabi lo email miiran.",
-      "creating": "Nṣẹda account...", "uploading": "Ngbe awọn iwe soke... fi app naa ṣi silẹ", "saving": "Nfi iforukọsilẹ pamọ...",
-      "signupFail": "Iforukọsilẹ kuna ({code})", "uploadFail": "Gbigbe soke kuna ({code}): {msg}", "uploadFail2": "Gbigbe soke kuna: {error}",
-      "fileReadFail": "Ko le ka faili naa. Tun gbiyanju.", "videoTooLarge": "Fidio tobi ju. Jọwọ yan fidio ti o kere ju 100 MB.",
-      "pickerFail": "Aṣayan kuna: {error}", "idScanFail": "Scan ID kuna: {error}", "pickCountryTypeFirst": "Yan Orilẹ-ede ID + Iru ID kọkọ",
-      "scanned": "Ti scan {side} {type} ({country})", "selected": "Ti yan {kind}: {name}", "enterIdFirst": "Fi Nọmba ID kọkọ", "scanFrontFirst": "Scan Iwaju ID kọkọ",
-    },
+  Future<void> _pickFile(String kind) async {
+    try {
+      Uint8List? bytes;
+      String? name;
+      if (kind == 'photo' || kind == 'pin') {
+        final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+        if (picked == null) return;
+        bytes = await picked.readAsBytes();
+        name = picked.name;
+      } else if (kind == 'video') {
+        final XFile? picked = await _picker.pickVideo(source: ImageSource.gallery);
+        if (picked == null) return;
+        bytes = await picked.readAsBytes();
+        name = picked.name;
+      } else {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+          withData: true,
+        );
+        if (result == null || result.files.isEmpty) return;
+        final file = result.files.first;
+        bytes = file.bytes;
+        name = file.name;
+      }
+      if (bytes == null || bytes.isEmpty) {
+        _showError('Could not read that file. Please try again.');
+        return;
+      }
+      if (kind == 'video' && bytes.length > 100 * 1024 * 1024) {
+        _showError('Video is too large. Please pick a video under 100 MB.');
+        return;
+      }
+      setState(() {
+        switch (kind) {
+          case 'photo': _photoName = name; _photoBytes = bytes; break;
+          case 'video': _videoName = name; _videoBytes = bytes; break;
+          case 'cv': _cvName = name; _cvBytes = bytes; break;
+          case 'pin': _pinCardName = name; _pinCardBytes = bytes; break;
+          case 'cert': _certificateName = name; _certificateBytes = bytes; break;
+          case 'licence': _licenceName = name; _licenceBytes = bytes; break;
+        }
+        _uploadStatus = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$kind selected: $name')));
+      }
+    } catch (e) {
+      _showError('Picker failed: $e');
+    }
+  }
 
-    // 16. IGBO
-    "ig": {
-      "title": "Ndebanye Aha Nọọsụ",
-      "personal": "Nkọwa Onwe Gị",
-      "fullName": "Aha Zuruezu", "fullNameHint": "dịka: Ama Mensah", "errFullName": "Tinye aha zuruezu",
-      "email": "Email", "emailHint": "dịka: ama@email.com", "errEmail": "Tinye email", "errEmailValid": "Tinye email ziri ezi",
-      "phone": "Ekwentị / WhatsApp", "phoneHint": "dịka: +233 20 123 4567", "errPhone": "Tinye nọmba ekwentị",
-      "locationTitle": "Ebe Gị (GPS Live)", "locationLabel": "Ebe - GPS Live", "locationHint": "Pịa Họrọ GPS Live - aha ebe ga-ejupụta n'onwe ya",
-      "pickGPS": "Họrọ GPS Live", "gettingGPS": "Na-enweta GPS...", "gpsPicked": "GPS: {coords} - pịa ọzọ ka ịhọrọ ọzọ", "gpsNote": "Gbanye GPS mbụ. Aha ebe na-ejupụta na akpaghị aka - ị naghị ede ya.",
-      "password": "Paswọọdụ", "errPassword": "Paswọọdụ ga-abụrịrị mkpụrụedemede 8 ma ọ dịkarịa ala",
-      "weak": "Adịghị ike", "medium": "N'etiti", "strong": "Ike", "veryStrong": "Ike nke ukwuu", "strongPass": "Paswọọdụ siri ike ✓",
-      "documents": "Akwụkwọ",
-      "photo": "Foto", "pickPhoto": "Họrọ Foto", "video": "Vidio", "pickVideo": "Họrọ Vidio", "cv": "CV", "pickCV": "Họrọ CV",
-      "pinTitle": "PIN Nọọsụ", "pinNumber": "Nọmba PIN Nọọsụ", "pinHint": "dịka: PIN123456", "errPin": "Tinye Nọmba PIN", "pinCard": "Kaadị PIN", "pickPIN": "Họrọ PIN",
-      "idTitle": "Nkwenye ID", "idCountry": "Mba ID - Mba niile (dị ka Onye Ahịa)", "errCountry": "Họrọ Mba ID",
-      "idType": "Ụdị ID - Họrọ ID gị", "idTypeHint1": "Họrọ Mba ID mbụ", "idTypeHint2": "Họrọ ID gị", "errIdType": "Họrọ Ụdị ID",
-      "showingIDs": "Na-egosi ID maka {country} • {n} nhọrọ • Paspọtụ / ID Mba / Ikike Ịkwọ Ụgbọ na-arụ ọrụ maka mba ọ bụla",
-      "idNumber": "Nọmba ID (dị ka e bipụtara na ID gị)", "idNumberHint": "Họrọ Mba ID + Ụdị ID mbụ", "errIdNumber": "Tinye Nọmba ID",
-      "idAuto": "ID bụ AUTO-SCANNED - tinye ya n'igbe, gbanye flash ma ọ bụrụ na ọ gbara ọchịchịrị. Ọ na-ese n'onwe ya mgbe o doro anya + kwụsiri ike.",
-      "idFront": "Bulite ID - N'Ihu", "scanFront": "Scan N'Ihu", "pickFirst": "Họrọ Mba ID + Ụdị ID mbụ",
-      "idBack": "Bulite ID - N'Azụ", "scanBack": "Scan N'Azụ", "backRequired": "N'Azụ {type} (achọrọ)", "autoScan": "Auto-scan (igbe + flash)",
-      "cert": "Bulite Asambodo", "pickCert": "Họrọ Cert",
-      "licenceTitle": "Ikike", "licenceNumber": "Nọmba Ikike", "licenceHint": "dịka: LIC123456 / NMC123456", "errLicence": "Tinye Nọmba Ikike", "licenceFile": "Bulite Ikike", "pickLicence": "Họrọ Ikike",
-      "checkIdBtn": "🔍 LEE ID M ỌZỌ", "checkingId": "Na-enyocha ID... na-agụ foto...",
-      "idVerified": "Enyochala ID: nọmba dị na ID gị dabara na ihe ị pịnyere.",
-      "formatFail": "❌ Nlele usoro dara", "expected": "A na-atụ anya: {example}", "noText": "Enweghị ike ịgụ foto ID. Were ya ọzọ kwụ ọtọ, na ọkụ dị mma, na-enweghị ọkụ.",
-      "noTextDetail": "❌ Ahụghị ederede ọ bụla na foto ID", "tipFlash": "Ndụmọdụ: jupụta fremu, gbanye flash ma ọ gbara ọchịchịrị",
-      "mismatch": "Nọmba dị na foto ID adabaghị na ihe ị pịnyere. Lelee ha abụọ wee nwaa ọzọ.",
-      "typed": "❌ Ị pịnyere: {typed}", "photoRead": "❌ Foto gụrụ dị ka: {text}", "idCheckFail": "Nlele ID dara: {error}. Were foto ọzọ.", "ocrError": "❌ Njehie OCR",
-      "experience": "Ahụmahụ", "specialty": "Ọpụrụiche", "errSpecialty": "Họrọ ọpụrụiche", "yearsExp": "Afọ Ahụmahụ", "errExperience": "Họrọ ahụmahụ",
-      "specGeneral": "Nọọsụ Izugbe", "specMidwifery": "Ịmụ nwa", "specICU": "ICU / Nlekọta Dị Oke", "specPaed": "Nọọsụ Ụmụaka", "specMental": "Ahụike Uche", "specCommunity": "Ahụike Obodo", "specEmergency": "Ihe Mberede / A&E", "specTheatre": "Ụlọ Ihe Nkiri / Ịwa Ahụ",
-      "exp1": "Afọ 0-1", "exp2": "Afọ 1-3", "exp3": "Afọ 3-5", "exp4": "Afọ 5-10", "exp5": "Afọ 10+",
-      "submit": "ZIGA NDEBANYE AHA",
-      "fillAll": "Jupụta ubi niile achọrọ - pịgharịa elu ka ịhụ njehie uhie.",
-      "checkIdFirst": "Pịa LEE ID M ỌZỌ ma hụ na o kwuru ID enyochala mbụ.",
-      "pickPhotoErr": "Biko horo Foto", "pickCVEerr": "Biko horo CV gi", "pickPINCardErr": "Biko horo Kaadi PIN gi",
-      "scanIdErr": "Biko scan N'Ihu + N'Azụ ID gị", "pickCertErr": "Biko họrọ Asambodo gị", "pickLicenceErr": "Biko họrọ Ikike gị",
-      "enterLicenceErr": "Biko tinye Nọmba Ikike gị", "enterPinErr": "Biko tinye Nọmba PIN gị",
-      "emailClientBlock": "Email a edebanyela aha dị ka ONYE AHỊA. Otu email enweghị ike ịbụ Onye Ahịa na Nọọsụ.",
-      "emailRegistered": "Email a edebanyela aha. Banye kama - ma ọ bụ jiri email ọzọ.",
-      "creating": "Na-eke akaụntụ...", "uploading": "Na-ebugo akwụkwọ... debe app meghe", "saving": "Na-echekwa ndebanye aha...",
-      "signupFail": "Ndebanye aha dara ({code})", "uploadFail": "Mbugo dara ({code}): {msg}", "uploadFail2": "Mbugo dara: {error}",
-      "fileReadFail": "Enweghị ike ịgụ faịlụ ahụ. Nwaa ọzọ.", "videoTooLarge": "Vidio buru ibu nke ukwuu. Biko họrọ vidio n'okpuru 100 MB.",
-      "pickerFail": "Onye họrọ dara: {error}", "idScanFail": "Nyocha ID dara: {error}", "pickCountryTypeFirst": "Họrọ Mba ID + Ụdị ID mbụ",
-      "scanned": "Enyochala {side} {type} ({country})", "selected": "Ahọrọla {kind}: {name}", "enterIdFirst": "Tinye Nọmba ID mbụ", "scanFrontFirst": "Scan N'Ihu ID mbụ",
-    },
+  Future<void> _scanId(String side) async {
+    if (_selectedCountry == null || _selectedIdType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pick ID Country + ID Type first')));
+      return;
+    }
+    try {
+      final XFile? picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      setState(() {
+        if (side == 'front') { _idFrontName = picked.name; _idFrontBytes = bytes; }
+        else { _idBackName = picked.name; _idBackBytes = bytes; }
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Scanned $side of ${_selectedIdType!.label} ($_selectedCountry)')));
+      }
+    } catch (e) {
+      _showError('ID scan failed: $e');
+    }
+  }
 
-    // 17. HAUSA
-    "ha": {
-      "title": "Rijistar Nurse",
-      "personal": "Bayanin Kai",
-      "fullName": "Cikakken Suna", "fullNameHint": "misali: Ama Mensah", "errFullName": "Shigar da cikakken suna",
-      "email": "Email", "emailHint": "misali: ama@email.com", "errEmail": "Shigar da email", "errEmailValid": "Shigar da email mai inganci",
-      "phone": "Waya / WhatsApp", "phoneHint": "misali: +233 20 123 4567", "errPhone": "Shigar da lambar waya",
-      "locationTitle": "Wurinka (GPS Live)", "locationLabel": "Wuri - GPS Live", "locationHint": "Taɓa Zaɓi GPS Live - sunan wuri zai cika da kansa",
-      "pickGPS": "Zaɓi GPS Live", "gettingGPS": "Ana samun GPS...", "gpsPicked": "GPS: {coords} - taɓa kuma don zaɓa kuma", "gpsNote": "Kunna GPS da farko. Sunan wuri yana cika da kansa - ba ka rubuta shi ba.",
-      "password": "Kalmar Sirri", "errPassword": "Kalmar sirri dole ta zama haruffa 8 aƙalla",
-      "weak": "Mai rauni", "medium": "Matsakaici", "strong": "Mai ƙarfi", "veryStrong": "Mai ƙarfi sosai", "strongPass": "Kalmar sirri mai ƙarfi ✓",
-      "documents": "Takardu",
-      "photo": "Hoto", "pickPhoto": "Zaɓi Hoto", "video": "Bidiyo", "pickVideo": "Zaɓi Bidiyo", "cv": "CV", "pickCV": "Zaɓi CV",
-      "pinTitle": "PIN Na Nurse", "pinNumber": "Lambar PIN Na Nurse", "pinHint": "misali: PIN123456", "errPin": "Shigar da Lambar PIN", "pinCard": "Katin PIN", "pickPIN": "Zaɓi PIN",
-      "idTitle": "Tabbatar Da ID", "idCountry": "Ƙasar ID - Duk ƙasashe (kamar Abokin Ciniki)", "errCountry": "Zaɓi Ƙasar ID",
-      "idType": "Nau'in ID - Zaɓi ID ɗinka", "idTypeHint1": "Zaɓi Ƙasar ID da farko", "idTypeHint2": "Zaɓi ID ɗinka", "errIdType": "Zaɓi Nau'in ID",
-      "showingIDs": "Ana nuna ID na {country} • {n} zaɓuɓɓuka • Fasfo / ID Na Ƙasa / Lasisin Tuƙi yana aiki ga kowace ƙasa",
-      "idNumber": "Lambar ID (kamar yadda aka buga a ID ɗinka)", "idNumberHint": "Zaɓi Ƙasar ID + Nau'in ID da farko", "errIdNumber": "Shigar da Lambar ID",
-      "idAuto": "ID AUTO-SCANNED ne - sanya shi a cikin akwatin, kunna flash idan duhu ne. Yana ɗauka da kansa idan ya bayyana + ya tsaya.",
-      "idFront": "Loda ID - GABA", "scanFront": "Scan Gaba", "pickFirst": "Zaɓi Ƙasar ID + Nau'in ID da farko",
-      "idBack": "Loda ID - BAYA", "scanBack": "Scan Baya", "backRequired": "Bayan {type} (ana buƙata)", "autoScan": "Auto-scan (akwati + flash)",
-      "cert": "Loda Takardar Shaida", "pickCert": "Zaɓi Cert",
-      "licenceTitle": "Lasisi", "licenceNumber": "Lambar Lasisi", "licenceHint": "misali: LIC123456 / NMC123456", "errLicence": "Shigar da Lambar Lasisi", "licenceFile": "Loda Lasisi", "pickLicence": "Zaɓi Lasisi",
-      "checkIdBtn": "🔍 DUBA ID NA KUMA", "checkingId": "Ana duba ID... ana karanta hoto...",
-      "idVerified": "An tabbatar da ID: lambar da ke kan ID ɗinka ta yi daidai da abin da ka rubuta.",
-      "formatFail": "❌ Duba tsari ya kasa", "expected": "Ana tsammani: {example}", "noText": "Ba a iya karanta hoton ID ba. Ɗauke shi kuma a tsaye, cikin haske mai kyau, ba tare da walƙiya ba.",
-      "noTextDetail": "❌ Ba a sami rubutu ba a hoton ID", "tipFlash": "Tukwici: cika firam ɗin, kunna flash idan duhu ne",
-      "mismatch": "Lambar da ke kan hoton ID ba ta yi daidai da abin da ka rubuta ba. Duba su biyun kuma sake gwadawa.",
-      "typed": "❌ Ka rubuta: {typed}", "photoRead": "❌ An karanta hoto a matsayin: {text}", "idCheckFail": "Duba ID ya kasa: {error}. Sake ɗaukar hoto.", "ocrError": "❌ Kuskuren OCR",
-      "experience": "Kwarewa", "specialty": "Ƙwarewa", "errSpecialty": "Zaɓi ƙwarewa", "yearsExp": "Shekarun Kwarewa", "errExperience": "Zaɓi kwarewa",
-      "specGeneral": "Nursing Na Gabaɗaya", "specMidwifery": "Ungozoma", "specICU": "ICU / Kulawa Mai Mahimmanci", "specPaed": "Nursing Na Yara", "specMental": "Lafiyar Hankali", "specCommunity": "Lafiyar Al'umma", "specEmergency": "Gaggawa / A&E", "specTheatre": "Dakin Tiyata / Tiyata",
-      "exp1": "Shekara 0-1", "exp2": "Shekara 1-3", "exp3": "Shekara 3-5", "exp4": "Shekara 5-10", "exp5": "Shekara 10+",
-      "submit": "AIKA RIJISTA",
-      "fillAll": "Cika duk filayen da ake buƙata - gungura sama don ganin kuskuren ja.",
-      "checkIdFirst": "Taɓa DUBA ID NA KUMA kuma tabbatar ya ce an tabbatar da ID da farko.",
-      "pickPhotoErr": "Don Allah zaɓi Hoto", "pickCVEerr": "Don Allah zaɓi CV ɗinka", "pickPINCardErr": "Don Allah zaɓi Katin PIN ɗinka",
-      "scanIdErr": "Don Allah scan GABA + BAYA na ID ɗinka", "pickCertErr": "Don Allah zaɓi Takardar Shaida ɗinka", "pickLicenceErr": "Don Allah zaɓi Lasisi ɗinka",
-      "enterLicenceErr": "Don Allah shigar da Lambar Lasisi ɗinka", "enterPinErr": "Don Allah shigar da Lambar PIN ɗinka",
-      "emailClientBlock": "Wannan email an riga an yi masa rijista a matsayin ABOKIN CINIKI. Email ɗaya ba zai iya zama Abokin Ciniki da Nurse ba.",
-      "emailRegistered": "Wannan email an riga an yi masa rijista. Shiga maimakon haka - ko amfani da wani email.",
-      "creating": "Ana ƙirƙirar asusun...", "uploading": "Ana loda takardu... ci gaba da app a buɗe", "saving": "Ana adana rijista...",
-      "signupFail": "Rijista ta kasa ({code})", "uploadFail": "Loda ya kasa ({code}): {msg}", "uploadFail2": "Loda ya kasa: {error}",
-      "fileReadFail": "Ba a iya karanta wannan fayil ɗin ba. Sake gwadawa.", "videoTooLarge": "Bidiyo ya yi girma sosai. Don Allah zaɓi bidiyo ƙasa da 100 MB.",
-      "pickerFail": "Zaɓi ya kasa: {error}", "idScanFail": "Scan na ID ya kasa: {error}", "pickCountryTypeFirst": "Zaɓi Ƙasar ID + Nau'in ID da farko",
-      "scanned": "An scan {side} na {type} ({country})", "selected": "An zaɓi {kind}: {name}", "enterIdFirst": "Shigar da Lambar ID da farko", "scanFrontFirst": "Scan Gaban ID da farko",
-    },
+  Future<void> _checkIdAgain() async {
+    if (_selectedCountry == null || _selectedIdType == null) return;
+    if (_idNumberController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter ID Number first')));
+      return;
+    }
+    if (_idFrontName == null || _idFrontBytes == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Scan FRONT of ID first')));
+      return;
+    }
+    setState(() { _idCheckAttempted = true; _isCheckingId = true; _idCheckMessage = 'Checking ID... reading photo...'; _idCheckDetails = []; });
+    try {
+      final pattern = _selectedIdType!.pattern;
+      final typed = _idNumberController.text.trim().toUpperCase();
+      final formatOk = pattern == null || pattern.hasMatch(typed);
+      final ocrText = await _ocrFromBytes(_idFrontBytes!);
+      String norm(String s) => s.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+      final typedNorm = norm(typed);
+      final ocrNorm = norm(ocrText);
+      final typedDigits = typed.replaceAll(RegExp(r'[^0-9]'), '');
+      final ocrDigits = ocrText.replaceAll(RegExp(r'[^0-9]'), '');
+      final digitsMatch = typedDigits.length >= 6 && (ocrDigits.contains(typedDigits) || _containsMostInOrder(ocrDigits, typedDigits, 0.8));
+      final fullMatch = typedNorm.isNotEmpty && ocrNorm.contains(typedNorm);
+      setState(() {
+        _idCheckPassed = formatOk && (fullMatch || digitsMatch);
+        if (_idCheckPassed) {
+          _idCheckMessage = 'ID verified: number on your ID matches what you typed.';
+          _idCheckDetails = ['✅ Format matches ${_selectedIdType!.label} (${_selectedIdType!.example})', '✅ Number found on ID photo'];
+        } else if (!formatOk) {
+          _idCheckMessage = _selectedIdType!.patternError ?? 'ID number format does not match.';
+          _idCheckDetails = ['❌ Format check failed', 'Expected: ${_selectedIdType!.example}'];
+        } else if (ocrText.trim().isEmpty) {
+          _idCheckMessage = 'Could not read the ID photo. Retake it straight, in good light, no glare.';
+          _idCheckDetails = ['❌ No text found on ID photo', 'Tip: fill the frame, turn on flash if dark'];
+        } else {
+          _idCheckMessage = 'Number on ID photo does not match what you typed. Check both and try again.';
+          _idCheckDetails = ['❌ Typed: $typed', '❌ Photo read as: ${ocrText.trim().split(RegExp(r'\s+')).take(12).join(' ')}'];
+        }
+      });
+    } catch (e) {
+      setState(() { _idCheckPassed = false; _idCheckMessage = 'ID check failed: $e. Try retaking the photo.'; _idCheckDetails = ['❌ OCR error']; });
+    } finally { if (mounted) setState(() => _isCheckingId = false); }
+  }
 
-    // 18. RUSSIAN
-    "ru": {
-      "title": "Регистрация Медсестры",
-      "personal": "Личные Данные",
-      "fullName": "Полное Имя", "fullNameHint": "напр. Ama Mensah", "errFullName": "Введите полное имя",
-      "email": "Email", "emailHint": "напр. ama@email.com", "errEmail": "Введите email", "errEmailValid": "Введите действительный email",
-      "phone": "Телефон / WhatsApp", "phoneHint": "напр. +233 20 123 4567", "errPhone": "Введите номер телефона",
-      "locationTitle": "Ваше Местоположение (Live GPS)", "locationLabel": "Местоположение - Live GPS", "locationHint": "Нажмите Выбрать Live GPS - название места заполнится само",
-      "pickGPS": "Выбрать Live GPS", "gettingGPS": "Получение GPS...", "gpsPicked": "GPS: {coords} - нажмите снова чтобы выбрать заново", "gpsNote": "Сначала включите GPS. Название места заполняется автоматически - вы его не вводите.",
-      "password": "Пароль", "errPassword": "Пароль должен быть не менее 8 символов",
-      "weak": "Слабый", "medium": "Средний", "strong": "Сильный", "veryStrong": "Очень сильный", "strongPass": "Сильный пароль ✓",
-      "documents": "Документы",
-      "photo": "Фото", "pickPhoto": "Выбрать Фото", "video": "Видео", "pickVideo": "Выбрать Видео", "cv": "CV", "pickCV": "Выбрать CV",
-      "pinTitle": "PIN Медсестры", "pinNumber": "Номер PIN Медсестры", "pinHint": "напр. PIN123456", "errPin": "Введите Номер PIN", "pinCard": "PIN Карта", "pickPIN": "Выбрать PIN",
-      "idTitle": "Проверка ID", "idCountry": "Страна ID - Все страны (как Клиент)", "errCountry": "Выберите Страну ID",
-      "idType": "Тип ID - Выберите ваш ID", "idTypeHint1": "Сначала выберите Страну ID", "idTypeHint2": "Выберите ваш ID", "errIdType": "Выберите Тип ID",
-      "showingIDs": "Показаны ID для {country} • {n} вариантов • Паспорт / Национальный ID / Водительские права работают для каждой страны",
-      "idNumber": "Номер ID (как напечатано на вашем ID)", "idNumberHint": "Сначала выберите Страну ID + Тип ID", "errIdNumber": "Введите Номер ID",
-      "idAuto": "ID - AUTO-SCANNED - положите его в рамку, включите вспышку если темно. Он снимает сам когда ясно + неподвижно.",
-      "idFront": "Загрузить ID - ПЕРЕД", "scanFront": "Сканировать Перед", "pickFirst": "Сначала выберите Страну ID + Тип ID",
-      "idBack": "Загрузить ID - ЗАД", "scanBack": "Сканировать Зад", "backRequired": "Зад {type} (обязательно)", "autoScan": "Авто-скан (рамка + вспышка)",
-      "cert": "Загрузить Сертификат", "pickCert": "Выбрать Cert",
-      "licenceTitle": "Лицензия", "licenceNumber": "Номер Лицензии", "licenceHint": "напр. LIC123456 / NMC123456", "errLicence": "Введите Номер Лицензии", "licenceFile": "Загрузить Лицензию", "pickLicence": "Выбрать Лицензию",
-      "checkIdBtn": "🔍 ПРОВЕРИТЬ МОЙ ID СНОВА", "checkingId": "Проверка ID... чтение фото...",
-      "idVerified": "ID проверен: номер на вашем ID совпадает с тем, что вы ввели.",
-      "formatFail": "❌ Проверка формата не удалась", "expected": "Ожидается: {example}", "noText": "Не удалось прочитать фото ID. Снимите снова прямо, при хорошем свете, без бликов.",
-      "noTextDetail": "❌ На фото ID не найдено текста", "tipFlash": "Совет: заполните рамку, включите вспышку если темно",
-      "mismatch": "Номер на фото ID не совпадает с тем, что вы ввели. Проверьте оба и попробуйте снова.",
-      "typed": "❌ Введено: {typed}", "photoRead": "❌ Фото прочитано как: {text}", "idCheckFail": "Проверка ID не удалась: {error}. Попробуйте снять фото заново.", "ocrError": "❌ Ошибка OCR",
-      "experience": "Опыт", "specialty": "Специальность", "errSpecialty": "Выберите специальность", "yearsExp": "Годы Опыта", "errExperience": "Выберите опыт",
-      "specGeneral": "Общая Сестринская Практика", "specMidwifery": "Акушерство", "specICU": "ОРИТ / Критическая Помощь", "specPaed": "Детская Сестринская Практика", "specMental": "Психическое Здоровье", "specCommunity": "Общественное Здоровье", "specEmergency": "Неотложная Помощь / A&E", "specTheatre": "Операционная / Хирургия",
-      "exp1": "0-1 года", "exp2": "1-3 года", "exp3": "3-5 лет", "exp4": "5-10 лет", "exp5": "10+ лет",
-      "submit": "ОТПРАВИТЬ РЕГИСТРАЦИЮ",
-      "fillAll": "Заполните все обязательные поля - прокрутите вверх чтобы увидеть красную ошибку.",
-      "checkIdFirst": "Нажмите ПРОВЕРИТЬ МОЙ ID СНОВА и убедитесь, что сначала написано ID проверен.",
-      "pickPhotoErr": "Пожалуйста, выберите Фото", "pickCVEerr": "Пожалуйста, выберите ваш CV", "pickPINCardErr": "Пожалуйста, выберите вашу PIN Карту",
-      "scanIdErr": "Пожалуйста, сканируйте ПЕРЕД + ЗАД вашего ID", "pickCertErr": "Пожалуйста, выберите ваш Сертификат", "pickLicenceErr": "Пожалуйста, выберите вашу Лицензию",
-      "enterLicenceErr": "Пожалуйста, введите Номер вашей Лицензии", "enterPinErr": "Пожалуйста, введите Номер вашего PIN",
-      "emailClientBlock": "Этот email уже зарегистрирован как КЛИЕНТ. Один email не может быть и Клиентом, и Медсестрой.",
-      "emailRegistered": "Этот email уже зарегистрирован. Войдите вместо этого - или используйте другой email.",
-      "creating": "Создание аккаунта...", "uploading": "Загрузка документов... держите приложение открытым", "saving": "Сохранение регистрации...",
-      "signupFail": "Регистрация не удалась ({code})", "uploadFail": "Загрузка не удалась ({code}): {msg}", "uploadFail2": "Загрузка не удалась: {error}",
-      "fileReadFail": "Не удалось прочитать этот файл. Попробуйте снова.", "videoTooLarge": "Видео слишком большое. Пожалуйста, выберите видео менее 100 МБ.",
-      "pickerFail": "Выбор не удался: {error}", "idScanFail": "Сканирование ID не удалось: {error}", "pickCountryTypeFirst": "Сначала выберите Страну ID + Тип ID",
-      "scanned": "Отсканировано {side} {type} ({country})", "selected": "Выбрано {kind}: {name}", "enterIdFirst": "Сначала введите Номер ID", "scanFrontFirst": "Сначала сканируйте ПЕРЕД ID",
-    },
+  Future<String> _ocrFromBytes(Uint8List bytes) async {
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/id_front_${DateTime.now().millisecondsSinceEpoch}.jpg');
+    await file.writeAsBytes(bytes);
+    try {
+      final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
+      try { final result = await recognizer.processImage(InputImage.fromFilePath(file.path)); return result.text; }
+      finally { await recognizer.close(); }
+    } finally { try { await file.delete(); } catch (_) {} }
+  }
 
-    // 19. TURKISH
-    "tr": {
-      "title": "Hemşire Kaydı",
-      "personal": "Kişisel Bilgiler",
-      "fullName": "Tam Ad", "fullNameHint": "örn. Ama Mensah", "errFullName": "Tam ad girin",
-      "email": "E-posta", "emailHint": "örn. ama@email.com", "errEmail": "E-posta girin", "errEmailValid": "Geçerli e-posta girin",
-      "phone": "Telefon / WhatsApp", "phoneHint": "örn. +233 20 123 4567", "errPhone": "Telefon numarası girin",
-      "locationTitle": "Konumunuz (Canlı GPS)", "locationLabel": "Konum - Canlı GPS", "locationHint": "Canlı GPS Seç'e dokunun - yer adı kendini doldurur",
-      "pickGPS": "Canlı GPS Seç", "gettingGPS": "GPS alınıyor...", "gpsPicked": "GPS: {coords} - yeniden seçmek için tekrar dokunun", "gpsNote": "Önce GPS'i açın. Yer adı otomatik doldurulur - siz yazmazsınız.",
-      "password": "Şifre", "errPassword": "Şifre en az 8 karakter olmalı",
-      "weak": "Zayıf", "medium": "Orta", "strong": "Güçlü", "veryStrong": "Çok güçlü", "strongPass": "Güçlü şifre ✓",
-      "documents": "Belgeler",
-      "photo": "Fotoğraf", "pickPhoto": "Fotoğraf Seç", "video": "Video", "pickVideo": "Video Seç", "cv": "CV", "pickCV": "CV Seç",
-      "pinTitle": "Hemşire PIN", "pinNumber": "Hemşire PIN Numarası", "pinHint": "örn. PIN123456", "errPin": "PIN Numarası girin", "pinCard": "PIN Kartı", "pickPIN": "PIN Seç",
-      "idTitle": "Kimlik Doğrulama", "idCountry": "Kimlik Ülkesi - Tüm ülkeler (Müşteri ile aynı)", "errCountry": "Kimlik Ülkesi seçin",
-      "idType": "Kimlik Türü - Kimliğinizi seçin", "idTypeHint1": "Önce Kimlik Ülkesi seçin", "idTypeHint2": "Kimliğinizi seçin", "errIdType": "Kimlik Türü seçin",
-      "showingIDs": "{country} için kimlikler gösteriliyor • {n} seçenek • Pasaport / Ulusal Kimlik / Sürücü Belgesi her ülke için çalışır",
-      "idNumber": "Kimlik Numarası (kimliğinizde yazdığı gibi)", "idNumberHint": "Önce Kimlik Ülkesi + Kimlik Türü seçin", "errIdNumber": "Kimlik Numarası girin",
-      "idAuto": "Kimlik OTOMATİK TARANIR - kutunun içine koyun, karanlıksa flaşı açın. Net + sabitken kendisi çeker.",
-      "idFront": "Kimlik Yükle - ÖN", "scanFront": "Önü Tara", "pickFirst": "Önce Kimlik Ülkesi + Kimlik Türü seçin",
-      "idBack": "Kimlik Yükle - ARKA", "scanBack": "Arkayı Tara", "backRequired": "{type} arkası (gerekli)", "autoScan": "Otomatik tarama (kutu + flaş)",
-      "cert": "Sertifika Yükle", "pickCert": "Sertifika Seç",
-      "licenceTitle": "Lisans", "licenceNumber": "Lisans Numarası", "licenceHint": "örn. LIC123456 / NMC123456", "errLicence": "Lisans Numarası girin", "licenceFile": "Lisans Yükle", "pickLicence": "Lisans Seç",
-      "checkIdBtn": "🔍 KİMLİĞİMİ TEKRAR KONTROL ET", "checkingId": "Kimlik kontrol ediliyor... fotoğraf okunuyor...",
-      "idVerified": "Kimlik doğrulandı: kimliğinizdeki numara yazdığınızla eşleşiyor.",
-      "formatFail": "❌ Biçim kontrolü başarısız", "expected": "Beklenen: {example}", "noText": "Kimlik fotoğrafı okunamadı. Düz, iyi ışıkta, parlama olmadan tekrar çekin.",
-      "noTextDetail": "❌ Kimlik fotoğrafında metin bulunamadı", "tipFlash": "İpucu: çerçeveyi doldurun, karanlıksa flaşı açın",
-      "mismatch": "Kimlik fotoğrafındaki numara yazdığınızla eşleşmiyor. İkisini de kontrol edip tekrar deneyin.",
-      "typed": "❌ Yazılan: {typed}", "photoRead": "❌ Fotoğraf şu şekilde okundu: {text}", "idCheckFail": "Kimlik kontrolü başarısız: {error}. Fotoğrafı tekrar çekmeyi deneyin.", "ocrError": "❌ OCR hatası",
-      "experience": "Deneyim", "specialty": "Uzmanlık", "errSpecialty": "Uzmanlık seçin", "yearsExp": "Deneyim Yılı", "errExperience": "Deneyim seçin",
-      "specGeneral": "Genel Hemşirelik", "specMidwifery": "Ebelik", "specICU": "Yoğun Bakım / Kritik Bakım", "specPaed": "Pediatri Hemşireliği", "specMental": "Ruh Sağlığı", "specCommunity": "Toplum Sağlığı", "specEmergency": "Acil / A&E", "specTheatre": "Ameliyathane / Cerrahi",
-      "exp1": "0-1 yıl", "exp2": "1-3 yıl", "exp3": "3-5 yıl", "exp4": "5-10 yıl", "exp5": "10+ yıl",
-      "submit": "KAYDI GÖNDER",
-      "fillAll": "Lütfen tüm gerekli alanları doldurun - kırmızı hatayı görmek için yukarı kaydırın.",
-      "checkIdFirst": "KİMLİĞİMİ TEKRAR KONTROL ET'e dokunun ve önce kimlik doğrulandı dediğinden emin olun.",
-      "pickPhotoErr": "Lütfen bir Fotoğraf seçin", "pickCVEerr": "Lütfen CV'nizi seçin", "pickPINCardErr": "Lütfen PIN Kartınızı seçin",
-      "scanIdErr": "Lütfen kimliğinizin ÖN + ARKA kısmını tarayın", "pickCertErr": "Lütfen Sertifikanızı seçin", "pickLicenceErr": "Lütfen Lisansınızı seçin",
-      "enterLicenceErr": "Lütfen Lisans Numaranızı girin", "enterPinErr": "Lütfen PIN Numaranızı girin",
-      "emailClientBlock": "Bu e-posta zaten MÜŞTERİ olarak kayıtlı. Bir e-posta hem Müşteri hem Hemşire olamaz.",
-      "emailRegistered": "Bu e-posta zaten kayıtlı. Bunun yerine giriş yapın - veya farklı bir e-posta kullanın.",
-      "creating": "Hesap oluşturuluyor...", "uploading": "Belgeler yükleniyor... uygulamayı açık tutun", "saving": "Kayıt kaydediliyor...",
-      "signupFail": "Kayıt başarısız ({code})", "uploadFail": "Yükleme başarısız ({code}): {msg}", "uploadFail2": "Yükleme başarısız: {error}",
-      "fileReadFail": "Bu dosya okunamadı. Tekrar deneyin.", "videoTooLarge": "Video çok büyük. Lütfen 100 MB altı bir video seçin.",
-      "pickerFail": "Seçim başarısız: {error}", "idScanFail": "Kimlik taraması başarısız: {error}", "pickCountryTypeFirst": "Önce Kimlik Ülkesi + Kimlik Türü seçin",
-      "scanned": "{type} {side} tarandı ({country})", "selected": "{kind} seçildi: {name}", "enterIdFirst": "Önce Kimlik Numarası girin", "scanFrontFirst": "Önce kimliğin ÖNÜNÜ tarayın",
-    },
+  bool _containsMostInOrder(String haystack, String needle, double ratio) {
+    int found = 0, pos = 0;
+    for (int i = 0; i < needle.length; i++) { final idx = haystack.indexOf(needle[i], pos); if (idx == -1) continue; found++; pos = idx + 1; }
+    return needle.isNotEmpty && (found / needle.length) >= ratio;
+  }
 
-    // 20. KOREAN
-    "ko": {
-      "title": "간호사 등록",
-      "personal": "개인 정보",
-      "fullName": "전체 이름", "fullNameHint": "예: Ama Mensah", "errFullName": "전체 이름을 입력하세요",
-      "email": "이메일", "emailHint": "예: ama@email.com", "errEmail": "이메일을 입력하세요", "errEmailValid": "유효한 이메일을 입력하세요",
-      "phone": "전화 / WhatsApp", "phoneHint": "예: +233 20 123 4567", "errPhone": "전화번호를 입력하세요",
-      "locationTitle": "내 위치 (실시간 GPS)", "locationLabel": "위치 - 실시간 GPS", "locationHint": "실시간 GPS 선택을 누르세요 - 장소 이름이 자동으로 채워집니다",
-      "pickGPS": "실시간 GPS 선택", "gettingGPS": "GPS 가져오는 중...", "gpsPicked": "GPS: {coords} - 다시 선택하려면 다시 누르세요", "gpsNote": "먼저 GPS를 켜세요. 장소 이름은 자동으로 채워집니다 - 직접 입력하지 마세요.",
-      "password": "비밀번호", "errPassword": "비밀번호는 최소 8자여야 합니다",
-      "weak": "약함", "medium": "보통", "strong": "강함", "veryStrong": "매우 강함", "strongPass": "강한 비밀번호 ✓",
-      "documents": "문서",
-      "photo": "사진", "pickPhoto": "사진 선택", "video": "비디오", "pickVideo": "비디오 선택", "cv": "이력서", "pickCV": "이력서 선택",
-      "pinTitle": "간호 PIN", "pinNumber": "간호 PIN 번호", "pinHint": "예: PIN123456", "errPin": "PIN 번호를 입력하세요", "pinCard": "PIN 카드", "pickPIN": "PIN 선택",
-      "idTitle": "신분증 확인", "idCountry": "신분증 국가 - 모든 국가 (고객과 동일)", "errCountry": "신분증 국가를 선택하세요",
-      "idType": "신분증 유형 - 신분증을 선택하세요", "idTypeHint1": "먼저 신분증 국가를 선택하세요", "idTypeHint2": "신분증을 선택하세요", "errIdType": "신분증 유형을 선택하세요",
-      "showingIDs": "{country}에 대한 신분증 표시 중 • {n}개 옵션 • 여권 / 국민 신분증 / 운전면허증은 모든 국가에서 사용 가능",
-      "idNumber": "신분증 번호 (신분증에 인쇄된 대로)", "idNumberHint": "먼저 신분증 국가 + 신분증 유형을 선택하세요", "errIdNumber": "신분증 번호를 입력하세요",
-      "idAuto": "신분증은 자동 스캔됩니다 - 상자 안에 넣고, 어두우면 플래시를 켜세요. 선명하고 + 안정적일 때 자동으로 찍힙니다.",
-      "idFront": "신분증 업로드 - 앞면", "scanFront": "앞면 스캔", "pickFirst": "먼저 신분증 국가 + 신분증 유형을 선택하세요",
-      "idBack": "신분증 업로드 - 뒷면", "scanBack": "뒷면 스캔", "backRequired": "{type} 뒷면 (필수)", "autoScan": "자동 스캔 (상자 + 플래시)",
-      "cert": "인증서 업로드", "pickCert": "인증서 선택",
-      "licenceTitle": "면허", "licenceNumber": "면허 번호", "licenceHint": "예: LIC123456 / NMC123456", "errLicence": "면허 번호를 입력하세요", "licenceFile": "면허 업로드", "pickLicence": "면허 선택",
-      "checkIdBtn": "🔍 내 신분증 다시 확인", "checkingId": "신분증 확인 중... 사진 읽는 중...",
-      "idVerified": "신분증 확인됨: 신분증의 번호가 입력한 것과 일치합니다.",
-      "formatFail": "❌ 형식 검사 실패", "expected": "예상: {example}", "noText": "신분증 사진을 읽을 수 없습니다. 똑바로, 좋은 조명에서, 반사 없이 다시 찍으세요.",
-      "noTextDetail": "❌ 신분증 사진에서 텍스트를 찾을 수 없음", "tipFlash": "팁: 프레임을 채우고, 어두우면 플래시를 켜세요",
-      "mismatch": "신분증 사진의 번호가 입력한 것과 일치하지 않습니다. 둘 다 확인하고 다시 시도하세요.",
-      "typed": "❌ 입력: {typed}", "photoRead": "❌ 사진 읽기: {text}", "idCheckFail": "신분증 확인 실패: {error}. 사진을 다시 찍어보세요.", "ocrError": "❌ OCR 오류",
-      "experience": "경험", "specialty": "전문 분야", "errSpecialty": "전문 분야를 선택하세요", "yearsExp": "경력 연수", "errExperience": "경력을 선택하세요",
-      "specGeneral": "일반 간호", "specMidwifery": "조산", "specICU": "ICU / 중환자 간호", "specPaed": "소아 간호", "specMental": "정신 건강", "specCommunity": "지역사회 건강", "specEmergency": "응급 / A&E", "specTheatre": "수술실 / 외과",
-      "exp1": "0-1년", "exp2": "1-3년", "exp3": "3-5년", "exp4": "5-10년", "exp5": "10년+",
-      "submit": "등록 제출",
-      "fillAll": "모든 필수 필드를 채우세요 - 빨간색 오류를 보려면 위로 스크롤하세요.",
-      "checkIdFirst": "내 신분증 다시 확인을 누르고 먼저 신분증 확인됨이라고 나오는지 확인하세요.",
-      "pickPhotoErr": "사진을 선택하세요", "pickCVEerr": "이력서를 선택하세요", "pickPINCardErr": "PIN 카드를 선택하세요",
-      "scanIdErr": "신분증 앞면 + 뒷면을 스캔하세요", "pickCertErr": "인증서를 선택하세요", "pickLicenceErr": "면허를 선택하세요",
-      "enterLicenceErr": "면허 번호를 입력하세요", "enterPinErr": "PIN 번호를 입력하세요",
-      "emailClientBlock": "이 이메일은 이미 고객으로 등록되었습니다. 하나의 이메일은 고객과 간호사를 겸할 수 없습니다.",
-      "emailRegistered": "이 이메일은 이미 등록되었습니다. 대신 로그인하세요 - 또는 다른 이메일을 사용하세요.",
-      "creating": "계정 만드는 중...", "uploading": "문서 업로드 중... 앱을 열어 두세요", "saving": "등록 저장 중...",
-      "signupFail": "가입 실패 ({code})", "uploadFail": "업로드 실패 ({code}): {msg}", "uploadFail2": "업로드 실패: {error}",
-      "fileReadFail": "해당 파일을 읽을 수 없습니다. 다시 시도하세요.", "videoTooLarge": "비디오가 너무 큽니다. 100MB 미만의 비디오를 선택하세요.",
-      "pickerFail": "선택 실패: {error}", "idScanFail": "신분증 스캔 실패: {error}", "pickCountryTypeFirst": "먼저 신분증 국가 + 신분증 유형을 선택하세요",
-      "scanned": "{type} {side} 스캔됨 ({country})", "selected": "{kind} 선택됨: {name}", "enterIdFirst": "먼저 신분증 번호를 입력하세요", "scanFrontFirst": "먼저 신분증 앞면을 스캔하세요",
-    },
+  String _contentTypeFor(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.pdf')) return 'application/pdf';
+    if (lower.endsWith('.mp4') || lower.endsWith('.mov')) return 'video/mp4';
+    if (lower.endsWith('.png')) return 'image/png';
+    return 'image/jpeg';
+  }
 
-    // 21. JAPANESE
-    "ja": {
-      "title": "看護師登録",
-      "personal": "個人情報",
-      "fullName": "氏名", "fullNameHint": "例: Ama Mensah", "errFullName": "氏名を入力してください",
-      "email": "メール", "emailHint": "例: ama@email.com", "errEmail": "メールを入力してください", "errEmailValid": "有効なメールを入力してください",
-      "phone": "電話 / WhatsApp", "phoneHint": "例: +233 20 123 4567", "errPhone": "電話番号を入力してください",
-      "locationTitle": "あなたの位置 (ライブ GPS)", "locationLabel": "位置 - ライブ GPS", "locationHint": "ライブ GPS を選択をタップ - 地名が自動で入ります",
-      "pickGPS": "ライブ GPS を選択", "gettingGPS": "GPS を取得中...", "gpsPicked": "GPS: {coords} - 再選択するには再度タップ", "gpsNote": "まず GPS をオンにしてください。地名は自動で入ります - 自分で入力しません。",
-      "password": "パスワード", "errPassword": "パスワードは 8 文字以上でなければなりません",
-      "weak": "弱い", "medium": "普通", "strong": "強い", "veryStrong": "非常に強い", "strongPass": "強いパスワード ✓",
-      "documents": "書類",
-      "photo": "写真", "pickPhoto": "写真を選択", "video": "ビデオ", "pickVideo": "ビデオを選択", "cv": "履歴書", "pickCV": "履歴書を選択",
-      "pinTitle": "看護 PIN", "pinNumber": "看護 PIN 番号", "pinHint": "例: PIN123456", "errPin": "PIN 番号を入力してください", "pinCard": "PIN カード", "pickPIN": "PIN を選択",
-      "idTitle": "ID 確認", "idCountry": "ID 国 - すべての国 (クライアントと同じ)", "errCountry": "ID 国を選択してください",
-      "idType": "ID 種類 - ID を選択してください", "idTypeHint1": "まず ID 国を選択してください", "idTypeHint2": "ID を選択してください", "errIdType": "ID 種類を選択してください",
-      "showingIDs": "{country} の ID を表示中 • {n} 件の選択肢 • パスポート / 国民 ID / 運転免許証はすべての国で使えます",
-      "idNumber": "ID 番号 (ID に印刷されている通り)", "idNumberHint": "まず ID 国 + ID 種類を選択してください", "errIdNumber": "ID 番号を入力してください",
-      "idAuto": "ID は自動スキャンされます - 箱の中に入れ、暗い場合はフラッシュをオンにしてください。鮮明で + 安定していると自動で撮影します。",
-      "idFront": "ID アップロード - 表面", "scanFront": "表面をスキャン", "pickFirst": "まず ID 国 + ID 種類を選択してください",
-      "idBack": "ID アップロード - 裏面", "scanBack": "裏面をスキャン", "backRequired": "{type} の裏面 (必須)", "autoScan": "自動スキャン (箱 + フラッシュ)",
-      "cert": "証明書をアップロード", "pickCert": "証明書を選択",
-      "licenceTitle": "ライセンス", "licenceNumber": "ライセンス番号", "licenceHint": "例: LIC123456 / NMC123456", "errLicence": "ライセンス番号を入力してください", "licenceFile": "ライセンスをアップロード", "pickLicence": "ライセンスを選択",
-      "checkIdBtn": "🔍 ID をもう一度確認", "checkingId": "ID を確認中... 写真を読み取り中...",
-      "idVerified": "ID が確認されました: ID の番号が入力したものと一致します。",
-      "formatFail": "❌ 形式チェック失敗", "expected": "予想: {example}", "noText": "ID 写真を読み取れませんでした。まっすぐ、明るい場所で、反射なしで撮り直してください。",
-      "noTextDetail": "❌ ID 写真にテキストが見つかりません", "tipFlash": "ヒント: フレームを満たし、暗い場合はフラッシュをオンにしてください",
-      "mismatch": "ID 写真の番号が入力したものと一致しません。両方を確認して再度お試しください。",
-      "typed": "❌ 入力: {typed}", "photoRead": "❌ 写真の読み取り: {text}", "idCheckFail": "ID チェック失敗: {error}。写真を撮り直してみてください。", "ocrError": "❌ OCR エラー",
-      "experience": "経験", "specialty": "専門分野", "errSpecialty": "専門分野を選択してください", "yearsExp": "経験年数", "errExperience": "経験を選択してください",
-      "specGeneral": "一般看護", "specMidwifery": "助産", "specICU": "ICU / クリティカルケア", "specPaed": "小児看護", "specMental": "メンタルヘルス", "specCommunity": "地域保健", "specEmergency": "救急 / A&E", "specTheatre": "手術室 / 外科",
-      "exp1": "0-1 年", "exp2": "1-3 年", "exp3": "3-5 年", "exp4": "5-10 年", "exp5": "10 年以上",
-      "submit": "登録を送信",
-      "fillAll": "必須項目をすべて入力してください - 赤いエラーを確認するには上にスクロールしてください。",
-      "checkIdFirst": "ID をもう一度確認をタップし、まず ID が確認されたと表示されることを確認してください。",
-      "pickPhotoErr": "写真を選択してください", "pickCVEerr": "履歴書を選択してください", "pickPINCardErr": "PIN カードを選択してください",
-      "scanIdErr": "ID の表面 + 裏面をスキャンしてください", "pickCertErr": "証明書を選択してください", "pickLicenceErr": "ライセンスを選択してください",
-      "enterLicenceErr": "ライセンス番号を入力してください", "enterPinErr": "PIN 番号を入力してください",
-      "emailClientBlock": "このメールはすでにクライアントとして登録されています。1 つのメールはクライアントと看護師の両方にはなれません。",
-      "emailRegistered": "このメールはすでに登録されています。代わりにログインしてください - または別のメールを使用してください。",
-      "creating": "アカウントを作成中...", "uploading": "書類をアップロード中... アプリを開いたままにしてください", "saving": "登録を保存中...",
-      "signupFail": "サインアップ失敗 ({code})", "uploadFail": "アップロード失敗 ({code}): {msg}", "uploadFail2": "アップロード失敗: {error}",
-      "fileReadFail": "そのファイルを読み取れませんでした。もう一度お試しください。", "videoTooLarge": "ビデオが大きすぎます。100 MB 未満のビデオを選択してください。",
-      "pickerFail": "選択失敗: {error}", "idScanFail": "ID スキャン失敗: {error}", "pickCountryTypeFirst": "まず ID 国 + ID 種類を選択してください",
-      "scanned": "{type} の {side} をスキャンしました ({country})", "selected": "{kind} を選択しました: {name}", "enterIdFirst": "まず ID 番号を入力してください", "scanFrontFirst": "まず ID の表面をスキャンしてください",
-    },
+  String _safeFileName(String name) => name.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
 
-    // 22. POLISH
-    "pl": {
-      "title": "Rejestracja Pielęgniarki",
-      "personal": "Dane Osobowe",
-      "fullName": "Imię I Nazwisko", "fullNameHint": "np. Ama Mensah", "errFullName": "Wpisz imię i nazwisko",
-      "email": "Email", "emailHint": "np. ama@email.com", "errEmail": "Wpisz email", "errEmailValid": "Wpisz prawidłowy email",
-      "phone": "Telefon / WhatsApp", "phoneHint": "np. +233 20 123 4567", "errPhone": "Wpisz numer telefonu",
-      "locationTitle": "Twoja Lokalizacja (Live GPS)", "locationLabel": "Lokalizacja - Live GPS", "locationHint": "Dotknij Wybierz Live GPS - nazwa miejsca wypełni się sama",
-      "pickGPS": "Wybierz Live GPS", "gettingGPS": "Pobieranie GPS...", "gpsPicked": "GPS: {coords} - dotknij ponownie aby wybrać ponownie", "gpsNote": "Włącz najpierw GPS. Nazwa miejsca wypełnia się automatycznie - nie wpisujesz jej.",
-      "password": "Hasło", "errPassword": "Hasło musi mieć co najmniej 8 znaków",
-      "weak": "Słabe", "medium": "Średnie", "strong": "Silne", "veryStrong": "Bardzo silne", "strongPass": "Silne hasło ✓",
-      "documents": "Dokumenty",
-      "photo": "Zdjęcie", "pickPhoto": "Wybierz Zdjęcie", "video": "Wideo", "pickVideo": "Wybierz Wideo", "cv": "CV", "pickCV": "Wybierz CV",
-      "pinTitle": "PIN Pielęgniarski", "pinNumber": "Numer PIN Pielęgniarski", "pinHint": "np. PIN123456", "errPin": "Wpisz Numer PIN", "pinCard": "Karta PIN", "pickPIN": "Wybierz PIN",
-      "idTitle": "Weryfikacja ID", "idCountry": "Kraj ID - Wszystkie kraje (jak Klient)", "errCountry": "Wybierz Kraj ID",
-      "idType": "Typ ID - Wybierz swój ID", "idTypeHint1": "Wybierz najpierw Kraj ID", "idTypeHint2": "Wybierz swój ID", "errIdType": "Wybierz Typ ID",
-      "showingIDs": "Pokazywanie ID dla {country} • {n} opcji • Paszport / Dowód Osobisty / Prawo Jazdy działa dla każdego kraju",
-      "idNumber": "Numer ID (jak wydrukowano na twoim ID)", "idNumberHint": "Wybierz najpierw Kraj ID + Typ ID", "errIdNumber": "Wpisz Numer ID",
-      "idAuto": "ID jest AUTO-SKANOWANE - włóż je do ramki, włącz lampę błyskową jeśli ciemno. Robi zdjęcie samo gdy wyraźne + stabilne.",
-      "idFront": "Prześlij ID - PRZÓD", "scanFront": "Skanuj Przód", "pickFirst": "Wybierz najpierw Kraj ID + Typ ID",
-      "idBack": "Prześlij ID - TYŁ", "scanBack": "Skanuj Tył", "backRequired": "Tył {type} (wymagany)", "autoScan": "Auto-skan (ramka + lampa)",
-      "cert": "Prześlij Certyfikat", "pickCert": "Wybierz Cert",
-      "licenceTitle": "Licencja", "licenceNumber": "Numer Licencji", "licenceHint": "np. LIC123456 / NMC123456", "errLicence": "Wpisz Numer Licencji", "licenceFile": "Prześlij Licencję", "pickLicence": "Wybierz Licencję",
-      "checkIdBtn": "🔍 SPRAWDŹ MÓJ ID PONOWNIE", "checkingId": "Sprawdzanie ID... odczytywanie zdjęcia...",
-      "idVerified": "ID zweryfikowane: numer na twoim ID zgadza się z tym, co wpisałeś.",
-      "formatFail": "❌ Kontrola formatu nie powiodła się", "expected": "Oczekiwano: {example}", "noText": "Nie można odczytać zdjęcia ID. Zrób ponownie prosto, w dobrym świetle, bez odblasków.",
-      "noTextDetail": "❌ Nie znaleziono tekstu na zdjęciu ID", "tipFlash": "Wskazówka: wypełnij ramkę, włącz lampę błyskową jeśli ciemno",
-      "mismatch": "Numer na zdjęciu ID nie zgadza się z tym, co wpisałeś. Sprawdź oba i spróbuj ponownie.",
-      "typed": "❌ Wpisano: {typed}", "photoRead": "❌ Zdjęcie odczytane jako: {text}", "idCheckFail": "Sprawdzenie ID nie powiodło się: {error}. Spróbuj zrobić zdjęcie ponownie.", "ocrError": "❌ Błąd OCR",
-      "experience": "Doświadczenie", "specialty": "Specjalność", "errSpecialty": "Wybierz specjalność", "yearsExp": "Lata Doświadczenia", "errExperience": "Wybierz doświadczenie",
-      "specGeneral": "Pielęgniarstwo Ogólne", "specMidwifery": "Położnictwo", "specICU": "OIOM / Opieka Krytyczna", "specPaed": "Pielęgniarstwo Pediatryczne", "specMental": "Zdrowie Psychiczne", "specCommunity": "Zdrowie Społeczności", "specEmergency": "Pogotowie / A&E", "specTheatre": "Sala Operacyjna / Chirurgiczne",
-      "exp1": "0-1 lat", "exp2": "1-3 lat", "exp3": "3-5 lat", "exp4": "5-10 lat", "exp5": "10+ lat",
-      "submit": "WYŚLIJ REJESTRACJĘ",
-      "fillAll": "Wypełnij wszystkie wymagane pola - przewiń w górę aby zobaczyć czerwony błąd.",
-      "checkIdFirst": "Dotknij SPRAWDŹ MÓJ ID PONOWNIE i upewnij się, że najpierw mówi ID zweryfikowane.",
-      "pickPhotoErr": "Proszę wybierz Zdjęcie", "pickCVEerr": "Proszę wybierz swoje CV", "pickPINCardErr": "Proszę wybierz swoją Kartę PIN",
-      "scanIdErr": "Proszę zeskanuj PRZÓD + TYŁ swojego ID", "pickCertErr": "Proszę wybierz swój Certyfikat", "pickLicenceErr": "Proszę wybierz swoją Licencję",
-      "enterLicenceErr": "Proszę wpisz Numer swojej Licencji", "enterPinErr": "Proszę wpisz Numer swojego PIN",
-      "emailClientBlock": "Ten email jest już zarejestrowany jako KLIENT. Jeden email nie może być i Klientem, i Pielęgniarką.",
-      "emailRegistered": "Ten email jest już zarejestrowany. Zaloguj się zamiast tego - lub użyj innego emaila.",
-      "creating": "Tworzenie konta...", "uploading": "Przesyłanie dokumentów... trzymaj app otwartą", "saving": "Zapisywanie rejestracji...",
-      "signupFail": "Rejestracja nieudana ({code})", "uploadFail": "Przesyłanie nieudane ({code}): {msg}", "uploadFail2": "Przesyłanie nieudane: {error}",
-      "fileReadFail": "Nie można odczytać tego pliku. Spróbuj ponownie.", "videoTooLarge": "Wideo jest za duże. Proszę wybierz wideo poniżej 100 MB.",
-      "pickerFail": "Wybór nieudany: {error}", "idScanFail": "Skanowanie ID nieudane: {error}", "pickCountryTypeFirst": "Wybierz najpierw Kraj ID + Typ ID",
-      "scanned": "Zeskanowano {side} {type} ({country})", "selected": "Wybrano {kind}: {name}", "enterIdFirst": "Wpisz najpierw Numer ID", "scanFrontFirst": "Zeskanuj najpierw PRZÓD ID",
-    },
-  };
+  Future<String> _uploadFile({required String folder, required String fileName, required Uint8List bytes, required String uid}) async {
+    final safe = _safeFileName(fileName);
+    final ref = FirebaseStorage.instance.ref('nurses/$uid/$folder/$safe');
+    final task = await ref.putData(bytes, SettableMetadata(contentType: _contentTypeFor(safe)));
+    return task.ref.getDownloadURL();
+  }
+
+  String _placeNameFromPlacemark(Placemark p) {
+    final parts = <String>[];
+    void add(String? v) {
+      final s = (v ?? '').trim();
+      if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
+    }
+    add(p.subLocality);
+    add(p.locality);
+    add(p.subAdministrativeArea);
+    add(p.administrativeArea);
+    add(p.country);
+    return parts.join(', ');
+  }
+
+  Future<String> _placeNameFromWeb(double lat, double lng) async {
+    String joinParts(List<String?> values) {
+      final parts = <String>[];
+      for (final v in values) {
+        final s = (v ?? '').trim();
+        if (s.isNotEmpty && !parts.contains(s)) parts.add(s);
+      }
+      return parts.join(', ');
+    }
+    try {
+      final uri = Uri.parse('https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=$lat&longitude=$lng&localityLanguage=en');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final j = jsonDecode(res.body) as Map<String, dynamic>;
+        final name = joinParts([j['locality']?.toString(), j['city']?.toString(), j['principalSubdivision']?.toString(), j['countryName']?.toString()]);
+        if (name.isNotEmpty) return name;
+      }
+    } catch (_) {}
+    try {
+      final uri = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1');
+      final res = await http.get(uri, headers: {'Accept': 'application/json'}).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final j = jsonDecode(res.body) as Map<String, dynamic>;
+        final addr = (j['address'] as Map<String, dynamic>?) ?? {};
+        final name = joinParts([addr['suburb']?.toString() ?? addr['neighbourhood']?.toString(), addr['city']?.toString() ?? addr['town']?.toString() ?? addr['village']?.toString(), addr['state']?.toString(), addr['country']?.toString()]);
+        if (name.isNotEmpty) return name;
+        final display = (j['display_name'] ?? '').toString().trim();
+        if (display.isNotEmpty) return display;
+      }
+    } catch (_) {}
+    return '';
+  }
+
+  Future<void> _pickLiveGps() async {
+    if (_locating) return;
+    setState(() { _locating = true; });
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showError('Turn on Location / GPS on this phone first, then tap Pick Live GPS again.');
+        await Geolocator.openLocationSettings();
+        return;
+      }
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.deniedForever) {
+        _showError('Location permission is blocked. Open App info > Permissions > Location > Allow.');
+        await Geolocator.openAppSettings();
+        return;
+      }
+      if (perm == LocationPermission.denied) {
+        _showError('Location permission denied. Tap Pick Live GPS and Allow.');
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high, timeLimit: const Duration(seconds: 20));
+      _gpsLat = pos.latitude;
+      _gpsLng = pos.longitude;
+      String place = '';
+      try {
+        final marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+        if (marks.isNotEmpty) place = _placeNameFromPlacemark(marks.first);
+      } catch (_) {}
+      if (place.isEmpty) { place = await _placeNameFromWeb(pos.latitude, pos.longitude); }
+      if (place.isEmpty) { place = 'Lat ${pos.latitude.toStringAsFixed(5)}, Lng ${pos.longitude.toStringAsFixed(5)}'; }
+      if (!mounted) return;
+      setState(() { _locationController.text = place; });
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Location picked: $place')));
+    } catch (e) {
+      _showError('Could not get GPS: $e');
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
+  Future<String?> _checkEmailNotUsedAsClient(String email) async {
+    final lower = email.trim().toLowerCase();
+    try {
+      final q = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: lower).limit(1).get();
+      if (q.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a CLIENT. One email cannot be both Client and Nurse. Use a different email or login as Client.';
+      final q2 = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: email.trim()).limit(1).get();
+      if (q2.docs.isNotEmpty) return 'BLOCKED: This email is already registered as a CLIENT. One email cannot be both Client and Nurse.';
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> _deleteLeftoverAuthIfNoProfile() async {
+    try {
+      final u = FirebaseAuth.instance.currentUser;
+      if (u == null) return;
+      final uid = u.uid;
+      final inNurses = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
+      final inPending = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
+      final inClients = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
+      if (!inNurses.exists && !inPending.exists && !inClients.exists) {
+        await u.delete().catchError((_) async { await FirebaseAuth.instance.signOut(); });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) {
+      _showError('Please fill all required fields - scroll up to see the red error.');
+      return;
+    }
+    final roleBlock = await _checkEmailNotUsedAsClient(_emailController.text.trim());
+    if (roleBlock != null) { _showError(roleBlock); return; }
+    if (!_idCheckPassed) {
+      _showError('Please tap CHECK MY ID AGAIN and make sure it says ID verified first.');
+      return;
+    }
+    if (_photoBytes == null) return _showError('Please pick a Photo');
+    if (_cvBytes == null) return _showError('Please pick your CV');
+    if (_pinCardBytes == null) return _showError('Please pick your PIN Card');
+    if (_idFrontBytes == null || _idBackBytes == null) return _showError('Please scan FRONT + BACK of your ID');
+    if (_certificateBytes == null) return _showError('Please pick your Certificate');
+    if (_licenceBytes == null) return _showError('Please pick your Licence');
+    if (_licenceNumberController.text.trim().isEmpty) return _showError('Please enter your Licence Number');
+    if (_pinNumberController.text.trim().isEmpty) return _showError('Please enter your PIN Number');
+
+    setState(() { _isSubmitting = true; _uploadStatus = 'Creating account...'; });
+    try {
+      User? user = FirebaseAuth.instance.currentUser;
+      final lowerEmail = _emailController.text.trim().toLowerCase();
+      if (user == null || user.email?.toLowerCase() != lowerEmail) {
+        try {
+          final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: lowerEmail, password: _passwordController.text);
+          user = cred.user;
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'email-already-in-use') {
+            try {
+              final signIn = await FirebaseAuth.instance.signInWithEmailAndPassword(email: lowerEmail, password: _passwordController.text);
+              final uid2 = signIn.user!.uid;
+              final inN = await FirebaseFirestore.instance.collection('nurses').doc(uid2).get();
+              final inP = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid2).get();
+              final inC = await FirebaseFirestore.instance.collection('clients').doc(uid2).get();
+              if (!inN.exists && !inP.exists && !inC.exists) {
+                await signIn.user!.delete();
+                final cred2 = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: lowerEmail, password: _passwordController.text);
+                user = cred2.user;
+              } else {
+                await FirebaseAuth.instance.signOut();
+                _showError('This email is already registered. Login instead - or use a different email.');
+                return;
+              }
+            } catch (_) {
+              await FirebaseAuth.instance.signOut();
+              _showError('This email is already registered. Login instead - or use a different email.');
+              return;
+            }
+          } else { rethrow; }
+        }
+      }
+      final uid = user!.uid;
+      setState(() => _uploadStatus = 'Uploading documents... please keep the app open');
+      final photoUrl = await _uploadFile(folder: 'photo', fileName: _photoName!, bytes: _photoBytes!, uid: uid);
+      final cvUrl = await _uploadFile(folder: 'cv', fileName: _cvName!, bytes: _cvBytes!, uid: uid);
+      final pinUrl = await _uploadFile(folder: 'pin', fileName: _pinCardName!, bytes: _pinCardBytes!, uid: uid);
+      final idFrontUrl = await _uploadFile(folder: 'id_front', fileName: _idFrontName!, bytes: _idFrontBytes!, uid: uid);
+      final idBackUrl = await _uploadFile(folder: 'id_back', fileName: _idBackName!, bytes: _idBackBytes!, uid: uid);
+      final certUrl = await _uploadFile(folder: 'certificate', fileName: _certificateName!, bytes: _certificateBytes!, uid: uid);
+      final licenceUrl = await _uploadFile(folder: 'licence', fileName: _licenceName!, bytes: _licenceBytes!, uid: uid);
+      String videoUrl = '';
+      if (_videoBytes != null && _videoName != null) {
+        videoUrl = await _uploadFile(folder: 'video', fileName: _videoName!, bytes: _videoBytes!, uid: uid);
+      }
+      setState(() => _uploadStatus = 'Saving registration...');
+      final nowMs = DateTime.now().millisecondsSinceEpoch;
+      final data = {
+        'uid': uid,
+        'fullName': _fullNameController.text.trim(),
+        'name': _fullNameController.text.trim(),
+        'email': _emailController.text.trim().toLowerCase(),
+        'phone': _phoneController.text.trim(),
+        'location': _locationController.text.trim(), 'placeName': _locationController.text.trim(), 'address': _locationController.text.trim(),
+        'latitude': _gpsLat, 'longitude': _gpsLng, 'gpsLat': _gpsLat, 'gpsLng': _gpsLng, 'locationLat': _gpsLat, 'locationLng': _gpsLng,
+        'pinNumber': _pinNumberController.text.trim(),
+        'pin': _pinNumberController.text.trim(),
+        'country': _selectedCountry,
+        'workCountry': _selectedCountry, 'residenceCountry': _selectedCountry,
+        'countryCode': IdCatalog.dialCodeFor(_selectedCountry) ?? '', 'dialCode': IdCatalog.dialCodeFor(_selectedCountry) ?? '',
+        'idType': _selectedIdType?.label,
+        'idNumber': _idNumberController.text.trim(),
+        'idNo': _idNumberController.text.trim(),
+        'licenceNumber': _licenceNumberController.text.trim(),
+        'licenseNumber': _licenceNumberController.text.trim(),
+        'licenceNo': _licenceNumberController.text.trim(),
+        'licenseNo': _licenceNumberController.text.trim(),
+        'specialty': _selectedSpecialty,
+        'experience': _selectedExperience,
+        'photoUrl': photoUrl, 'photo': photoUrl, 'photoURL': photoUrl, 'profilePhoto': photoUrl,
+        'videoUrl': videoUrl, 'video': videoUrl, 'videoURL': videoUrl,
+        'cvUrl': cvUrl, 'cv': cvUrl, 'cvURL': cvUrl,
+        'pinCardUrl': pinUrl, 'pinUrl': pinUrl, 'pinCard': pinUrl,
+        'idFrontUrl': idFrontUrl, 'idBackUrl': idBackUrl,
+        'idUrl': idFrontUrl, 'idCardUrl': idFrontUrl, 'idFront': idFrontUrl, 'idBack': idBackUrl,
+        'idCardFrontUrl': idFrontUrl, 'idCardBackUrl': idBackUrl,
+        'certificateUrl': certUrl, 'certUrl': certUrl, 'certificate': certUrl, 'cert': certUrl,
+        'licenceUrl': licenceUrl, 'licenseUrl': licenceUrl, 'licence': licenceUrl, 'license': licenceUrl,
+        'idCheckPassed': _idCheckPassed,
+        'idVerified': _idCheckPassed,
+        'role': 'nurse',
+        'type': 'nurse',
+        'status': 'pending',
+        'approvalStatus': 'pending',
+        'approved': false,
+        'isApproved': false,
+        'canLogin': false,
+        'isComplete': true,
+        'hasAll4': true,
+        'hasPhoto': true,
+        'hasVideo': _videoBytes != null,
+        'hasPhone': true,
+        'hasCv': true,
+        'hasPinCard': true,
+        'hasPin': true,
+        'hasId': true,
+        'hasCertificate': true,
+        'hasCert': true,
+        'hasLicence': true,
+        'hasLicense': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+      final rtdbData = Map<String, dynamic>.from(data);
+      rtdbData['createdAt'] = nowMs;
+      rtdbData['time'] = nowMs;
+      rtdbData['timestamp'] = nowMs;
+      final db = FirebaseFirestore.instance;
+      await db.collection('nurses').doc(uid).set(data, SetOptions(merge: true));
+      await db.collection('nurse_registrations').doc(uid).set(data, SetOptions(merge: true));
+      await db.collection('ceo_registration').doc(uid).set(data, SetOptions(merge: true));
+      await db.collection('pending_nurses').doc(uid).set(data, SetOptions(merge: true));
+      try {
+        final rtdb = FirebaseDatabase.instance;
+        await rtdb.ref('nurses/$uid').set(rtdbData);
+        await rtdb.ref('nurse_registrations/$uid').set(rtdbData);
+        await rtdb.ref('ceo_registration/$uid').set(rtdbData);
+        await rtdb.ref('pending_nurses/$uid').set(rtdbData);
+        await rtdb.ref('ceoRegistration/$uid').set(rtdbData);
+      } catch (_) {}
+      if (!mounted) return;
+      setState(() => _uploadStatus = null);
+      try { await FirebaseAuth.instance.signOut(); } catch (_) {}
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => PendingApprovalPage(name: _fullNameController.text.trim(), email: _emailController.text.trim())));
+    } on FirebaseAuthException catch (e) {
+      await _deleteLeftoverAuthIfNoProfile();
+      _showError(e.message ?? 'Sign-up failed (${e.code})');
+    } on FirebaseException catch (e) {
+      await _deleteLeftoverAuthIfNoProfile();
+      _showError('Upload failed (${e.code}): ${e.message}');
+      if (kIsWeb) debugPrint('Firebase upload error: $e');
+    } catch (e) {
+      await _deleteLeftoverAuthIfNoProfile();
+      _showError('Upload failed: $e');
+    } finally {
+      if (mounted) setState(() { _isSubmitting = false; _uploadStatus = null; });
+    }
+  }
+
+  void _showError(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red, duration: const Duration(seconds: 4)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: primary,
+        title: const Text('Nurse Registration'),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _sectionTitle('Personal Details'),
+              _textField(controller: _fullNameController, label: 'Full Name', hint: 'e.g. Ama Mensah', validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter full name' : null),
+              _textField(controller: _emailController, label: 'Email', hint: 'e.g. ama@email.com', keyboardType: TextInputType.emailAddress, validator: (v) { if (v == null || v.isEmpty) return 'Enter email'; if (!v.contains('@')) return 'Enter valid email'; return null; }),
+              _textField(controller: _phoneController, label: 'Phone / WhatsApp', hint: 'e.g. +233 20 123 4567', keyboardType: TextInputType.phone, validator: (v) => (v == null || v.isEmpty) ? 'Enter phone number' : null),
+              _sectionTitle('Your Location (Live GPS)'),
+              TextFormField(controller: _locationController, readOnly: true, decoration: const InputDecoration(labelText: 'Location - Live GPS', hintText: 'Tap Pick Live GPS - place name fills itself', prefixIcon: Icon(Icons.location_on))),
+              const SizedBox(height: 8),
+              SizedBox(width: double.infinity, child: ElevatedButton.icon(onPressed: _locating ? null : _pickLiveGps, icon: const Icon(Icons.my_location), label: Text(_locating ? 'Getting GPS...' : 'Pick Live GPS'))),
+              if (_gpsLat != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text('GPS: ${_gpsLat!.toStringAsFixed(5)}, ${_gpsLng!.toStringAsFixed(5)} - tap again to re-pick', style: TextStyle(fontSize: 12, color: Colors.grey))),
+              const Padding(padding: EdgeInsets.only(top: 4), child: Text('Turn on GPS first. Place name is filled automatically - you do not type it.', style: TextStyle(fontSize: 12, color: Colors.grey))),
+              const SizedBox(height: 8),
+              _sectionTitle('Password'),
+              TextFormField(controller: _passwordController, obscureText: _obscurePassword, onChanged: (_) => setState(() {}), decoration: InputDecoration(labelText: 'Password', suffixIcon: IconButton(icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscurePassword = !_obscurePassword))), validator: (v) { if (v == null || v.length < 8) return 'Password must be at least 8 characters'; return null; }),
+              const SizedBox(height: 8),
+              Row(children: [Expanded(child: LinearProgressIndicator(value: _passwordStrength / 5, backgroundColor: Colors.grey.shade300, color: _passwordStrength >= 4 ? greenStrong : Colors.orange, minHeight: 6)), const SizedBox(width: 12), Text(_passwordLabel, style: TextStyle(color: _passwordStrength >= 4 ? greenStrong : Colors.orange, fontWeight: FontWeight.bold))]),
+              if (_passwordStrength >= 4) const Padding(padding: EdgeInsets.only(top: 6), child: Row(children: [Icon(Icons.check_circle, color: greenStrong, size: 18), SizedBox(width: 6), Text('Strong password ✓', style: TextStyle(color: greenStrong))])),
+              _sectionTitle('Documents'),
+              _fileRow(icon: Icons.photo, label: 'Photo', fileName: _photoName, buttonText: 'Pick Photo', onPick: () => _pickFile('photo')),
+              _fileRow(icon: Icons.videocam, label: 'Video', fileName: _videoName, buttonText: 'Pick Video', onPick: () => _pickFile('video')),
+              _fileRow(icon: Icons.description, label: 'CV', fileName: _cvName, buttonText: 'Pick CV', onPick: () => _pickFile('cv')),
+              _sectionTitle('Nursing PIN'),
+              _textField(controller: _pinNumberController, label: 'Nursing PIN Number', hint: 'e.g. PIN123456', validator: (v) => (v == null || v.isEmpty) ? 'Enter PIN Number' : null),
+              _fileRow(icon: Icons.badge, label: 'PIN Card', fileName: _pinCardName, buttonText: 'Pick PIN', onPick: () => _pickFile('pin')),
+              _sectionTitle('ID Verification'),
+              DropdownButtonFormField<String>(value: _selectedCountry, decoration: const InputDecoration(labelText: 'ID Country - All countries (same as Client)'), items: IdCatalog.countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(), onChanged: _onCountryChanged, validator: (v) => v == null ? 'Select ID Country' : null),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<IdTypeOption>(value: _selectedIdType, decoration: InputDecoration(labelText: 'ID Type - Select your ID', hintText: _selectedCountry == null ? 'Select ID Country first' : 'Select your ID'), items: _idTypesForCountry.map((t) => DropdownMenuItem(value: t, child: Text(t.label))).toList(), onChanged: _selectedCountry == null ? null : _onIdTypeChanged, validator: (v) => v == null ? 'Select ID Type' : null),
+              if (_selectedCountry != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text('Showing IDs for $_selectedCountry • ${_idTypesForCountry.length} options • Passport / National ID / Driving Licence work for every country', style: TextStyle(color: Colors.grey.shade600, fontSize: 12))),
+              const SizedBox(height: 16),
+              TextFormField(controller: _idNumberController, enabled: _selectedIdType != null, textCapitalization: TextCapitalization.characters, decoration: InputDecoration(labelText: 'ID Number (as printed on your ID)', hintText: _selectedIdType?.hint ?? 'Select ID Country + ID Type first', helperText: _selectedIdType != null ? 'Example: ${_selectedIdType!.example}' : null), validator: (v) { if (v == null || v.trim().isEmpty) return 'Enter ID Number'; final pattern = _selectedIdType?.pattern; if (pattern != null && !pattern.hasMatch(v.trim())) return _selectedIdType?.patternError ?? 'Invalid format. Example: ${_selectedIdType!.example}'; return null; }),
+              const SizedBox(height: 8),
+              const Text('ID is AUTO-SCANNED - put it inside the box, turn on flash if dark. It snaps by itself when clear + steady.', style: TextStyle(color: Colors.grey, fontSize: 12)),
+              const SizedBox(height: 16),
+              _fileRow(icon: Icons.credit_card, label: 'Upload ID - FRONT', fileName: _idFrontName, subLabel: _selectedIdType == null ? 'Pick ID Country + ID Type first' : 'Front of ${_selectedIdType!.label}', buttonText: 'Scan Front', onPick: () => _scanId('front'), buttonEnabled: _selectedIdType != null),
+              _fileRow(icon: Icons.credit_card, label: 'Upload ID - BACK', fileName: _idBackName, subLabel: _selectedIdType == null ? 'Auto-scan (box + flash)' : 'Back of ${_selectedIdType!.label} (required)', buttonText: 'Scan Back', onPick: () => _scanId('back'), buttonEnabled: _selectedIdType != null),
+              _fileRow(icon: Icons.school, label: 'Upload Certificate', fileName: _certificateName, buttonText: 'Pick Cert', onPick: () => _pickFile('cert')),
+              _sectionTitle('Licence'),
+              _textField(controller: _licenceNumberController, label: 'Licence Number', hint: 'e.g. LIC123456 / NMC123456', validator: (v) => (v == null || v.isEmpty) ? 'Enter Licence Number' : null),
+              _fileRow(icon: Icons.card_membership, label: 'Upload Licence', fileName: _licenceName, buttonText: 'Pick Licence', onPick: () => _pickFile('licence')),
+              const SizedBox(height: 8),
+              if (_idCheckAttempted && _idCheckMessage != null) Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: _idCheckPassed ? Colors.green.shade50 : Colors.orange.shade50, borderRadius: BorderRadius.circular(8)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(_idCheckPassed ? Icons.check_circle : Icons.close, color: _idCheckPassed ? Colors.green : Colors.orange), const SizedBox(width: 8), Expanded(child: Text(_idCheckMessage!, style: TextStyle(color: _idCheckPassed ? Colors.green.shade900 : Colors.orange.shade900, fontWeight: FontWeight.w600)))]), if (_idCheckDetails.isNotEmpty) ...[const SizedBox(height: 6), ..._idCheckDetails.map((c) => Padding(padding: const EdgeInsets.only(top: 2), child: Text(c, style: const TextStyle(fontSize: 12))))]])),
+              const SizedBox(height: 16),
+              SizedBox(width: double.infinity, height: 52, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), onPressed: (_selectedCountry != null && _selectedIdType != null && !_isCheckingId) ? _checkIdAgain : null, child: _isCheckingId ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('🔍 CHECK MY ID AGAIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+              _sectionTitle('Experience'),
+              DropdownButtonFormField<String>(value: _selectedSpecialty, decoration: const InputDecoration(labelText: 'Specialty'), items: const ['General Nursing', 'Midwifery', 'ICU / Critical Care', 'Paediatric Nursing', 'Mental Health', 'Community Health', 'Emergency / A&E', 'Theatre / Surgical'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => _selectedSpecialty = v), validator: (v) => v == null ? 'Select specialty' : null),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(value: _selectedExperience, decoration: const InputDecoration(labelText: 'Years of Experience'), items: const ['0-1 years', '1-3 years', '3-5 years', '5-10 years', '10+ years'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => _selectedExperience = v), validator: (v) => v == null ? 'Select experience' : null),
+              if (_uploadStatus != null) Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)), const SizedBox(width: 10), Expanded(child: Text(_uploadStatus!, style: const TextStyle(fontSize: 13)))])),
+              const SizedBox(height: 28),
+              SizedBox(width: double.infinity, height: 56, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))), onPressed: _isSubmitting ? null : _submit, child: _isSubmitting ? const CircularProgressIndicator(color: Colors.white) : const Text('SUBMIT REGISTRATION', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)))),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Padding(padding: const EdgeInsets.only(top: 20, bottom: 10), child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primary)));
+  }
+
+  Widget _textField({required TextEditingController controller, required String label, required String hint, TextInputType? keyboardType, String? Function(String?)? validator}) {
+    return Padding(padding: const EdgeInsets.only(bottom: 12), child: TextFormField(controller: controller, keyboardType: keyboardType, decoration: InputDecoration(labelText: label, hintText: hint), validator: validator));
+  }
+
+  Widget _fileRow({required IconData icon, required String label, required String buttonText, required VoidCallback onPick, String? fileName, String? subLabel, bool buttonEnabled = true}) {
+    final hasFile = fileName != null;
+    return Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(icon, color: primary, size: 28), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 2), Text(hasFile ? fileName! : (subLabel ?? 'No file selected'), style: TextStyle(color: hasFile ? Colors.black87 : Colors.grey, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis)])), const SizedBox(width: 8), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: primaryLight, foregroundColor: primary, elevation: 0), onPressed: buttonEnabled ? onPick : null, child: Text(buttonText))]));
+  }
+}
+
+class PendingApprovalPage extends StatelessWidget {
+  final String name;
+  final String email;
+  const PendingApprovalPage({super.key, required this.name, required this.email});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(backgroundColor: const Color(0xFF880E4F), title: const Text('Registration Sent')),
+      body: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.hourglass_top, size: 80, color: Color(0xFF880E4F)), const SizedBox(height: 20), Text('Thank you, $name!', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center), const SizedBox(height: 12), const Text('Your registration has been sent to the CEO for approval.\n\nYou will NOT be able to log in until you are approved.\nPlease wait - you will be notified once approved.', textAlign: TextAlign.center, style: TextStyle(fontSize: 16)), const SizedBox(height: 12), Text('Submitted as: $email', style: const TextStyle(color: Colors.grey)), const SizedBox(height: 28), SizedBox(width: double.infinity, height: 52, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F)), onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst), child: const Text('BACK TO LOGIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))))])),
+    );
+  }
 }
