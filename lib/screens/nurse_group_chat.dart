@@ -1,556 +1,1131 @@
-import 'dart:convert';
-import 'dart:typed_data';
-import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:file_picker/file_picker.dart';
+// nurse_group_chat_translations.dart
+// FILE - Nurse Group Chat (NURSE) - ONLY SCREEN WORDS - ALL 22 LANGUAGES
+// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
+// ONE FILE - Drop in lib/screens
 
-class NurseGroupChatScreen extends StatefulWidget {
-  const NurseGroupChatScreen({super.key});
-  @override
-  State<NurseGroupChatScreen> createState() => _NurseGroupChatScreenState();
-}
+class NurseGroupChatTranslations {
+  static const Map<String, Map<String, String>> all = {
 
-// Alias - so main.dart + old files still work
-class NurseGroupChatPage extends NurseGroupChatScreen {
-  const NurseGroupChatPage({super.key});
-}
+    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
+    "en": {
+      "title": "👩‍⚕️ Nurses Community Chat 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Nurses",
+      "searchHint": "🔍 Search...",
+      "noNursesOnline": "No nurses online",
+      "blockedBanner": "🚫 YOU ARE BLOCKED\nReason: {reason} • By: {by}",
+      "blockedReasonDefault": "Misbehaving",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Welcome to Nurses Community Chat!",
+      "welcomeSub": "Photo + Name appears for everyone who chats",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "You",
+      "nurseBadge": "👩‍⚕️ Nurse",
+      "ceoFromControl": "👑 CEO — From CEO Control Chat",
+      "editedSuffix": " • edited",
+      "imageFallback": "🖼️ Image",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Voice message",
+      "videoMsg": "🎥 Video message",
+      "download": "⬇️ Download",
+      "edit": "✏️ Edit",
+      "delete": "🗑️ Delete",
+      "typingSuffix": " is typing...",
+      "pendingReady": "📎 Ready: {images} image(s) • {videos} video(s) • {files} file(s) — Tap Send to send all",
+      "inputHint": "Type message to all nurses... 💬",
+      "blockedInputHint": "🚫 Blocked — Contact CEO",
+      "tooltipImages": "Images",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "Files",
+      "editTitle": "✏️ Edit your message",
+      "editHint": "Edit message...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "deleteTitle": "🗑️ Delete?",
+      "deleteContent": "Delete this message for everyone?",
+      "deleteBtn": "Delete",
+      "toastBlocked": "🚫 You are blocked — Contact CEO",
+      "toastSent": "✅ Message sent with photo + name",
+      "toastError": "Error: {error}",
+      "toastImagesReady": "🖼️ {n} image(s) ready",
+      "toastVideoReady": "🎥 Video ready",
+      "toastFilesReady": "📄 {n} file(s) ready",
+      "toastEdited": "✅ Edited",
+      "toastDeleted": "🗑️ Deleted",
+      "defaultNurse": "Nurse",
+      "defaultInitial": "N",
+    },
 
-class _NurseGroupChatScreenState extends State<NurseGroupChatScreen> {
-  final DatabaseReference _db = FirebaseDatabase.instance.ref();
-  final TextEditingController _msgController = TextEditingController();
-  final ScrollController _scroll = ScrollController();
-  final ImagePicker _picker = ImagePicker();
+    // 2. TWI
+    "tw": {
+      "title": "👩‍⚕️ Nɛɛse Community Chat 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Nɛɛse",
+      "searchHint": "🔍 Hwehwɛ...",
+      "noNursesOnline": "Nɛɛse biara nni online",
+      "blockedBanner": "🚫 WƆABLOK WO\nAdɛn: {reason} • Hwan: {by}",
+      "blockedReasonDefault": "Woyɛ basaa",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Akwaaba kɔ Nɛɛse Community Chat!",
+      "welcomeSub": "Foto + Din da ɛda adi ma obiara a ɔbɔ chat",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Wo",
+      "nurseBadge": "👩‍⚕️ Nɛɛse",
+      "ceoFromControl": "👑 CEO — Fi CEO Control Chat",
+      "editedSuffix": " • wɔasakra",
+      "imageFallback": "🖼️ Foto",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Voice message",
+      "videoMsg": "🎥 Video message",
+      "download": "⬇️ Download",
+      "edit": "✏️ Sesa",
+      "delete": "🗑️ Yi Fi Hɔ",
+      "typingSuffix": " rekyerɛw...",
+      "pendingReady": "📎 Ready: {images} foto • {videos} video • {files} file — Tap Send na fa nyinaa",
+      "inputHint": "Kyerɛw message kɔma nɛɛse nyinaa... 💬",
+      "blockedInputHint": "🚫 Wɔablok wo — Frɛ CEO",
+      "tooltipImages": "Fotos",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "Files",
+      "editTitle": "✏️ Sesa wo message",
+      "editHint": "Sesa message...",
+      "cancel": "Gyae",
+      "save": "Kora",
+      "deleteTitle": "🗑️ Yi Fi Hɔ?",
+      "deleteContent": "Yi saa message yi fi hɔ ma obiara?",
+      "deleteBtn": "Yi Fi Hɔ",
+      "toastBlocked": "🚫 Wɔablok wo — Frɛ CEO",
+      "toastSent": "✅ Wɔafa message ne foto + din",
+      "toastError": "Mfomso: {error}",
+      "toastImagesReady": "🖼️ {n} foto ready",
+      "toastVideoReady": "🎥 Video ready",
+      "toastFilesReady": "📄 {n} file ready",
+      "toastEdited": "✅ Wɔasakra",
+      "toastDeleted": "🗑️ Wɔayi fi hɔ",
+      "defaultNurse": "Nɛɛse",
+      "defaultInitial": "N",
+    },
 
-  String currentUserId = '';
-  String currentUserName = 'Nurse';
-  String currentUserPhoto = '';
-  List<Map<String, dynamic>> messages = [];
-  List<Map<String, dynamic>> onlineNurses = [];
-  List<Map<String, dynamic>> allNurses = [];
-  List<Map<String, dynamic>> blockedList = [];
-  String searchQ = '';
-  String typingText = '';
-  bool showSidebar = false;
-  bool showEmoji = false;
-  bool isSending = false;
+    // 3. GA
+    "ga": {
+      "title": "👩‍⚕️ Nɛɛse Community Chat 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Nɛɛse",
+      "searchHint": "🔍 Taomɔ...",
+      "noNursesOnline": "Nɛɛse ko bɛ online",
+      "blockedBanner": "🚫 ABLOK O\nHewɔ: {reason} • Namɔ: {by}",
+      "blockedReasonDefault": "Ofee basaa",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Otsaami kɛ Nɛɛse Community Chat!",
+      "welcomeSub": "Foto + Gbɛi daa hee hã mɔ fɛɛ ni tsuu chat",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Bo",
+      "nurseBadge": "👩‍⚕️ Nɛɛse",
+      "ceoFromControl": "👑 CEO — Kɛjɛ CEO Control Chat",
+      "editedSuffix": " • atsake",
+      "imageFallback": "🖼️ Foto",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Voice message",
+      "videoMsg": "🎥 Video message",
+      "download": "⬇️ Download",
+      "edit": "✏️ Tsake",
+      "delete": "🗑️ Jee",
+      "typingSuffix": " mii ŋmɛ...",
+      "pendingReady": "📎 Ready: {images} foto • {videos} video • {files} file — Tap Send koni o fee fɛɛ",
+      "inputHint": "Ŋmɛ message hã nɛɛse fɛɛ... 💬",
+      "blockedInputHint": "🚫 Ablok o — Frɛ CEO",
+      "tooltipImages": "Fotos",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "Files",
+      "editTitle": "✏️ Tsake o message",
+      "editHint": "Tsake message...",
+      "cancel": "Fo",
+      "save": "To",
+      "deleteTitle": "🗑️ Jee?",
+      "deleteContent": "Jee saa message nɛɛ hã mɔ fɛɛ?",
+      "deleteBtn": "Jee",
+      "toastBlocked": "🚫 Ablok o — Frɛ CEO",
+      "toastSent": "✅ Afee message kɛ foto + gbɛi",
+      "toastError": "Mfomso: {error}",
+      "toastImagesReady": "🖼️ {n} foto ready",
+      "toastVideoReady": "🎥 Video ready",
+      "toastFilesReady": "📄 {n} file ready",
+      "toastEdited": "✅ Atsake",
+      "toastDeleted": "🗑️ Ajee",
+      "defaultNurse": "Nɛɛse",
+      "defaultInitial": "N",
+    },
 
-  // Pending media - same as HTML pendingImages / Videos / Files
-  List<String> pendingImages = [];
-  List<String> pendingVideos = [];
-  List<Map<String, dynamic>> pendingFiles = [];
+    // 4. EWE
+    "ee": {
+      "title": "👩‍⚕️ Nɔnɔvia Community Chat 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Nɔnɔvia",
+      "searchHint": "🔍 Di...",
+      "noNursesOnline": "Nɔnɔvia aɖeke mele online o",
+      "blockedBanner": "🚫 WOXE MƆ\nNu Ta: {reason} • Ame: {by}",
+      "blockedReasonDefault": "Wòwɔ nu vɔ̃",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Woezɔ ɖe Nɔnɔvia Community Chat!",
+      "welcomeSub": "Foto + Ŋkɔ doa na ame sia ame si le chat wɔm",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Wò",
+      "nurseBadge": "👩‍⚕️ Nɔnɔvia",
+      "ceoFromControl": "👑 CEO — Tso CEO Control Chat",
+      "editedSuffix": " • wotrɔ",
+      "imageFallback": "🖼️ Foto",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Voice message",
+      "videoMsg": "🎥 Video message",
+      "download": "⬇️ Download",
+      "edit": "✏️ Trɔ",
+      "delete": "🗑️ Ðe Ða",
+      "typingSuffix": " le ŋlɔ...",
+      "pendingReady": "📎 Ready: {images} foto • {videos} video • {files} file — Zi Send be nàɖo katã",
+      "inputHint": "Ŋlɔ message na nɔnɔviawo katã... 💬",
+      "blockedInputHint": "🚫 Woxe mɔ — Kpɔ CEO",
+      "tooltipImages": "Foto",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "Files",
+      "editTitle": "✏️ Trɔ wò message",
+      "editHint": "Trɔ message...",
+      "cancel": "Ðe Ða",
+      "save": "Dzra Ðo",
+      "deleteTitle": "🗑️ Ðe Ða?",
+      "deleteContent": "Ðe message sia ɖa na ame sia ame?",
+      "deleteBtn": "Ðe Ða",
+      "toastBlocked": "🚫 Woxe mɔ — Kpɔ CEO",
+      "toastSent": "✅ Woɖo message kple foto + ŋkɔ",
+      "toastError": "Vodada: {error}",
+      "toastImagesReady": "🖼️ {n} foto ready",
+      "toastVideoReady": "🎥 Video ready",
+      "toastFilesReady": "📄 {n} file ready",
+      "toastEdited": "✅ Wotrɔ",
+      "toastDeleted": "🗑️ Woɖe ɖa",
+      "defaultNurse": "Nɔnɔvia",
+      "defaultInitial": "N",
+    },
 
-  final List<String> emojis = ['😀','😂','❤️','🙏','👍','👏','🔥','💜','🩺','👩‍⚕️','😊','😢','🎉','💪','🌹','✅','⚠️','💬'];
+    // 5. DUTCH
+    "nl": {
+      "title": "👩‍⚕️ Verpleegkundige Community Chat 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Verpleegkundigen",
+      "searchHint": "🔍 Zoeken...",
+      "noNursesOnline": "Geen verpleegkundigen online",
+      "blockedBanner": "🚫 JE BENT GEBLOKKEERD\nReden: {reason} • Door: {by}",
+      "blockedReasonDefault": "Wangedrag",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Welkom bij Verpleegkundige Community Chat!",
+      "welcomeSub": "Foto + Naam verschijnt voor iedereen die chat",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Jij",
+      "nurseBadge": "👩‍⚕️ Verpleegkundige",
+      "ceoFromControl": "👑 CEO — Van CEO Control Chat",
+      "editedSuffix": " • bewerkt",
+      "imageFallback": "🖼️ Afbeelding",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Spraakbericht",
+      "videoMsg": "🎥 Videobericht",
+      "download": "⬇️ Downloaden",
+      "edit": "✏️ Bewerken",
+      "delete": "🗑️ Verwijderen",
+      "typingSuffix": " typt...",
+      "pendingReady": "📎 Klaar: {images} afbeelding(en) • {videos} video('s) • {files} bestand(en) — Tik Verzenden om alles te sturen",
+      "inputHint": "Typ bericht naar alle verpleegkundigen... 💬",
+      "blockedInputHint": "🚫 Geblokkeerd — Neem contact op met CEO",
+      "tooltipImages": "Afbeeldingen",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "Bestanden",
+      "editTitle": "✏️ Bewerk je bericht",
+      "editHint": "Bewerk bericht...",
+      "cancel": "Annuleren",
+      "save": "Opslaan",
+      "deleteTitle": "🗑️ Verwijderen?",
+      "deleteContent": "Dit bericht voor iedereen verwijderen?",
+      "deleteBtn": "Verwijderen",
+      "toastBlocked": "🚫 Je bent geblokkeerd — Neem contact op met CEO",
+      "toastSent": "✅ Bericht verzonden met foto + naam",
+      "toastError": "Fout: {error}",
+      "toastImagesReady": "🖼️ {n} afbeelding(en) klaar",
+      "toastVideoReady": "🎥 Video klaar",
+      "toastFilesReady": "📄 {n} bestand(en) klaar",
+      "toastEdited": "✅ Bewerkt",
+      "toastDeleted": "🗑️ Verwijderd",
+      "defaultNurse": "Verpleegkundige",
+      "defaultInitial": "N",
+    },
 
-  @override
-  void initState() {
-    super.initState();
-    _initUser();
-  }
+    // 6. FRENCH
+    "fr": {
+      "title": "👩‍⚕️ Chat Communautaire Infirmière 💬",
+      "onlineBtn": "En Ligne ({n})",
+      "nursesTitle": "👥 Infirmières",
+      "searchHint": "🔍 Rechercher...",
+      "noNursesOnline": "Aucune infirmière en ligne",
+      "blockedBanner": "🚫 TU ES BLOQUÉE\nRaison: {reason} • Par: {by}",
+      "blockedReasonDefault": "Mauvaise conduite",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Bienvenue dans Chat Communautaire Infirmière!",
+      "welcomeSub": "Photo + Nom apparaît pour tout le monde qui discute",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Toi",
+      "nurseBadge": "👩‍⚕️ Infirmière",
+      "ceoFromControl": "👑 CEO — Depuis Chat Contrôle CEO",
+      "editedSuffix": " • modifié",
+      "imageFallback": "🖼️ Image",
+      "videoLabel": "🎥 Vidéo: {url}",
+      "voiceMsg": "🎤 Message vocal",
+      "videoMsg": "🎥 Message vidéo",
+      "download": "⬇️ Télécharger",
+      "edit": "✏️ Modifier",
+      "delete": "🗑️ Supprimer",
+      "typingSuffix": " est en train d'écrire...",
+      "pendingReady": "📎 Prêt: {images} image(s) • {videos} vidéo(s) • {files} fichier(s) — Appuie Envoyer pour tout envoyer",
+      "inputHint": "Tape message à toutes les infirmières... 💬",
+      "blockedInputHint": "🚫 Bloquée — Contacte CEO",
+      "tooltipImages": "Images",
+      "tooltipVideo": "Vidéo",
+      "tooltipFiles": "Fichiers",
+      "editTitle": "✏️ Modifie ton message",
+      "editHint": "Modifie message...",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "deleteTitle": "🗑️ Supprimer?",
+      "deleteContent": "Supprimer ce message pour tout le monde?",
+      "deleteBtn": "Supprimer",
+      "toastBlocked": "🚫 Tu es bloquée — Contacte CEO",
+      "toastSent": "✅ Message envoyé avec photo + nom",
+      "toastError": "Erreur: {error}",
+      "toastImagesReady": "🖼️ {n} image(s) prête(s)",
+      "toastVideoReady": "🎥 Vidéo prête",
+      "toastFilesReady": "📄 {n} fichier(s) prêt(s)",
+      "toastEdited": "✅ Modifié",
+      "toastDeleted": "🗑️ Supprimé",
+      "defaultNurse": "Infirmière",
+      "defaultInitial": "N",
+    },
 
-  @override
-  void dispose() {
-    _msgController.dispose();
-    _scroll.dispose();
-    super.dispose();
-  }
+    // 7. GERMAN
+    "de": {
+      "title": "👩‍⚕️ Krankenschwester Community Chat 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Krankenschwestern",
+      "searchHint": "🔍 Suchen...",
+      "noNursesOnline": "Keine Krankenschwestern online",
+      "blockedBanner": "🚫 DU BIST BLOCKIERT\nGrund: {reason} • Von: {by}",
+      "blockedReasonDefault": "Fehlverhalten",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Willkommen im Krankenschwester Community Chat!",
+      "welcomeSub": "Foto + Name erscheint für alle die chatten",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Du",
+      "nurseBadge": "👩‍⚕️ Krankenschwester",
+      "ceoFromControl": "👑 CEO — Aus CEO Control Chat",
+      "editedSuffix": " • bearbeitet",
+      "imageFallback": "🖼️ Bild",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Sprachnachricht",
+      "videoMsg": "🎥 Videonachricht",
+      "download": "⬇️ Herunterladen",
+      "edit": "✏️ Bearbeiten",
+      "delete": "🗑️ Löschen",
+      "typingSuffix": " tippt...",
+      "pendingReady": "📎 Bereit: {images} Bild(er) • {videos} Video(s) • {files} Datei(en) — Tippe Senden um alles zu senden",
+      "inputHint": "Tippe Nachricht an alle Krankenschwestern... 💬",
+      "blockedInputHint": "🚫 Blockiert — Kontaktiere CEO",
+      "tooltipImages": "Bilder",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "Dateien",
+      "editTitle": "✏️ Bearbeite deine Nachricht",
+      "editHint": "Nachricht bearbeiten...",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "deleteTitle": "🗑️ Löschen?",
+      "deleteContent": "Diese Nachricht für alle löschen?",
+      "deleteBtn": "Löschen",
+      "toastBlocked": "🚫 Du bist blockiert — Kontaktiere CEO",
+      "toastSent": "✅ Nachricht gesendet mit Foto + Name",
+      "toastError": "Fehler: {error}",
+      "toastImagesReady": "🖼️ {n} Bild(er) bereit",
+      "toastVideoReady": "🎥 Video bereit",
+      "toastFilesReady": "📄 {n} Datei(en) bereit",
+      "toastEdited": "✅ Bearbeitet",
+      "toastDeleted": "🗑️ Gelöscht",
+      "defaultNurse": "Krankenschwester",
+      "defaultInitial": "N",
+    },
 
-  Future<void> _initUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    currentUserId = prefs.getString('lcg_nurse_uid') ?? prefs.getString('nurseUid') ?? prefs.getString('uid') ?? prefs.getString('nurseId') ?? 'nurse_${DateTime.now().millisecondsSinceEpoch}';
-    currentUserName = prefs.getString('nurseName') ?? prefs.getString('fullName') ?? prefs.getString('displayName') ?? prefs.getString('name') ?? 'Nurse';
-    currentUserPhoto = prefs.getString('nursePhoto') ?? prefs.getString('photo') ?? '';
-    // Try load real photo from nurses/<uid>
-    try {
-      final snap = await _db.child('nurses/$currentUserId').get();
-      if (snap.exists && snap.value is Map) {
-        final v = Map<String, dynamic>.from(snap.value as Map);
-        final p = (v['photoURL'] ?? v['photo'] ?? v['profilePhoto'] ?? v['avatar'] ?? v['image'] ?? '').toString();
-        if (p.isNotEmpty) {
-          currentUserPhoto = p;
-          await prefs.setString('nursePhoto', p);
-        }
-        final n = (v['fullName'] ?? v['name'] ?? v['displayName'] ?? '').toString();
-        if (n.isNotEmpty) currentUserName = n;
-      }
-    } catch (_) {}
-    if (mounted) setState(() {});
-    _loadOnline();
-    _loadMessages();
-    _checkBlocked();
-    _listenTyping();
-    // Mark online + onDisconnect remove
-    try {
-      await _db.child('onlineNurses/$currentUserId').set({'name': currentUserName, 'photo': currentUserPhoto, 'onlineAt': DateTime.now().millisecondsSinceEpoch, 'inChat': true});
-      _db.child('onlineNurses/$currentUserId').onDisconnect().remove();
-    } catch (_) {}
-  }
+    // 8. SPANISH
+    "es": {
+      "title": "👩‍⚕️ Chat Comunitario Enfermera 💬",
+      "onlineBtn": "En Línea ({n})",
+      "nursesTitle": "👥 Enfermeras",
+      "searchHint": "🔍 Buscar...",
+      "noNursesOnline": "Ninguna enfermera en línea",
+      "blockedBanner": "🚫 ESTÁS BLOQUEADA\nMotivo: {reason} • Por: {by}",
+      "blockedReasonDefault": "Mala conducta",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "¡Bienvenida al Chat Comunitario Enfermera!",
+      "welcomeSub": "Foto + Nombre aparece para todos los que chatean",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Tú",
+      "nurseBadge": "👩‍⚕️ Enfermera",
+      "ceoFromControl": "👑 CEO — Desde Chat Control CEO",
+      "editedSuffix": " • editado",
+      "imageFallback": "🖼️ Imagen",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Mensaje de voz",
+      "videoMsg": "🎥 Mensaje de video",
+      "download": "⬇️ Descargar",
+      "edit": "✏️ Editar",
+      "delete": "🗑️ Eliminar",
+      "typingSuffix": " está escribiendo...",
+      "pendingReady": "📎 Listo: {images} imagen(es) • {videos} video(s) • {files} archivo(s) — Toca Enviar para enviar todo",
+      "inputHint": "Escribe mensaje a todas las enfermeras... 💬",
+      "blockedInputHint": "🚫 Bloqueada — Contacta CEO",
+      "tooltipImages": "Imágenes",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "Archivos",
+      "editTitle": "✏️ Edita tu mensaje",
+      "editHint": "Edita mensaje...",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "deleteTitle": "🗑️ ¿Eliminar?",
+      "deleteContent": "¿Eliminar este mensaje para todos?",
+      "deleteBtn": "Eliminar",
+      "toastBlocked": "🚫 Estás bloqueada — Contacta CEO",
+      "toastSent": "✅ Mensaje enviado con foto + nombre",
+      "toastError": "Error: {error}",
+      "toastImagesReady": "🖼️ {n} imagen(es) lista(s)",
+      "toastVideoReady": "🎥 Video listo",
+      "toastFilesReady": "📄 {n} archivo(s) listo(s)",
+      "toastEdited": "✅ Editado",
+      "toastDeleted": "🗑️ Eliminado",
+      "defaultNurse": "Enfermera",
+      "defaultInitial": "N",
+    },
 
-  void _loadOnline() {
-    // Approved nurses list
-    _db.child('nurses').onValue.listen((e) {
-      if (e.snapshot.value == null || e.snapshot.value is! Map) return;
-      final data = Map<String, dynamic>.from(e.snapshot.value as Map);
-      final list = <Map<String, dynamic>>[];
-      for (final entry in data.entries) {
-        if (entry.value is! Map) continue;
-        final v = Map<String, dynamic>.from(entry.value as Map);
-        list.add({...v, 'id': entry.key.toString(), 'name': (v['fullName'] ?? v['name'] ?? 'Nurse').toString(), 'photo': (v['photoURL'] ?? v['photo'] ?? '').toString(), 'specialty': (v['specialty'] ?? v['specialization'] ?? '').toString()});
-      }
-      allNurses = list;
-      if (mounted) setState(() {});
-    });
-    _db.child('onlineNurses').onValue.listen((e) {
-      if (e.snapshot.value == null || e.snapshot.value is! Map) return;
-      final data = Map<String, dynamic>.from(e.snapshot.value as Map);
-      final list = <Map<String, dynamic>>[];
-      for (final entry in data.entries) {
-        if (entry.value is! Map) continue;
-        final v = Map<String, dynamic>.from(entry.value as Map);
-        list.add({...v, 'id': entry.key.toString(), 'name': (v['name'] ?? 'Nurse').toString(), 'photo': (v['photo'] ?? '').toString()});
-      }
-      onlineNurses = list;
-      if (mounted) setState(() {});
-    });
-  }
+    // 9. ITALIAN
+    "it": {
+      "title": "👩‍⚕️ Chat Comunità Infermiera 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Infermiere",
+      "searchHint": "🔍 Cerca...",
+      "noNursesOnline": "Nessuna infermiera online",
+      "blockedBanner": "🚫 SEI BLOCCATA\nMotivo: {reason} • Da: {by}",
+      "blockedReasonDefault": "Cattiva condotta",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Benvenuta nella Chat Comunità Infermiera!",
+      "welcomeSub": "Foto + Nome appare per tutti quelli che chattano",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Tu",
+      "nurseBadge": "👩‍⚕️ Infermiera",
+      "ceoFromControl": "👑 CEO — Da Chat Controllo CEO",
+      "editedSuffix": " • modificato",
+      "imageFallback": "🖼️ Immagine",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Messaggio vocale",
+      "videoMsg": "🎥 Messaggio video",
+      "download": "⬇️ Scarica",
+      "edit": "✏️ Modifica",
+      "delete": "🗑️ Elimina",
+      "typingSuffix": " sta scrivendo...",
+      "pendingReady": "📎 Pronto: {images} immagine(i) • {videos} video • {files} file — Tocca Invia per inviare tutto",
+      "inputHint": "Scrivi messaggio a tutte le infermiere... 💬",
+      "blockedInputHint": "🚫 Bloccata — Contatta CEO",
+      "tooltipImages": "Immagini",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "File",
+      "editTitle": "✏️ Modifica il tuo messaggio",
+      "editHint": "Modifica messaggio...",
+      "cancel": "Annulla",
+      "save": "Salva",
+      "deleteTitle": "🗑️ Elimina?",
+      "deleteContent": "Eliminare questo messaggio per tutti?",
+      "deleteBtn": "Elimina",
+      "toastBlocked": "🚫 Sei bloccata — Contatta CEO",
+      "toastSent": "✅ Messaggio inviato con foto + nome",
+      "toastError": "Errore: {error}",
+      "toastImagesReady": "🖼️ {n} immagine(i) pronta(e)",
+      "toastVideoReady": "🎥 Video pronto",
+      "toastFilesReady": "📄 {n} file pronto(i)",
+      "toastEdited": "✅ Modificato",
+      "toastDeleted": "🗑️ Eliminato",
+      "defaultNurse": "Infermiera",
+      "defaultInitial": "N",
+    },
 
-  void _loadMessages() {
-    // Primary: nurseCommunityChat/messages - last 150
-    _db.child('nurseCommunityChat/messages').orderByChild('createdAt').limitToLast(150).onValue.listen((e) {
-      _mergeMessages(e.snapshot.value, 'nurseCommunityChat');
-    });
-    // CEO messages from nurses_group_chat - only CEO
-    _db.child('nurses_group_chat/messages').orderByChild('createdAt').limitToLast(150).onValue.listen((e) {
-      if (e.snapshot.value == null || e.snapshot.value is! Map) return;
-      final data = Map<String, dynamic>.from(e.snapshot.value as Map);
-      for (final entry in data.entries) {
-        if (entry.value is! Map) continue;
-        final v = Map<String, dynamic>.from(entry.value as Map);
-        final sid = (v['senderId'] ?? '').toString();
-        final isCEO = sid.contains('CEO') || (v['senderName'] ?? '').toString().contains('CEO') || v['isCEO'] == true;
-        if (!isCEO) continue;
-        _addOrUpdate({...v, 'id': entry.key.toString(), 'key': entry.key.toString()});
-      }
-      _sortMessages();
-    });
-  }
+    // 10. PORTUGUESE
+    "pt": {
+      "title": "👩‍⚕️ Chat Comunidade Enfermeira 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Enfermeiras",
+      "searchHint": "🔍 Pesquisar...",
+      "noNursesOnline": "Nenhuma enfermeira online",
+      "blockedBanner": "🚫 VOCÊ ESTÁ BLOQUEADA\nMotivo: {reason} • Por: {by}",
+      "blockedReasonDefault": "Mau comportamento",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Bem-vinda ao Chat Comunidade Enfermeira!",
+      "welcomeSub": "Foto + Nome aparece para todos que conversam",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Você",
+      "nurseBadge": "👩‍⚕️ Enfermeira",
+      "ceoFromControl": "👑 CEO — Do Chat Controle CEO",
+      "editedSuffix": " • editado",
+      "imageFallback": "🖼️ Imagem",
+      "videoLabel": "🎥 Vídeo: {url}",
+      "voiceMsg": "🎤 Mensagem de voz",
+      "videoMsg": "🎥 Mensagem de vídeo",
+      "download": "⬇️ Baixar",
+      "edit": "✏️ Editar",
+      "delete": "🗑️ Excluir",
+      "typingSuffix": " está digitando...",
+      "pendingReady": "📎 Pronto: {images} imagem(ns) • {videos} vídeo(s) • {files} arquivo(s) — Toque Enviar para enviar tudo",
+      "inputHint": "Digite mensagem para todas as enfermeiras... 💬",
+      "blockedInputHint": "🚫 Bloqueada — Contate CEO",
+      "tooltipImages": "Imagens",
+      "tooltipVideo": "Vídeo",
+      "tooltipFiles": "Arquivos",
+      "editTitle": "✏️ Edite sua mensagem",
+      "editHint": "Edite mensagem...",
+      "cancel": "Cancelar",
+      "save": "Salvar",
+      "deleteTitle": "🗑️ Excluir?",
+      "deleteContent": "Excluir esta mensagem para todos?",
+      "deleteBtn": "Excluir",
+      "toastBlocked": "🚫 Você está bloqueada — Contate CEO",
+      "toastSent": "✅ Mensagem enviada com foto + nome",
+      "toastError": "Erro: {error}",
+      "toastImagesReady": "🖼️ {n} imagem(ns) pronta(s)",
+      "toastVideoReady": "🎥 Vídeo pronto",
+      "toastFilesReady": "📄 {n} arquivo(s) pronto(s)",
+      "toastEdited": "✅ Editado",
+      "toastDeleted": "🗑️ Excluído",
+      "defaultNurse": "Enfermeira",
+      "defaultInitial": "N",
+    },
 
-  void _mergeMessages(Object? value, String src) {
-    if (value == null || value is! Map) return;
-    final data = Map<String, dynamic>.from(value as Map);
-    for (final entry in data.entries) {
-      if (entry.value is! Map) continue;
-      final v = Map<String, dynamic>.from(entry.value as Map);
-      _addOrUpdate({...v, 'id': entry.key.toString(), 'key': entry.key.toString()});
-    }
-    _sortMessages();
-  }
+    // 11. ARABIC
+    "ar": {
+      "title": "👩‍⚕️ دردشة مجتمع الممرضات 💬",
+      "onlineBtn": "متصل ({n})",
+      "nursesTitle": "👥 الممرضات",
+      "searchHint": "🔍 بحث...",
+      "noNursesOnline": "لا ممرضات متصلات",
+      "blockedBanner": "🚫 تم حظرك\nالسبب: {reason} • بواسطة: {by}",
+      "blockedReasonDefault": "سوء سلوك",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "أهلاً بك في دردشة مجتمع الممرضات!",
+      "welcomeSub": "الصورة + الاسم يظهران لكل من يدردش",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "أنت",
+      "nurseBadge": "👩‍⚕️ ممرضة",
+      "ceoFromControl": "👑 CEO — من دردشة تحكم CEO",
+      "editedSuffix": " • تم التعديل",
+      "imageFallback": "🖼️ صورة",
+      "videoLabel": "🎥 فيديو: {url}",
+      "voiceMsg": "🎤 رسالة صوتية",
+      "videoMsg": "🎥 رسالة فيديو",
+      "download": "⬇️ تحميل",
+      "edit": "✏️ تعديل",
+      "delete": "🗑️ حذف",
+      "typingSuffix": " يكتب...",
+      "pendingReady": "📎 جاهز: {images} صورة • {videos} فيديو • {files} ملف — اضغط إرسال لإرسال الكل",
+      "inputHint": "اكتب رسالة لجميع الممرضات... 💬",
+      "blockedInputHint": "🚫 محظور — اتصل بـ CEO",
+      "tooltipImages": "صور",
+      "tooltipVideo": "فيديو",
+      "tooltipFiles": "ملفات",
+      "editTitle": "✏️ عدّل رسالتك",
+      "editHint": "عدّل الرسالة...",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "deleteTitle": "🗑️ حذف؟",
+      "deleteContent": "حذف هذه الرسالة للجميع؟",
+      "deleteBtn": "حذف",
+      "toastBlocked": "🚫 تم حظرك — اتصل بـ CEO",
+      "toastSent": "✅ تم إرسال الرسالة مع الصورة + الاسم",
+      "toastError": "خطأ: {error}",
+      "toastImagesReady": "🖼️ {n} صورة جاهزة",
+      "toastVideoReady": "🎥 فيديو جاهز",
+      "toastFilesReady": "📄 {n} ملف جاهز",
+      "toastEdited": "✅ تم التعديل",
+      "toastDeleted": "🗑️ تم الحذف",
+      "defaultNurse": "ممرضة",
+      "defaultInitial": "N",
+    },
 
-  void _addOrUpdate(Map<String, dynamic> m) {
-    final key = (m['key'] ?? m['id'] ?? m['messageId'] ?? '').toString();
-    final idx = messages.indexWhere((x) => (x['key'] ?? x['id'] ?? x['messageId'] ?? '').toString() == key);
-    if (idx == -1) {
-      messages.add(m);
-    } else {
-      messages[idx] = {...messages[idx], ...m};
-    }
-  }
+    // 12. CHINESE
+    "zh": {
+      "title": "👩‍⚕️ 护士社区聊天 💬",
+      "onlineBtn": "在线 ({n})",
+      "nursesTitle": "👥 护士",
+      "searchHint": "🔍 搜索...",
+      "noNursesOnline": "没有护士在线",
+      "blockedBanner": "🚫 你已被屏蔽\n原因: {reason} • 屏蔽者: {by}",
+      "blockedReasonDefault": "行为不当",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "欢迎来到护士社区聊天!",
+      "welcomeSub": "照片 + 姓名会显示给所有聊天的人",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "你",
+      "nurseBadge": "👩‍⚕️ 护士",
+      "ceoFromControl": "👑 CEO — 来自 CEO 控制聊天",
+      "editedSuffix": " • 已编辑",
+      "imageFallback": "🖼️ 图片",
+      "videoLabel": "🎥 视频: {url}",
+      "voiceMsg": "🎤 语音消息",
+      "videoMsg": "🎥 视频消息",
+      "download": "⬇️ 下载",
+      "edit": "✏️ 编辑",
+      "delete": "🗑️ 删除",
+      "typingSuffix": " 正在输入...",
+      "pendingReady": "📎 就绪: {images} 张图片 • {videos} 个视频 • {files} 个文件 — 点击发送以发送全部",
+      "inputHint": "输入消息给所有护士... 💬",
+      "blockedInputHint": "🚫 已屏蔽 — 联系 CEO",
+      "tooltipImages": "图片",
+      "tooltipVideo": "视频",
+      "tooltipFiles": "文件",
+      "editTitle": "✏️ 编辑你的消息",
+      "editHint": "编辑消息...",
+      "cancel": "取消",
+      "save": "保存",
+      "deleteTitle": "🗑️ 删除?",
+      "deleteContent": "为所有人删除此消息?",
+      "deleteBtn": "删除",
+      "toastBlocked": "🚫 你已被屏蔽 — 联系 CEO",
+      "toastSent": "✅ 消息已发送，附照片 + 姓名",
+      "toastError": "错误: {error}",
+      "toastImagesReady": "🖼️ {n} 张图片就绪",
+      "toastVideoReady": "🎥 视频就绪",
+      "toastFilesReady": "📄 {n} 个文件就绪",
+      "toastEdited": "✅ 已编辑",
+      "toastDeleted": "🗑️ 已删除",
+      "defaultNurse": "护士",
+      "defaultInitial": "N",
+    },
 
-  void _sortMessages() {
-    messages.sort((a, b) {
-      final ta = int.tryParse('${a['createdAt'] ?? a['time'] ?? 0}') ?? 0;
-      final tb = int.tryParse('${b['createdAt'] ?? b['time'] ?? 0}') ?? 0;
-      return ta.compareTo(tb);
-    });
-    if (mounted) setState(() {});
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) _scroll.jumpTo(_scroll.position.maxScrollExtent);
-    });
-  }
+    // 13. HINDI
+    "hi": {
+      "title": "👩‍⚕️ नर्स कम्युनिटी चैट 💬",
+      "onlineBtn": "ऑनलाइन ({n})",
+      "nursesTitle": "👥 नर्सें",
+      "searchHint": "🔍 खोजें...",
+      "noNursesOnline": "कोई नर्स ऑनलाइन नहीं",
+      "blockedBanner": "🚫 आपको ब्लॉक किया गया है\nकारण: {reason} • द्वारा: {by}",
+      "blockedReasonDefault": "गलत व्यवहार",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "नर्स कम्युनिटी चैट में स्वागत है!",
+      "welcomeSub": "फोटो + नाम चैट करने वाले सभी को दिखता है",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "आप",
+      "nurseBadge": "👩‍⚕️ नर्स",
+      "ceoFromControl": "👑 CEO — CEO कंट्रोल चैट से",
+      "editedSuffix": " • संपादित",
+      "imageFallback": "🖼️ छवि",
+      "videoLabel": "🎥 वीडियो: {url}",
+      "voiceMsg": "🎤 वॉयस संदेश",
+      "videoMsg": "🎥 वीडियो संदेश",
+      "download": "⬇️ डाउनलोड",
+      "edit": "✏️ संपादित करें",
+      "delete": "🗑️ हटाएँ",
+      "typingSuffix": " टाइप कर रहा है...",
+      "pendingReady": "📎 तैयार: {images} छवि • {videos} वीडियो • {files} फाइल — सब भेजने के लिए भेजें दबाएँ",
+      "inputHint": "सभी नर्सों को संदेश टाइप करें... 💬",
+      "blockedInputHint": "🚫 ब्लॉक — CEO से संपर्क करें",
+      "tooltipImages": "छवियाँ",
+      "tooltipVideo": "वीडियो",
+      "tooltipFiles": "फाइलें",
+      "editTitle": "✏️ अपना संदेश संपादित करें",
+      "editHint": "संदेश संपादित करें...",
+      "cancel": "रद्द करें",
+      "save": "सहेजें",
+      "deleteTitle": "🗑️ हटाएँ?",
+      "deleteContent": "यह संदेश सभी के लिए हटाएँ?",
+      "deleteBtn": "हटाएँ",
+      "toastBlocked": "🚫 आपको ब्लॉक किया गया है — CEO से संपर्क करें",
+      "toastSent": "✅ संदेश फोटो + नाम के साथ भेजा गया",
+      "toastError": "त्रुटि: {error}",
+      "toastImagesReady": "🖼️ {n} छवि तैयार",
+      "toastVideoReady": "🎥 वीडियो तैयार",
+      "toastFilesReady": "📄 {n} फाइल तैयार",
+      "toastEdited": "✅ संपादित",
+      "toastDeleted": "🗑️ हटाया गया",
+      "defaultNurse": "नर्स",
+      "defaultInitial": "N",
+    },
 
-  void _checkBlocked() {
-    _db.child('nurses_group_chat/blocked_users').onValue.listen((e) {
-      blockedList = [];
-      if (e.snapshot.value != null && e.snapshot.value is Map) {
-        final data = Map<String, dynamic>.from(e.snapshot.value as Map);
-        for (final entry in data.entries) {
-          if (entry.value is! Map) continue;
-          final v = Map<String, dynamic>.from(entry.value as Map);
-          if ((v['userId'] ?? '').toString() == currentUserId) blockedList.add(v);
-        }
-      }
-      if (mounted) setState(() {});
-    });
-  }
+    // 14. SWAHILI
+    "sw": {
+      "title": "👩‍⚕️ Gumzo La Jamii Ya Wauguzi 💬",
+      "onlineBtn": "Mtandaoni ({n})",
+      "nursesTitle": "👥 Wauguzi",
+      "searchHint": "🔍 Tafuta...",
+      "noNursesOnline": "Hakuna muuguzi mtandaoni",
+      "blockedBanner": "🚫 UMEZUIWA\nSababu: {reason} • Na: {by}",
+      "blockedReasonDefault": "Tabia mbaya",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Karibu kwenye Gumzo La Jamii Ya Wauguzi!",
+      "welcomeSub": "Picha + Jina huonekana kwa kila mtu anayechat",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Wewe",
+      "nurseBadge": "👩‍⚕️ Muuguzi",
+      "ceoFromControl": "👑 CEO — Kutoka Gumzo La Udhibiti Wa CEO",
+      "editedSuffix": " • imehaririwa",
+      "imageFallback": "🖼️ Picha",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Ujumbe wa sauti",
+      "videoMsg": "🎥 Ujumbe wa video",
+      "download": "⬇️ Pakua",
+      "edit": "✏️ Hariri",
+      "delete": "🗑️ Futa",
+      "typingSuffix": " anaandika...",
+      "pendingReady": "📎 Tayari: {images} picha • {videos} video • {files} faili — Gusa Tuma kutuma zote",
+      "inputHint": "Andika ujumbe kwa wauguzi wote... 💬",
+      "blockedInputHint": "🚫 Umezuiliwa — Wasiliana na CEO",
+      "tooltipImages": "Picha",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "Faili",
+      "editTitle": "✏️ Hariri ujumbe wako",
+      "editHint": "Hariri ujumbe...",
+      "cancel": "Ghairi",
+      "save": "Hifadhi",
+      "deleteTitle": "🗑️ Futa?",
+      "deleteContent": "Futa ujumbe huu kwa kila mtu?",
+      "deleteBtn": "Futa",
+      "toastBlocked": "🚫 Umezuiliwa — Wasiliana na CEO",
+      "toastSent": "✅ Ujumbe umetumwa na picha + jina",
+      "toastError": "Hitilafu: {error}",
+      "toastImagesReady": "🖼️ {n} picha tayari",
+      "toastVideoReady": "🎥 Video tayari",
+      "toastFilesReady": "📄 {n} faili tayari",
+      "toastEdited": "✅ Imehaririwa",
+      "toastDeleted": "🗑️ Imefutwa",
+      "defaultNurse": "Muuguzi",
+      "defaultInitial": "N",
+    },
 
-  void _listenTyping() {
-    _db.child('nurseCommunityChat/typing').onValue.listen((e) {
-      if (e.snapshot.value == null || e.snapshot.value is! Map) {
-        typingText = '';
-      } else {
-        final data = Map<String, dynamic>.from(e.snapshot.value as Map);
-        final names = <String>[];
-        for (final entry in data.entries) {
-          if (entry.value is! Map) continue;
-          final v = Map<String, dynamic>.from(entry.value as Map);
-          final nm = (v['name'] ?? '').toString();
-          final tm = int.tryParse('${v['time'] ?? 0}') ?? 0;
-          if (nm != currentUserName && DateTime.now().millisecondsSinceEpoch - tm < 5000) names.add(nm);
-        }
-        typingText = names.isEmpty ? '' : '${names.join(', ')} is typing...';
-      }
-      if (mounted) setState(() {});
-    });
-  }
+    // 15. YORUBA
+    "yo": {
+      "title": "👩‍⚕️ Nọọsi Community Chat 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Nọọsi",
+      "searchHint": "🔍 Wa...",
+      "noNursesOnline": "Ko si nọọsi online",
+      "blockedBanner": "🚫 WỌ TI DINA Ọ\nIdi: {reason} • Lati ọdọ: {by}",
+      "blockedReasonDefault": "Iwa buburu",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Ẹ n lẹ si Nọọsi Community Chat!",
+      "welcomeSub": "Foto + Orukọ han fun gbogbo eni ti o n chat",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Iwọ",
+      "nurseBadge": "👩‍⚕️ Nọọsi",
+      "ceoFromControl": "👑 CEO — Lati CEO Control Chat",
+      "editedSuffix": " • ti ṣatunṣe",
+      "imageFallback": "🖼️ Foto",
+      "videoLabel": "🎥 Fidio: {url}",
+      "voiceMsg": "🎤 Ifiranṣẹ ohun",
+      "videoMsg": "🎥 Ifiranṣẹ fidio",
+      "download": "⬇️ Gba silẹ",
+      "edit": "✏️ Ṣatunṣe",
+      "delete": "🗑️ Pa Rẹ",
+      "typingSuffix": " n kọ...",
+      "pendingReady": "📎 Ti ṣetan: {images} foto • {videos} fidio • {files} faili — Tẹ Fi Ránṣẹ lati fi gbogbo rẹ ránṣẹ",
+      "inputHint": "Kọ ifiranṣẹ si gbogbo nọọsi... 💬",
+      "blockedInputHint": "🚫 Ti dina — Kan si CEO",
+      "tooltipImages": "Awọn Foto",
+      "tooltipVideo": "Fidio",
+      "tooltipFiles": "Awọn Faili",
+      "editTitle": "✏️ Ṣatunṣe ifiranṣẹ rẹ",
+      "editHint": "Ṣatunṣe ifiranṣẹ...",
+      "cancel": "Fagile",
+      "save": "Fipamọ",
+      "deleteTitle": "🗑️ Pa Rẹ?",
+      "deleteContent": "Pa ifiranṣẹ yi rẹ fun gbogbo eniyan?",
+      "deleteBtn": "Pa Rẹ",
+      "toastBlocked": "🚫 Wọ ti dina ọ — Kan si CEO",
+      "toastSent": "✅ Ifiranṣẹ ti fi ránṣẹ pẹlu foto + orukọ",
+      "toastError": "Aṣiṣe: {error}",
+      "toastImagesReady": "🖼️ {n} foto ti ṣetan",
+      "toastVideoReady": "🎥 Fidio ti ṣetan",
+      "toastFilesReady": "📄 {n} faili ti ṣetan",
+      "toastEdited": "✅ Ti ṣatunṣe",
+      "toastDeleted": "🗑️ Ti pa rẹ",
+      "defaultNurse": "Nọọsi",
+      "defaultInitial": "N",
+    },
 
-  void _handleTyping() {
-    _db.child('nurseCommunityChat/typing/$currentUserId').set({'name': currentUserName, 'time': DateTime.now().millisecondsSinceEpoch});
-    Future.delayed(const Duration(seconds: 3), () => _db.child('nurseCommunityChat/typing/$currentUserId').remove());
-  }
+    // 16. IGBO
+    "ig": {
+      "title": "👩‍⚕️ Nọọsụ Community Chat 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Nọọsụ",
+      "searchHint": "🔍 Chọọ...",
+      "noNursesOnline": "Enweghị nọọsụ online",
+      "blockedBanner": "🚫 A KPỌCHIRI GỊ\nIhe Mere: {reason} • Onye: {by}",
+      "blockedReasonDefault": "Omume ọjọọ",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Nnọọ na Nọọsụ Community Chat!",
+      "welcomeSub": "Foto + Aha na-apụta maka onye ọ bụla na-akparịta ụka",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Gị",
+      "nurseBadge": "👩‍⚕️ Nọọsụ",
+      "ceoFromControl": "👑 CEO — Site na CEO Control Chat",
+      "editedSuffix": " • edezila",
+      "imageFallback": "🖼️ Foto",
+      "videoLabel": "🎥 Vidio: {url}",
+      "voiceMsg": "🎤 Ozi olu",
+      "videoMsg": "🎥 Ozi vidio",
+      "download": "⬇️ Budata",
+      "edit": "✏️ Dezie",
+      "delete": "🗑️ Hichapụ",
+      "typingSuffix": " na-ede...",
+      "pendingReady": "📎 Dị njikere: {images} foto • {videos} vidio • {files} faịlụ — Pịa Zipu iji zipu niile",
+      "inputHint": "Dee ozi nye nọọsụ niile... 💬",
+      "blockedInputHint": "🚫 A kpọchiri — Kpọtụrụ CEO",
+      "tooltipImages": "Foto",
+      "tooltipVideo": "Vidio",
+      "tooltipFiles": "Faịlụ",
+      "editTitle": "✏️ Dezie ozi gị",
+      "editHint": "Dezie ozi...",
+      "cancel": "Kagbuo",
+      "save": "Chekwaa",
+      "deleteTitle": "🗑️ Hichapụ?",
+      "deleteContent": "Hichapụ ozi a maka onye ọ bụla?",
+      "deleteBtn": "Hichapụ",
+      "toastBlocked": "🚫 A kpọchiri gị — Kpọtụrụ CEO",
+      "toastSent": "✅ Ezitela ozi na foto + aha",
+      "toastError": "Njehie: {error}",
+      "toastImagesReady": "🖼️ {n} foto dị njikere",
+      "toastVideoReady": "🎥 Vidio dị njikere",
+      "toastFilesReady": "📄 {n} faịlụ dị njikere",
+      "toastEdited": "✅ Edezila",
+      "toastDeleted": "🗑️ Ehichapụla",
+      "defaultNurse": "Nọọsụ",
+      "defaultInitial": "N",
+    },
 
-  void _toast(String m) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-  }
+    // 17. HAUSA
+    "ha": {
+      "title": "👩‍⚕️ Hira Ta Al'ummar Nurse 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Nurses",
+      "searchHint": "🔍 Nema...",
+      "noNursesOnline": "Babu nurse online",
+      "blockedBanner": "🚫 AN TOSE KA\nDalili: {reason} • Daga: {by}",
+      "blockedReasonDefault": "Mummunan hali",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Barka da zuwa Hira Ta Al'ummar Nurse!",
+      "welcomeSub": "Hoto + Suna suna bayyana ga kowa da ke hira",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Kai",
+      "nurseBadge": "👩‍⚕️ Nurse",
+      "ceoFromControl": "👑 CEO — Daga CEO Control Chat",
+      "editedSuffix": " • an gyara",
+      "imageFallback": "🖼️ Hoto",
+      "videoLabel": "🎥 Bidiyo: {url}",
+      "voiceMsg": "🎤 Saƙon murya",
+      "videoMsg": "🎥 Saƙon bidiyo",
+      "download": "⬇️ Sauke",
+      "edit": "✏️ Gyara",
+      "delete": "🗑️ Share",
+      "typingSuffix": " yana rubutu...",
+      "pendingReady": "📎 A shirye: {images} hoto • {videos} bidiyo • {files} fayil — Taɓa Aika don aika duka",
+      "inputHint": "Rubuta saƙo ga duk nurses... 💬",
+      "blockedInputHint": "🚫 An tose — Tuntuɓi CEO",
+      "tooltipImages": "Hotuna",
+      "tooltipVideo": "Bidiyo",
+      "tooltipFiles": "Fayiloli",
+      "editTitle": "✏️ Gyara saƙonka",
+      "editHint": "Gyara saƙo...",
+      "cancel": "Soke",
+      "save": "Ajiye",
+      "deleteTitle": "🗑️ Share?",
+      "deleteContent": "Share wannan saƙo ga kowa?",
+      "deleteBtn": "Share",
+      "toastBlocked": "🚫 An tose ka — Tuntuɓi CEO",
+      "toastSent": "✅ An aika saƙo da hoto + suna",
+      "toastError": "Kuskure: {error}",
+      "toastImagesReady": "🖼️ {n} hoto a shirye",
+      "toastVideoReady": "🎥 Bidiyo a shirye",
+      "toastFilesReady": "📄 {n} fayil a shirye",
+      "toastEdited": "✅ An gyara",
+      "toastDeleted": "🗑️ An share",
+      "defaultNurse": "Nurse",
+      "defaultInitial": "N",
+    },
 
-  String _mediaUrl(dynamic item) {
-    if (item is String) return item;
-    if (item is Map) {
-      final v = Map<String, dynamic>.from(item);
-      return (v['data'] ?? v['url'] ?? v['src'] ?? '').toString();
-    }
-    return '$item';
-  }
+    // 18. RUSSIAN
+    "ru": {
+      "title": "👩‍⚕️ Чат Сообщества Медсестёр 💬",
+      "onlineBtn": "В Сети ({n})",
+      "nursesTitle": "👥 Медсёстры",
+      "searchHint": "🔍 Поиск...",
+      "noNursesOnline": "Нет медсестёр в сети",
+      "blockedBanner": "🚫 ВЫ ЗАБЛОКИРОВАНЫ\nПричина: {reason} • Кем: {by}",
+      "blockedReasonDefault": "Плохое поведение",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Добро пожаловать в Чат Сообщества Медсестёр!",
+      "welcomeSub": "Фото + Имя появляется для всех кто общается",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Вы",
+      "nurseBadge": "👩‍⚕️ Медсестра",
+      "ceoFromControl": "👑 CEO — Из Чата Управления CEO",
+      "editedSuffix": " • изменено",
+      "imageFallback": "🖼️ Изображение",
+      "videoLabel": "🎥 Видео: {url}",
+      "voiceMsg": "🎤 Голосовое сообщение",
+      "videoMsg": "🎥 Видео сообщение",
+      "download": "⬇️ Скачать",
+      "edit": "✏️ Редактировать",
+      "delete": "🗑️ Удалить",
+      "typingSuffix": " печатает...",
+      "pendingReady": "📎 Готово: {images} изображение • {videos} видео • {files} файл — Нажмите Отправить чтобы отправить всё",
+      "inputHint": "Введите сообщение всем медсёстрам... 💬",
+      "blockedInputHint": "🚫 Заблокировано — Свяжитесь с CEO",
+      "tooltipImages": "Изображения",
+      "tooltipVideo": "Видео",
+      "tooltipFiles": "Файлы",
+      "editTitle": "✏️ Редактировать ваше сообщение",
+      "editHint": "Редактировать сообщение...",
+      "cancel": "Отмена",
+      "save": "Сохранить",
+      "deleteTitle": "🗑️ Удалить?",
+      "deleteContent": "Удалить это сообщение для всех?",
+      "deleteBtn": "Удалить",
+      "toastBlocked": "🚫 Вы заблокированы — Свяжитесь с CEO",
+      "toastSent": "✅ Сообщение отправлено с фото + именем",
+      "toastError": "Ошибка: {error}",
+      "toastImagesReady": "🖼️ {n} изображение готово",
+      "toastVideoReady": "🎥 Видео готово",
+      "toastFilesReady": "📄 {n} файл готово",
+      "toastEdited": "✅ Отредактировано",
+      "toastDeleted": "🗑️ Удалено",
+      "defaultNurse": "Медсестра",
+      "defaultInitial": "N",
+    },
 
-  String _timeStr(dynamic t) {
-    final v = int.tryParse('$t') ?? 0;
-    if (v == 0) return '';
-    final d = DateTime.fromMillisecondsSinceEpoch(v);
-    return '${d.day}/${d.month}/${d.year} ${d.hour}:${d.minute.toString().padLeft(2, '0')}';
-  }
+    // 19. TURKISH
+    "tr": {
+      "title": "👩‍⚕️ Hemşire Topluluk Sohbeti 💬",
+      "onlineBtn": "Çevrimiçi ({n})",
+      "nursesTitle": "👥 Hemşireler",
+      "searchHint": "🔍 Ara...",
+      "noNursesOnline": "Çevrimiçi hemşire yok",
+      "blockedBanner": "🚫 ENGELLENDİN\nNeden: {reason} • Kimin Tarafından: {by}",
+      "blockedReasonDefault": "Kötü davranış",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Hemşire Topluluk Sohbetine Hoş Geldin!",
+      "welcomeSub": "Fotoğraf + İsim sohbet eden herkes için görünür",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Sen",
+      "nurseBadge": "👩‍⚕️ Hemşire",
+      "ceoFromControl": "👑 CEO — CEO Kontrol Sohbetinden",
+      "editedSuffix": " • düzenlendi",
+      "imageFallback": "🖼️ Resim",
+      "videoLabel": "🎥 Video: {url}",
+      "voiceMsg": "🎤 Sesli mesaj",
+      "videoMsg": "🎥 Video mesajı",
+      "download": "⬇️ İndir",
+      "edit": "✏️ Düzenle",
+      "delete": "🗑️ Sil",
+      "typingSuffix": " yazıyor...",
+      "pendingReady": "📎 Hazır: {images} resim • {videos} video • {files} dosya — Tümünü göndermek için Gönder'e dokun",
+      "inputHint": "Tüm hemşirelere mesaj yaz... 💬",
+      "blockedInputHint": "🚫 Engellendin — CEO ile İletişim Kur",
+      "tooltipImages": "Resimler",
+      "tooltipVideo": "Video",
+      "tooltipFiles": "Dosyalar",
+      "editTitle": "✏️ Mesajını düzenle",
+      "editHint": "Mesajı düzenle...",
+      "cancel": "İptal",
+      "save": "Kaydet",
+      "deleteTitle": "🗑️ Sil?",
+      "deleteContent": "Bu mesajı herkes için sil?",
+      "deleteBtn": "Sil",
+      "toastBlocked": "🚫 Engellendin — CEO ile İletişim Kur",
+      "toastSent": "✅ Mesaj fotoğraf + isim ile gönderildi",
+      "toastError": "Hata: {error}",
+      "toastImagesReady": "🖼️ {n} resim hazır",
+      "toastVideoReady": "🎥 Video hazır",
+      "toastFilesReady": "📄 {n} dosya hazır",
+      "toastEdited": "✅ Düzenlendi",
+      "toastDeleted": "🗑️ Silindi",
+      "defaultNurse": "Hemşire",
+      "defaultInitial": "N",
+    },
 
-  // ===== SEND - Same 5 paths as HTML =====
-  Future<void> _send() async {
-    if (blockedList.isNotEmpty) { _toast('🚫 You are blocked — Contact CEO'); return; }
-    final text = _msgController.text.trim();
-    if (text.isEmpty && pendingImages.isEmpty && pendingVideos.isEmpty && pendingFiles.isEmpty) return;
-    setState(() => isSending = true);
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final messageId = 'MSG-$now-${DateTime.now().microsecondsSinceEpoch.toString().substring(8)}';
-    final msgData = <String, dynamic>{
-      'messageId': messageId,
-      'senderId': currentUserId,
-      'senderName': currentUserName,
-      'senderPhoto': currentUserPhoto.isNotEmpty ? currentUserPhoto : 'https://ui-avatars.com/api/?name=${Uri.encodeComponent(currentUserName)}&background=a78bfa&color=fff',
-      'text': text,
-      'createdAt': now,
-      'createdAtStr': DateTime.now().toString(),
-      'type': 'nurse_community',
-    };
-    if (pendingImages.isNotEmpty) msgData['images'] = pendingImages;
-    if (pendingVideos.isNotEmpty) msgData['videos'] = pendingVideos;
-    if (pendingFiles.isNotEmpty) msgData['files'] = pendingFiles;
-    try {
-      await _db.child('nurseCommunityChat/messages/$messageId').set(msgData);
-      await _db.child('nurses_group_chat/messages/$messageId').set(msgData);
-      await _db.child('nurseGroupChat/$messageId').set(msgData);
-      await _db.child('communityChats/nurses/$messageId').set(msgData);
-      await _db.child('ceoChats/nurseBoard/$messageId').set(msgData);
-      _msgController.clear();
-      pendingImages = [];
-      pendingVideos = [];
-      pendingFiles = [];
-      _toast('✅ Message sent with photo + name');
-    } catch (e) {
-      _toast('Error: $e');
-    }
-    setState(() => isSending = false);
-  }
+    // 20. KOREAN
+    "ko": {
+      "title": "👩‍⚕️ 간호사 커뮤니티 채팅 💬",
+      "onlineBtn": "온라인 ({n})",
+      "nursesTitle": "👥 간호사",
+      "searchHint": "🔍 검색...",
+      "noNursesOnline": "온라인 간호사가 없습니다",
+      "blockedBanner": "🚫 차단되었습니다\n이유: {reason} • 차단자: {by}",
+      "blockedReasonDefault": "나쁜 행동",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "간호사 커뮤니티 채팅에 오신 것을 환영합니다!",
+      "welcomeSub": "사진 + 이름이 채팅하는 모든 사람에게 표시됩니다",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "당신",
+      "nurseBadge": "👩‍⚕️ 간호사",
+      "ceoFromControl": "👑 CEO — CEO 제어 채팅에서",
+      "editedSuffix": " • 편집됨",
+      "imageFallback": "🖼️ 이미지",
+      "videoLabel": "🎥 비디오: {url}",
+      "voiceMsg": "🎤 음성 메시지",
+      "videoMsg": "🎥 비디오 메시지",
+      "download": "⬇️ 다운로드",
+      "edit": "✏️ 편집",
+      "delete": "🗑️ 삭제",
+      "typingSuffix": " 입력 중...",
+      "pendingReady": "📎 준비됨: {images} 개 이미지 • {videos} 개 비디오 • {files} 개 파일 — 모두 보내려면 보내기를 누르세요",
+      "inputHint": "모든 간호사에게 메시지 입력... 💬",
+      "blockedInputHint": "🚫 차단됨 — CEO에게 연락하세요",
+      "tooltipImages": "이미지",
+      "tooltipVideo": "비디오",
+      "tooltipFiles": "파일",
+      "editTitle": "✏️ 메시지 편집",
+      "editHint": "메시지 편집...",
+      "cancel": "취소",
+      "save": "저장",
+      "deleteTitle": "🗑️ 삭제?",
+      "deleteContent": "이 메시지를 모든 사람에게서 삭제하시겠습니까?",
+      "deleteBtn": "삭제",
+      "toastBlocked": "🚫 차단되었습니다 — CEO에게 연락하세요",
+      "toastSent": "✅ 메시지가 사진 + 이름과 함께 전송됨",
+      "toastError": "오류: {error}",
+      "toastImagesReady": "🖼️ {n} 개 이미지 준비됨",
+      "toastVideoReady": "🎥 비디오 준비됨",
+      "toastFilesReady": "📄 {n} 개 파일 준비됨",
+      "toastEdited": "✅ 편집됨",
+      "toastDeleted": "🗑️ 삭제됨",
+      "defaultNurse": "간호사",
+      "defaultInitial": "N",
+    },
 
-  Future<void> _pickImages() async {
-    final picked = await _picker.pickMultiImage();
-    for (final x in picked) {
-      final bytes = await x.readAsBytes();
-      if (bytes.length > 20 * 1024 * 1024) continue;
-      pendingImages.add('data:image/jpeg;base64,${base64Encode(bytes)}');
-    }
-    setState(() {});
-    _toast('🖼️ ${pendingImages.length} image(s) ready');
-  }
+    // 21. JAPANESE
+    "ja": {
+      "title": "👩‍⚕️ 看護師コミュニティチャット 💬",
+      "onlineBtn": "オンライン ({n})",
+      "nursesTitle": "👥 看護師",
+      "searchHint": "🔍 検索...",
+      "noNursesOnline": "オンラインの看護師がいません",
+      "blockedBanner": "🚫 ブロックされました\n理由: {reason} • 実行者: {by}",
+      "blockedReasonDefault": "不適切な行為",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "看護師コミュニティチャットへようこそ!",
+      "welcomeSub": "写真 + 名前はチャットする全員に表示されます",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "あなた",
+      "nurseBadge": "👩‍⚕️ 看護師",
+      "ceoFromControl": "👑 CEO — CEO コントロールチャットから",
+      "editedSuffix": " • 編集済み",
+      "imageFallback": "🖼️ 画像",
+      "videoLabel": "🎥 ビデオ: {url}",
+      "voiceMsg": "🎤 音声メッセージ",
+      "videoMsg": "🎥 ビデオメッセージ",
+      "download": "⬇️ ダウンロード",
+      "edit": "✏️ 編集",
+      "delete": "🗑️ 削除",
+      "typingSuffix": " 入力中...",
+      "pendingReady": "📎 準備完了: {images} 枚の画像 • {videos} 本のビデオ • {files} 個のファイル — すべて送信するには送信をタップ",
+      "inputHint": "すべての看護師にメッセージを入力... 💬",
+      "blockedInputHint": "🚫 ブロックされました — CEO に連絡してください",
+      "tooltipImages": "画像",
+      "tooltipVideo": "ビデオ",
+      "tooltipFiles": "ファイル",
+      "editTitle": "✏️ メッセージを編集",
+      "editHint": "メッセージを編集...",
+      "cancel": "キャンセル",
+      "save": "保存",
+      "deleteTitle": "🗑️ 削除?",
+      "deleteContent": "このメッセージを全員に対して削除しますか?",
+      "deleteBtn": "削除",
+      "toastBlocked": "🚫 ブロックされました — CEO に連絡してください",
+      "toastSent": "✅ メッセージが写真 + 名前付きで送信されました",
+      "toastError": "エラー: {error}",
+      "toastImagesReady": "🖼️ {n} 枚の画像の準備完了",
+      "toastVideoReady": "🎥 ビデオの準備完了",
+      "toastFilesReady": "📄 {n} 個のファイルの準備完了",
+      "toastEdited": "✅ 編集済み",
+      "toastDeleted": "🗑️ 削除済み",
+      "defaultNurse": "看護師",
+      "defaultInitial": "N",
+    },
 
-  Future<void> _pickVideo() async {
-    final picked = await _picker.pickVideo(source: ImageSource.gallery);
-    if (picked == null) return;
-    final bytes = await picked.readAsBytes();
-    pendingVideos.add('data:video/mp4;base64,${base64Encode(bytes)}');
-    setState(() {});
-    _toast('🎥 Video ready');
-  }
-
-  Future<void> _pickFiles() async {
-    final res = await FilePicker.platform.pickFiles(allowMultiple: true, withData: true);
-    if (res == null) return;
-    for (final f in res.files) {
-      if (f.bytes == null) continue;
-      pendingFiles.add({'name': f.name, 'data': 'data:application/octet-stream;base64,${base64Encode(f.bytes!)}'});
-    }
-    setState(() {});
-    _toast('📄 ${pendingFiles.length} file(s) ready');
-  }
-
-  Future<void> _editMessage(Map<String, dynamic> m) async {
-    final key = (m['key'] ?? m['id'] ?? m['messageId'] ?? '').toString();
-    final ctrl = TextEditingController(text: (m['text'] ?? '').toString());
-    final newText = await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('✏️ Edit your message'),
-        content: TextField(controller: ctrl, maxLines: 3, decoration: const InputDecoration(hintText: 'Edit message...')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: const Text('Save')),
-        ],
-      ),
-    );
-    if (newText == null) return;
-    if (newText.isEmpty) { _deleteMessage(m); return; }
-    final now = DateTime.now().millisecondsSinceEpoch;
-    await _db.child('nurseCommunityChat/messages/$key').update({'text': newText, 'edited': true, 'editedAt': now});
-    await _db.child('nurses_group_chat/messages/$key').update({'text': newText, 'edited': true});
-    _toast('✅ Edited');
-  }
-
-  Future<void> _deleteMessage(Map<String, dynamic> m) async {
-    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('🗑️ Delete?'), content: const Text('Delete this message for everyone?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete'))]));
-    if (confirm != true) return;
-    final key = (m['key'] ?? m['id'] ?? m['messageId'] ?? '').toString();
-    await _db.child('nurseCommunityChat/messages/$key').remove();
-    await _db.child('nurses_group_chat/messages/$key').remove();
-    await _db.child('nurseGroupChat/$key').remove();
-    setState(() => messages.removeWhere((x) => (x['key'] ?? x['id'] ?? '').toString() == key));
-    _toast('🗑️ Deleted');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isBlocked = blockedList.isNotEmpty;
-    final filteredOnline = onlineNurses.where((n) => (n['name'] ?? '').toString().toLowerCase().contains(searchQ.toLowerCase())).toList();
-    final displayOnline = filteredOnline.isEmpty && searchQ.isEmpty ? onlineNurses : filteredOnline;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF0C0A1E),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0C0A1E),
-        title: const Text('👩‍⚕️ Nurses Community Chat 💬', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
-        actions: [
-          TextButton.icon(onPressed: () => setState(() => showSidebar = !showSidebar), icon: const Icon(Icons.people, color: Colors.white, size: 16), label: Text('Online (${onlineNurses.length})', style: const TextStyle(color: Colors.white, fontSize: 11))),
-          // NO CEO BUTTON HERE - REMOVED ON PURPOSE
-        ],
-      ),
-      body: Row(
-        children: [
-          // Sidebar - Online Nurses - Desktop / toggle on mobile
-          if (showSidebar)
-            Container(
-              width: 250,
-              color: const Color(0xFF1A1633),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(children: [const Expanded(child: Text('👥 Nurses', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))), IconButton(icon: const Icon(Icons.close, color: Colors.white, size: 18), onPressed: () => setState(() => showSidebar = false))]),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: TextField(onChanged: (v) => setState(() => searchQ = v), style: const TextStyle(color: Colors.white, fontSize: 12), decoration: InputDecoration(hintText: '🔍 Search...', hintStyle: const TextStyle(color: Colors.white54, fontSize: 11), filled: true, fillColor: Colors.white.withOpacity(0.06), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8))),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: displayOnline.isEmpty
-                        ? const Center(child: Text('No nurses online', style: TextStyle(color: Colors.white54, fontSize: 12)))
-                        : ListView.builder(
-                            itemCount: displayOnline.length,
-                            itemBuilder: (context, i) {
-                              final n = displayOnline[i];
-                              final photo = (n['photo'] ?? '').toString();
-                              return ListTile(
-                                leading: CircleAvatar(backgroundImage: photo.isNotEmpty ? NetworkImage(photo) : null, child: photo.isEmpty ? Text((n['name'] ?? 'N').toString().substring(0, 1)) : null),
-                                title: Text((n['name'] ?? 'Nurse').toString(), style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                                subtitle: Text((n['specialty'] ?? '').toString(), style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                                trailing: Container(width: 10, height: 10, decoration: const BoxDecoration(color: Color(0xFF34D399), shape: BoxShape.circle)),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          // Chat Area
-          Expanded(
-            child: Column(
-              children: [
-                if (isBlocked)
-                  Container(
-                    margin: const EdgeInsets.all(12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: Colors.red.withOpacity(0.15), border: Border.all(color: Colors.red.withOpacity(0.3)), borderRadius: BorderRadius.circular(12)),
-                    child: Text('🚫 YOU ARE BLOCKED\nReason: ${blockedList[0]['reason'] ?? 'Misbehaving'} • By: ${blockedList[0]['blockedBy'] ?? 'CEO'}', textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 12, fontWeight: FontWeight.bold)),
-                  ),
-                Expanded(
-                  child: messages.isEmpty
-                      ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Text('💬', style: TextStyle(fontSize: 40)), SizedBox(height: 12), Text('Welcome to Nurses Community Chat!', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), SizedBox(height: 6), Text('Photo + Name appears for everyone who chats', style: TextStyle(color: Colors.white54, fontSize: 12))]))
-                      : ListView.builder(
-                          controller: _scroll,
-                          padding: const EdgeInsets.all(14),
-                          itemCount: messages.length,
-                          itemBuilder: (context, i) {
-                            final msg = messages[i];
-                            final senderId = (msg['senderId'] ?? '').toString();
-                            final senderName = (msg['senderName'] ?? msg['name'] ?? 'Nurse').toString();
-                            final senderPhoto = (msg['senderPhoto'] ?? msg['photo'] ?? '').toString();
-                            final isMe = senderId == currentUserId;
-                            final isCEO = senderId.contains('CEO') || senderName.contains('CEO') || msg['isCEO'] == true;
-                            final isEdited = msg['edited'] == true;
-                            final text = (msg['text'] ?? '').toString();
-                            final images = msg['images'] is List ? (msg['images'] as List) : <dynamic>[];
-                            final videos = msg['videos'] is List ? (msg['videos'] as List) : <dynamic>[];
-                            final files = msg['files'] is List ? (msg['files'] as List) : <dynamic>[];
-                            final voice = (msg['voice'] ?? '').toString();
-                            final videoMsg = (msg['videoMessage'] ?? '').toString();
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(color: isCEO ? const Color(0xFF2A1A00) : const Color(0xFF1A1633), borderRadius: BorderRadius.circular(16), border: Border.all(color: isCEO ? const Color(0xFFFACC15).withOpacity(0.4) : Colors.white10)),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      CircleAvatar(radius: 18, backgroundImage: senderPhoto.isNotEmpty ? NetworkImage(senderPhoto) : null, child: senderPhoto.isEmpty ? Text(senderName.isNotEmpty ? senderName.substring(0, 1) : 'N') : null),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Flexible(child: Text(senderName, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13))),
-                                                const SizedBox(width: 6),
-                                                if (isCEO) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFFACC15).withOpacity(0.2), borderRadius: BorderRadius.circular(999)), child: const Text('👑 CEO', style: TextStyle(color: Color(0xFFFACC15), fontSize: 9, fontWeight: FontWeight.bold)))
-                                                else if (isMe) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(999)), child: const Text('You', style: TextStyle(color: Colors.white70, fontSize: 9)))
-                                                else Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.purple.withOpacity(0.2), borderRadius: BorderRadius.circular(999)), child: const Text('👩‍⚕️ Nurse', style: TextStyle(color: Color(0xFFA78BFA), fontSize: 9))),
-                                              ],
-                                            ),
-                                            Text('${_timeStr(msg['createdAt'] ?? msg['time'])}${isEdited ? ' • edited' : ''}', style: const TextStyle(color: Colors.white54, fontSize: 10)),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (text.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 14))),
-                                  // Images - FIXED spread: ... + .map().toList() - NO extra [ ]
-                                  if (images.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: images.map<Widget>((img) {
-                                          final url = _mediaUrl(img);
-                                          return ClipRRect(borderRadius: BorderRadius.circular(10), child: url.startsWith('data:') || url.startsWith('http') ? Image.network(url, width: 140, height: 140, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: 140, height: 60, color: Colors.white10, child: const Center(child: Text('🖼️ Image', style: TextStyle(color: Colors.white54, fontSize: 11))))) : Container(width: 140, height: 60, color: Colors.white10, child: Center(child: Text('🖼️ $url', style: TextStyle(color: Colors.white54, fontSize: 11)))));
-                                        }).toList(),
-                                      ),
-                                    ),
-                                  // Videos
-                                  if (videos.isNotEmpty)
-                                    ...videos.map<Widget>((v) => Padding(padding: const EdgeInsets.only(top: 6), child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(10)), child: Text('🎥 Video: ${_mediaUrl(v)}', style: const TextStyle(color: Colors.white70, fontSize: 12))))).toList(),
-                                  // Voice
-                                  if (voice.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(10)), child: const Text('🎤 Voice message', style: TextStyle(color: Colors.white70, fontSize: 12)))),
-                                  // Video Message
-                                  if (videoMsg.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(10)), child: const Text('🎥 Video message', style: TextStyle(color: Colors.white70, fontSize: 12)))),
-                                  // Files
-                                  if (files.isNotEmpty)
-                                    ...files.map<Widget>((f) {
-                                      String fname = '';
-                                      if (f is Map) fname = (Map<String, dynamic>.from(f)['name'] ?? '').toString();
-                                      return Padding(padding: const EdgeInsets.only(top: 6), child: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withOpacity(0.06), borderRadius: BorderRadius.circular(10)), child: Row(children: [Expanded(child: Text('📄 $fname', style: const TextStyle(color: Colors.white, fontSize: 12))), const Text('⬇️ Download', style: TextStyle(color: Colors.white70, fontSize: 10))])) );
-                                    }).toList(),
-                                  // Actions - Edit/Delete only for ME, CEO badge only for CEO
-                                  if (isMe)
-                                    Row(children: [TextButton(onPressed: () => _editMessage(msg), child: const Text('✏️ Edit', style: TextStyle(fontSize: 11))), TextButton(onPressed: () => _deleteMessage(msg), child: const Text('🗑️ Delete', style: TextStyle(color: Colors.redAccent, fontSize: 11)))])
-                                  else if (isCEO)
-                                    const Padding(padding: EdgeInsets.only(top: 6), child: Text('👑 CEO — From CEO Control Chat', style: TextStyle(fontSize: 9, color: Color(0xFFFACC15)))),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                ),
-                if (typingText.isNotEmpty) Container(alignment: Alignment.centerLeft, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), child: Text(typingText, style: const TextStyle(color: Colors.white54, fontSize: 11))),
-                // Pending preview
-                if (pendingImages.isNotEmpty || pendingVideos.isNotEmpty || pendingFiles.isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    color: Colors.white.withOpacity(0.05),
-                    child: Text('📎 Ready: ${pendingImages.length} image(s) • ${pendingVideos.length} video(s) • ${pendingFiles.length} file(s) — Tap Send to send all', style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                  ),
-                // Emoji panel
-                if (showEmoji)
-                  Container(
-                    height: 120,
-                    padding: const EdgeInsets.all(10),
-                    color: const Color(0xFF1A1633),
-                    child: GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 6, crossAxisSpacing: 6, mainAxisSpacing: 6),
-                      itemCount: emojis.length,
-                      itemBuilder: (context, idx) => InkWell(onTap: () { _msgController.text += emojis[idx]; setState(() => showEmoji = false); }, child: Center(child: Text(emojis[idx], style: const TextStyle(fontSize: 22)))),
-                    ),
-                  ),
-                // Input area
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  color: const Color(0xFF1A1633),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          IconButton(icon: const Icon(Icons.emoji_emotions, color: Colors.white70), onPressed: () => setState(() => showEmoji = !showEmoji)),
-                          IconButton(icon: const Icon(Icons.image, color: Colors.white70), onPressed: _pickImages, tooltip: 'Images'),
-                          IconButton(icon: const Icon(Icons.videocam, color: Colors.white70), onPressed: _pickVideo, tooltip: 'Video'),
-                          IconButton(icon: const Icon(Icons.attach_file, color: Colors.white70), onPressed: _pickFiles, tooltip: 'Files'),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _msgController,
-                              enabled: !isBlocked,
-                              onChanged: (_) => _handleTyping(),
-                              style: const TextStyle(color: Colors.white),
-                              maxLines: 3,
-                              minLines: 1,
-                              decoration: InputDecoration(hintText: isBlocked ? '🚫 Blocked — Contact CEO' : 'Type message to all nurses... 💬', hintStyle: const TextStyle(color: Colors.white54, fontSize: 13), filled: true, fillColor: Colors.white.withOpacity(0.06), border: OutlineInputBorder(borderRadius: BorderRadius.circular(999), borderSide: BorderSide.none), contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          CircleAvatar(
-                            backgroundColor: const Color(0xFF7C3AED),
-                            child: IconButton(icon: isSending ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.send, color: Colors.white, size: 18), onPressed: isSending ? null : _send),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    // 22. POLISH
+    "pl": {
+      "title": "👩‍⚕️ Czat Społeczności Pielęgniarek 💬",
+      "onlineBtn": "Online ({n})",
+      "nursesTitle": "👥 Pielęgniarki",
+      "searchHint": "🔍 Szukaj...",
+      "noNursesOnline": "Brak pielęgniarek online",
+      "blockedBanner": "🚫 ZOSTAŁAŚ ZABLOKOWANA\nPowód: {reason} • Przez: {by}",
+      "blockedReasonDefault": "Złe zachowanie",
+      "blockedByDefault": "CEO",
+      "welcomeEmoji": "💬",
+      "welcomeTitle": "Witaj w Czacie Społeczności Pielęgniarek!",
+      "welcomeSub": "Zdjęcie + Imię pojawia się dla wszystkich którzy czatują",
+      "ceoBadge": "👑 CEO",
+      "youBadge": "Ty",
+      "nurseBadge": "👩‍⚕️ Pielęgniarka",
+      "ceoFromControl": "👑 CEO — Z Czatu Kontrolnego CEO",
+      "editedSuffix": " • edytowano",
+      "imageFallback": "🖼️ Obraz",
+      "videoLabel": "🎥 Wideo: {url}",
+      "voiceMsg": "🎤 Wiadomość głosowa",
+      "videoMsg": "🎥 Wiadomość wideo",
+      "download": "⬇️ Pobierz",
+      "edit": "✏️ Edytuj",
+      "delete": "🗑️ Usuń",
+      "typingSuffix": " pisze...",
+      "pendingReady": "📎 Gotowe: {images} obraz(y) • {videos} wideo • {files} plik(i) — Dotknij Wyślij aby wysłać wszystko",
+      "inputHint": "Wpisz wiadomość do wszystkich pielęgniarek... 💬",
+      "blockedInputHint": "🚫 Zablokowana — Skontaktuj się z CEO",
+      "tooltipImages": "Obrazy",
+      "tooltipVideo": "Wideo",
+      "tooltipFiles": "Pliki",
+      "editTitle": "✏️ Edytuj swoją wiadomość",
+      "editHint": "Edytuj wiadomość...",
+      "cancel": "Anuluj",
+      "save": "Zapisz",
+      "deleteTitle": "🗑️ Usunąć?",
+      "deleteContent": "Usunąć tę wiadomość dla wszystkich?",
+      "deleteBtn": "Usuń",
+      "toastBlocked": "🚫 Zostałaś zablokowana — Skontaktuj się z CEO",
+      "toastSent": "✅ Wiadomość wysłana ze zdjęciem + imieniem",
+      "toastError": "Błąd: {error}",
+      "toastImagesReady": "🖼️ {n} obraz(y) gotowe",
+      "toastVideoReady": "🎥 Wideo gotowe",
+      "toastFilesReady": "📄 {n} plik(i) gotowe",
+      "toastEdited": "✅ Edytowano",
+      "toastDeleted": "🗑️ Usunięto",
+      "defaultNurse": "Pielęgniarka",
+      "defaultInitial": "N",
+    },
+  };
 }
