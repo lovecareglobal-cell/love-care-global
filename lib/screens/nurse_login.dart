@@ -1,196 +1,471 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'nurse_dashboard.dart';
+// nurse_login_translations.dart
+// FILE - Nurse Login (NURSE) - ONLY SCREEN WORDS - ALL 22 LANGUAGES
+// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
+// ONE FILE - Drop in lib/screens
 
-class NurseLoginPage extends StatefulWidget {
-  const NurseLoginPage({super.key});
-  @override
-  State<NurseLoginPage> createState() => _NurseLoginPageState();
-}
+class NurseLoginTranslations {
+  static const Map<String, Map<String, String>> all = {
 
-class _NurseLoginPageState extends State<NurseLoginPage> {
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  String _msg = '';
-  bool _loading = false;
-  bool _showPass = false; // For show/hide password eye
+    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
+    "en": {
+      "title": "Nurse Login",
+      "heading": "Nurse Login",
+      "emailHint": "Email",
+      "passwordHint": "Password",
+      "loginBtn": "Login as Nurse",
+      "checking": "Checking...",
+      "enterEmailPass": "Enter email + password",
+      "blockedClient": "BLOCKED: This is a CLIENT account. Use Client Login. One email cannot be both.",
+      "blockedNotRegistered": "BLOCKED: NOT A REGISTERED NURSE. Go Register first. Leftover account deleted.",
+      "waitingApproval": "WAITING FOR CEO APPROVAL. You cannot login yet.",
+      "blockedMissing": "BLOCKED: Approved but missing Photo/Video/Phone. Contact CEO.",
+      "welcome": "✅ Welcome Nurse! Redirecting to dashboard...",
+      "failWrongPass": "Login failed: Wrong email or password. If you never completed registration, register again - a failed registration does not create a login.",
+      "failInvalidEmail": "Login failed: Enter a valid email.",
+      "failTooMany": "Too many tries. Wait a few minutes and try again.",
+      "failDisabled": "This account is disabled. Contact CEO.",
+      "failGeneric": "Login failed: {error}",
+    },
 
-  // Helper - checks if a field actually has value, no matter the name
-  bool _hasVal(dynamic v) {
-    if (v == null) return false;
-    if (v is bool) return v == true;
-    final s = v.toString().trim();
-    return s.isNotEmpty && s.toLowerCase() != 'false' && s.toLowerCase() != 'null';
-  }
+    // 2. TWI
+    "tw": {
+      "title": "Nɛɛse Login",
+      "heading": "Nɛɛse Login",
+      "emailHint": "Email",
+      "passwordHint": "Password",
+      "loginBtn": "Login Sɛ Nɛɛse",
+      "checking": "Rehwɛ...",
+      "enterEmailPass": "Fa email + password",
+      "blockedClient": "BLOCKED: Eyi yɛ ƆKRA account. Fa Client Login. Email baako ntumi nyɛ abien.",
+      "blockedNotRegistered": "BLOCKED: WOANYƐ NƐƐSE A WƆAKYERƐW DIN. Kɔ Register kane. Account a aka no wɔayi fi hɔ.",
+      "waitingApproval": "TWƐN CEO APPROVAL. Wontumi nlogin seisei.",
+      "blockedMissing": "BLOCKED: Wɔagye wo nanso Foto/Video/Phone nni hɔ. Frɛ CEO.",
+      "welcome": "✅ Akwaaba Nɛɛse! Reko dashboard...",
+      "failWrongPass": "Login antumi: Email anaa password mfomso. Sɛ woawie registration da, register bio - registration a antumi no nyɛ login.",
+      "failInvalidEmail": "Login antumi: Fa email a ɛyɛ paa.",
+      "failTooMany": "Wobɔɔ mmɔden dodo. Twɛn simma kakra na bɔ mmɔden bio.",
+      "failDisabled": "Wɔasi saa account yi. Frɛ CEO.",
+      "failGeneric": "Login antumi: {error}",
+    },
 
-  Future<void> _login() async {
-    final email = _emailCtrl.text.trim().toLowerCase();
-    final pass = _passCtrl.text;
-    if (email.isEmpty || pass.isEmpty) { setState(() => _msg = 'Enter email + password'); return; }
-    setState(() { _loading = true; _msg = 'Checking...'; });
-    try {
-      // GUARD: If this email is a CLIENT, BLOCK immediately - before sign in.
-      // Check BOTH lowercased and original-case, in case the client doc was saved before lowercasing.
-      final clientCheck = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: email).limit(1).get();
-      final clientCheckRaw = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: _emailCtrl.text.trim()).limit(1).get();
-      if (clientCheck.docs.isNotEmpty || clientCheckRaw.docs.isNotEmpty) {
-        setState(() { _loading = false; _msg = 'BLOCKED: This is a CLIENT account. Use Client Login. One email cannot be both.'; });
-        return;
-      }
-      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: pass);
-      final uid = cred.user!.uid;
+    // 3. GA
+    "ga": {
+      "title": "Nɛɛse Login",
+      "heading": "Nɛɛse Login",
+      "emailHint": "Email",
+      "passwordHint": "Password",
+      "loginBtn": "Ŋmɛ Mli Sɛ Nɛɛse",
+      "checking": "Mii kwɛ...",
+      "enterEmailPass": "Ŋmɛ email + password",
+      "blockedClient": "BLOCKED: Nɛɛ ji MƆ account. Fee Client Login. Email kome enyɛ fee enyɔ.",
+      "blockedNotRegistered": "BLOCKED: OJEE NƐƐSE A AŊMƐ GBƐI. Tee Register kane. Account a eshi no ajee.",
+      "waitingApproval": "TWƐN CEO APPROVAL. Onyɛ ŋmɛ mli sane.",
+      "blockedMissing": "BLOCKED: Ahe o shi Foto/Video/Phone bɛ. Frɛ CEO.",
+      "welcome": "✅ Otsaami Nɛɛse! Mii tee dashboard...",
+      "failWrongPass": "Login eko: Email loo password mfomso. Kɛ owie registration da, register eko - registration a eko no fee login.",
+      "failInvalidEmail": "Login eko: Ŋmɛ email a hi.",
+      "failTooMany": "O bɔ mɔdɛn bɛɛ. Twɛn simma fioo na bɔ mɔdɛn eko.",
+      "failDisabled": "Ashi saa account nɛɛ. Frɛ CEO.",
+      "failGeneric": "Login eko: {error}",
+    },
 
-      // GUARD 2: Must exist in nurses/pending + be approved + complete.
-      // BYPASS FIX: Before deleting, check EVERYWHERE. If this UID is a real Client,
-      // sign out ONLY and NEVER delete - deleting would erase their Client account.
-      // This is the bug where a Client trying Nurse Login got deleted.
-      final clientByUid = await FirebaseFirestore.instance.collection('clients').doc(uid).get();
-      if (clientByUid.exists) {
-        await FirebaseAuth.instance.signOut();
-        setState(() { _loading = false; _msg = 'BLOCKED: This is a CLIENT account. Use Client Login. One email cannot be both.'; });
-        return;
-      }
-      // Nurse can be in any of these (old registrations wrote to different ones).
-      // Check all before declaring NOT REGISTERED.
-      var doc = await FirebaseFirestore.instance.collection('nurses').doc(uid).get();
-      DocumentSnapshot<Map<String, dynamic>>? pendingDoc;
-      if (!doc.exists) {
-        pendingDoc = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
-        if (pendingDoc.exists) doc = pendingDoc;
-      } else {
-        pendingDoc = await FirebaseFirestore.instance.collection('pending_nurses').doc(uid).get();
-      }
-      if (!doc.exists) {
-        final inRegs = await FirebaseFirestore.instance.collection('nurse_registrations').doc(uid).get();
-        if (inRegs.exists) doc = inRegs;
-      }
-      if (!doc.exists) {
-        final inCeo = await FirebaseFirestore.instance.collection('ceo_registration').doc(uid).get();
-        if (inCeo.exists) doc = inCeo;
-      }
-      // If nurses doc is pending but pending_nurses doc is approved, CEO approved in the
-      // pending list - use the approved one.
-      if (doc.exists && pendingDoc != null && pendingDoc.exists) {
-        final pData = pendingDoc.data()!;
-        final pApproved = pData['isApproved'] == true || pData['approved'] == true || pData['status'] == 'approved';
-        final nData = doc.data()!;
-        final nApproved = nData['isApproved'] == true || nData['approved'] == true || nData['status'] == 'approved';
-        if (pApproved && !nApproved) doc = pendingDoc;
-      }
-      if (!doc.exists) {
-        // No profile in ANY role: leftover from failed / bypassed registration.
-        // Sign-out alone leaves it in Auth, so 2nd login slips through. DELETE it.
-        // (Client case already returned above, so this delete is safe.)
-        try { await cred.user!.delete(); } catch (_) { await FirebaseAuth.instance.signOut(); }
-        setState(() { _loading = false; _msg = 'BLOCKED: NOT A REGISTERED NURSE. Go Register first. Leftover account deleted.'; });
-        return;
-      }
-      // NURSE GATE: CEO approval is the gate, NOT email verification.
-      // Email verification is for CLIENT only. Do NOT block nurses on emailVerified here.
-      final data = doc.data()!;
-      final approved = data['isApproved'] == true || data['approved'] == true || data['status'] == 'approved';
+    // 4. EWE
+    "ee": {
+      "title": "Nɔnɔvia Login",
+      "heading": "Nɔnɔvia Login",
+      "emailHint": "Email",
+      "passwordHint": "Password",
+      "loginBtn": "Ge Ðe Eme Abe Nɔnɔvia",
+      "checking": "Le kpɔm...",
+      "enterEmailPass": "Ðo email + password",
+      "blockedClient": "BLOCKED: Esia nye AME ƒe account. Zã Client Login. Email ɖeka mate ŋu anye eve o.",
+      "blockedNotRegistered": "BLOCKED: MÈNYE NƆNƆVIA SI WOŊLƆ ŊKƆ O. Yi Register gbã. Account mɛmɛ la woɖe ɖa.",
+      "waitingApproval": "LE LÃM CEO APPROVAL. Màte ŋu age ɖe eme fifia o.",
+      "blockedMissing": "BLOCKED: Woxɔ wò gake Foto/Video/Phone meli o. Kpɔ CEO.",
+      "welcome": "✅ Woezɔ Nɔnɔvia! Le yiyi dashboard...",
+      "failWrongPass": "Login medze o: Email alo password vodada. Ne mèwu registration nu o, register gbugbɔ - registration si medze o mewɔa login o.",
+      "failInvalidEmail": "Login medze o: Ðo email si le nyui.",
+      "failTooMany": "Èdze agbagba zi geɖe. Lãm minuti ʋɛ aɖe ne nàdze agbagba gbugbɔ.",
+      "failDisabled": "Woɖe account sia ɖa. Kpɔ CEO.",
+      "failGeneric": "Login medze o: {error}",
+    },
 
-      // Complete check - accept ANY field name Registration used
-      final hasPhoto = _hasVal(data['hasPhoto']) ||
-          _hasVal(data['photoUrl']) ||
-          _hasVal(data['photo']) ||
-          _hasVal(data['profilePhoto']) ||
-          _hasVal(data['profileImage']) ||
-          _hasVal(data['image']) ||
-          _hasVal(data['imageUrl']) ||
-          _hasVal(data['photoURL']);
-      final hasPhone = _hasVal(data['hasPhone']) ||
-          _hasVal(data['phone']) ||
-          _hasVal(data['phoneNumber']) ||
-          _hasVal(data['mobile']) ||
-          _hasVal(data['phoneNo']);
-      final hasVideo = _hasVal(data['hasVideo']) ||
-          _hasVal(data['videoUrl']) ||
-          _hasVal(data['video']) ||
-          _hasVal(data['videoURL']);
-      final isCompleteFlag = data['isComplete'] == true || data['complete'] == true || data['isCompleted'] == true;
+    // 5. DUTCH
+    "nl": {
+      "title": "Verpleegkundige Login",
+      "heading": "Verpleegkundige Login",
+      "emailHint": "Email",
+      "passwordHint": "Wachtwoord",
+      "loginBtn": "Login Als Verpleegkundige",
+      "checking": "Controleren...",
+      "enterEmailPass": "Voer email + wachtwoord in",
+      "blockedClient": "GEBLOKKEERD: Dit is een KLANT account. Gebruik Klant Login. Eén email kan niet beide zijn.",
+      "blockedNotRegistered": "GEBLOKKEERD: GEEN GEREGISTREERDE VERPLEEGKUNDIGE. Ga eerst Registreren. Overgebleven account verwijderd.",
+      "waitingApproval": "WACHTEN OP CEO GOEDKEURING. Je kunt nog niet inloggen.",
+      "blockedMissing": "GEBLOKKEERD: Goedgekeurd maar Foto/Video/Telefoon ontbreekt. Contact CEO.",
+      "welcome": "✅ Welkom Verpleegkundige! Doorsturen naar dashboard...",
+      "failWrongPass": "Login mislukt: Verkeerde email of wachtwoord. Als je registratie nooit hebt voltooid, registreer opnieuw - een mislukte registratie maakt geen login.",
+      "failInvalidEmail": "Login mislukt: Voer een geldige email in.",
+      "failTooMany": "Te veel pogingen. Wacht een paar minuten en probeer opnieuw.",
+      "failDisabled": "Dit account is uitgeschakeld. Contact CEO.",
+      "failGeneric": "Login mislukt: {error}",
+    },
 
-      // CEO approved = CEO don check documents. If Photo + Phone dey, allow.
-      final complete = isCompleteFlag || (hasPhoto && hasPhone) || (hasPhoto && hasPhone && hasVideo);
+    // 6. FRENCH
+    "fr": {
+      "title": "Connexion Infirmière",
+      "heading": "Connexion Infirmière",
+      "emailHint": "Email",
+      "passwordHint": "Mot de passe",
+      "loginBtn": "Se Connecter Comme Infirmière",
+      "checking": "Vérification...",
+      "enterEmailPass": "Entrez email + mot de passe",
+      "blockedClient": "BLOQUÉ: Ceci est un compte CLIENT. Utilisez Connexion Client. Un email ne peut pas être les deux.",
+      "blockedNotRegistered": "BLOQUÉ: PAS UNE INFIRMIÈRE ENREGISTRÉE. Allez vous Inscrire d'abord. Compte restant supprimé.",
+      "waitingApproval": "EN ATTENTE D'APPROBATION CEO. Vous ne pouvez pas vous connecter pour l'instant.",
+      "blockedMissing": "BLOQUÉ: Approuvée mais Photo/Vidéo/Téléphone manquant. Contactez CEO.",
+      "welcome": "✅ Bienvenue Infirmière! Redirection vers tableau de bord...",
+      "failWrongPass": "Échec de connexion: Mauvais email ou mot de passe. Si vous n'avez jamais terminé l'inscription, inscrivez-vous à nouveau - une inscription échouée ne crée pas de connexion.",
+      "failInvalidEmail": "Échec de connexion: Entrez un email valide.",
+      "failTooMany": "Trop de tentatives. Attendez quelques minutes et réessayez.",
+      "failDisabled": "Ce compte est désactivé. Contactez CEO.",
+      "failGeneric": "Échec de connexion: {error}",
+    },
 
-      if (!approved) {
-        await FirebaseAuth.instance.signOut();
-        setState(() { _loading = false; _msg = 'WAITING FOR CEO APPROVAL. You cannot login yet.'; });
-        return;
-      }
-      if (!complete) {
-        await FirebaseAuth.instance.signOut();
-        setState(() { _loading = false; _msg = 'BLOCKED: Approved but missing Photo/Video/Phone. Contact CEO.'; });
-        return;
-      }
+    // 7. GERMAN
+    "de": {
+      "title": "Krankenschwester Login",
+      "heading": "Krankenschwester Login",
+      "emailHint": "Email",
+      "passwordHint": "Passwort",
+      "loginBtn": "Login Als Krankenschwester",
+      "checking": "Prüfen...",
+      "enterEmailPass": "Email + Passwort eingeben",
+      "blockedClient": "BLOCKIERT: Dies ist ein KUNDEN Konto. Benutze Kunden Login. Eine Email kann nicht beides sein.",
+      "blockedNotRegistered": "BLOCKIERT: KEINE REGISTRIERTE KRANKENSCHWESTER. Erst Registrieren. Übriggebliebenes Konto gelöscht.",
+      "waitingApproval": "WARTEN AUF CEO GENEHMIGUNG. Du kannst dich noch nicht einloggen.",
+      "blockedMissing": "BLOCKIERT: Genehmigt aber Foto/Video/Telefon fehlt. Kontaktiere CEO.",
+      "welcome": "✅ Willkommen Krankenschwester! Weiterleitung zum Dashboard...",
+      "failWrongPass": "Login fehlgeschlagen: Falsche Email oder Passwort. Wenn du Registrierung nie abgeschlossen hast, registriere erneut - eine fehlgeschlagene Registrierung erstellt kein Login.",
+      "failInvalidEmail": "Login fehlgeschlagen: Gültige Email eingeben.",
+      "failTooMany": "Zu viele Versuche. Warte ein paar Minuten und versuche erneut.",
+      "failDisabled": "Dieses Konto ist deaktiviert. Kontaktiere CEO.",
+      "failGeneric": "Login fehlgeschlagen: {error}",
+    },
 
-      // SUCCESS - GO TO DASHBOARD
-      setState(() { _loading = false; _msg = '✅ Welcome Nurse! Redirecting to dashboard...'; });
-      await Future.delayed(const Duration(seconds: 1));
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const NurseDashboardScreen()),
-      );
-    } on FirebaseAuthException catch (e) {
-      String m;
-      if (e.code == 'user-not-found' || e.code == 'invalid-credential' || e.code == 'wrong-password') {
-        m = 'Login failed: Wrong email or password. If you never completed registration, register again - a failed registration does not create a login.';
-      } else if (e.code == 'invalid-email') {
-        m = 'Login failed: Enter a valid email.';
-      } else if (e.code == 'too-many-requests') {
-        m = 'Too many tries. Wait a few minutes and try again.';
-      } else if (e.code == 'user-disabled') {
-        m = 'This account is disabled. Contact CEO.';
-      } else {
-        m = 'Login failed: ${e.message ?? e.code}';
-      }
-      setState(() { _loading = false; _msg = m; });
-    } catch (e) {
-      setState(() { _loading = false; _msg = 'Login failed: $e'; });
-    }
-  }
+    // 8. SPANISH
+    "es": {
+      "title": "Inicio De Sesión Enfermera",
+      "heading": "Inicio De Sesión Enfermera",
+      "emailHint": "Correo",
+      "passwordHint": "Contraseña",
+      "loginBtn": "Iniciar Sesión Como Enfermera",
+      "checking": "Verificando...",
+      "enterEmailPass": "Ingresa correo + contraseña",
+      "blockedClient": "BLOQUEADO: Esta es una cuenta de CLIENTE. Usa Inicio De Sesión Cliente. Un correo no puede ser ambos.",
+      "blockedNotRegistered": "BLOQUEADO: NO ERES UNA ENFERMERA REGISTRADA. Regístrate primero. Cuenta sobrante eliminada.",
+      "waitingApproval": "ESPERANDO APROBACIÓN DEL CEO. Aún no puedes iniciar sesión.",
+      "blockedMissing": "BLOQUEADO: Aprobada pero falta Foto/Video/Teléfono. Contacta CEO.",
+      "welcome": "✅ ¡Bienvenida Enfermera! Redirigiendo al panel...",
+      "failWrongPass": "Error de inicio: Correo o contraseña incorrectos. Si nunca completaste el registro, regístrate de nuevo - un registro fallido no crea un inicio de sesión.",
+      "failInvalidEmail": "Error de inicio: Ingresa un correo válido.",
+      "failTooMany": "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.",
+      "failDisabled": "Esta cuenta está deshabilitada. Contacta CEO.",
+      "failGeneric": "Error de inicio: {error}",
+    },
 
-  @override
-  void dispose() {
-    _emailCtrl.dispose();
-    _passCtrl.dispose();
-    super.dispose();
-  }
+    // 9. ITALIAN
+    "it": {
+      "title": "Login Infermiera",
+      "heading": "Login Infermiera",
+      "emailHint": "Email",
+      "passwordHint": "Password",
+      "loginBtn": "Accedi Come Infermiera",
+      "checking": "Controllo...",
+      "enterEmailPass": "Inserisci email + password",
+      "blockedClient": "BLOCCATO: Questo è un account CLIENTE. Usa Login Cliente. Una email non può essere entrambi.",
+      "blockedNotRegistered": "BLOCCATO: NON SEI UN'INFERMIERA REGISTRATA. Registrati prima. Account residuo eliminato.",
+      "waitingApproval": "IN ATTESA DI APPROVAZIONE CEO. Non puoi ancora accedere.",
+      "blockedMissing": "BLOCCATO: Approvata ma manca Foto/Video/Telefono. Contatta CEO.",
+      "welcome": "✅ Benvenuta Infermiera! Reindirizzamento alla dashboard...",
+      "failWrongPass": "Login fallito: Email o password errate. Se non hai mai completato la registrazione, registrati di nuovo - una registrazione fallita non crea un login.",
+      "failInvalidEmail": "Login fallito: Inserisci un'email valida.",
+      "failTooMany": "Troppi tentativi. Aspetta qualche minuto e riprova.",
+      "failDisabled": "Questo account è disabilitato. Contatta CEO.",
+      "failGeneric": "Login fallito: {error}",
+    },
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Nurse Login')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text('Nurse Login', textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            TextField(controller: _emailCtrl, decoration: const InputDecoration(hintText: 'Email', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passCtrl,
-              obscureText: !_showPass,
-              decoration: InputDecoration(
-                hintText: 'Password',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: Icon(_showPass ? Icons.visibility_off : Icons.visibility),
-                  onPressed: () => setState(() => _showPass = !_showPass),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (_msg.isNotEmpty) Text(_msg, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            ElevatedButton(onPressed: _loading ? null : _login, child: Text(_loading ? 'Checking...' : 'Login as Nurse')),
-          ],
-        ),
-      ),
-    );
-  }
+    // 10. PORTUGUESE
+    "pt": {
+      "title": "Login Enfermeira",
+      "heading": "Login Enfermeira",
+      "emailHint": "Email",
+      "passwordHint": "Senha",
+      "loginBtn": "Entrar Como Enfermeira",
+      "checking": "Verificando...",
+      "enterEmailPass": "Digite email + senha",
+      "blockedClient": "BLOQUEADO: Esta é uma conta de CLIENTE. Use Login Cliente. Um email não pode ser os dois.",
+      "blockedNotRegistered": "BLOQUEADO: NÃO É UMA ENFERMEIRA REGISTRADA. Registre-se primeiro. Conta restante excluída.",
+      "waitingApproval": "AGUARDANDO APROVAÇÃO DO CEO. Você ainda não pode entrar.",
+      "blockedMissing": "BLOQUEADO: Aprovada mas falta Foto/Vídeo/Telefone. Contate CEO.",
+      "welcome": "✅ Bem-vinda Enfermeira! Redirecionando para o painel...",
+      "failWrongPass": "Falha no login: Email ou senha errados. Se você nunca concluiu o registro, registre-se novamente - um registro falho não cria um login.",
+      "failInvalidEmail": "Falha no login: Digite um email válido.",
+      "failTooMany": "Muitas tentativas. Espere alguns minutos e tente novamente.",
+      "failDisabled": "Esta conta está desativada. Contate CEO.",
+      "failGeneric": "Falha no login: {error}",
+    },
+
+    // 11. ARABIC
+    "ar": {
+      "title": "دخول الممرضة",
+      "heading": "دخول الممرضة",
+      "emailHint": "البريد الإلكتروني",
+      "passwordHint": "كلمة المرور",
+      "loginBtn": "دخول كممرضة",
+      "checking": "جارٍ التحقق...",
+      "enterEmailPass": "أدخل البريد + كلمة المرور",
+      "blockedClient": "محظور: هذا حساب عميل. استخدم دخول العميل. بريد واحد لا يمكن أن يكون الاثنين.",
+      "blockedNotRegistered": "محظور: لست ممرضة مسجلة. سجّل أولاً. تم حذف الحساب المتبقي.",
+      "waitingApproval": "بانتظار موافقة المدير. لا يمكنك الدخول بعد.",
+      "blockedMissing": "محظور: تمت الموافقة لكن الصورة/الفيديو/الهاتف مفقود. اتصل بالمدير.",
+      "welcome": "✅ أهلاً ممرضة! جارٍ التحويل للوحة...",
+      "failWrongPass": "فشل الدخول: بريد أو كلمة مرور خاطئة. إذا لم تكمل التسجيل أبداً، سجّل من جديد - التسجيل الفاشل لا ينشئ دخولاً.",
+      "failInvalidEmail": "فشل الدخول: أدخل بريداً صالحاً.",
+      "failTooMany": "محاولات كثيرة جداً. انتظر بضع دقائق وحاول من جديد.",
+      "failDisabled": "هذا الحساب معطّل. اتصل بالمدير.",
+      "failGeneric": "فشل الدخول: {error}",
+    },
+
+    // 12. CHINESE
+    "zh": {
+      "title": "护士登录",
+      "heading": "护士登录",
+      "emailHint": "邮箱",
+      "passwordHint": "密码",
+      "loginBtn": "以护士身份登录",
+      "checking": "检查中...",
+      "enterEmailPass": "输入邮箱 + 密码",
+      "blockedClient": "已屏蔽: 这是客户账号。请使用客户登录。一个邮箱不能同时是两者。",
+      "blockedNotRegistered": "已屏蔽: 不是注册护士。请先注册。剩余账号已删除。",
+      "waitingApproval": "等待 CEO 批准。你还不能登录。",
+      "blockedMissing": "已屏蔽: 已批准但缺少照片/视频/电话。联系 CEO。",
+      "welcome": "✅ 欢迎护士! 正在跳转到仪表板...",
+      "failWrongPass": "登录失败: 邮箱或密码错误。如果你从未完成注册，请重新注册 - 失败的注册不会创建登录。",
+      "failInvalidEmail": "登录失败: 请输入有效邮箱。",
+      "failTooMany": "尝试次数过多。请等待几分钟再试。",
+      "failDisabled": "此账号已禁用。联系 CEO。",
+      "failGeneric": "登录失败: {error}",
+    },
+
+    // 13. HINDI
+    "hi": {
+      "title": "नर्स लॉगिन",
+      "heading": "नर्स लॉगिन",
+      "emailHint": "ईमेल",
+      "passwordHint": "पासवर्ड",
+      "loginBtn": "नर्स के रूप में लॉगिन करें",
+      "checking": "जाँच रहे हैं...",
+      "enterEmailPass": "ईमेल + पासवर्ड डालें",
+      "blockedClient": "ब्लॉक: यह ग्राहक खाता है। ग्राहक लॉगिन का उपयोग करें। एक ईमेल दोनों नहीं हो सकता।",
+      "blockedNotRegistered": "ब्लॉक: पंजीकृत नर्स नहीं हैं। पहले रजिस्टर करें। बचा हुआ खाता हटा दिया गया।",
+      "waitingApproval": "CEO अनुमोदन की प्रतीक्षा। आप अभी लॉगिन नहीं कर सकतीं।",
+      "blockedMissing": "ब्लॉक: अनुमोदित लेकिन फोटो/वीडियो/फोन गायब है। CEO से संपर्क करें।",
+      "welcome": "✅ स्वागत है नर्स! डैशबोर्ड पर जा रहे हैं...",
+      "failWrongPass": "लॉगिन विफल: गलत ईमेल या पासवर्ड। यदि आपने कभी पंजीकरण पूरा नहीं किया, फिर से रजिस्टर करें - असफल पंजीकरण लॉगिन नहीं बनाता।",
+      "failInvalidEmail": "लॉगिन विफल: वैध ईमेल डालें।",
+      "failTooMany": "बहुत अधिक प्रयास। कुछ मिनट प्रतीक्षा करें और पुनः प्रयास करें।",
+      "failDisabled": "यह खाता अक्षम है। CEO से संपर्क करें।",
+      "failGeneric": "लॉगिन विफल: {error}",
+    },
+
+    // 14. SWAHILI
+    "sw": {
+      "title": "Kuingia Muuguzi",
+      "heading": "Kuingia Muuguzi",
+      "emailHint": "Barua Pepe",
+      "passwordHint": "Nenosiri",
+      "loginBtn": "Ingia Kama Muuguzi",
+      "checking": "Inakagua...",
+      "enterEmailPass": "Ingiza barua pepe + nenosiri",
+      "blockedClient": "IMEZUIWA: Hii ni akaunti ya MTEJA. Tumia Kuingia Mteja. Barua pepe moja haiwezi kuwa zote.",
+      "blockedNotRegistered": "IMEZUIWA: SI MUUGUZI ALIYESAJILIWA. Jisajili kwanza. Akaunti iliyobaki imefutwa.",
+      "waitingApproval": "INASUBIRI IDHINI YA CEO. Huwezi kuingia bado.",
+      "blockedMissing": "IMEZUIWA: Imekubaliwa lakini Picha/Video/Simu inakosekana. Wasiliana na CEO.",
+      "welcome": "✅ Karibu Muuguzi! Inaelekeza kwenye dashibodi...",
+      "failWrongPass": "Kuingia kumeshindwa: Barua pepe au nenosiri si sahihi. Kama hukuwahi kumaliza usajili, jisajili tena - usajili ulioshindwa hauundi kuingia.",
+      "failInvalidEmail": "Kuingia kumeshindwa: Ingiza barua pepe sahihi.",
+      "failTooMany": "Majaribio mengi sana. Subiri dakika chache na ujaribu tena.",
+      "failDisabled": "Akaunti hii imezimwa. Wasiliana na CEO.",
+      "failGeneric": "Kuingia kumeshindwa: {error}",
+    },
+
+    // 15. YORUBA
+    "yo": {
+      "title": "Nọọsi Login",
+      "heading": "Nọọsi Login",
+      "emailHint": "Email",
+      "passwordHint": "Password",
+      "loginBtn": "Wọle Bi Nọọsi",
+      "checking": "Nṣayẹwo...",
+      "enterEmailPass": "Fi email + password",
+      "blockedClient": "DINA: Eyi jẹ account ALABARA. Lo Login Alabara. Email kan ko le jẹ mejeeji.",
+      "blockedNotRegistered": "DINA: O KO JE NỌỌSI TI A FORUKỌSILẸ. Forukọsilẹ kọkọ. A ti pa account ti o kù rẹ.",
+      "waitingApproval": "NDURO IFỌWỌSI CEO. O ko le wọle sibẹ.",
+      "blockedMissing": "DINA: A fọwọsi ṣugbọn Foto/Video/Foonu nsọnu. Kan si CEO.",
+      "welcome": "✅ Ẹ n lẹ Nọọsi! Nlọ si dashboard...",
+      "failWrongPass": "Login kuna: Email tabi password ti ko tọ. Ti o ko ba ti pari forukọsilẹ rí, forukọsilẹ lẹẹkansi - forukọsilẹ ti o kuna ko ṣẹda login.",
+      "failInvalidEmail": "Login kuna: Fi email to tọ.",
+      "failTooMany": "Awọn igbiyanju pupọ ju. Duro fun iṣẹju diẹ ki o tun gbiyanju.",
+      "failDisabled": "A ti mu account yii. Kan si CEO.",
+      "failGeneric": "Login kuna: {error}",
+    },
+
+    // 16. IGBO
+    "ig": {
+      "title": "Nbanye Nọọsụ",
+      "heading": "Nbanye Nọọsụ",
+      "emailHint": "Email",
+      "passwordHint": "Paswọọdụ",
+      "loginBtn": "Banye Dị Ka Nọọsụ",
+      "checking": "Na-enyocha...",
+      "enterEmailPass": "Tinye email + paswọọdụ",
+      "blockedClient": "AKPỌCHIRI: Nke a bụ akaụntụ ONYE AHỊA. Jiri Nbanye Onye Ahịa. Otu email enweghị ike ịbụ ha abụọ.",
+      "blockedNotRegistered": "AKPỌCHIRI: ABỤGHỊ NỌỌSỤ EDEBANYERE AHA. Debanye aha mbụ. Ehichapụla akaụntụ fọdụrụ.",
+      "waitingApproval": "NA-ECHE NKWADO CEO. Ị nweghị ike ịbanye ugbu a.",
+      "blockedMissing": "AKPỌCHIRI: Ekwenyere mana Foto/Video/Ekwentị na-efu. Kpọtụrụ CEO.",
+      "welcome": "✅ Nnọọ Nọọsụ! Na-atụgharị gaa dashboard...",
+      "failWrongPass": "Nbanye dara: Email ma ọ bụ paswọọdụ ezighi ezi. Ọ bụrụ na ị mebeghị ndebanye aha, debanye aha ọzọ - ndebanye aha dara ada anaghị emepụta nbanye.",
+      "failInvalidEmail": "Nbanye dara: Tinye email ziri ezi.",
+      "failTooMany": "Mgbalị dị ukwuu. Chere nkeji ole na ole wee nwaa ọzọ.",
+      "failDisabled": "Agbanyụla akaụntụ a. Kpọtụrụ CEO.",
+      "failGeneric": "Nbanye dara: {error}",
+    },
+
+    // 17. HAUSA
+    "ha": {
+      "title": "Shigar Nurse",
+      "heading": "Shigar Nurse",
+      "emailHint": "Email",
+      "passwordHint": "Kalmar Sirri",
+      "loginBtn": "Shiga A Matsayin Nurse",
+      "checking": "Ana dubawa...",
+      "enterEmailPass": "Shigar da email + kalmar sirri",
+      "blockedClient": "AN TOSE: Wannan asusun ABOKIN CINIKI ne. Yi amfani da Shigar Abokin Ciniki. Email ɗaya ba zai iya zama duka ba.",
+      "blockedNotRegistered": "AN TOSE: BA NURSE MAI RIJISTA BA. Yi rijista da farko. An share asusun da ya rage.",
+      "waitingApproval": "ANA JIRAN AMINCEWAR CEO. Ba za ka iya shiga ba tukuna.",
+      "blockedMissing": "AN TOSE: An amince amma Hoto/Bidiyo/Waya ya ɓace. Tuntuɓi CEO.",
+      "welcome": "✅ Barka da zuwa Nurse! Ana tura ka dashboard...",
+      "failWrongPass": "Shiga ta kasa: Email ko kalmar sirri ba daidai ba. Idan ba ka taɓa kammala rijista ba, yi rijista kuma - rijista da ta kasa ba ta ƙirƙirar shiga ba.",
+      "failInvalidEmail": "Shiga ta kasa: Shigar da email mai inganci.",
+      "failTooMany": "Yunƙuri da yawa. Jira 'yan mintuna ka sake gwadawa.",
+      "failDisabled": "An kashe wannan asusun. Tuntuɓi CEO.",
+      "failGeneric": "Shiga ta kasa: {error}",
+    },
+
+    // 18. RUSSIAN
+    "ru": {
+      "title": "Вход Медсестры",
+      "heading": "Вход Медсестры",
+      "emailHint": "Email",
+      "passwordHint": "Пароль",
+      "loginBtn": "Войти Как Медсестра",
+      "checking": "Проверка...",
+      "enterEmailPass": "Введите email + пароль",
+      "blockedClient": "ЗАБЛОКИРОВАНО: Это аккаунт КЛИЕНТА. Используйте Вход Клиента. Один email не может быть обоими.",
+      "blockedNotRegistered": "ЗАБЛОКИРОВАНО: НЕ ЗАРЕГИСТРИРОВАННАЯ МЕДСЕСТРА. Сначала Зарегистрируйтесь. Остаточный аккаунт удалён.",
+      "waitingApproval": "ОЖИДАНИЕ ОДОБРЕНИЯ CEO. Вы пока не можете войти.",
+      "blockedMissing": "ЗАБЛОКИРОВАНО: Одобрено, но нет Фото/Видео/Телефона. Свяжитесь с CEO.",
+      "welcome": "✅ Добро пожаловать, Медсестра! Перенаправление на панель...",
+      "failWrongPass": "Вход не удался: Неверный email или пароль. Если вы никогда не завершали регистрацию, зарегистрируйтесь снова - неудачная регистрация не создаёт вход.",
+      "failInvalidEmail": "Вход не удался: Введите действительный email.",
+      "failTooMany": "Слишком много попыток. Подождите несколько минут и попробуйте снова.",
+      "failDisabled": "Этот аккаунт отключён. Свяжитесь с CEO.",
+      "failGeneric": "Вход не удался: {error}",
+    },
+
+    // 19. TURKISH
+    "tr": {
+      "title": "Hemşire Girişi",
+      "heading": "Hemşire Girişi",
+      "emailHint": "E-posta",
+      "passwordHint": "Şifre",
+      "loginBtn": "Hemşire Olarak Giriş Yap",
+      "checking": "Kontrol ediliyor...",
+      "enterEmailPass": "E-posta + şifre girin",
+      "blockedClient": "ENGELLENDİ: Bu bir MÜŞTERİ hesabı. Müşteri Girişi kullanın. Bir e-posta ikisi birden olamaz.",
+      "blockedNotRegistered": "ENGELLENDİ: KAYITLI HEMŞİRE DEĞİL. Önce Kayıt Olun. Kalan hesap silindi.",
+      "waitingApproval": "CEO ONAYI BEKLENİYOR. Henüz giriş yapamazsınız.",
+      "blockedMissing": "ENGELLENDİ: Onaylandı ama Fotoğraf/Video/Telefon eksik. CEO ile iletişim kurun.",
+      "welcome": "✅ Hoş geldin Hemşire! Panele yönlendiriliyor...",
+      "failWrongPass": "Giriş başarısız: Yanlış e-posta veya şifre. Kaydı hiç tamamlamadıysanız, tekrar kaydolun - başarısız kayıt giriş oluşturmaz.",
+      "failInvalidEmail": "Giriş başarısız: Geçerli bir e-posta girin.",
+      "failTooMany": "Çok fazla deneme. Birkaç dakika bekleyip tekrar deneyin.",
+      "failDisabled": "Bu hesap devre dışı. CEO ile iletişim kurun.",
+      "failGeneric": "Giriş başarısız: {error}",
+    },
+
+    // 20. KOREAN
+    "ko": {
+      "title": "간호사 로그인",
+      "heading": "간호사 로그인",
+      "emailHint": "이메일",
+      "passwordHint": "비밀번호",
+      "loginBtn": "간호사로 로그인",
+      "checking": "확인 중...",
+      "enterEmailPass": "이메일 + 비밀번호 입력",
+      "blockedClient": "차단됨: 이것은 고객 계정입니다. 고객 로그인을 사용하세요. 하나의 이메일은 둘 다 될 수 없습니다.",
+      "blockedNotRegistered": "차단됨: 등록된 간호사가 아닙니다. 먼저 등록하세요. 남은 계정이 삭제되었습니다.",
+      "waitingApproval": "CEO 승인 대기 중. 아직 로그인할 수 없습니다.",
+      "blockedMissing": "차단됨: 승인되었지만 사진/비디오/전화번호가 없습니다. CEO에게 연락하세요.",
+      "welcome": "✅ 환영합니다 간호사! 대시보드로 이동 중...",
+      "failWrongPass": "로그인 실패: 잘못된 이메일 또는 비밀번호. 등록을 완료한 적이 없다면 다시 등록하세요 - 실패한 등록은 로그인을 만들지 않습니다.",
+      "failInvalidEmail": "로그인 실패: 유효한 이메일을 입력하세요.",
+      "failTooMany": "시도가 너무 많습니다. 몇 분 기다렸다가 다시 시도하세요.",
+      "failDisabled": "이 계정은 비활성화되었습니다. CEO에게 연락하세요.",
+      "failGeneric": "로그인 실패: {error}",
+    },
+
+    // 21. JAPANESE
+    "ja": {
+      "title": "看護師ログイン",
+      "heading": "看護師ログイン",
+      "emailHint": "メール",
+      "passwordHint": "パスワード",
+      "loginBtn": "看護師としてログイン",
+      "checking": "確認中...",
+      "enterEmailPass": "メール + パスワードを入力",
+      "blockedClient": "ブロック: これはクライアントアカウントです。クライアントログインを使用してください。1つのメールは両方にはなれません。",
+      "blockedNotRegistered": "ブロック: 登録看護師ではありません。まず登録してください。残りのアカウントは削除されました。",
+      "waitingApproval": "CEO 承認待ちです。まだログインできません。",
+      "blockedMissing": "ブロック: 承認済みですが写真/ビデオ/電話がありません。CEO に連絡してください。",
+      "welcome": "✅ ようこそ看護師! ダッシュボードへ移動中...",
+      "failWrongPass": "ログイン失敗: メールまたはパスワードが間違っています。登録を完了したことがない場合は、もう一度登録してください - 失敗した登録ではログインは作成されません。",
+      "failInvalidEmail": "ログイン失敗: 有効なメールを入力してください。",
+      "failTooMany": "試行回数が多すぎます。数分待ってからもう一度お試しください。",
+      "failDisabled": "このアカウントは無効です。CEO に連絡してください。",
+      "failGeneric": "ログイン失敗: {error}",
+    },
+
+    // 22. POLISH
+    "pl": {
+      "title": "Logowanie Pielęgniarki",
+      "heading": "Logowanie Pielęgniarki",
+      "emailHint": "Email",
+      "passwordHint": "Hasło",
+      "loginBtn": "Zaloguj Jako Pielęgniarka",
+      "checking": "Sprawdzanie...",
+      "enterEmailPass": "Wpisz email + hasło",
+      "blockedClient": "ZABLOKOWANO: To jest konto KLIENTA. Użyj Logowania Klienta. Jeden email nie może być oboma.",
+      "blockedNotRegistered": "ZABLOKOWANO: NIE JESTEŚ ZAREJESTROWANĄ PIELĘGNIARKĄ. Najpierw się Zarejestruj. Pozostałe konto usunięte.",
+      "waitingApproval": "OCZEKIWANIE NA ZATWIERDZENIE CEO. Nie możesz się jeszcze zalogować.",
+      "blockedMissing": "ZABLOKOWANO: Zatwierdzona, ale brakuje Zdjęcia/Wideo/Telefonu. Skontaktuj się z CEO.",
+      "welcome": "✅ Witaj Pielęgniarko! Przekierowanie do panelu...",
+      "failWrongPass": "Logowanie nieudane: Zły email lub hasło. Jeśli nigdy nie ukończyłaś rejestracji, zarejestruj się ponownie - nieudana rejestracja nie tworzy logowania.",
+      "failInvalidEmail": "Logowanie nieudane: Wpisz prawidłowy email.",
+      "failTooMany": "Za dużo prób. Poczekaj kilka minut i spróbuj ponownie.",
+      "failDisabled": "To konto jest wyłączone. Skontaktuj się z CEO.",
+      "failGeneric": "Logowanie nieudane: {error}",
+    },
+  };
 }
