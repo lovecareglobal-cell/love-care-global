@@ -1,1599 +1,472 @@
-// my_job_offer_translations.dart
-// FILE - My Job Offers (NURSE) - ONLY SCREEN WORDS - ALL 22 LANGUAGES
-// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
-// 20/80: Nurse sees ONLY her CASH (80%). NEVER total, NEVER CEO fee.
-// ONE FILE - Drop in lib/screens
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
 
-class MyJobOfferTranslations {
-  static const Map<String, Map<String, String>> all = {
+/// My Job Offer - Flutter version of my-job-offer.html
+/// - Loads from: bookings + allBookings + ceoBookings + bookingsByFull + clientBookings/myBookings/bookingsByClient (by uid/emailKey) + bookingsByPhone/{phone9} + SharedPreferences myBookings
+///   Dedupe by bookingId (same as HTML loadAll map)
+/// - Matching: matchesBooking(v, myIds) — phone last 9 + email + UID from ALL prefs keys (same as HTML getAllIdentities)
+///   If 0 matched but bookings exist -> show recent 5 so nurse can see pending + Claim (same as HTML)
+///   showMode recent -> recent 10 non-terminal non-history
+/// - Terminal / History: isTerminal + isHistory filtered out (completed/paid/cancelled etc are in History)
+/// - Actions (same as HTML, each sends sound trigger to client):
+///   Accept: bookings/{id} status accepted, lastChangedBy nurse, acceptedAt, acceptedAtStr, trigger client {status accepted, title Nurse accepted}
+///   Reject: status rejected_by_nurse, rejectedAt, rejectedByNurseName, trigger client {rejected_by_nurse}
+///   On Way: status on_the_way, lastChangedUid/Phone, trigger client
+///   Close: status close, trigger client {title Nurse is close}
+///   Completed: status completed, trigger client {title Nurse completed} — 'Completed - Collect CASH from client'
+///   Confirm Done (client side in HTML, kept here): nurseBookingHistory/{key}/{id} {status client_confirmed_finished, clientConfirmed, clientConfirmedAt} + bookings/{id} status client_confirmed_finished, then remove bookings/{id} after 800ms
+///   Cancel: bookings/{id} status cancelled_by_client
+///   Claim: save nursePhone / nurseEmail to prefs, reload
+/// - History: nurseBookingHistory/{key} for uid/phone/email keys, sorted by clientConfirmedAt desc, Delete / Delete All, View Receipt
+/// - Receiver-only sound: same as nurse-dashboard (bookings child_changed shouldRing + soundTriggers)
+/// - NEW 20/80 RULE (Nov 2026): Nurse sees ONLY her cash (80%). NEVER total, NEVER CEO fee (20%).
+///   _nurseCash(b) = nurseCash / nurseCashAmount / amountYouWillCollectCash / 80% of total (fallback).
+///   Accept: nurse stays Busy/Locked. Reject: nurse -> Available, booking rejected_by_nurse, client gets FULL 20% refund.
+///   Completed: nurse collects CASH from client, confirms cash received, then nurse -> Available. CEO NEVER pays nurse.
 
-    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
-    "en": {
-      "title": "My Job Offers",
-      "historyBtn": "History ({n})",
-      "hideHistory": "Hide History",
-      "yourIdentity": "Your identity:",
-      "phonesLabel": "Phones: {phones} | Emails: {emails} | UIDs: {uids}",
-      "noneLogin": "NONE - Login again",
-      "none": "NONE",
-      "matchingNote": "Matching by phone last 9 + email + UID from ALL prefs keys - If NONE, use Show Recent 10",
-      "myOffers": "My Offers",
-      "showRecent": "Show Recent 10",
-      "refresh": "Refresh",
-      "historyTitle": "📜 History — Cash Collected / Confirmed",
-      "deleteAll": "Delete All",
-      "noHistory": "No history yet",
-      "noOffers": "No job offers yet. Go ONLINE to appear to clients.",
-      "zeroMatched": "0 matched but bookings exist - Showing recent 5 so you can see pending - Tap to claim",
-      "bookingId": "Booking ID {id}",
-      "clientLabel": "Client: {name} - {phone}",
-      "serviceLabel": "Service: {service}",
-      "collectCash": "You will collect CASH after work: {cash}",
-      "locationLabel": "Location: {location}",
-      "timeLabel": "Time: {time}",
-      "accept": "✅ Accept",
-      "reject": "❌ Reject",
-      "onWay": "🚗 On Way",
-      "closeBtn": "📍 Close",
-      "completed": "🎉 Completed",
-      "confirmCash": "💵 Confirm Cash Received - {cash}",
-      "confirmDone": "✅ Confirm Done",
-      "details": "Details",
-      "claim": "Claim",
-      "cancel": "Cancel",
-      "complaint": "😡 Complaint",
-      "cashCollected": "✅ CASH COLLECTED",
-      "historyRow": "Booking ID {id} - {date} - {collected} - {status} - Cash: {cash}",
-      "receipt": "Receipt",
-      "rejectTitle": "Reject {id}?",
-      "rejectContent": "Client gets FULL 20% refund and can book another nurse. You become Available again immediately.",
-      "no": "No",
-      "rejectBtn": "Reject",
-      "confirmCashTitle": "Confirm Cash Received?",
-      "confirmCashContent": "Confirm client paid you CASH: {cash}\nCEO does NOT pay you. After this you become Available again.",
-      "notYet": "Not Yet",
-      "yesCash": "Yes, Cash Received",
-      "confirmDoneTitle": "Confirm work done for {id}?",
-      "confirm": "Confirm",
-      "cancelTitle": "Cancel {id}?",
-      "claimTitle": "Claim This Booking",
-      "yourPhone": "Your phone",
-      "yourEmail": "Your email",
-      "save": "Save",
-      "deleteAllTitle": "Delete ALL history?",
-      "yes": "Yes",
-      "detailsTitle": "Booking ID {id}",
-      "detailsContent": "ID: {id}\nStatus: {status}\nClient: {client} - {clientPhone}\nNurse: {nurse} - {nursePhone}\nYou will collect CASH after work: {cash}\nService: {service}\nLocation: {location}\nTime: {time}",
-      "close": "Close",
-      "claimThisBooking": "Claim This Booking",
-      "toastAccepted": "Accepted - Client will hear HIS song",
-      "toastRejected": "Rejected - Client gets full 20% refund - You are Available again",
-      "toastOnWay": "On the way",
-      "toastClose": "Close - Near client",
-      "toastCash": "Cash confirmed - You are Available again",
-      "toastCompleted": "Completed - Collect CASH from client, then Confirm Cash Received",
-      "toastConfirmed": "Confirmed - Moved to history",
-      "toastCancelled": "Cancelled",
-      "toastSaved": "Saved - Reloading",
-      "toastLoginAgain": "Login again - no identity",
-      "toastNewReply": "🔔 New reply - {status}",
-    },
+class MyJobOfferScreen extends StatefulWidget {
+  const MyJobOfferScreen({super.key});
+  @override
+  State<MyJobOfferScreen> createState() => _MyJobOfferScreenState();
+}
 
-    // 2. TWI
-    "tw": {
-      "title": "Me Adwuma Offers",
-      "historyBtn": "Abakɔsɛm ({n})",
-      "hideHistory": "Fa Abakɔsɛm Sie",
-      "yourIdentity": "Wo ho nsɛm:",
-      "phonesLabel": "Phones: {phones} | Emails: {emails} | UIDs: {uids}",
-      "noneLogin": "BIAARA - Kɔ Mu Bio",
-      "none": "BIAARA",
-      "matchingNote": "Wɔde phone akyi 9 + email + UID fi prefs keys nyinaa mu yɛ match - Sɛ BIAARA, fa Show Recent 10",
-      "myOffers": "Me Offers",
-      "showRecent": "Kyerɛ Recent 10",
-      "refresh": "Refresh",
-      "historyTitle": "📜 Abakɔsɛm — Cash Wɔaboaboa / Wɔahyɛ Mu",
-      "deleteAll": "Yi Nyinaa Fi Hɔ",
-      "noHistory": "Abakɔsɛm biara nni hɔ",
-      "noOffers": "Adwuma offers biara nni hɔ. Kɔ ONLINE na ɔkra ahu wo.",
-      "zeroMatched": "0 matched nanso bookings wɔ hɔ - Reyi recent 5 na wahu pending - Tap de claim",
-      "bookingId": "Booking ID {id}",
-      "clientLabel": "Ɔkra: {name} - {phone}",
-      "serviceLabel": "Adwuma: {service}",
-      "collectCash": "Wobɛboaboa CASH wɔ adwuma akyi: {cash}",
-      "locationLabel": "Beae: {location}",
-      "timeLabel": "Bere: {time}",
-      "accept": "✅ Gye Tom",
-      "reject": "❌ Pow",
-      "onWay": "🚗 Mereba",
-      "closeBtn": "📍 Bɛn",
-      "completed": "🎉 Wɔawie",
-      "confirmCash": "💵 Hyɛ Cash Wɔagye Mu - {cash}",
-      "confirmDone": "✅ Hyɛ Wɔawie Mu",
-      "details": "Details",
-      "claim": "Claim",
-      "cancel": "Gyae",
-      "complaint": "😡 Complaint",
-      "cashCollected": "✅ CASH WƆABOABOA",
-      "historyRow": "Booking ID {id} - {date} - {collected} - {status} - Cash: {cash}",
-      "receipt": "Receipt",
-      "rejectTitle": "Pow {id}?",
-      "rejectContent": "Ɔkra nya refund 20% nyinaa na otumi book nɛɛse foforo. Wobɛyɛ Available bio ntɛm ara.",
-      "no": "Dabi",
-      "rejectBtn": "Pow",
-      "confirmCashTitle": "Hyɛ Mu Sɛ Wɔagye Cash?",
-      "confirmCashContent": "Hyɛ mu sɛ ɔkra atua wo CASH: {cash}\nCEO NTUA wo. Eyi akyi wobɛyɛ Available bio.",
-      "notYet": "Ɛnnyaa",
-      "yesCash": "Yiw, Cash Wɔagye",
-      "confirmDoneTitle": "Hyɛ Mu Sɛ Wɔawie Adwuma Ma {id}?",
-      "confirm": "Hyɛ Mu",
-      "cancelTitle": "Gyae {id}?",
-      "claimTitle": "Claim Saa Booking Yi",
-      "yourPhone": "Wo phone",
-      "yourEmail": "Wo email",
-      "save": "Kora",
-      "deleteAllTitle": "Yi Abakɔsɛm Nyinaa Fi Hɔ?",
-      "yes": "Yiw",
-      "detailsTitle": "Booking ID {id}",
-      "detailsContent": "ID: {id}\nHo Nsɛm: {status}\nƆkra: {client} - {clientPhone}\nNɛɛse: {nurse} - {nursePhone}\nWobɛboaboa CASH wɔ adwuma akyi: {cash}\nAdwuma: {service}\nBeae: {location}\nBere: {time}",
-      "close": "To Mu",
-      "claimThisBooking": "Claim Saa Booking Yi",
-      "toastAccepted": "Wɔagye - Ɔkra bɛte ne dwom",
-      "toastRejected": "Wɔapow - Ɔkra nya refund 20% nyinaa - Woyɛ Available bio",
-      "toastOnWay": "Mereba",
-      "toastClose": "Bɛn - Bɛn ɔkra",
-      "toastCash": "Cash wɔahyɛ mu - Woyɛ Available bio",
-      "toastCompleted": "Wɔawie - Boaboa CASH fi ɔkra hɔ, afei Hyɛ Cash Wɔagye Mu",
-      "toastConfirmed": "Wɔahyɛ mu - Wɔde akɔ abakɔsɛm mu",
-      "toastCancelled": "Wɔagyae",
-      "toastSaved": "Wɔakora - Reyi load bio",
-      "toastLoginAgain": "Kɔ mu bio - identity biara nni hɔ",
-      "toastNewReply": "🔔 Mmuae foforo - {status}",
-    },
+class _MyJobOfferScreenState extends State<MyJobOfferScreen> {
+  List<Map> all = [];
+  List<Map> historyData = [];
+  List<String> myPhones = [], myEmails = [], myUids = [];
+  String showMode = 'mine'; // mine | recent
+  bool showHistory = false;
+  final AudioPlayer _player = AudioPlayer();
 
-    // 3. GA
-    "ga": {
-      "title": "Mi Nitsumɔ Offers",
-      "historyBtn": "Sane ({n})",
-      "hideHistory": "Ŋɔɔ Sane",
-      "yourIdentity": "O he sane:",
-      "phonesLabel": "Phones: {phones} | Emails: {emails} | UIDs: {uids}",
-      "noneLogin": "KO - Ŋmɛ Mli Eko",
-      "none": "KO",
-      "matchingNote": "Akɛ phone sɛɛ 9 + email + UID kɛjɛ prefs keys fɛɛ mli match - Kɛ KO, fee Show Recent 10",
-      "myOffers": "Mi Offers",
-      "showRecent": "Tsɔɔ Recent 10",
-      "refresh": "Refresh",
-      "historyTitle": "📜 Sane — Cash Aŋɔ / Ashi Mu",
-      "deleteAll": "Jee Fɛɛ",
-      "noHistory": "Sane ko bɛ",
-      "noOffers": "Nitsumɔ offers ko bɛ. Tee ONLINE koni mɔ awo.",
-      "zeroMatched": "0 matched shi bookings yɛ - Mii tsɔɔ recent 5 koni owo pending - Tap koni o claim",
-      "bookingId": "Booking ID {id}",
-      "clientLabel": "Mɔ: {name} - {phone}",
-      "serviceLabel": "Nitsumɔ: {service}",
-      "collectCash": "O ba ŋɔ CASH yɛ nitsumɔ sɛɛ: {cash}",
-      "locationLabel": "Hejɔɔ: {location}",
-      "timeLabel": "Bere: {time}",
-      "accept": "✅ He",
-      "reject": "❌ Kpɔ",
-      "onWay": "🚗 Mii Ba",
-      "closeBtn": "📍 Bɛŋkɛ",
-      "completed": "🎉 Agbe",
-      "confirmCash": "💵 Shi Cash Aŋɔ - {cash}",
-      "confirmDone": "✅ Shi Agbe",
-      "details": "Details",
-      "claim": "Claim",
-      "cancel": "Fo",
-      "complaint": "😡 Complaint",
-      "cashCollected": "✅ CASH AŊƆ",
-      "historyRow": "Booking ID {id} - {date} - {collected} - {status} - Cash: {cash}",
-      "receipt": "Receipt",
-      "rejectTitle": "Kpɔ {id}?",
-      "rejectContent": "Mɔ naa refund 20% fɛɛ na eba nyɛ book nɛɛse kroko. O ba fee Available eko ojáko.",
-      "no": "Dabi",
-      "rejectBtn": "Kpɔ",
-      "confirmCashTitle": "Shi Sɛ Cash Aŋɔ?",
-      "confirmCashContent": "Shi sɛ mɔ tua o CASH: {cash}\nCEO ETUA o. Eyi sɛɛ o ba fee Available eko.",
-      "notYet": "Eko Da",
-      "yesCash": "Yɛ, Cash Aŋɔ",
-      "confirmDoneTitle": "Shi Sɛ Nitsumɔ Agbe Hã {id}?",
-      "confirm": "Shi",
-      "cancelTitle": "Fo {id}?",
-      "claimTitle": "Claim Saa Booking Nɛɛ",
-      "yourPhone": "O phone",
-      "yourEmail": "O email",
-      "save": "To",
-      "deleteAllTitle": "Jee Sane Fɛɛ?",
-      "yes": "Yɛ",
-      "detailsTitle": "Booking ID {id}",
-      "detailsContent": "ID: {id}\nNɔ: {status}\nMɔ: {client} - {clientPhone}\nNɛɛse: {nurse} - {nursePhone}\nO ba ŋɔ CASH yɛ nitsumɔ sɛɛ: {cash}\nNitsumɔ: {service}\nHejɔɔ: {location}\nBere: {time}",
-      "close": "Gbe Mu",
-      "claimThisBooking": "Claim Saa Booking Nɛɛ",
-      "toastAccepted": "Ahe - Mɔ ba nu e lala",
-      "toastRejected": "Akpɔ - Mɔ naa refund 20% fɛɛ - O fee Available eko",
-      "toastOnWay": "Mii ba",
-      "toastClose": "Bɛŋkɛ - Bɛŋkɛ mɔ",
-      "toastCash": "Cash ashi mu - O fee Available eko",
-      "toastCompleted": "Agbe - Ŋɔ CASH kɛjɛ mɔ dɛŋ, no sɛɛ Shi Cash Aŋɔ",
-      "toastConfirmed": "Ashi mu - Afee kɛtee sane mli",
-      "toastCancelled": "Afo",
-      "toastSaved": "Ato - Mii load eko",
-      "toastLoginAgain": "Ŋmɛ mli eko - identity ko bɛ",
-      "toastNewReply": "🔔 Hetoo hee - {status}",
-    },
+  @override
+  void initState() {
+    super.initState();
+    _loadAll();
+    _loadHistory();
+    _startSound();
+  }
 
-    // 4. EWE
-    "ee": {
-      "title": "Nye Dɔ Offers",
-      "historyBtn": "Xɔme ({n})",
-      "hideHistory": "Ɣla Xɔme",
-      "yourIdentity": "Wò ŋutinya:",
-      "phonesLabel": "Phones: {phones} | Emails: {emails} | UIDs: {uids}",
-      "noneLogin": "AÐEKE - Ge Ðe Eme Gbugbɔ",
-      "none": "AÐEKE",
-      "matchingNote": "Wotsɔ phone megbe 9 + email + UID tso prefs keys katã me match - Ne AÐEKE, zã Show Recent 10",
-      "myOffers": "Nye Offers",
-      "showRecent": "Fia Recent 10",
-      "refresh": "Refresh",
-      "historyTitle": "📜 Xɔme — Cash Woxɔ / Woɖo Kpe",
-      "deleteAll": "Ðe Katã Ða",
-      "noHistory": "Xɔme aɖeke meli o",
-      "noOffers": "Dɔ offers aɖeke meli o. Yi ONLINE be amewo nakpɔ wò.",
-      "zeroMatched": "0 matched gake bookings li - Le recent 5 fiam be nàkpɔ pending - Zi be nàclaim",
-      "bookingId": "Booking ID {id}",
-      "clientLabel": "Ame: {name} - {phone}",
-      "serviceLabel": "Dɔ: {service}",
-      "collectCash": "Àxɔ CASH le dɔ megbe: {cash}",
-      "locationLabel": "Teƒe: {location}",
-      "timeLabel": "Gaƒoƒo: {time}",
-      "accept": "✅ Xɔ",
-      "reject": "❌ Gbe",
-      "onWay": "🚗 Mele Vava",
-      "closeBtn": "📍 Te Ðe",
-      "completed": "🎉 Wowu",
-      "confirmCash": "💵 Ðo Kpe Cash Woxɔ - {cash}",
-      "confirmDone": "✅ Ðo Kpe Wowu",
-      "details": "Details",
-      "claim": "Claim",
-      "cancel": "Ðe Ða",
-      "complaint": "😡 Complaint",
-      "cashCollected": "✅ CASH WOXƆ",
-      "historyRow": "Booking ID {id} - {date} - {collected} - {status} - Cash: {cash}",
-      "receipt": "Receipt",
-      "rejectTitle": "Gbe {id}?",
-      "rejectContent": "Ame xɔ refund 20% bliboa eye ate ŋu abook nɔnɔvia bubu. Àzu Available gbugbɔ enumake.",
-      "no": "Ao",
-      "rejectBtn": "Gbe",
-      "confirmCashTitle": "Ðo Kpe Be Woxɔ Cash?",
-      "confirmCashContent": "Ðo kpe be ame xe wò CASH: {cash}\nCEO MEXEA wò o. Le esia megbe àzu Available gbugbɔ.",
-      "notYet": "Meli o",
-      "yesCash": "Ɛ̃, Cash Woxɔ",
-      "confirmDoneTitle": "Ðo Kpe Be Dɔ Wu Na {id}?",
-      "confirm": "Ðo Kpe",
-      "cancelTitle": "Ðe {id} Ða?",
-      "claimTitle": "Claim Booking Sia",
-      "yourPhone": "Wò phone",
-      "yourEmail": "Wò email",
-      "save": "Dzra Ðo",
-      "deleteAllTitle": "Ðe Xɔme Katã Ða?",
-      "yes": "Ɛ̃",
-      "detailsTitle": "Booking ID {id}",
-      "detailsContent": "ID: {id}\nNɔnɔme: {status}\nAme: {client} - {clientPhone}\nNɔnɔvia: {nurse} - {nursePhone}\nÀxɔ CASH le dɔ megbe: {cash}\nDɔ: {service}\nTeƒe: {location}\nGaƒoƒo: {time}",
-      "close": "Tu",
-      "claimThisBooking": "Claim Booking Sia",
-      "toastAccepted": "Woxɔ - Ame ase eƒe hadzidzi",
-      "toastRejected": "Wogbe - Ame xɔ refund 20% bliboa - Èzu Available gbugbɔ",
-      "toastOnWay": "Mele vava",
-      "toastClose": "Te ɖe - Te ɖe ame",
-      "toastCash": "Cash woɖo kpe - Èzu Available gbugbɔ",
-      "toastCompleted": "Wowu - Xɔ CASH tso ame gbɔ, emegbe Ðo Kpe Cash Woxɔ",
-      "toastConfirmed": "Woɖo kpe - Woɖe yi xɔme me",
-      "toastCancelled": "Woɖe ɖa",
-      "toastSaved": "Wodzra ɖo - Le gbugbɔ load",
-      "toastLoginAgain": "Ge ɖe eme gbugbɔ - ŋutinya aɖeke meli o",
-      "toastNewReply": "🔔 Ŋuɖoɖo yeye - {status}",
-    },
+  Future<void> _getAllIdentities() async {
+    final prefs = await SharedPreferences.getInstance();
+    myPhones = []; myEmails = []; myUids = [];
+    for (final k in prefs.getKeys()) {
+      final v = prefs.getString(k) ?? '';
+      final kl = k.toLowerCase();
+      if (kl.contains('phone')) { final p = v.replaceAll(RegExp(r'[^0-9]'), ''); if (p.length >= 9) myPhones.add(p.substring(p.length - 9)); }
+      if (kl.contains('email')) myEmails.add(v.toLowerCase().trim());
+      if (kl.contains('uid') || k == 'id') myUids.add(v);
+    }
+    // Auth is truth - login saves NO prefs, so prefs-only = NONE / 'Login again'.
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        if (user.uid.isNotEmpty) myUids.add(user.uid);
+        if (user.email != null && user.email!.isNotEmpty) myEmails.add(_normEmail(user.email!));
+        try {
+          final doc = await FirebaseFirestore.instance.collection('nurses').doc(user.uid).get();
+          if (doc.exists && doc.data() != null) {
+            final d = doc.data()!;
+            if (d['phone'] != null) { final p = _normPhone(d['phone'].toString()); if (p.isNotEmpty) myPhones.add(p); }
+            if (d['email'] != null) myEmails.add(_normEmail(d['email'].toString()));
+          }
+        } catch (_) {}
+      }
+    } catch (_) {}
+    // Dedupe
+    myPhones = myPhones.toSet().toList(); myEmails = myEmails.toSet().toList(); myUids = myUids.toSet().toList();
+  }
 
-    // 5. DUTCH
-    "nl": {
-      "title": "Mijn Vacatures",
-      "historyBtn": "Geschiedenis ({n})",
-      "hideHistory": "Geschiedenis Verbergen",
-      "yourIdentity": "Jouw identiteit:",
-      "phonesLabel": "Telefoons: {phones} | E-mails: {emails} | UIDs: {uids}",
-      "noneLogin": "GEEN - Log opnieuw in",
-      "none": "GEEN",
-      "matchingNote": "Matchen op telefoon laatste 9 + e-mail + UID van ALLE prefs-sleutels - Als GEEN, gebruik Toon Recente 10",
-      "myOffers": "Mijn Aanbiedingen",
-      "showRecent": "Toon Recente 10",
-      "refresh": "Vernieuwen",
-      "historyTitle": "📜 Geschiedenis — Contant Verzameld / Bevestigd",
-      "deleteAll": "Alles Verwijderen",
-      "noHistory": "Nog geen geschiedenis",
-      "noOffers": "Nog geen vacatures. Ga ONLINE om voor klanten te verschijnen.",
-      "zeroMatched": "0 gematcht maar boekingen bestaan - Toon recente 5 zodat je pending kan zien - Tik om te claimen",
-      "bookingId": "Boeking ID {id}",
-      "clientLabel": "Klant: {name} - {phone}",
-      "serviceLabel": "Dienst: {service}",
-      "collectCash": "Je verzamelt CONTANT na werk: {cash}",
-      "locationLabel": "Locatie: {location}",
-      "timeLabel": "Tijd: {time}",
-      "accept": "✅ Accepteren",
-      "reject": "❌ Weigeren",
-      "onWay": "🚗 Onderweg",
-      "closeBtn": "📍 Dichtbij",
-      "completed": "🎉 Voltooid",
-      "confirmCash": "💵 Bevestig Contant Ontvangen - {cash}",
-      "confirmDone": "✅ Bevestig Klaar",
-      "details": "Details",
-      "claim": "Claim",
-      "cancel": "Annuleren",
-      "complaint": "😡 Klacht",
-      "cashCollected": "✅ CONTANT VERZAMELD",
-      "historyRow": "Boeking ID {id} - {date} - {collected} - {status} - Contant: {cash}",
-      "receipt": "Bon",
-      "rejectTitle": "{id} Weigeren?",
-      "rejectContent": "Klant krijgt VOLLEDIGE 20% terugbetaling en kan een andere verpleegkundige boeken. Je wordt onmiddellijk weer Beschikbaar.",
-      "no": "Nee",
-      "rejectBtn": "Weigeren",
-      "confirmCashTitle": "Bevestig Contant Ontvangen?",
-      "confirmCashContent": "Bevestig dat klant je CONTANT heeft betaald: {cash}\nCEO betaalt je NIET. Hierna word je weer Beschikbaar.",
-      "notYet": "Nog Niet",
-      "yesCash": "Ja, Contant Ontvangen",
-      "confirmDoneTitle": "Bevestig werk klaar voor {id}?",
-      "confirm": "Bevestigen",
-      "cancelTitle": "{id} Annuleren?",
-      "claimTitle": "Claim Deze Boeking",
-      "yourPhone": "Jouw telefoon",
-      "yourEmail": "Jouw e-mail",
-      "save": "Opslaan",
-      "deleteAllTitle": "ALLE geschiedenis verwijderen?",
-      "yes": "Ja",
-      "detailsTitle": "Boeking ID {id}",
-      "detailsContent": "ID: {id}\nStatus: {status}\nKlant: {client} - {clientPhone}\nVerpleegkundige: {nurse} - {nursePhone}\nJe verzamelt CONTANT na werk: {cash}\nDienst: {service}\nLocatie: {location}\nTijd: {time}",
-      "close": "Sluiten",
-      "claimThisBooking": "Claim Deze Boeking",
-      "toastAccepted": "Geaccepteerd - Klant hoort ZIJN lied",
-      "toastRejected": "Geweigerd - Klant krijgt volledige 20% terugbetaling - Je bent weer Beschikbaar",
-      "toastOnWay": "Onderweg",
-      "toastClose": "Dichtbij - Bij klant",
-      "toastCash": "Contant bevestigd - Je bent weer Beschikbaar",
-      "toastCompleted": "Voltooid - Verzamel CONTANT van klant, bevestig dan Contant Ontvangen",
-      "toastConfirmed": "Bevestigd - Verplaatst naar geschiedenis",
-      "toastCancelled": "Geannuleerd",
-      "toastSaved": "Opgeslagen - Opnieuw laden",
-      "toastLoginAgain": "Log opnieuw in - geen identiteit",
-      "toastNewReply": "🔔 Nieuw antwoord - {status}",
-    },
+  String _normPhone(String s) { final p = s.replaceAll(RegExp(r'[^0-9]'), ''); return p.length >= 9 ? p.substring(p.length - 9) : p; }
+  String _normEmail(String s) => s.toLowerCase().trim();
 
-    // 6. FRENCH
-    "fr": {
-      "title": "Mes Offres D'Emploi",
-      "historyBtn": "Historique ({n})",
-      "hideHistory": "Masquer Historique",
-      "yourIdentity": "Ton identité:",
-      "phonesLabel": "Téléphones: {phones} | E-mails: {emails} | UIDs: {uids}",
-      "noneLogin": "AUCUN - Reconnecte-toi",
-      "none": "AUCUN",
-      "matchingNote": "Correspondance par téléphone 9 derniers + e-mail + UID de TOUTES les clés prefs - Si AUCUN, utilise Afficher Récents 10",
-      "myOffers": "Mes Offres",
-      "showRecent": "Afficher Récents 10",
-      "refresh": "Actualiser",
-      "historyTitle": "📜 Historique — Espèces Collectées / Confirmées",
-      "deleteAll": "Tout Supprimer",
-      "noHistory": "Aucun historique",
-      "noOffers": "Aucune offre d'emploi. Passe EN LIGNE pour apparaître aux clients.",
-      "zeroMatched": "0 correspondant mais des réservations existent - Affichage des 5 récentes pour voir en attente - Appuie pour réclamer",
-      "bookingId": "Réservation ID {id}",
-      "clientLabel": "Client: {name} - {phone}",
-      "serviceLabel": "Service: {service}",
-      "collectCash": "Tu collecteras ESPÈCES après travail: {cash}",
-      "locationLabel": "Lieu: {location}",
-      "timeLabel": "Heure: {time}",
-      "accept": "✅ Accepter",
-      "reject": "❌ Refuser",
-      "onWay": "🚗 En Route",
-      "closeBtn": "📍 Proche",
-      "completed": "🎉 Terminé",
-      "confirmCash": "💵 Confirmer Espèces Reçues - {cash}",
-      "confirmDone": "✅ Confirmer Terminé",
-      "details": "Détails",
-      "claim": "Réclamer",
-      "cancel": "Annuler",
-      "complaint": "😡 Plainte",
-      "cashCollected": "✅ ESPÈCES COLLECTÉES",
-      "historyRow": "Réservation ID {id} - {date} - {collected} - {status} - Espèces: {cash}",
-      "receipt": "Reçu",
-      "rejectTitle": "Refuser {id}?",
-      "rejectContent": "Le client reçoit un remboursement COMPLET de 20% et peut réserver une autre infirmière. Tu redeviens Disponible immédiatement.",
-      "no": "Non",
-      "rejectBtn": "Refuser",
-      "confirmCashTitle": "Confirmer Espèces Reçues?",
-      "confirmCashContent": "Confirme que le client t'a payé en ESPÈCES: {cash}\nLe CEO ne te paie PAS. Après cela tu redeviens Disponible.",
-      "notYet": "Pas Encore",
-      "yesCash": "Oui, Espèces Reçues",
-      "confirmDoneTitle": "Confirmer travail terminé pour {id}?",
-      "confirm": "Confirmer",
-      "cancelTitle": "Annuler {id}?",
-      "claimTitle": "Réclamer Cette Réservation",
-      "yourPhone": "Ton téléphone",
-      "yourEmail": "Ton e-mail",
-      "save": "Enregistrer",
-      "deleteAllTitle": "Supprimer TOUT l'historique?",
-      "yes": "Oui",
-      "detailsTitle": "Réservation ID {id}",
-      "detailsContent": "ID: {id}\nStatut: {status}\nClient: {client} - {clientPhone}\nInfirmière: {nurse} - {nursePhone}\nTu collecteras ESPÈCES après travail: {cash}\nService: {service}\nLieu: {location}\nHeure: {time}",
-      "close": "Fermer",
-      "claimThisBooking": "Réclamer Cette Réservation",
-      "toastAccepted": "Accepté - Le client entendra SA chanson",
-      "toastRejected": "Refusé - Le client reçoit remboursement complet 20% - Tu es à nouveau Disponible",
-      "toastOnWay": "En route",
-      "toastClose": "Proche - Près du client",
-      "toastCash": "Espèces confirmées - Tu es à nouveau Disponible",
-      "toastCompleted": "Terminé - Collecte ESPÈCES du client, puis Confirme Espèces Reçues",
-      "toastConfirmed": "Confirmé - Déplacé vers historique",
-      "toastCancelled": "Annulé",
-      "toastSaved": "Enregistré - Rechargement",
-      "toastLoginAgain": "Reconnecte-toi - aucune identité",
-      "toastNewReply": "🔔 Nouvelle réponse - {status}",
-    },
+  // Time may be num (ms) or String (ISO / digits) - 'as num' crashes on String.
+  int _toMillis(dynamic v) {
+    if (v is num) return v.toInt();
+    if (v is String) return int.tryParse(v) ?? DateTime.tryParse(v)?.millisecondsSinceEpoch ?? 0;
+    return 0;
+  }
 
-    // 7. GERMAN
-    "de": {
-      "title": "Meine Jobangebote",
-      "historyBtn": "Verlauf ({n})",
-      "hideHistory": "Verlauf Ausblenden",
-      "yourIdentity": "Deine Identität:",
-      "phonesLabel": "Telefone: {phones} | E-Mails: {emails} | UIDs: {uids}",
-      "noneLogin": "KEINE - Melde dich erneut an",
-      "none": "KEINE",
-      "matchingNote": "Abgleich per Telefon letzte 9 + E-Mail + UID aus ALLEN Prefs-Schlüsseln - Wenn KEINE, nutze Zeige Letzte 10",
-      "myOffers": "Meine Angebote",
-      "showRecent": "Zeige Letzte 10",
-      "refresh": "Aktualisieren",
-      "historyTitle": "📜 Verlauf — Bargeld Gesammelt / Bestätigt",
-      "deleteAll": "Alle Löschen",
-      "noHistory": "Noch kein Verlauf",
-      "noOffers": "Noch keine Jobangebote. Gehe ONLINE, um für Kunden zu erscheinen.",
-      "zeroMatched": "0 übereinstimmend aber Buchungen existieren - Zeige letzte 5, damit du ausstehende siehst - Tippe zum Beanspruchen",
-      "bookingId": "Buchung ID {id}",
-      "clientLabel": "Kunde: {name} - {phone}",
-      "serviceLabel": "Dienst: {service}",
-      "collectCash": "Du sammelst BARGELD nach Arbeit: {cash}",
-      "locationLabel": "Ort: {location}",
-      "timeLabel": "Zeit: {time}",
-      "accept": "✅ Annehmen",
-      "reject": "❌ Ablehnen",
-      "onWay": "🚗 Unterwegs",
-      "closeBtn": "📍 Nahe",
-      "completed": "🎉 Abgeschlossen",
-      "confirmCash": "💵 Bargeld Erhalten Bestätigen - {cash}",
-      "confirmDone": "✅ Fertig Bestätigen",
-      "details": "Details",
-      "claim": "Beanspruchen",
-      "cancel": "Abbrechen",
-      "complaint": "😡 Beschwerde",
-      "cashCollected": "✅ BARGELD GESAMMELT",
-      "historyRow": "Buchung ID {id} - {date} - {collected} - {status} - Bargeld: {cash}",
-      "receipt": "Beleg",
-      "rejectTitle": "{id} Ablehnen?",
-      "rejectContent": "Kunde erhält VOLLE 20% Erstattung und kann eine andere Krankenschwester buchen. Du wirst sofort wieder Verfügbar.",
-      "no": "Nein",
-      "rejectBtn": "Ablehnen",
-      "confirmCashTitle": "Bargeld Erhalten Bestätigen?",
-      "confirmCashContent": "Bestätige, dass Kunde dir BARGELD gezahlt hat: {cash}\nCEO zahlt dich NICHT. Danach wirst du wieder Verfügbar.",
-      "notYet": "Noch Nicht",
-      "yesCash": "Ja, Bargeld Erhalten",
-      "confirmDoneTitle": "Arbeit fertig für {id} bestätigen?",
-      "confirm": "Bestätigen",
-      "cancelTitle": "{id} Abbrechen?",
-      "claimTitle": "Diese Buchung Beanspruchen",
-      "yourPhone": "Dein Telefon",
-      "yourEmail": "Deine E-Mail",
-      "save": "Speichern",
-      "deleteAllTitle": "GESAMTEN Verlauf löschen?",
-      "yes": "Ja",
-      "detailsTitle": "Buchung ID {id}",
-      "detailsContent": "ID: {id}\nStatus: {status}\nKunde: {client} - {clientPhone}\nKrankenschwester: {nurse} - {nursePhone}\nDu sammelst BARGELD nach Arbeit: {cash}\nDienst: {service}\nOrt: {location}\nZeit: {time}",
-      "close": "Schließen",
-      "claimThisBooking": "Diese Buchung Beanspruchen",
-      "toastAccepted": "Angenommen - Kunde hört SEIN Lied",
-      "toastRejected": "Abgelehnt - Kunde erhält volle 20% Erstattung - Du bist wieder Verfügbar",
-      "toastOnWay": "Unterwegs",
-      "toastClose": "Nahe - Beim Kunden",
-      "toastCash": "Bargeld bestätigt - Du bist wieder Verfügbar",
-      "toastCompleted": "Abgeschlossen - Sammle BARGELD vom Kunden, dann Bestätige Bargeld Erhalten",
-      "toastConfirmed": "Bestätigt - In Verlauf verschoben",
-      "toastCancelled": "Abgebrochen",
-      "toastSaved": "Gespeichert - Neu laden",
-      "toastLoginAgain": "Melde dich erneut an - keine Identität",
-      "toastNewReply": "🔔 Neue Antwort - {status}",
-    },
+  String _formatTime(dynamic v) {
+    final ms = _toMillis(v);
+    if (ms <= 0) return '';
+    return DateTime.fromMillisecondsSinceEpoch(ms).toString();
+  }
 
-    // 8. SPANISH
-    "es": {
-      "title": "Mis Ofertas De Trabajo",
-      "historyBtn": "Historial ({n})",
-      "hideHistory": "Ocultar Historial",
-      "yourIdentity": "Tu identidad:",
-      "phonesLabel": "Teléfonos: {phones} | Correos: {emails} | UIDs: {uids}",
-      "noneLogin": "NINGUNO - Inicia sesión de nuevo",
-      "none": "NINGUNO",
-      "matchingNote": "Coincidencia por teléfono últimos 9 + correo + UID de TODAS las claves prefs - Si NINGUNO, usa Mostrar Recientes 10",
-      "myOffers": "Mis Ofertas",
-      "showRecent": "Mostrar Recientes 10",
-      "refresh": "Actualizar",
-      "historyTitle": "📜 Historial — Efectivo Recogido / Confirmado",
-      "deleteAll": "Eliminar Todo",
-      "noHistory": "Sin historial aún",
-      "noOffers": "Sin ofertas de trabajo. Ponte EN LÍNEA para aparecer a clientes.",
-      "zeroMatched": "0 coincidencias pero existen reservas - Mostrando recientes 5 para que veas pendiente - Toca para reclamar",
-      "bookingId": "Reserva ID {id}",
-      "clientLabel": "Cliente: {name} - {phone}",
-      "serviceLabel": "Servicio: {service}",
-      "collectCash": "Recogerás EFECTIVO después del trabajo: {cash}",
-      "locationLabel": "Ubicación: {location}",
-      "timeLabel": "Hora: {time}",
-      "accept": "✅ Aceptar",
-      "reject": "❌ Rechazar",
-      "onWay": "🚗 En Camino",
-      "closeBtn": "📍 Cerca",
-      "completed": "🎉 Completado",
-      "confirmCash": "💵 Confirmar Efectivo Recibido - {cash}",
-      "confirmDone": "✅ Confirmar Terminado",
-      "details": "Detalles",
-      "claim": "Reclamar",
-      "cancel": "Cancelar",
-      "complaint": "😡 Queja",
-      "cashCollected": "✅ EFECTIVO RECOGIDO",
-      "historyRow": "Reserva ID {id} - {date} - {collected} - {status} - Efectivo: {cash}",
-      "receipt": "Recibo",
-      "rejectTitle": "¿Rechazar {id}?",
-      "rejectContent": "Cliente recibe reembolso COMPLETO 20% y puede reservar otra enfermera. Vuelves a estar Disponible inmediatamente.",
-      "no": "No",
-      "rejectBtn": "Rechazar",
-      "confirmCashTitle": "¿Confirmar Efectivo Recibido?",
-      "confirmCashContent": "Confirma que cliente te pagó en EFECTIVO: {cash}\nCEO NO te paga. Después de esto vuelves a estar Disponible.",
-      "notYet": "Todavía No",
-      "yesCash": "Sí, Efectivo Recibido",
-      "confirmDoneTitle": "¿Confirmar trabajo hecho para {id}?",
-      "confirm": "Confirmar",
-      "cancelTitle": "¿Cancelar {id}?",
-      "claimTitle": "Reclamar Esta Reserva",
-      "yourPhone": "Tu teléfono",
-      "yourEmail": "Tu correo",
-      "save": "Guardar",
-      "deleteAllTitle": "¿Eliminar TODO el historial?",
-      "yes": "Sí",
-      "detailsTitle": "Reserva ID {id}",
-      "detailsContent": "ID: {id}\nEstado: {status}\nCliente: {client} - {clientPhone}\nEnfermera: {nurse} - {nursePhone}\nRecogerás EFECTIVO después del trabajo: {cash}\nServicio: {service}\nUbicación: {location}\nHora: {time}",
-      "close": "Cerrar",
-      "claimThisBooking": "Reclamar Esta Reserva",
-      "toastAccepted": "Aceptado - Cliente escuchará SU canción",
-      "toastRejected": "Rechazado - Cliente recibe reembolso completo 20% - Vuelves a estar Disponible",
-      "toastOnWay": "En camino",
-      "toastClose": "Cerca - Cerca del cliente",
-      "toastCash": "Efectivo confirmado - Vuelves a estar Disponible",
-      "toastCompleted": "Completado - Recoge EFECTIVO del cliente, luego Confirma Efectivo Recibido",
-      "toastConfirmed": "Confirmado - Movido a historial",
-      "toastCancelled": "Cancelado",
-      "toastSaved": "Guardado - Recargando",
-      "toastLoginAgain": "Inicia sesión de nuevo - sin identidad",
-      "toastNewReply": "🔔 Nueva respuesta - {status}",
-    },
+  // RTDB KEY, not bookingId. bookingId != key in _loadAll, so updating
+  // bookings/<bookingId> created a duplicate node and the real booking never changed.
+  String _rtKey(Map b) => (b['id'] ?? b['bookingId'] ?? '').toString();
 
-    // 9. ITALIAN
-    "it": {
-      "title": "Le Mie Offerte Di Lavoro",
-      "historyBtn": "Cronologia ({n})",
-      "hideHistory": "Nascondi Cronologia",
-      "yourIdentity": "La tua identità:",
-      "phonesLabel": "Telefoni: {phones} | E-mail: {emails} | UID: {uids}",
-      "noneLogin": "NESSUNO - Accedi di nuovo",
-      "none": "NESSUNO",
-      "matchingNote": "Corrispondenza per telefono ultimi 9 + e-mail + UID da TUTTE le chiavi prefs - Se NESSUNO, usa Mostra Recenti 10",
-      "myOffers": "Le Mie Offerte",
-      "showRecent": "Mostra Recenti 10",
-      "refresh": "Aggiorna",
-      "historyTitle": "📜 Cronologia — Contanti Raccolti / Confermati",
-      "deleteAll": "Elimina Tutto",
-      "noHistory": "Nessuna cronologia",
-      "noOffers": "Nessuna offerta di lavoro. Vai ONLINE per apparire ai clienti.",
-      "zeroMatched": "0 corrispondenti ma esistono prenotazioni - Mostro recenti 5 per vedere in attesa - Tocca per reclamare",
-      "bookingId": "Prenotazione ID {id}",
-      "clientLabel": "Cliente: {name} - {phone}",
-      "serviceLabel": "Servizio: {service}",
-      "collectCash": "Raccoglierai CONTANTI dopo lavoro: {cash}",
-      "locationLabel": "Posizione: {location}",
-      "timeLabel": "Ora: {time}",
-      "accept": "✅ Accetta",
-      "reject": "❌ Rifiuta",
-      "onWay": "🚗 In Viaggio",
-      "closeBtn": "📍 Vicino",
-      "completed": "🎉 Completato",
-      "confirmCash": "💵 Conferma Contanti Ricevuti - {cash}",
-      "confirmDone": "✅ Conferma Fatto",
-      "details": "Dettagli",
-      "claim": "Reclama",
-      "cancel": "Annulla",
-      "complaint": "😡 Reclamo",
-      "cashCollected": "✅ CONTANTI RACCOLTI",
-      "historyRow": "Prenotazione ID {id} - {date} - {collected} - {status} - Contanti: {cash}",
-      "receipt": "Ricevuta",
-      "rejectTitle": "Rifiutare {id}?",
-      "rejectContent": "Il cliente riceve rimborso COMPLETO 20% e può prenotare un'altra infermiera. Torni subito Disponibile.",
-      "no": "No",
-      "rejectBtn": "Rifiuta",
-      "confirmCashTitle": "Confermare Contanti Ricevuti?",
-      "confirmCashContent": "Conferma che cliente ti ha pagato in CONTANTI: {cash}\nIl CEO NON ti paga. Dopo questo torni Disponibile.",
-      "notYet": "Non Ancora",
-      "yesCash": "Sì, Contanti Ricevuti",
-      "confirmDoneTitle": "Confermare lavoro fatto per {id}?",
-      "confirm": "Conferma",
-      "cancelTitle": "Annullare {id}?",
-      "claimTitle": "Reclama Questa Prenotazione",
-      "yourPhone": "Il tuo telefono",
-      "yourEmail": "La tua e-mail",
-      "save": "Salva",
-      "deleteAllTitle": "Eliminare TUTTA la cronologia?",
-      "yes": "Sì",
-      "detailsTitle": "Prenotazione ID {id}",
-      "detailsContent": "ID: {id}\nStato: {status}\nCliente: {client} - {clientPhone}\nInfermiera: {nurse} - {nursePhone}\nRaccoglierai CONTANTI dopo lavoro: {cash}\nServizio: {service}\nPosizione: {location}\nOra: {time}",
-      "close": "Chiudi",
-      "claimThisBooking": "Reclama Questa Prenotazione",
-      "toastAccepted": "Accettato - Il cliente sentirà LA SUA canzone",
-      "toastRejected": "Rifiutato - Il cliente riceve rimborso completo 20% - Sei di nuovo Disponibile",
-      "toastOnWay": "In viaggio",
-      "toastClose": "Vicino - Vicino al cliente",
-      "toastCash": "Contanti confermati - Sei di nuovo Disponibile",
-      "toastCompleted": "Completato - Raccogli CONTANTI dal cliente, poi Conferma Contanti Ricevuti",
-      "toastConfirmed": "Confermato - Spostato in cronologia",
-      "toastCancelled": "Annullato",
-      "toastSaved": "Salvato - Ricaricamento",
-      "toastLoginAgain": "Accedi di nuovo - nessuna identità",
-      "toastNewReply": "🔔 Nuova risposta - {status}",
-    },
+  // NEW 20/80: Nurse sees ONLY her cash. Never total / CEO fee.
+  double _nurseCash(Map b) {
+    double v(dynamic x) {
+      if (x == null) return 0;
+      if (x is num) return x.toDouble();
+      return double.tryParse(x.toString()) ?? 0;
+    }
+    double c = v(b['nurseCash']);
+    if (c > 0) return c;
+    c = v(b['nurseCashAmount']);
+    if (c > 0) return c;
+    c = v(b['amountYouWillCollectCash']);
+    if (c > 0) return c;
+    final total = v(b['totalAmount'] ?? b['total'] ?? b['amount']);
+    if (total > 0) return total * 0.80;
+    return 0;
+  }
+  String _nurseCashStr(Map b) {
+    final cur = (b['currency'] ?? 'GHS').toString();
+    return '$cur ${_nurseCash(b).toStringAsFixed(2)}';
+  }
+  Future<void> _unlockNurse(Map b) async {
+    final nid = (b['nurseId'] ?? '').toString();
+    if (nid.isEmpty) return;
+    try {
+      await FirebaseDatabase.instance.ref('nurses/$nid').update({'isAvailable': true, 'isBooked': false, 'isBusy': false, 'status': 'available', 'currentBookingId': null, 'currentBookingStatus': null});
+    } catch (_) {}
+    try {
+      await FirebaseDatabase.instance.ref('onlineNurses/$nid').update({'isAvailable': true, 'isBooked': false, 'currentBookingId': null});
+    } catch (_) {}
+  }
+  Future<void> _lockNurse(Map b) async {
+    final nid = (b['nurseId'] ?? '').toString();
+    if (nid.isEmpty) return;
+    final bid = (b['bookingId'] ?? b['id'] ?? '').toString();
+    try {
+      await FirebaseDatabase.instance.ref('nurses/$nid').update({'isAvailable': false, 'isBooked': true, 'isBusy': true, 'status': 'busy', 'currentBookingId': bid, 'currentBookingStatus': 'accepted'});
+    } catch (_) {}
+  }
 
-    // 10. PORTUGUESE
-    "pt": {
-      "title": "Minhas Ofertas De Trabalho",
-      "historyBtn": "Histórico ({n})",
-      "hideHistory": "Ocultar Histórico",
-      "yourIdentity": "Sua identidade:",
-      "phonesLabel": "Telefones: {phones} | E-mails: {emails} | UIDs: {uids}",
-      "noneLogin": "NENHUM - Entre novamente",
-      "none": "NENHUM",
-      "matchingNote": "Correspondência por telefone últimos 9 + e-mail + UID de TODAS as chaves prefs - Se NENHUM, use Mostrar Recentes 10",
-      "myOffers": "Minhas Ofertas",
-      "showRecent": "Mostrar Recentes 10",
-      "refresh": "Atualizar",
-      "historyTitle": "📜 Histórico — Dinheiro Coletado / Confirmado",
-      "deleteAll": "Excluir Tudo",
-      "noHistory": "Sem histórico ainda",
-      "noOffers": "Sem ofertas de trabalho. Fique ONLINE para aparecer para clientes.",
-      "zeroMatched": "0 correspondências mas existem reservas - Mostrando recentes 5 para ver pendente - Toque para reivindicar",
-      "bookingId": "Reserva ID {id}",
-      "clientLabel": "Cliente: {name} - {phone}",
-      "serviceLabel": "Serviço: {service}",
-      "collectCash": "Você coletará DINHEIRO após trabalho: {cash}",
-      "locationLabel": "Localização: {location}",
-      "timeLabel": "Hora: {time}",
-      "accept": "✅ Aceitar",
-      "reject": "❌ Rejeitar",
-      "onWay": "🚗 A Caminho",
-      "closeBtn": "📍 Perto",
-      "completed": "🎉 Concluído",
-      "confirmCash": "💵 Confirmar Dinheiro Recebido - {cash}",
-      "confirmDone": "✅ Confirmar Concluído",
-      "details": "Detalhes",
-      "claim": "Reivindicar",
-      "cancel": "Cancelar",
-      "complaint": "😡 Reclamação",
-      "cashCollected": "✅ DINHEIRO COLETADO",
-      "historyRow": "Reserva ID {id} - {date} - {collected} - {status} - Dinheiro: {cash}",
-      "receipt": "Recibo",
-      "rejectTitle": "Rejeitar {id}?",
-      "rejectContent": "Cliente recebe reembolso TOTAL 20% e pode reservar outra enfermeira. Você fica Disponível novamente imediatamente.",
-      "no": "Não",
-      "rejectBtn": "Rejeitar",
-      "confirmCashTitle": "Confirmar Dinheiro Recebido?",
-      "confirmCashContent": "Confirme que cliente te pagou em DINHEIRO: {cash}\nCEO NÃO te paga. Depois disso você fica Disponível novamente.",
-      "notYet": "Ainda Não",
-      "yesCash": "Sim, Dinheiro Recebido",
-      "confirmDoneTitle": "Confirmar trabalho feito para {id}?",
-      "confirm": "Confirmar",
-      "cancelTitle": "Cancelar {id}?",
-      "claimTitle": "Reivindicar Esta Reserva",
-      "yourPhone": "Seu telefone",
-      "yourEmail": "Seu e-mail",
-      "save": "Salvar",
-      "deleteAllTitle": "Excluir TODO o histórico?",
-      "yes": "Sim",
-      "detailsTitle": "Reserva ID {id}",
-      "detailsContent": "ID: {id}\nStatus: {status}\nCliente: {client} - {clientPhone}\nEnfermeira: {nurse} - {nursePhone}\nVocê coletará DINHEIRO após trabalho: {cash}\nServiço: {service}\nLocalização: {location}\nHora: {time}",
-      "close": "Fechar",
-      "claimThisBooking": "Reivindicar Esta Reserva",
-      "toastAccepted": "Aceito - Cliente ouvirá SUA música",
-      "toastRejected": "Rejeitado - Cliente recebe reembolso total 20% - Você está Disponível novamente",
-      "toastOnWay": "A caminho",
-      "toastClose": "Perto - Perto do cliente",
-      "toastCash": "Dinheiro confirmado - Você está Disponível novamente",
-      "toastCompleted": "Concluído - Colete DINHEIRO do cliente, depois Confirme Dinheiro Recebido",
-      "toastConfirmed": "Confirmado - Movido para histórico",
-      "toastCancelled": "Cancelado",
-      "toastSaved": "Salvo - Recarregando",
-      "toastLoginAgain": "Entre novamente - sem identidade",
-      "toastNewReply": "🔔 Nova resposta - {status}",
-    },
+  bool _matchesBooking(Map v) {
+    if (myPhones.isEmpty && myEmails.isEmpty && myUids.isEmpty) return true;
+    final bPhones = [(v['clientPhone'] ?? ''), (v['phone'] ?? ''), (v['nursePhone'] ?? '')].map((e) => _normPhone(e.toString())).toList();
+    final bEmails = [(v['clientEmail'] ?? ''), (v['email'] ?? ''), (v['nurseEmail'] ?? '')].map((e) => _normEmail(e.toString())).toList();
+    final bUids = [v['clientUid'], v['clientId'], v['uid'], v['nurseId'], v['nurseUid']].map((e) => e?.toString() ?? '').toList();
+    if (myPhones.any((p) => bPhones.contains(p))) return true;
+    if (myEmails.any((e) => bEmails.contains(e))) return true;
+    if (myUids.any((u) => bUids.contains(u))) return true;
+    return false;
+  }
 
-    // 11. ARABIC
-    "ar": {
-      "title": "عروض عملي",
-      "historyBtn": "السجل ({n})",
-      "hideHistory": "إخفاء السجل",
-      "yourIdentity": "هويتك:",
-      "phonesLabel": "الهواتف: {phones} | البريد: {emails} | UIDs: {uids}",
-      "noneLogin": "لا شيء - سجّل دخول مرة أخرى",
-      "none": "لا شيء",
-      "matchingNote": "المطابقة عبر آخر 9 أرقام من الهاتف + البريد + UID من جميع مفاتيح prefs - إذا لا شيء، استخدم عرض آخر 10",
-      "myOffers": "عروضي",
-      "showRecent": "عرض آخر 10",
-      "refresh": "تحديث",
-      "historyTitle": "📜 السجل — نقد تم جمعه / تم تأكيده",
-      "deleteAll": "حذف الكل",
-      "noHistory": "لا سجل بعد",
-      "noOffers": "لا عروض عمل بعد. اذهب ONLINE لتظهر للعملاء.",
-      "zeroMatched": "0 مطابق لكن توجد حجوزات - عرض آخر 5 لترى المعلّق - اضغط للمطالبة",
-      "bookingId": "معرّف الحجز {id}",
-      "clientLabel": "العميل: {name} - {phone}",
-      "serviceLabel": "الخدمة: {service}",
-      "collectCash": "ستجمع نقداً بعد العمل: {cash}",
-      "locationLabel": "الموقع: {location}",
-      "timeLabel": "الوقت: {time}",
-      "accept": "✅ قبول",
-      "reject": "❌ رفض",
-      "onWay": "🚗 في الطريق",
-      "closeBtn": "📍 قريب",
-      "completed": "🎉 مكتمل",
-      "confirmCash": "💵 تأكيد استلام النقد - {cash}",
-      "confirmDone": "✅ تأكيد الانتهاء",
-      "details": "التفاصيل",
-      "claim": "مطالبة",
-      "cancel": "إلغاء",
-      "complaint": "😡 شكوى",
-      "cashCollected": "✅ تم جمع النقد",
-      "historyRow": "معرّف الحجز {id} - {date} - {collected} - {status} - النقد: {cash}",
-      "receipt": "الإيصال",
-      "rejectTitle": "رفض {id}؟",
-      "rejectContent": "العميل يحصل على استرداد كامل 20% ويمكنه حجز ممرضة أخرى. تصبح متاحة مرة أخرى فوراً.",
-      "no": "لا",
-      "rejectBtn": "رفض",
-      "confirmCashTitle": "تأكيد استلام النقد؟",
-      "confirmCashContent": "أكّد أن العميل دفع لك نقداً: {cash}\nالمدير لا يدفع لك. بعد هذا تصبح متاحة مرة أخرى.",
-      "notYet": "ليس بعد",
-      "yesCash": "نعم، تم استلام النقد",
-      "confirmDoneTitle": "تأكيد انتهاء العمل لـ {id}؟",
-      "confirm": "تأكيد",
-      "cancelTitle": "إلغاء {id}؟",
-      "claimTitle": "المطالبة بهذا الحجز",
-      "yourPhone": "هاتفك",
-      "yourEmail": "بريدك",
-      "save": "حفظ",
-      "deleteAllTitle": "حذف كل السجل؟",
-      "yes": "نعم",
-      "detailsTitle": "معرّف الحجز {id}",
-      "detailsContent": "المعرّف: {id}\nالحالة: {status}\nالعميل: {client} - {clientPhone}\nالممرضة: {nurse} - {nursePhone}\nستجمع نقداً بعد العمل: {cash}\nالخدمة: {service}\nالموقع: {location}\nالوقت: {time}",
-      "close": "إغلاق",
-      "claimThisBooking": "المطالبة بهذا الحجز",
-      "toastAccepted": "تم القبول - العميل سيسمع أغنيته",
-      "toastRejected": "تم الرفض - العميل يحصل على استرداد كامل 20% - أنت متاحة مرة أخرى",
-      "toastOnWay": "في الطريق",
-      "toastClose": "قريب - قرب العميل",
-      "toastCash": "تم تأكيد النقد - أنت متاحة مرة أخرى",
-      "toastCompleted": "مكتمل - اجمع النقد من العميل، ثم أكّد استلام النقد",
-      "toastConfirmed": "تم التأكيد - نُقل إلى السجل",
-      "toastCancelled": "تم الإلغاء",
-      "toastSaved": "تم الحفظ - إعادة تحميل",
-      "toastLoginAgain": "سجّل دخول مرة أخرى - لا هوية",
-      "toastNewReply": "🔔 رد جديد - {status}",
-    },
+  bool _isTerminal(Map v) {
+    final s = (v['status'] ?? '').toString().toLowerCase();
+    return s.contains('cancelled') || s == 'rejected' || s == 'rejected_by_nurse' || s == 'ceo_paid' || s == 'paid' || v['paid'] == true;
+  }
 
-    // 12. CHINESE
-    "zh": {
-      "title": "我的工作邀请",
-      "historyBtn": "历史 ({n})",
-      "hideHistory": "隐藏历史",
-      "yourIdentity": "您的身份:",
-      "phonesLabel": "电话: {phones} | 邮箱: {emails} | UID: {uids}",
-      "noneLogin": "无 - 请重新登录",
-      "none": "无",
-      "matchingNote": "通过电话后 9 位 + 邮箱 + UID 从所有 prefs 键匹配 - 如果无，请使用显示最近 10 条",
-      "myOffers": "我的邀请",
-      "showRecent": "显示最近 10 条",
-      "refresh": "刷新",
-      "historyTitle": "📜 历史 — 已收取现金 / 已确认",
-      "deleteAll": "全部删除",
-      "noHistory": "暂无历史",
-      "noOffers": "暂无工作邀请。请上线以向客户展示。",
-      "zeroMatched": "0 匹配但存在预订 - 显示最近 5 条以查看待处理 - 点击认领",
-      "bookingId": "预订 ID {id}",
-      "clientLabel": "客户: {name} - {phone}",
-      "serviceLabel": "服务: {service}",
-      "collectCash": "工作后您将收取现金: {cash}",
-      "locationLabel": "地点: {location}",
-      "timeLabel": "时间: {time}",
-      "accept": "✅ 接受",
-      "reject": "❌ 拒绝",
-      "onWay": "🚗 在路上",
-      "closeBtn": "📍 附近",
-      "completed": "🎉 已完成",
-      "confirmCash": "💵 确认已收到现金 - {cash}",
-      "confirmDone": "✅ 确认完成",
-      "details": "详情",
-      "claim": "认领",
-      "cancel": "取消",
-      "complaint": "😡 投诉",
-      "cashCollected": "✅ 现金已收取",
-      "historyRow": "预订 ID {id} - {date} - {collected} - {status} - 现金: {cash}",
-      "receipt": "收据",
-      "rejectTitle": "拒绝 {id}?",
-      "rejectContent": "客户获得 20% 全额退款，可以预订另一位护士。您将立即再次可用。",
-      "no": "否",
-      "rejectBtn": "拒绝",
-      "confirmCashTitle": "确认已收到现金?",
-      "confirmCashContent": "确认客户已向您支付现金: {cash}\nCEO 不向您付款。此后您将再次可用。",
-      "notYet": "尚未",
-      "yesCash": "是，已收到现金",
-      "confirmDoneTitle": "确认已完成 {id} 的工作?",
-      "confirm": "确认",
-      "cancelTitle": "取消 {id}?",
-      "claimTitle": "认领此预订",
-      "yourPhone": "您的电话",
-      "yourEmail": "您的邮箱",
-      "save": "保存",
-      "deleteAllTitle": "删除所有历史?",
-      "yes": "是",
-      "detailsTitle": "预订 ID {id}",
-      "detailsContent": "ID: {id}\n状态: {status}\n客户: {client} - {clientPhone}\n护士: {nurse} - {nursePhone}\n工作后您将收取现金: {cash}\n服务: {service}\n地点: {location}\n时间: {time}",
-      "close": "关闭",
-      "claimThisBooking": "认领此预订",
-      "toastAccepted": "已接受 - 客户将听到他的歌曲",
-      "toastRejected": "已拒绝 - 客户获得 20% 全额退款 - 您再次可用",
-      "toastOnWay": "在路上",
-      "toastClose": "附近 - 靠近客户",
-      "toastCash": "现金已确认 - 您再次可用",
-      "toastCompleted": "已完成 - 向客户收取现金，然后确认已收到现金",
-      "toastConfirmed": "已确认 - 已移至历史",
-      "toastCancelled": "已取消",
-      "toastSaved": "已保存 - 重新加载",
-      "toastLoginAgain": "请重新登录 - 无身份",
-      "toastNewReply": "🔔 新回复 - {status}",
-    },
+  bool _isHistory(Map v) => (v['status'] ?? '').toString().toLowerCase() == 'client_confirmed_finished' || v['clientConfirmed'] == true;
 
-    // 13. HINDI
-    "hi": {
-      "title": "मेरे नौकरी के प्रस्ताव",
-      "historyBtn": "इतिहास ({n})",
-      "hideHistory": "इतिहास छिपाएँ",
-      "yourIdentity": "आपकी पहचान:",
-      "phonesLabel": "फोन: {phones} | ईमेल: {emails} | UID: {uids}",
-      "noneLogin": "कोई नहीं - फिर से लॉगिन करें",
-      "none": "कोई नहीं",
-      "matchingNote": "फोन के अंतिम 9 + ईमेल + UID से सभी prefs कुंजियों से मिलान - यदि कोई नहीं, तो हाल के 10 दिखाएँ का उपयोग करें",
-      "myOffers": "मेरे प्रस्ताव",
-      "showRecent": "हाल के 10 दिखाएँ",
-      "refresh": "रिफ्रेश",
-      "historyTitle": "📜 इतिहास — नकद एकत्र / पुष्टि",
-      "deleteAll": "सभी हटाएँ",
-      "noHistory": "अभी तक कोई इतिहास नहीं",
-      "noOffers": "अभी तक कोई नौकरी प्रस्ताव नहीं। ग्राहकों को दिखने के लिए ONLINE जाएँ।",
-      "zeroMatched": "0 मिले लेकिन बुकिंग मौजूद हैं - लंबित देखने के लिए हाल के 5 दिखा रहे हैं - दावा करने के लिए टैप करें",
-      "bookingId": "बुकिंग ID {id}",
-      "clientLabel": "ग्राहक: {name} - {phone}",
-      "serviceLabel": "सेवा: {service}",
-      "collectCash": "काम के बाद आप नकद एकत्र करेंगी: {cash}",
-      "locationLabel": "स्थान: {location}",
-      "timeLabel": "समय: {time}",
-      "accept": "✅ स्वीकार करें",
-      "reject": "❌ अस्वीकार करें",
-      "onWay": "🚗 रास्ते में",
-      "closeBtn": "📍 नज़दीक",
-      "completed": "🎉 पूर्ण",
-      "confirmCash": "💵 नकद प्राप्ति की पुष्टि करें - {cash}",
-      "confirmDone": "✅ पूर्ण की पुष्टि करें",
-      "details": "विवरण",
-      "claim": "दावा",
-      "cancel": "रद्द करें",
-      "complaint": "😡 शिकायत",
-      "cashCollected": "✅ नकद एकत्र",
-      "historyRow": "बुकिंग ID {id} - {date} - {collected} - {status} - नकद: {cash}",
-      "receipt": "रसीद",
-      "rejectTitle": "{id} अस्वीकार करें?",
-      "rejectContent": "ग्राहक को पूर्ण 20% रिफंड मिलता है और दूसरी नर्स बुक कर सकता है। आप तुरंत फिर से उपलब्ध हो जाती हैं।",
-      "no": "नहीं",
-      "rejectBtn": "अस्वीकार करें",
-      "confirmCashTitle": "नकद प्राप्ति की पुष्टि करें?",
-      "confirmCashContent": "पुष्टि करें कि ग्राहक ने आपको नकद भुगतान किया: {cash}\nCEO आपको भुगतान नहीं करता। इसके बाद आप फिर से उपलब्ध हो जाती हैं।",
-      "notYet": "अभी नहीं",
-      "yesCash": "हाँ, नकद प्राप्त",
-      "confirmDoneTitle": "{id} के लिए काम पूर्ण की पुष्टि करें?",
-      "confirm": "पुष्टि करें",
-      "cancelTitle": "{id} रद्द करें?",
-      "claimTitle": "इस बुकिंग का दावा करें",
-      "yourPhone": "आपका फोन",
-      "yourEmail": "आपका ईमेल",
-      "save": "सहेजें",
-      "deleteAllTitle": "सारा इतिहास हटाएँ?",
-      "yes": "हाँ",
-      "detailsTitle": "बुकिंग ID {id}",
-      "detailsContent": "ID: {id}\nस्थिति: {status}\nग्राहक: {client} - {clientPhone}\nनर्स: {nurse} - {nursePhone}\nकाम के बाद आप नकद एकत्र करेंगी: {cash}\nसेवा: {service}\nस्थान: {location}\nसमय: {time}",
-      "close": "बंद करें",
-      "claimThisBooking": "इस बुकिंग का दावा करें",
-      "toastAccepted": "स्वीकार किया - ग्राहक उसका गाना सुनेगा",
-      "toastRejected": "अस्वीकार किया - ग्राहक को पूर्ण 20% रिफंड - आप फिर से उपलब्ध हैं",
-      "toastOnWay": "रास्ते में",
-      "toastClose": "नज़दीक - ग्राहक के पास",
-      "toastCash": "नकद की पुष्टि - आप फिर से उपलब्ध हैं",
-      "toastCompleted": "पूर्ण - ग्राहक से नकद एकत्र करें, फिर नकद प्राप्ति की पुष्टि करें",
-      "toastConfirmed": "पुष्टि - इतिहास में ले जाया गया",
-      "toastCancelled": "रद्द",
-      "toastSaved": "सहेजा गया - पुनः लोड हो रहा है",
-      "toastLoginAgain": "फिर से लॉगिन करें - कोई पहचान नहीं",
-      "toastNewReply": "🔔 नया उत्तर - {status}",
-    },
+  List<Map> get filtered {
+    var arr = List<Map>.from(all);
+    if (showMode == 'recent') {
+      arr.sort((a, b) => _toMillis(b['time'] ?? b['createdAt']).compareTo(_toMillis(a['time'] ?? a['createdAt'])));
+      return arr.where((v) => !_isTerminal(v) && !_isHistory(v)).take(10).toList();
+    }
+    var f = arr.where((v) => !_isTerminal(v) && !_isHistory(v) && _matchesBooking(v)).toList();
+    if (f.isEmpty && arr.isNotEmpty) {
+      arr.sort((a, b) => _toMillis(b['time'] ?? b['createdAt']).compareTo(_toMillis(a['time'] ?? a['createdAt'])));
+      f = arr.where((v) => !_isTerminal(v) && !_isHistory(v)).take(5).toList();
+    }
+    f.sort((a, b) => _toMillis(b['time'] ?? b['createdAt']).compareTo(_toMillis(a['time'] ?? a['createdAt'])));
+    return f;
+  }
 
-    // 14. SWAHILI
-    "sw": {
-      "title": "Matoleo Yangu Ya Kazi",
-      "historyBtn": "Historia ({n})",
-      "hideHistory": "Ficha Historia",
-      "yourIdentity": "Utambulisho wako:",
-      "phonesLabel": "Simu: {phones} | Barua pepe: {emails} | UID: {uids}",
-      "noneLogin": "HAKUNA - Ingia tena",
-      "none": "HAKUNA",
-      "matchingNote": "Kulinganisha kwa simu tarakimu 9 za mwisho + barua pepe + UID kutoka funguo ZOTE za prefs - Kama HAKUNA, tumia Onyesha Za Hivi Karibuni 10",
-      "myOffers": "Matoleo Yangu",
-      "showRecent": "Onyesha Za Hivi Karibuni 10",
-      "refresh": "Sasisha",
-      "historyTitle": "📜 Historia — Taslimu Imekusanywa / Imethibitishwa",
-      "deleteAll": "Futa Zote",
-      "noHistory": "Hakuna historia bado",
-      "noOffers": "Hakuna matoleo ya kazi bado. Nenda ONLINE ili uonekane kwa wateja.",
-      "zeroMatched": "0 zimefanana lakini booking zipo - Inaonyesha za hivi karibuni 5 ili uone zinazosubiri - Gusa ili kudai",
-      "bookingId": "Booking ID {id}",
-      "clientLabel": "Mteja: {name} - {phone}",
-      "serviceLabel": "Huduma: {service}",
-      "collectCash": "Utakusanya TASLIMU baada ya kazi: {cash}",
-      "locationLabel": "Mahali: {location}",
-      "timeLabel": "Wakati: {time}",
-      "accept": "✅ Kubali",
-      "reject": "❌ Kataa",
-      "onWay": "🚗 Njiani",
-      "closeBtn": "📍 Karibu",
-      "completed": "🎉 Imekamilika",
-      "confirmCash": "💵 Thibitisha Taslimu Imepokelewa - {cash}",
-      "confirmDone": "✅ Thibitisha Imekamilika",
-      "details": "Maelezo",
-      "claim": "Dai",
-      "cancel": "Ghairi",
-      "complaint": "😡 Malalamiko",
-      "cashCollected": "✅ TASLIMU IMEKUSANYWA",
-      "historyRow": "Booking ID {id} - {date} - {collected} - {status} - Taslimu: {cash}",
-      "receipt": "Risiti",
-      "rejectTitle": "Kataa {id}?",
-      "rejectContent": "Mteja anapata marejesho KAMILI 20% na anaweza kuweka muuguzi mwingine. Unakuwa Anapatikana tena mara moja.",
-      "no": "Hapana",
-      "rejectBtn": "Kataa",
-      "confirmCashTitle": "Thibitisha Taslimu Imepokelewa?",
-      "confirmCashContent": "Thibitisha mteja amekulipa TASLIMU: {cash}\nCEO HAKULIPI. Baada ya hii unakuwa Anapatikana tena.",
-      "notYet": "Bado",
-      "yesCash": "Ndiyo, Taslimu Imepokelewa",
-      "confirmDoneTitle": "Thibitisha kazi imekamilika kwa {id}?",
-      "confirm": "Thibitisha",
-      "cancelTitle": "Ghairi {id}?",
-      "claimTitle": "Dai Booking Hii",
-      "yourPhone": "Simu yako",
-      "yourEmail": "Barua pepe yako",
-      "save": "Hifadhi",
-      "deleteAllTitle": "Futa Historia YOTE?",
-      "yes": "Ndiyo",
-      "detailsTitle": "Booking ID {id}",
-      "detailsContent": "ID: {id}\nHali: {status}\nMteja: {client} - {clientPhone}\nMuuguzi: {nurse} - {nursePhone}\nUtakusanya TASLIMU baada ya kazi: {cash}\nHuduma: {service}\nMahali: {location}\nWakati: {time}",
-      "close": "Funga",
-      "claimThisBooking": "Dai Booking Hii",
-      "toastAccepted": "Imekubaliwa - Mteja atasikia wimbo WAKE",
-      "toastRejected": "Imekataliwa - Mteja anapata marejesho kamili 20% - Unapatikana tena",
-      "toastOnWay": "Njiani",
-      "toastClose": "Karibu - Karibu na mteja",
-      "toastCash": "Taslimu imethibitishwa - Unapatikana tena",
-      "toastCompleted": "Imekamilika - Kusanya TASLIMU kutoka kwa mteja, kisha Thibitisha Taslimu Imepokelewa",
-      "toastConfirmed": "Imethibitishwa - Imehamishwa kwenda historia",
-      "toastCancelled": "Imeghairiwa",
-      "toastSaved": "Imehifadhiwa - Inapakia upya",
-      "toastLoginAgain": "Ingia tena - hakuna utambulisho",
-      "toastNewReply": "🔔 Jibu jipya - {status}",
-    },
+  Future<void> _loadAll() async {
+    await _getAllIdentities();
+    final db = FirebaseDatabase.instance;
+    Map<String, Map> map = {};
+    for (final p in ['bookings', 'allBookings', 'ceoBookings', 'bookingsByFull']) {
+      try {
+        final s = await db.ref(p).get();
+        if (s.exists) (s.value as Map).forEach((k, v) { final val = Map<String, dynamic>.from(v as Map); final bid = val['bookingId'] ?? k; if (!map.containsKey(bid)) map[bid] = {...val, 'id': k, 'bookingId': bid}; });
+      } catch (_) {}
+    }
+    for (final uk in [...myUids, ...myEmails.map((e) => e.replaceAll(RegExp(r'[.@]'), '_'))]) {
+      for (final base in ['clientBookings', 'myBookings', 'bookingsByClient']) {
+        try {
+          final s = await db.ref('$base/$uk').get();
+          if (s.exists) (s.value as Map).forEach((k, v) { final val = Map<String, dynamic>.from(v as Map); final bid = val['bookingId'] ?? k; if (!map.containsKey(bid)) map[bid] = {...val, 'id': k, 'bookingId': bid}; });
+        } catch (_) {}
+      }
+    }
+    for (final ph in myPhones) {
+      try {
+        final s = await db.ref('bookingsByPhone/$ph').get();
+        if (s.exists) (s.value as Map).forEach((k, v) { final val = Map<String, dynamic>.from(v as Map); final bid = val['bookingId'] ?? k; if (!map.containsKey(bid)) map[bid] = {...val, 'id': k, 'bookingId': bid}; });
+      } catch (_) {}
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final local = prefs.getString('myBookings');
+      if (local != null) {
+        // myBookings stored as JSON string in prefs (if any) — parse loosely
+      }
+    } catch (_) {}
+    setState(() => all = map.values.toList());
+  }
 
-    // 15. YORUBA
-    "yo": {
-      "title": "Awọn Ipese Iṣẹ Mi",
-      "historyBtn": "Itan ({n})",
-      "hideHistory": "Fi Itan Pamọ",
-      "yourIdentity": "Idanimọ rẹ:",
-      "phonesLabel": "Awọn foonu: {phones} | Awọn imeeli: {emails} | UID: {uids}",
-      "noneLogin": "KO SI - Wọle Lẹẹkansi",
-      "none": "KO SI",
-      "matchingNote": "Ibaramu nipasẹ foonu 9 to kẹhin + imeeli + UID lati gbogbo awọn bọtini prefs - Ti KO SI, lo Fi Ti O Ṣẹṣẹ 10 Han",
-      "myOffers": "Awọn Ipese Mi",
-      "showRecent": "Fi Ti O Ṣẹṣẹ 10 Han",
-      "refresh": "Sọtun",
-      "historyTitle": "📜 Itan — Owo Ori Ti A Gba / Ti A Jẹrisi",
-      "deleteAll": "Pa Gbogbo Rẹ",
-      "noHistory": "Ko si itan sibẹ",
-      "noOffers": "Ko si ipese iṣẹ sibẹ. Lọ ONLINE lati farahan si awọn alabara.",
-      "zeroMatched": "0 ti o baamu ṣugbọn awọn booking wa - Nfi ti o ṣẹṣẹ 5 han lati rii ti o nduro - Tẹ lati beere",
-      "bookingId": "Booking ID {id}",
-      "clientLabel": "Alabara: {name} - {phone}",
-      "serviceLabel": "Iṣẹ: {service}",
-      "collectCash": "Iwọ yoo gba OWO ORI lẹhin iṣẹ: {cash}",
-      "locationLabel": "Ibi: {location}",
-      "timeLabel": "Akoko: {time}",
-      "accept": "✅ Gba",
-      "reject": "❌ Kọ",
-      "onWay": "🚗 Ni Ọna",
-      "closeBtn": "📍 Sunmọ",
-      "completed": "🎉 Pari",
-      "confirmCash": "💵 Jẹrisi Owo Ori Gba - {cash}",
-      "confirmDone": "✅ Jẹrisi Pari",
-      "details": "Awọn Alaye",
-      "claim": "Beere",
-      "cancel": "Fagile",
-      "complaint": "😡 Ẹdun",
-      "cashCollected": "✅ OWO ORI TI A GBA",
-      "historyRow": "Booking ID {id} - {date} - {collected} - {status} - Owo Ori: {cash}",
-      "receipt": "Iwe-ẹri",
-      "rejectTitle": "Kọ {id}?",
-      "rejectContent": "Alabara gba agbapada KIKUN 20% o si le ṣe booking nọọsi miiran. Iwọ di Wa lẹsẹkẹsẹ.",
-      "no": "Rara",
-      "rejectBtn": "Kọ",
-      "confirmCashTitle": "Jẹrisi Owo Ori Gba?",
-      "confirmCashContent": "Jẹrisi pe alabara san ọ ni OWO ORI: {cash}\nCEO KO san ọ. Lẹhin eyi iwọ di Wa sibẹ.",
-      "notYet": "Ko Sibẹ",
-      "yesCash": "Bẹẹni, Owo Ori Gba",
-      "confirmDoneTitle": "Jẹrisi iṣẹ pari fun {id}?",
-      "confirm": "Jẹrisi",
-      "cancelTitle": "Fagile {id}?",
-      "claimTitle": "Beere Booking Yi",
-      "yourPhone": "Foonu rẹ",
-      "yourEmail": "Imeeli rẹ",
-      "save": "Fipamọ",
-      "deleteAllTitle": "Pa Itan GBOGBO?",
-      "yes": "Bẹẹni",
-      "detailsTitle": "Booking ID {id}",
-      "detailsContent": "ID: {id}\nIpo: {status}\nAlabara: {client} - {clientPhone}\nNọọsi: {nurse} - {nursePhone}\nIwọ yoo gba OWO ORI lẹhin iṣẹ: {cash}\nIṣẹ: {service}\nIbi: {location}\nAkoko: {time}",
-      "close": "Ti",
-      "claimThisBooking": "Beere Booking Yi",
-      "toastAccepted": "Ti gba - Alabara yoo gbọ orin RẸ",
-      "toastRejected": "Ti kọ - Alabara gba agbapada kikun 20% - Iwọ Wa sibẹ",
-      "toastOnWay": "Ni ọna",
-      "toastClose": "Sunmọ - Sunmọ alabara",
-      "toastCash": "Owo ori ti jẹrisi - Iwọ Wa sibẹ",
-      "toastCompleted": "Pari - Gba OWO ORI lati ọdọ alabara, lẹhinna Jẹrisi Owo Ori Gba",
-      "toastConfirmed": "Ti jẹrisi - Ti gbe lọ si itan",
-      "toastCancelled": "Ti fagile",
-      "toastSaved": "Ti fipamọ - N gbejade lẹẹkansi",
-      "toastLoginAgain": "Wọle lẹẹkansi - ko si idanimọ",
-      "toastNewReply": "🔔 Idahun tuntun - {status}",
-    },
+  Future<void> _sendSoundTrigger(String toRole, Map data) async {
+    try { await FirebaseDatabase.instance.ref('soundTriggers/$toRole').push().set({'fromRole': 'nurse', 'time': DateTime.now().millisecondsSinceEpoch, ...data}); } catch (_) {}
+  }
 
-    // 16. IGBO
-    "ig": {
-      "title": "Onyinye Ọrụ M",
-      "historyBtn": "Akụkọ ({n})",
-      "hideHistory": "Zoo Akụkọ",
-      "yourIdentity": "Njirimara gị:",
-      "phonesLabel": "Ekwentị: {phones} | Emails: {emails} | UID: {uids}",
-      "noneLogin": "ỌBỤGHỊ - Banye Ọzọ",
-      "none": "ỌBỤGHỊ",
-      "matchingNote": "Dakọtara site na ekwentị ikpeazụ 9 + email + UID site na igodo prefs NIILE - Ọ bụrụ na ỌBỤGHỊ, jiri Gosi Nso Nso 10",
-      "myOffers": "Onyinye M",
-      "showRecent": "Gosi Nso Nso 10",
-      "refresh": "Mee Ka Ọ Dị Ọhụrụ",
-      "historyTitle": "📜 Akụkọ — Ego Nkiti Anakọtara / Ekwenye",
-      "deleteAll": "Hichapụ Niile",
-      "noHistory": "Enweghị akụkọ ugbu a",
-      "noOffers": "Enweghị onyinye ọrụ ugbu a. Gaa ONLINE ka ndị ahịa hụ gị.",
-      "zeroMatched": "0 dakọtara mana bookings dị - Na-egosi nso nso 5 ka ị hụ na-echere - Pịa iji kwuo",
-      "bookingId": "Booking ID {id}",
-      "clientLabel": "Onye Ahịa: {name} - {phone}",
-      "serviceLabel": "Ọrụ: {service}",
-      "collectCash": "Ị ga-anakọta EGO NKITI mgbe ọrụ gasịrị: {cash}",
-      "locationLabel": "Ebe: {location}",
-      "timeLabel": "Oge: {time}",
-      "accept": "✅ Nabata",
-      "reject": "❌ Jụ",
-      "onWay": "🚗 N'Ụzọ",
-      "closeBtn": "📍 Nso",
-      "completed": "🎉 Emechara",
-      "confirmCash": "💵 Kwenye Ego Nkiti Anatara - {cash}",
-      "confirmDone": "✅ Kwenye Emechara",
-      "details": "Nkọwa",
-      "claim": "Kwuo",
-      "cancel": "Kagbuo",
-      "complaint": "😡 Mkpesa",
-      "cashCollected": "✅ EGO NKITI ANAKỌTARA",
-      "historyRow": "Booking ID {id} - {date} - {collected} - {status} - Ego Nkiti: {cash}",
-      "receipt": "Nnata",
-      "rejectTitle": "Jụ {id}?",
-      "rejectContent": "Onye ahịa na-enweta nkwụghachi ZURU EZU 20% ma nwee ike book nọọsụ ọzọ. Ị na-aghọ Available ọzọ ozugbo.",
-      "no": "Mba",
-      "rejectBtn": "Jụ",
-      "confirmCashTitle": "Kwenye Ego Nkiti Anatara?",
-      "confirmCashContent": "Kwenye na onye ahịa kwụrụ gị EGO NKITI: {cash}\nCEO ANAGHỊ akwụ gị ụgwọ. Mgbe nke a gasịrị ị na-aghọ Available ọzọ.",
-      "notYet": "Ọbụbeghị",
-      "yesCash": "Ee, Ego Nkiti Anatara",
-      "confirmDoneTitle": "Kwenye ọrụ emechara maka {id}?",
-      "confirm": "Kwenye",
-      "cancelTitle": "Kagbuo {id}?",
-      "claimTitle": "Kwuo Booking A",
-      "yourPhone": "Ekwentị gị",
-      "yourEmail": "Email gị",
-      "save": "Chekwaa",
-      "deleteAllTitle": "Hichapụ Akụkọ NIILE?",
-      "yes": "Ee",
-      "detailsTitle": "Booking ID {id}",
-      "detailsContent": "ID: {id}\nỌnọdụ: {status}\nOnye Ahịa: {client} - {clientPhone}\nNọọsụ: {nurse} - {nursePhone}\nỊ ga-anakọta EGO NKITI mgbe ọrụ gasịrị: {cash}\nỌrụ: {service}\nEbe: {location}\nOge: {time}",
-      "close": "Mechie",
-      "claimThisBooking": "Kwuo Booking A",
-      "toastAccepted": "Anabatala - Onye ahịa ga-anụ abụ YA",
-      "toastRejected": "Ajụla - Onye ahịa na-enweta nkwụghachi zuru ezu 20% - Ị dị Available ọzọ",
-      "toastOnWay": "N'ụzọ",
-      "toastClose": "Nso - Nso onye ahịa",
-      "toastCash": "Ego nkiti ekwenye - Ị dị Available ọzọ",
-      "toastCompleted": "Emechara - Nakọta EGO NKITI site na onye ahịa, wee Kwenye Ego Nkiti Anatara",
-      "toastConfirmed": "Ekwenye - Ebugharị gaa akụkọ",
-      "toastCancelled": "Akagbuola",
-      "toastSaved": "Echekwara - Na-ebugharị ọzọ",
-      "toastLoginAgain": "Banye ọzọ - enweghị njirimara",
-      "toastNewReply": "🔔 Azịza ọhụrụ - {status}",
-    },
+  Future<void> _updateBooking(String id, Map data, String? triggerTitle, String? triggerStatus) async {
+    final b = all.firstWhere((x) => x['id'] == id || x['bookingId'] == id, orElse: () => {});
+    await FirebaseDatabase.instance.ref('bookings/$id').update(Map<String, Object?>.from(data));
+    if (triggerTitle != null) {
+      await _sendSoundTrigger('client', {'bookingId': id, 'status': triggerStatus ?? data['status'], 'title': triggerTitle, 'toPhone': b['clientPhone'], 'toUid': b['clientUid'] ?? b['clientId'], 'toEmail': b['clientEmail']});
+    }
+    await _loadAll();
+  }
 
-    // 17. HAUSA
-    "ha": {
-      "title": "Tayoyin Aikina",
-      "historyBtn": "Tarihi ({n})",
-      "hideHistory": "Ɓoye Tarihi",
-      "yourIdentity": "Shaidar ka:",
-      "phonesLabel": "Wayoyi: {phones} | Imel: {emails} | UID: {uids}",
-      "noneLogin": "BABU - Shiga Sake",
-      "none": "BABU",
-      "matchingNote": "Daidaita ta lambar waya 9 na ƙarshe + imel + UID daga DUKKAN maɓallan prefs - Idan BABU, yi amfani da Nuna Kwanan Nan 10",
-      "myOffers": "Tayoyina",
-      "showRecent": "Nuna Kwanan Nan 10",
-      "refresh": "Sabunta",
-      "historyTitle": "📜 Tarihi — Kuɗi Tsabta An Tattara / An Tabbatar",
-      "deleteAll": "Share Duka",
-      "noHistory": "Babu tarihi tukuna",
-      "noOffers": "Babu tayoyin aiki tukuna. Je ONLINE don abokan ciniki su gan ka.",
-      "zeroMatched": "0 sun daidaita amma bookings suna nan - Ana nuna kwanan nan 5 don ka ga jiran - Taɓa don yin da'awa",
-      "bookingId": "Booking ID {id}",
-      "clientLabel": "Abokin Ciniki: {name} - {phone}",
-      "serviceLabel": "Sabis: {service}",
-      "collectCash": "Za ka tattara KUƊI TSABTA bayan aiki: {cash}",
-      "locationLabel": "Wuri: {location}",
-      "timeLabel": "Lokaci: {time}",
-      "accept": "✅ Karɓa",
-      "reject": "❌ Ƙi",
-      "onWay": "🚗 Kan Hanya",
-      "closeBtn": "📍 Kusa",
-      "completed": "🎉 An Kammala",
-      "confirmCash": "💵 Tabbatar Kuɗi Tsabta An Karɓa - {cash}",
-      "confirmDone": "✅ Tabbatar An Kammala",
-      "details": "Cikakkun Bayani",
-      "claim": "Da'awa",
-      "cancel": "Soke",
-      "complaint": "😡 Korafi",
-      "cashCollected": "✅ KUƊI TSABTA AN TATTARA",
-      "historyRow": "Booking ID {id} - {date} - {collected} - {status} - Kuɗi Tsabta: {cash}",
-      "receipt": "Rasit",
-      "rejectTitle": "Ƙi {id}?",
-      "rejectContent": "Abokin ciniki yana samun cikakken kuɗi 20% kuma zai iya yin book wata nurse. Ka zama Available kuma nan da nan.",
-      "no": "A'a",
-      "rejectBtn": "Ƙi",
-      "confirmCashTitle": "Tabbatar Kuɗi Tsabta An Karɓa?",
-      "confirmCashContent": "Tabbatar abokin ciniki ya biya ka KUƊI TSABTA: {cash}\nCEO BA YA biyan ka. Bayan wannan ka zama Available kuma.",
-      "notYet": "Ba Tukuna Ba",
-      "yesCash": "I, Kuɗi Tsabta An Karɓa",
-      "confirmDoneTitle": "Tabbatar aiki ya kammala don {id}?",
-      "confirm": "Tabbatar",
-      "cancelTitle": "Soke {id}?",
-      "claimTitle": "Yi Da'awar Wannan Booking",
-      "yourPhone": "Wayarka",
-      "yourEmail": "Imel ɗinka",
-      "save": "Ajiye",
-      "deleteAllTitle": "Share Tarihi DUKA?",
-      "yes": "I",
-      "detailsTitle": "Booking ID {id}",
-      "detailsContent": "ID: {id}\nMatsayi: {status}\nAbokin Ciniki: {client} - {clientPhone}\nNurse: {nurse} - {nursePhone}\nZa ka tattara KUƊI TSABTA bayan aiki: {cash}\nSabis: {service}\nWuri: {location}\nLokaci: {time}",
-      "close": "Rufe",
-      "claimThisBooking": "Yi Da'awar Wannan Booking",
-      "toastAccepted": "An karɓa - Abokin ciniki zai ji WAƘARSA",
-      "toastRejected": "An ƙi - Abokin ciniki yana samun cikakken kuɗi 20% - Ka zama Available kuma",
-      "toastOnWay": "Kan hanya",
-      "toastClose": "Kusa - Kusa da abokin ciniki",
-      "toastCash": "Kuɗi tsabta an tabbatar - Ka zama Available kuma",
-      "toastCompleted": "An kammala - Tattara KUƊI TSABTA daga abokin ciniki, sannan Tabbatar Kuɗi Tsabta An Karɓa",
-      "toastConfirmed": "An tabbatar - An matsar zuwa tarihi",
-      "toastCancelled": "An soke",
-      "toastSaved": "An ajiye - Ana sake lodawa",
-      "toastLoginAgain": "Shiga sake - babu shaidar",
-      "toastNewReply": "🔔 Sabon amsa - {status}",
-    },
+  Future<void> _acceptOffer(String id) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final b = all.firstWhere((x) => x['id'] == id || x['bookingId'] == id, orElse: () => {});
+    await _updateBooking(id, {'status': 'accepted', 'lastChangedBy': 'nurse', 'lastChangedAt': now, 'acceptedAt': now, 'acceptedAtStr': DateTime.now().toString()}, 'Nurse accepted', 'accepted');
+    await _lockNurse(b);
+    _toast('Accepted - Client will hear HIS song');
+  }
 
-    // 18. RUSSIAN
-    "ru": {
-      "title": "Мои Предложения Работы",
-      "historyBtn": "История ({n})",
-      "hideHistory": "Скрыть Историю",
-      "yourIdentity": "Ваша личность:",
-      "phonesLabel": "Телефоны: {phones} | E-mail: {emails} | UID: {uids}",
-      "noneLogin": "НЕТ - Войдите снова",
-      "none": "НЕТ",
-      "matchingNote": "Сопоставление по телефону последние 9 + e-mail + UID из ВСЕХ ключей prefs - Если НЕТ, используйте Показать Последние 10",
-      "myOffers": "Мои Предложения",
-      "showRecent": "Показать Последние 10",
-      "refresh": "Обновить",
-      "historyTitle": "📜 История — Наличные Собраны / Подтверждены",
-      "deleteAll": "Удалить Всё",
-      "noHistory": "Истории пока нет",
-      "noOffers": "Предложений работы пока нет. Перейдите ONLINE, чтобы появиться клиентам.",
-      "zeroMatched": "0 совпадений, но бронирования есть - Показываю последние 5, чтобы увидеть ожидающие - Нажмите, чтобы заявить",
-      "bookingId": "Бронирование ID {id}",
-      "clientLabel": "Клиент: {name} - {phone}",
-      "serviceLabel": "Услуга: {service}",
-      "collectCash": "Вы соберёте НАЛИЧНЫЕ после работы: {cash}",
-      "locationLabel": "Местоположение: {location}",
-      "timeLabel": "Время: {time}",
-      "accept": "✅ Принять",
-      "reject": "❌ Отклонить",
-      "onWay": "🚗 В Пути",
-      "closeBtn": "📍 Рядом",
-      "completed": "🎉 Завершено",
-      "confirmCash": "💵 Подтвердить Наличные Получены - {cash}",
-      "confirmDone": "✅ Подтвердить Готово",
-      "details": "Детали",
-      "claim": "Заявить",
-      "cancel": "Отменить",
-      "complaint": "😡 Жалоба",
-      "cashCollected": "✅ НАЛИЧНЫЕ СОБРАНЫ",
-      "historyRow": "Бронирование ID {id} - {date} - {collected} - {status} - Наличные: {cash}",
-      "receipt": "Квитанция",
-      "rejectTitle": "Отклонить {id}?",
-      "rejectContent": "Клиент получает ПОЛНЫЙ возврат 20% и может забронировать другую медсестру. Вы сразу снова становитесь Доступной.",
-      "no": "Нет",
-      "rejectBtn": "Отклонить",
-      "confirmCashTitle": "Подтвердить Наличные Получены?",
-      "confirmCashContent": "Подтвердите, что клиент заплатил вам НАЛИЧНЫМИ: {cash}\nCEO НЕ платит вам. После этого вы снова становитесь Доступной.",
-      "notYet": "Ещё Нет",
-      "yesCash": "Да, Наличные Получены",
-      "confirmDoneTitle": "Подтвердить работа выполнена для {id}?",
-      "confirm": "Подтвердить",
-      "cancelTitle": "Отменить {id}?",
-      "claimTitle": "Заявить Это Бронирование",
-      "yourPhone": "Ваш телефон",
-      "yourEmail": "Ваш e-mail",
-      "save": "Сохранить",
-      "deleteAllTitle": "Удалить ВСЮ историю?",
-      "yes": "Да",
-      "detailsTitle": "Бронирование ID {id}",
-      "detailsContent": "ID: {id}\nСтатус: {status}\nКлиент: {client} - {clientPhone}\nМедсестра: {nurse} - {nursePhone}\nВы соберёте НАЛИЧНЫЕ после работы: {cash}\nУслуга: {service}\nМестоположение: {location}\nВремя: {time}",
-      "close": "Закрыть",
-      "claimThisBooking": "Заявить Это Бронирование",
-      "toastAccepted": "Принято - Клиент услышит ЕГО песню",
-      "toastRejected": "Отклонено - Клиент получает полный возврат 20% - Вы снова Доступны",
-      "toastOnWay": "В пути",
-      "toastClose": "Рядом - Рядом с клиентом",
-      "toastCash": "Наличные подтверждены - Вы снова Доступны",
-      "toastCompleted": "Завершено - Соберите НАЛИЧНЫЕ от клиента, затем Подтвердите Наличные Получены",
-      "toastConfirmed": "Подтверждено - Перемещено в историю",
-      "toastCancelled": "Отменено",
-      "toastSaved": "Сохранено - Перезагрузка",
-      "toastLoginAgain": "Войдите снова - нет личности",
-      "toastNewReply": "🔔 Новый ответ - {status}",
-    },
+  Future<void> _rejectOffer(String id) async {
+    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Reject $id?'), content: const Text('Client gets FULL 20% refund and can book another nurse. You become Available again immediately.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Reject'))]));
+    if (confirm != true) return;
+    final b = all.firstWhere((x) => x['id'] == id || x['bookingId'] == id, orElse: () => {});
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _updateBooking(id, {'status': 'rejected_by_nurse', 'lastChangedBy': 'nurse', 'lastChangedAt': now, 'rejectedAt': now, 'rejectedByNurseName': b['nurseName'], 'refundCeoFee': true, 'refundStatus': 'refund_due_full_20', 'cancelTermsApplied': 'nurse_rejects_refund_full_20'}, 'Nurse rejected your offer', 'rejected_by_nurse');
+    await _unlockNurse(b);
+    _toast('Rejected - Client gets full 20% refund - You are Available again');
+  }
 
-    // 19. TURKISH
-    "tr": {
-      "title": "İş Tekliflerim",
-      "historyBtn": "Geçmiş ({n})",
-      "hideHistory": "Geçmişi Gizle",
-      "yourIdentity": "Kimliğiniz:",
-      "phonesLabel": "Telefonlar: {phones} | E-postalar: {emails} | UID'ler: {uids}",
-      "noneLogin": "YOK - Tekrar Giriş Yap",
-      "none": "YOK",
-      "matchingNote": "Telefon son 9 + e-posta + UID ile TÜM prefs anahtarlarından eşleştirme - YOKSA, Son 10'u Göster'i kullan",
-      "myOffers": "Tekliflerim",
-      "showRecent": "Son 10'u Göster",
-      "refresh": "Yenile",
-      "historyTitle": "📜 Geçmiş — Nakit Toplanan / Onaylanan",
-      "deleteAll": "Tümünü Sil",
-      "noHistory": "Henüz geçmiş yok",
-      "noOffers": "Henüz iş teklifi yok. Müşterilere görünmek için ÇEVRİMİÇİ olun.",
-      "zeroMatched": "0 eşleşme ama rezervasyonlar var - Bekleyenleri görmek için son 5 gösteriliyor - Talep etmek için dokunun",
-      "bookingId": "Rezervasyon ID {id}",
-      "clientLabel": "Müşteri: {name} - {phone}",
-      "serviceLabel": "Hizmet: {service}",
-      "collectCash": "İşten sonra NAKİT toplayacaksınız: {cash}",
-      "locationLabel": "Konum: {location}",
-      "timeLabel": "Saat: {time}",
-      "accept": "✅ Kabul Et",
-      "reject": "❌ Reddet",
-      "onWay": "🚗 Yolda",
-      "closeBtn": "📍 Yakın",
-      "completed": "🎉 Tamamlandı",
-      "confirmCash": "💵 Nakit Alındığını Onayla - {cash}",
-      "confirmDone": "✅ Bittiğini Onayla",
-      "details": "Detaylar",
-      "claim": "Talep Et",
-      "cancel": "İptal",
-      "complaint": "😡 Şikayet",
-      "cashCollected": "✅ NAKİT TOPLANDI",
-      "historyRow": "Rezervasyon ID {id} - {date} - {collected} - {status} - Nakit: {cash}",
-      "receipt": "Makbuz",
-      "rejectTitle": "{id} Reddedilsin Mi?",
-      "rejectContent": "Müşteri TAM %20 iade alır ve başka bir hemşire rezerve edebilir. Hemen tekrar Müsait olursunuz.",
-      "no": "Hayır",
-      "rejectBtn": "Reddet",
-      "confirmCashTitle": "Nakit Alındığını Onayla?",
-      "confirmCashContent": "Müşterinin size NAKİT ödediğini onaylayın: {cash}\nCEO size ÖDEMEZ. Bundan sonra tekrar Müsait olursunuz.",
-      "notYet": "Henüz Değil",
-      "yesCash": "Evet, Nakit Alındı",
-      "confirmDoneTitle": "{id} için iş bittiğini onayla?",
-      "confirm": "Onayla",
-      "cancelTitle": "{id} İptal Edilsin Mi?",
-      "claimTitle": "Bu Rezervasyonu Talep Et",
-      "yourPhone": "Telefonunuz",
-      "yourEmail": "E-postanız",
-      "save": "Kaydet",
-      "deleteAllTitle": "TÜM geçmiş silinsin mi?",
-      "yes": "Evet",
-      "detailsTitle": "Rezervasyon ID {id}",
-      "detailsContent": "ID: {id}\nDurum: {status}\nMüşteri: {client} - {clientPhone}\nHemşire: {nurse} - {nursePhone}\nİşten sonra NAKİT toplayacaksınız: {cash}\nHizmet: {service}\nKonum: {location}\nSaat: {time}",
-      "close": "Kapat",
-      "claimThisBooking": "Bu Rezervasyonu Talep Et",
-      "toastAccepted": "Kabul Edildi - Müşteri KENDİ şarkısını duyacak",
-      "toastRejected": "Reddedildi - Müşteri tam %20 iade alır - Tekrar Müsait siniz",
-      "toastOnWay": "Yolda",
-      "toastClose": "Yakın - Müşteriye yakın",
-      "toastCash": "Nakit onaylandı - Tekrar Müsait siniz",
-      "toastCompleted": "Tamamlandı - Müşteriden NAKİT toplayın, sonra Nakit Alındığını Onaylayın",
-      "toastConfirmed": "Onaylandı - Geçmişe taşındı",
-      "toastCancelled": "İptal Edildi",
-      "toastSaved": "Kaydedildi - Yeniden Yükleniyor",
-      "toastLoginAgain": "Tekrar giriş yap - kimlik yok",
-      "toastNewReply": "🔔 Yeni yanıt - {status}",
-    },
+  Future<void> _markOnWay(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _updateBooking(id, {'status': 'on_the_way', 'lastChangedBy': 'nurse', 'lastChangedAt': now, 'lastChangedUid': prefs.getString('nurseUid') ?? prefs.getString('uid') ?? '', 'lastChangedPhone': prefs.getString('nursePhone') ?? prefs.getString('phone') ?? ''}, 'Nurse is on the way', 'on_the_way');
+    _toast('On the way');
+  }
 
-    // 20. KOREAN
-    "ko": {
-      "title": "내 일자리 제안",
-      "historyBtn": "기록 ({n})",
-      "hideHistory": "기록 숨기기",
-      "yourIdentity": "귀하의 신원:",
-      "phonesLabel": "전화: {phones} | 이메일: {emails} | UID: {uids}",
-      "noneLogin": "없음 - 다시 로그인",
-      "none": "없음",
-      "matchingNote": "전화 마지막 9자리 + 이메일 + UID 로 모든 prefs 키에서 매칭 - 없으면 최근 10개 표시 사용",
-      "myOffers": "내 제안",
-      "showRecent": "최근 10개 표시",
-      "refresh": "새로고침",
-      "historyTitle": "📜 기록 — 현금 수금됨 / 확인됨",
-      "deleteAll": "모두 삭제",
-      "noHistory": "아직 기록이 없습니다",
-      "noOffers": "아직 일자리 제안이 없습니다. 고객에게 나타나려면 ONLINE으로 가세요.",
-      "zeroMatched": "0개 일치하지만 예약이 존재 - 대기 중을 보기 위해 최근 5개 표시 - 청구하려면 탭하세요",
-      "bookingId": "예약 ID {id}",
-      "clientLabel": "고객: {name} - {phone}",
-      "serviceLabel": "서비스: {service}",
-      "collectCash": "작업 후 현금을 수금합니다: {cash}",
-      "locationLabel": "위치: {location}",
-      "timeLabel": "시간: {time}",
-      "accept": "✅ 수락",
-      "reject": "❌ 거부",
-      "onWay": "🚗 이동 중",
-      "closeBtn": "📍 근처",
-      "completed": "🎉 완료됨",
-      "confirmCash": "💵 현금 수령 확인 - {cash}",
-      "confirmDone": "✅ 완료 확인",
-      "details": "세부 정보",
-      "claim": "청구",
-      "cancel": "취소",
-      "complaint": "😡 불만",
-      "cashCollected": "✅ 현금 수금됨",
-      "historyRow": "예약 ID {id} - {date} - {collected} - {status} - 현금: {cash}",
-      "receipt": "영수증",
-      "rejectTitle": "{id} 거부하시겠습니까?",
-      "rejectContent": "고객은 20% 전액 환불을 받고 다른 간호사를 예약할 수 있습니다. 즉시 다시 이용 가능해집니다.",
-      "no": "아니요",
-      "rejectBtn": "거부",
-      "confirmCashTitle": "현금 수령을 확인하시겠습니까?",
-      "confirmCashContent": "고객이 현금으로 지불했음을 확인하세요: {cash}\nCEO는 귀하에게 지불하지 않습니다. 이후 다시 이용 가능해집니다.",
-      "notYet": "아직 아님",
-      "yesCash": "예, 현금 수령함",
-      "confirmDoneTitle": "{id}에 대한 작업 완료를 확인하시겠습니까?",
-      "confirm": "확인",
-      "cancelTitle": "{id} 취소하시겠습니까?",
-      "claimTitle": "이 예약 청구",
-      "yourPhone": "귀하의 전화",
-      "yourEmail": "귀하의 이메일",
-      "save": "저장",
-      "deleteAllTitle": "모든 기록을 삭제하시겠습니까?",
-      "yes": "예",
-      "detailsTitle": "예약 ID {id}",
-      "detailsContent": "ID: {id}\n상태: {status}\n고객: {client} - {clientPhone}\n간호사: {nurse} - {nursePhone}\n작업 후 현금을 수금합니다: {cash}\n서비스: {service}\n위치: {location}\n시간: {time}",
-      "close": "닫기",
-      "claimThisBooking": "이 예약 청구",
-      "toastAccepted": "수락됨 - 고객이 자신의 노래를 들을 것입니다",
-      "toastRejected": "거부됨 - 고객이 20% 전액 환불을 받음 - 다시 이용 가능해짐",
-      "toastOnWay": "이동 중",
-      "toastClose": "근처 - 고객 근처",
-      "toastCash": "현금 확인됨 - 다시 이용 가능해짐",
-      "toastCompleted": "완료됨 - 고객으로부터 현금을 수금한 뒤 현금 수령 확인",
-      "toastConfirmed": "확인됨 - 기록으로 이동됨",
-      "toastCancelled": "취소됨",
-      "toastSaved": "저장됨 - 다시 로드 중",
-      "toastLoginAgain": "다시 로그인 - 신원 없음",
-      "toastNewReply": "🔔 새 답장 - {status}",
-    },
+  Future<void> _markClose(String id) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _updateBooking(id, {'status': 'close', 'lastChangedBy': 'nurse', 'lastChangedAt': now}, 'Nurse is close', 'close');
+    _toast('Close - Near client');
+  }
 
-    // 21. JAPANESE
-    "ja": {
-      "title": "私の仕事のオファー",
-      "historyBtn": "履歴 ({n})",
-      "hideHistory": "履歴を非表示",
-      "yourIdentity": "あなたの身元:",
-      "phonesLabel": "電話: {phones} | メール: {emails} | UID: {uids}",
-      "noneLogin": "なし - 再度ログイン",
-      "none": "なし",
-      "matchingNote": "電話下 9 桁 + メール + UID で全ての prefs キーからマッチング - なしの場合は最近の 10 件を表示を使用",
-      "myOffers": "私のオファー",
-      "showRecent": "最近の 10 件を表示",
-      "refresh": "更新",
-      "historyTitle": "📜 履歴 — 現金回収済み / 確認済み",
-      "deleteAll": "全て削除",
-      "noHistory": "履歴はまだありません",
-      "noOffers": "仕事のオファーはまだありません。クライアントに表示されるには ONLINE になってください。",
-      "zeroMatched": "0 件一致しましたが予約があります - 保留中を見るために最近の 5 件を表示 - 請求するにはタップ",
-      "bookingId": "予約 ID {id}",
-      "clientLabel": "クライアント: {name} - {phone}",
-      "serviceLabel": "サービス: {service}",
-      "collectCash": "仕事の後に現金を回収します: {cash}",
-      "locationLabel": "場所: {location}",
-      "timeLabel": "時間: {time}",
-      "accept": "✅ 承認",
-      "reject": "❌ 拒否",
-      "onWay": "🚗 移動中",
-      "closeBtn": "📍 近く",
-      "completed": "🎉 完了",
-      "confirmCash": "💵 現金受領を確認 - {cash}",
-      "confirmDone": "✅ 完了を確認",
-      "details": "詳細",
-      "claim": "請求",
-      "cancel": "キャンセル",
-      "complaint": "😡 苦情",
-      "cashCollected": "✅ 現金回収済み",
-      "historyRow": "予約 ID {id} - {date} - {collected} - {status} - 現金: {cash}",
-      "receipt": "領収書",
-      "rejectTitle": "{id} を拒否しますか?",
-      "rejectContent": "クライアントは 20% 全額返金を受け、別の看護師を予約できます。すぐに再び利用可能になります。",
-      "no": "いいえ",
-      "rejectBtn": "拒否",
-      "confirmCashTitle": "現金受領を確認しますか?",
-      "confirmCashContent": "クライアントが現金で支払ったことを確認してください: {cash}\nCEO はあなたに支払いません。この後、再び利用可能になります。",
-      "notYet": "まだ",
-      "yesCash": "はい、現金受領済み",
-      "confirmDoneTitle": "{id} の仕事が完了したことを確認しますか?",
-      "confirm": "確認",
-      "cancelTitle": "{id} をキャンセルしますか?",
-      "claimTitle": "この予約を請求",
-      "yourPhone": "あなたの電話",
-      "yourEmail": "あなたのメール",
-      "save": "保存",
-      "deleteAllTitle": "全ての履歴を削除しますか?",
-      "yes": "はい",
-      "detailsTitle": "予約 ID {id}",
-      "detailsContent": "ID: {id}\nステータス: {status}\nクライアント: {client} - {clientPhone}\n看護師: {nurse} - {nursePhone}\n仕事の後に現金を回収します: {cash}\nサービス: {service}\n場所: {location}\n時間: {time}",
-      "close": "閉じる",
-      "claimThisBooking": "この予約を請求",
-      "toastAccepted": "承認済み - クライアントは彼の歌を聞きます",
-      "toastRejected": "拒否済み - クライアントは 20% 全額返金を受けます - 再び利用可能です",
-      "toastOnWay": "移動中",
-      "toastClose": "近く - クライアントの近く",
-      "toastCash": "現金確認済み - 再び利用可能です",
-      "toastCompleted": "完了 - クライアントから現金を回収し、次に現金受領を確認",
-      "toastConfirmed": "確認済み - 履歴に移動",
-      "toastCancelled": "キャンセル済み",
-      "toastSaved": "保存済み - 再読み込み中",
-      "toastLoginAgain": "再度ログイン - 身元なし",
-      "toastNewReply": "🔔 新しい返信 - {status}",
-    },
+  Future<void> _confirmCashReceived(String id) async {
+    final b = all.firstWhere((x) => x['id'] == id || x['bookingId'] == id, orElse: () => {});
+    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Confirm Cash Received?'), content: Text('Confirm client paid you CASH: ${_nurseCashStr(b)}\nCEO does NOT pay you. After this you become Available again.'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not Yet')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Cash Received'))]));
+    if (confirm != true) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _updateBooking(id, {'status': 'cash_received_by_nurse', 'lastChangedBy': 'nurse', 'lastChangedAt': now, 'cashPaidToNurse': true, 'nurseCashPaid': true, 'cashConfirmedByNurse': true, 'cashConfirmedAt': now}, 'Nurse confirmed cash received', 'cash_received_by_nurse');
+    await _unlockNurse(b);
+    _toast('Cash confirmed - You are Available again');
+  }
 
-    // 22. POLISH
-    "pl": {
-      "title": "Moje Oferty Pracy",
-      "historyBtn": "Historia ({n})",
-      "hideHistory": "Ukryj Historię",
-      "yourIdentity": "Twoja tożsamość:",
-      "phonesLabel": "Telefony: {phones} | E-maile: {emails} | UID: {uids}",
-      "noneLogin": "BRAK - Zaloguj się ponownie",
-      "none": "BRAK",
-      "matchingNote": "Dopasowanie po telefonie ostatnie 9 + e-mail + UID ze WSZYSTKICH kluczy prefs - Jeśli BRAK, użyj Pokaż Ostatnie 10",
-      "myOffers": "Moje Oferty",
-      "showRecent": "Pokaż Ostatnie 10",
-      "refresh": "Odśwież",
-      "historyTitle": "📜 Historia — Gotówka Zebrana / Potwierdzona",
-      "deleteAll": "Usuń Wszystko",
-      "noHistory": "Brak historii",
-      "noOffers": "Brak ofert pracy. Przejdź ONLINE, aby pojawić się klientom.",
-      "zeroMatched": "0 dopasowań, ale rezerwacje istnieją - Pokazuję ostatnie 5, aby zobaczyć oczekujące - Dotknij, aby zgłosić",
-      "bookingId": "Rezerwacja ID {id}",
-      "clientLabel": "Klient: {name} - {phone}",
-      "serviceLabel": "Usługa: {service}",
-      "collectCash": "Zbierzesz GOTÓWKĘ po pracy: {cash}",
-      "locationLabel": "Lokalizacja: {location}",
-      "timeLabel": "Czas: {time}",
-      "accept": "✅ Akceptuj",
-      "reject": "❌ Odrzuć",
-      "onWay": "🚗 W Drodze",
-      "closeBtn": "📍 Blisko",
-      "completed": "🎉 Ukończono",
-      "confirmCash": "💵 Potwierdź Otrzymanie Gotówki - {cash}",
-      "confirmDone": "✅ Potwierdź Zrobione",
-      "details": "Szczegóły",
-      "claim": "Zgłoś",
-      "cancel": "Anuluj",
-      "complaint": "😡 Skarga",
-      "cashCollected": "✅ GOTÓWKA ZEBRANA",
-      "historyRow": "Rezerwacja ID {id} - {date} - {collected} - {status} - Gotówka: {cash}",
-      "receipt": "Paragon",
-      "rejectTitle": "Odrzucić {id}?",
-      "rejectContent": "Klient otrzymuje PEŁNY zwrot 20% i może zarezerwować inną pielęgniarkę. Natychmiast stajesz się ponownie Dostępna.",
-      "no": "Nie",
-      "rejectBtn": "Odrzuć",
-      "confirmCashTitle": "Potwierdzić Otrzymanie Gotówki?",
-      "confirmCashContent": "Potwierdź, że klient zapłacił Ci GOTÓWKĄ: {cash}\nCEO Ci NIE płaci. Po tym stajesz się ponownie Dostępna.",
-      "notYet": "Jeszcze Nie",
-      "yesCash": "Tak, Gotówka Otrzymana",
-      "confirmDoneTitle": "Potwierdzić wykonanie pracy dla {id}?",
-      "confirm": "Potwierdź",
-      "cancelTitle": "Anulować {id}?",
-      "claimTitle": "Zgłoś Tę Rezerwację",
-      "yourPhone": "Twój telefon",
-      "yourEmail": "Twój e-mail",
-      "save": "Zapisz",
-      "deleteAllTitle": "Usunąć CAŁĄ historię?",
-      "yes": "Tak",
-      "detailsTitle": "Rezerwacja ID {id}",
-      "detailsContent": "ID: {id}\nStatus: {status}\nKlient: {client} - {clientPhone}\nPielęgniarka: {nurse} - {nursePhone}\nZbierzesz GOTÓWKĘ po pracy: {cash}\nUsługa: {service}\nLokalizacja: {location}\nCzas: {time}",
-      "close": "Zamknij",
-      "claimThisBooking": "Zgłoś Tę Rezerwację",
-      "toastAccepted": "Zaakceptowano - Klient usłyszy JEGO piosenkę",
-      "toastRejected": "Odrzucono - Klient otrzymuje pełny zwrot 20% - Jesteś ponownie Dostępna",
-      "toastOnWay": "W drodze",
-      "toastClose": "Blisko - Blisko klienta",
-      "toastCash": "Gotówka potwierdzona - Jesteś ponownie Dostępna",
-      "toastCompleted": "Ukończono - Zbierz GOTÓWKĘ od klienta, potem Potwierdź Otrzymanie Gotówki",
-      "toastConfirmed": "Potwierdzono - Przeniesiono do historii",
-      "toastCancelled": "Anulowano",
-      "toastSaved": "Zapisano - Ponowne ładowanie",
-      "toastLoginAgain": "Zaloguj się ponownie - brak tożsamości",
-      "toastNewReply": "🔔 Nowa odpowiedź - {status}",
-    },
-  };
+  Future<void> _markCompleted(String id) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await _updateBooking(id, {'status': 'completed', 'lastChangedBy': 'nurse', 'lastChangedAt': now}, 'Nurse completed', 'completed');
+    _toast('Completed - Collect CASH from client, then Confirm Cash Received');
+  }
 
-  static String t(String lang, String key, {String role = 'nurse'}) {
-    if (role == 'ceo') lang = 'en';
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
+  Future<void> _confirmDone(String id) async {
+    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Confirm work done for $id?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirm'))]));
+    if (confirm != true) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final key = myUids.isNotEmpty ? myUids[0] : (myPhones.isNotEmpty ? myPhones[0] : (myEmails.isNotEmpty ? myEmails[0] : 'unknown'));
+    final b = all.firstWhere((x) => x['id'] == id || x['bookingId'] == id, orElse: () => {});
+    await FirebaseDatabase.instance.ref('nurseBookingHistory/$key/$id').set({...b, 'status': 'client_confirmed_finished', 'clientConfirmed': true, 'clientConfirmedAt': now, 'clientConfirmedAtStr': DateTime.now().toString(), 'nurseCash': _nurseCash(b)});
+    await _unlockNurse(b);
+    await FirebaseDatabase.instance.ref('bookings/$id').update({'status': 'client_confirmed_finished', 'clientConfirmed': true, 'clientConfirmedAt': now});
+    Future.delayed(const Duration(milliseconds: 800), () async { await FirebaseDatabase.instance.ref('bookings/$id').remove().catchError((_) {}); _toast('Confirmed - Moved to history'); _loadHistory(); _loadAll(); });
+  }
+
+  Future<void> _cancelBooking(String id) async {
+    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: Text('Cancel $id?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancel'))]));
+    if (confirm != true) return;
+    await FirebaseDatabase.instance.ref('bookings/$id').update({'status': 'cancelled_by_client', 'cancelledAt': DateTime.now().millisecondsSinceEpoch});
+    _toast('Cancelled');
+    _loadAll();
+  }
+
+  Future<void> _claimBooking(String id) async {
+    final phoneCtrl = TextEditingController(text: myPhones.isNotEmpty ? myPhones[0] : '');
+    final emailCtrl = TextEditingController(text: myEmails.isNotEmpty ? myEmails[0] : '');
+    final ok = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Claim This Booking'), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'Your phone')), TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: 'Your email'))]), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Save'))]));
+    if (ok != true) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (phoneCtrl.text.isNotEmpty) await prefs.setString('nursePhone', phoneCtrl.text);
+    if (emailCtrl.text.isNotEmpty) await prefs.setString('nurseEmail', emailCtrl.text);
+    _toast('Saved - Reloading');
+    _loadAll();
+  }
+
+  Future<void> _loadHistory() async {
+    List<Map> arr = [];
+    for (final k in [...myUids, ...myPhones, ...myEmails]) {
+      try {
+        final s = await FirebaseDatabase.instance.ref('nurseBookingHistory/$k').get();
+        if (s.exists) (s.value as Map).forEach((key, v) { final val = Map<String, dynamic>.from(v as Map); arr.add({...val, 'id': key, 'bookingId': val['bookingId'] ?? key}); });
+      } catch (_) {}
+    }
+    arr.sort((a, b) => _toMillis(b['clientConfirmedAt']).compareTo(_toMillis(a['clientConfirmedAt'])));
+    setState(() => historyData = arr);
+  }
+
+  Future<void> _deleteHistory(String id) async {
+    if (myUids.isEmpty && myPhones.isEmpty && myEmails.isEmpty) { _toast('Login again - no identity'); return; }
+    final key = myUids.isNotEmpty ? myUids[0] : (myPhones.isNotEmpty ? myPhones[0] : myEmails[0]);
+    await FirebaseDatabase.instance.ref('nurseBookingHistory/$key/$id').remove().catchError((_) {});
+    _loadHistory();
+  }
+
+  Future<void> _deleteAllHistory() async {
+    final confirm = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Delete ALL history?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')), ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes'))]));
+    if (confirm != true) return;
+    for (final k in [...myUids, ...myPhones, ...myEmails]) await FirebaseDatabase.instance.ref('nurseBookingHistory/$k').remove().catchError((_) {});
+    _loadHistory();
+  }
+
+  void _startSound() {
+    FirebaseDatabase.instance.ref('bookings').onChildChanged.listen((e) {
+      if (!e.snapshot.exists) return;
+      final v = Map<String, dynamic>.from(e.snapshot.value as Map);
+      if (v['lastChangedBy'] == 'nurse') return;
+      if (!_matchesBooking(v)) return;
+      final t = _toMillis(v['lastChangedAt'] ?? v['time'] ?? v['createdAt']);
+      if (DateTime.now().millisecondsSinceEpoch - t > 120000) return;
+      _playCustomSound();
+      _toast('🔔 New reply - ${v['status'] ?? ''}');
+    });
+  }
+
+  Future<void> _playCustomSound() async {
+    final prefs = await SharedPreferences.getInstance();
+    final custom = prefs.getString('alert_custom_song') ?? prefs.getString('nurse_custom_song');
+    if (custom != null && custom.isNotEmpty) { try { await _player.play(UrlSource(custom)); return; } catch (_) {} }
+    try { await _player.play(AssetSource('sounds/default.mp3')); } catch (_) {}
+  }
+
+  void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
+
+  void _showDetails(Map b) {
+    showDialog(context: context, builder: (_) => AlertDialog(
+      title: Text('Booking ID ${b['bookingId']}'),
+      content: SingleChildScrollView(child: Text('ID: ${b['bookingId']}\nStatus: ${b['status'] ?? 'pending'}\nClient: ${b['clientName'] ?? ''} - ${b['clientPhone'] ?? ''}\nNurse: ${b['nurseName'] ?? ''} - ${b['nursePhone'] ?? ''}\nYou will collect CASH after work: ${_nurseCashStr(b)}\nService: ${b['serviceType'] ?? b['service'] ?? ''}\nLocation: ${b['location'] ?? ''}\nTime: ${_formatTime(b['time'])}')),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')), ElevatedButton(onPressed: () { Navigator.pop(context); _claimBooking(_rtKey(b)); }, child: const Text('Claim This Booking'))],
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final list = filtered;
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E0A1C),
+      appBar: AppBar(title: const Text('My Job Offers', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), backgroundColor: const Color(0xFF1A1633), actions: [TextButton(onPressed: () async { await _loadHistory(); setState(() => showHistory = !showHistory); }, child: Text(showHistory ? 'Hide History' : 'History (${historyData.length})', style: const TextStyle(color: Colors.white)))]),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(children: [
+          Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Your identity:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Text('Phones: ${myPhones.isEmpty ? 'NONE - Login again' : myPhones.join(', ')} | Emails: ${myEmails.isEmpty ? 'NONE' : myEmails.join(', ')} | UIDs: ${myUids.isEmpty ? 'NONE' : myUids.join(', ')}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+            const Text('Matching by phone last 9 + email + UID from ALL prefs keys - If NONE, use Show Recent 10', style: TextStyle(color: Colors.white60, fontSize: 10)),
+            const SizedBox(height: 8),
+            Row(children: [
+              ChoiceChip(label: const Text('My Offers'), selected: showMode == 'mine', onSelected: (_) { setState(() => showMode = 'mine'); }),
+              const SizedBox(width: 8),
+              ChoiceChip(label: const Text('Show Recent 10'), selected: showMode == 'recent', onSelected: (_) { setState(() => showMode = 'recent'); }),
+              const Spacer(),
+              TextButton(onPressed: _loadAll, child: const Text('Refresh')),
+            ]),
+          ])),
+          const SizedBox(height: 12),
+          if (showHistory) ...[
+            Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('📜 History — Cash Collected / Confirmed', style: TextStyle(fontWeight: FontWeight.bold)), TextButton(onPressed: _deleteAllHistory, child: const Text('Delete All', style: TextStyle(color: Colors.red)))]),
+              if (historyData.isEmpty) const Text('No history yet', style: TextStyle(color: Colors.white60, fontSize: 11)),
+              ...historyData.map((b) {
+                return Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => _showDetails(b),
+                          child: Text(
+                            'Booking ID ${b['bookingId']} - ${b['paidAtStr'] ?? b['clientConfirmedAtStr'] ?? ''} - ${b['cashPaidToNurse'] == true || b['cashConfirmedByNurse'] == true ? '✅ CASH COLLECTED' : ''} - ${b['status']} - Cash: ${_nurseCashStr(b)}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                      if (b['receipt'] != null)
+                        TextButton(
+                          onPressed: () => showDialog(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('Receipt'),
+                              content: Image.network(b['receipt'].toString()),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Close'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          child: const Text('Receipt'),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red, size: 18),
+                        onPressed: () => _deleteHistory(_rtKey(b)),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ])),
+            const SizedBox(height: 12),
+          ],
+          if (list.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text('No job offers yet. Go ONLINE to appear to clients.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white60))),
+          if (list.isNotEmpty && showMode == 'mine' && all.isNotEmpty && list.length == 5 && all.length > 5) const Padding(padding: EdgeInsets.only(bottom: 8), child: Text('0 matched but bookings exist - Showing recent 5 so you can see pending - Tap to claim', style: TextStyle(color: Color(0xFFFACC15), fontSize: 11))),
+          ...list.map((b) {
+            final s = (b['status'] ?? 'pending').toString().toLowerCase();
+            return Container(margin: const EdgeInsets.only(bottom: 10), padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: const Color(0xFF1C1238), borderRadius: BorderRadius.circular(16)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Text('Booking ID ${b['bookingId']}', style: const TextStyle(fontWeight: FontWeight.bold))), Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.2), borderRadius: BorderRadius.circular(999)), child: Text(s.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)))]),
+              const SizedBox(height: 6),
+              Text('Client: ${b['clientName'] ?? ''} - ${b['clientPhone'] ?? ''}', style: const TextStyle(fontSize: 12)),
+              Text('Service: ${b['serviceType'] ?? b['service'] ?? ''}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+              Container(margin: const EdgeInsets.only(top: 6), padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: const Color(0xFF22C55E).withOpacity(0.12), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF22C55E).withOpacity(0.4))), child: Row(children: [const Icon(Icons.money, color: Colors.greenAccent, size: 18), const SizedBox(width: 6), Expanded(child: Text('You will collect CASH after work: ${_nurseCashStr(b)}', style: const TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13)))])),
+              Text('Location: ${b['location'] ?? ''}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+              Text('Time: ${_formatTime(b['time'])}', style: const TextStyle(color: Colors.white60, fontSize: 11)),
+              const SizedBox(height: 10),
+              Wrap(spacing: 6, runSpacing: 6, children: [
+                if (s == 'pending' || s == 'new') ...[
+                  ElevatedButton(onPressed: () => _acceptOffer(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: Colors.green), child: const Text('✅ Accept', style: TextStyle(fontSize: 11))),
+                  ElevatedButton(onPressed: () => _rejectOffer(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('❌ Reject', style: TextStyle(fontSize: 11))),
+                ],
+                if (s == 'accepted') ...[
+                  ElevatedButton(onPressed: () => _markOnWay(_rtKey(b)), child: const Text('🚗 On Way', style: TextStyle(fontSize: 11))),
+                  ElevatedButton(onPressed: () => _markClose(_rtKey(b)), child: const Text('📍 Close', style: TextStyle(fontSize: 11))),
+                  ElevatedButton(onPressed: () => _markCompleted(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text('🎉 Completed', style: TextStyle(fontSize: 11))),
+                  ElevatedButton(onPressed: () => _confirmCashReceived(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: Text('💵 Confirm Cash Received - ${_nurseCashStr(b)}', style: const TextStyle(fontSize: 11))),
+                ],
+                if (s == 'on_the_way') ElevatedButton(onPressed: () => _markClose(_rtKey(b)), child: const Text('📍 Close', style: TextStyle(fontSize: 11))),
+                if (s == 'close' || s == 'completed') ElevatedButton(onPressed: () => _markCompleted(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), child: const Text('🎉 Completed', style: TextStyle(fontSize: 11))),
+                if (s == 'completed' || s == 'close') ElevatedButton(onPressed: () => _confirmCashReceived(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: Text('💵 Confirm Cash Received - ${_nurseCashStr(b)}', style: const TextStyle(fontSize: 11))),
+                ElevatedButton(onPressed: () => _confirmDone(_rtKey(b)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)), child: const Text('✅ Confirm Done', style: TextStyle(fontSize: 11))),
+                OutlinedButton(onPressed: () => _showDetails(b), child: const Text('Details', style: TextStyle(fontSize: 11))),
+                OutlinedButton(onPressed: () => _claimBooking(_rtKey(b)), child: const Text('Claim', style: TextStyle(fontSize: 11))),
+                OutlinedButton(onPressed: () => _cancelBooking(_rtKey(b)), style: OutlinedButton.styleFrom(foregroundColor: Colors.red), child: const Text('Cancel', style: TextStyle(fontSize: 11))),
+                OutlinedButton(onPressed: () => Navigator.pushNamed(context, '/nurse-complaint', arguments: {'bookingId': b['bookingId'], 'id': _rtKey(b), 'clientName': b['clientName'], 'clientId': b['clientUid'] ?? b['clientId'], 'nurseName': b['nurseName'], 'nurseId': b['nurseId'], 'service': b['serviceType'] ?? b['service'], 'amount': _nurseCash(b), 'nurseCash': _nurseCash(b)}), child: const Text('😡 Complaint', style: TextStyle(fontSize: 11))),
+              ]),
+            ]));
+          }),
+          const SizedBox(height: 20),
+        ]),
+      ),
+    );
   }
 }
