@@ -31,7 +31,7 @@ dependencies:
   url_launcher: ^6.3.1
   cached_network_image: ^3.4.1
   google_fonts: ^6.2.1
-  shared_preferences: ^2.3.2 # REQUIRED - saves language for 22 languages + MainTranslations
+  shared_preferences: ^2.3.2
   file_picker: ^8.1.4
   image_picker: ^1.1.2
   camera: ^0.11.0
