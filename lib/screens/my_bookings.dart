@@ -1,445 +1,1045 @@
-import 'dart:async';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+// my_bookings_translations.dart
+// FILE - My Bookings (CLIENT) - ONLY SCREEN WORDS - ALL 22 LANGUAGES
+// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
+// ONE FILE - Drop in lib/screens
 
-/// My Bookings - CLIENT side
-/// - Shows ONLY client's own bookings (phone + email + UID + name)
-/// - NEW 20/80 RULE: Client pays ONLY 20% CEO fee in app to book.
-///   Nurse cash 80% is paid CASH by client to nurse AFTER work. CEO never sends money to nurse.
-/// - 50% DELETED. No 50% button, no 50% logic anywhere.
-/// - Cancel Terms (locked):
-///   Nurse rejects = full 20% refund to client.
-///   Client cancels BEFORE start = CEO keeps 20%, nurse -> Available.
-///   Client cancels AFTER start (accepted/on_the_way/close) = CEO keeps 20% + client pays nurse cash for days worked, nurse -> Available.
-/// - Confirm Cash Paid: client confirms nurse cash paid, job -> cash_confirmed, nurse -> Available.
+class MyBookingsTranslations {
+  static const Map<String, Map<String, String>> all = {
 
-class MyBookingsScreen extends StatefulWidget {
-  const MyBookingsScreen({super.key});
-  @override
-  State<MyBookingsScreen> createState() => _MyBookingsScreenState();
-}
+    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
+    "en": {
+      "title": "My Bookings",
+      "filterAll": "All",
+      "filterPending": "Pending",
+      "filterAccepted": "Accepted",
+      "filterHistory": "History",
+      "banner": "20% CEO fee paid in app to book. 80% paid CASH to nurse after work. CEO never pays nurse. Cancel before start = CEO keeps 20%. Nurse rejects = full 20% refund.",
+      "empty": "No bookings yet.\nTap Book Nurse to start.",
+      "defaultService": "Nurse Booking",
+      "waitingNurse": "Waiting for nurse...",
+      "statusLabel": "Status: {status}",
+      "statusNurse": "Status: {status}\n{nurse}",
+      "totalPaid20": "Total: {total}  •  Paid 20%: {ceo}",
+      "payNurseCash": "Pay Nurse CASH After Work: {cash}",
+      "rejectedCard": "Nurse rejected - Full 20% refund due: {ceo}",
+      "cancelBtn": "Cancel",
+      "cashPaidBtn": "Cash Paid {cash}",
+      // DETAILS
+      "detailsBooking": "Booking: {id}",
+      "detailsStatus": "Status: {status}",
+      "detailsNurse": "Nurse: {name} - {phone}",
+      "detailsClient": "Client: {name} - {phone}",
+      "detailsPatient": "Patient: {name} - {location}",
+      "detailsTime": "Time: {start} - {end} • {mode}",
+      "detailsTotal": "Total: {total}",
+      "detailsPaidCeo": "Paid to Book (CEO 20%): {ceo}",
+      "detailsPayNurse": "Pay Nurse CASH After Work (80%): {cash}",
+      "detailsTerms": "Terms: Nurse rejects = full 20% refund. You cancel before start = CEO keeps 20%. You cancel after start = CEO keeps 20% + you pay nurse cash for days worked.",
+      "detailsRejected": "Nurse rejected - Full 20% refund due to you: {ceo}. Book another nurse.",
+      "close": "Close",
+      "cancelBookingBtn": "Cancel Booking",
+      "confirmCashBtn": "Confirm Cash Paid - {cash}",
+      // CANCEL DIALOG
+      "cancelTitle": "Cancel Booking?",
+      "cancelAfter": "You cancel AFTER work started.\n\nCEO keeps 20%: {ceo}\nYou must pay nurse CASH for days worked: {cash} (full job cash, adjust for days worked with nurse).\nNurse becomes Available again.",
+      "cancelBefore": "You cancel BEFORE work starts.\n\nCEO keeps 20% as cancellation fee: {ceo}\nNurse gets GH₵0.\nNurse becomes Available again.\n\nTerms: Nurse rejects = full 20% refund. You cancel before start = CEO keeps 20%. You cancel after start = CEO keeps 20% + you pay nurse cash for days worked.",
+      "noKeep": "No, Keep Booking",
+      "yesCancel": "Yes, Cancel",
+      "toastCancelAfter": "Cancelled - CEO keeps 20% + Pay nurse cash for days worked",
+      "toastCancelBefore": "Cancelled - CEO keeps 20% as fee",
+      // CASH DIALOG
+      "cashTitle": "Confirm Cash Paid to Nurse?",
+      "cashContent": "Confirm you paid nurse CASH: {cash}\nCEO does NOT pay nurse. After this, job is closed and nurse becomes Available again.",
+      "notYet": "Not Yet",
+      "yesCashPaid": "Yes, Cash Paid",
+      "toastCash": "Cash confirmed - Nurse is Available again",
+    },
 
-class _MyBookingsScreenState extends State<MyBookingsScreen> {
-  List<Map> bookings = [];
-  List<Map> history = [];
-  bool isLoading = true;
-  String filter = 'All';
+    // 2. TWI
+    "tw": {
+      "title": "Me Bookings",
+      "filterAll": "Nyinaa",
+      "filterPending": "Twɛn",
+      "filterAccepted": "Wɔagye",
+      "filterHistory": "Abakɔsɛm",
+      "banner": "Wɔtua CEO fee 20% wɔ app mu de book. Wɔtua 80% CASH ma nɛɛse wɔ adwuma akyi. CEO ntua nɛɛse da. Gyae ansa na adwuma ahyɛ ase = CEO fa 20%. Nɛɛse pow = refund 20% nyinaa.",
+      "empty": "Booking biara nni hɔ.\nTap Book Nurse na hyɛ ase.",
+      "defaultService": "Nɛɛse Booking",
+      "waitingNurse": "Retwɛn nɛɛse...",
+      "statusLabel": "Ho Nsɛm: {status}",
+      "statusNurse": "Ho Nsɛm: {status}\n{nurse}",
+      "totalPaid20": "Total: {total}  •  Wɔatua 20%: {ceo}",
+      "payNurseCash": "Tua Nɛɛse CASH Wɔ Adwuma Akyi: {cash}",
+      "rejectedCard": "Nɛɛse apow - Refund 20% nyinaa wɔ wo hɔ: {ceo}",
+      "cancelBtn": "Gyae",
+      "cashPaidBtn": "Cash Wɔatua {cash}",
+      "detailsBooking": "Booking: {id}",
+      "detailsStatus": "Ho Nsɛm: {status}",
+      "detailsNurse": "Nɛɛse: {name} - {phone}",
+      "detailsClient": "Ɔkra: {name} - {phone}",
+      "detailsPatient": "Ɔyarefo: {name} - {location}",
+      "detailsTime": "Bere: {start} - {end} • {mode}",
+      "detailsTotal": "Total: {total}",
+      "detailsPaidCeo": "Wɔatua de Book (CEO 20%): {ceo}",
+      "detailsPayNurse": "Tua Nɛɛse CASH Wɔ Adwuma Akyi (80%): {cash}",
+      "detailsTerms": "Mmara: Nɛɛse pow = refund 20% nyinaa. Wogyae ansa na adwuma ahyɛ ase = CEO fa 20%. Wogyae wɔ adwuma akyi = CEO fa 20% + wotua nɛɛse cash ma nna a ɔyɛɛ adwuma.",
+      "detailsRejected": "Nɛɛse apow - Refund 20% nyinaa wɔ wo hɔ: {ceo}. Book nɛɛse foforo.",
+      "close": "To Mu",
+      "cancelBookingBtn": "Gyae Booking",
+      "confirmCashBtn": "Hyɛ Cash Wɔatua Mu - {cash}",
+      "cancelTitle": "Gyae Booking?",
+      "cancelAfter": "Wogyae WƆ adwuma ahyɛ ase akyi.\n\nCEO fa 20%: {ceo}\nƐsɛ sɛ wotua nɛɛse CASH ma nna a ɔyɛɛ adwuma: {cash} (adwuma nyinaa cash, sesa ma nna a ɔyɛɛ adwuma ne nɛɛse).\nNɛɛse bɛyɛ Available bio.",
+      "cancelBefore": "Wogyae ANSA na adwuma ahyɛ ase.\n\nCEO fa 20% sɛ gyae fee: {ceo}\nNɛɛse nya GH₵0.\nNɛɛse bɛyɛ Available bio.\n\nMmara: Nɛɛse pow = refund 20% nyinaa. Wogyae ansa na adwuma ahyɛ ase = CEO fa 20%. Wogyae wɔ adwuma akyi = CEO fa 20% + wotua nɛɛse cash ma nna a ɔyɛɛ adwuma.",
+      "noKeep": "Dabi, Fa Booking No",
+      "yesCancel": "Yiw, Gyae",
+      "toastCancelAfter": "Wɔagyae - CEO fa 20% + Tua nɛɛse cash ma nna a ɔyɛɛ adwuma",
+      "toastCancelBefore": "Wɔagyae - CEO fa 20% sɛ fee",
+      "cashTitle": "Hyɛ Mu Sɛ Wɔatua Nɛɛse Cash?",
+      "cashContent": "Hyɛ mu sɛ wɔatua nɛɛse CASH: {cash}\nCEO NTUA nɛɛse. Eyi akyi, adwuma no to mu na nɛɛse bɛyɛ Available bio.",
+      "notYet": "Ɛnnyaa",
+      "yesCashPaid": "Yiw, Cash Wɔatua",
+      "toastCash": "Cash wɔahyɛ mu - Nɛɛse yɛ Available bio",
+    },
 
-  final Set<String> myPhones = {};
-  final Set<String> myEmails = {};
-  final Set<String> myUids = {};
-  String? myName;
+    // 3. GA
+    "ga": {
+      "title": "Mi Bookings",
+      "filterAll": "Fɛɛ",
+      "filterPending": "Mii Twɛn",
+      "filterAccepted": "Ahe",
+      "filterHistory": "Sane",
+      "banner": "Atua CEO fee 20% yɛ app mli de book. Atua 80% CASH hã nɛɛse yɛ nitsumɔ sɛɛ. CEO etua nɛɛse da. Fo dani nitsumɔ shishi = CEO ŋɔ 20%. Nɛɛse ekpɔ = refund 20% fɛɛ.",
+      "empty": "Booking ko bɛ.\nTap Book Nurse koni oshi shi.",
+      "defaultService": "Nɛɛse Booking",
+      "waitingNurse": "Mii twɛn nɛɛse...",
+      "statusLabel": "Nɔ: {status}",
+      "statusNurse": "Nɔ: {status}\n{nurse}",
+      "totalPaid20": "Total: {total}  •  Atua 20%: {ceo}",
+      "payNurseCash": "Tua Nɛɛse CASH Yɛ Nitsumɔ Sɛɛ: {cash}",
+      "rejectedCard": "Nɛɛse ekpɔ - Refund 20% fɛɛ yɛ o dɛŋ: {ceo}",
+      "cancelBtn": "Fo",
+      "cashPaidBtn": "Cash Atua {cash}",
+      "detailsBooking": "Booking: {id}",
+      "detailsStatus": "Nɔ: {status}",
+      "detailsNurse": "Nɛɛse: {name} - {phone}",
+      "detailsClient": "Mɔ: {name} - {phone}",
+      "detailsPatient": "Helafo: {name} - {location}",
+      "detailsTime": "Bere: {start} - {end} • {mode}",
+      "detailsTotal": "Total: {total}",
+      "detailsPaidCeo": "Atua de Book (CEO 20%): {ceo}",
+      "detailsPayNurse": "Tua Nɛɛse CASH Yɛ Nitsumɔ Sɛɛ (80%): {cash}",
+      "detailsTerms": "Mmara: Nɛɛse ekpɔ = refund 20% fɛɛ. Ofo dani nitsumɔ shishi = CEO ŋɔ 20%. Ofo yɛ nitsumɔ mli = CEO ŋɔ 20% + otua nɛɛse cash hã gbi a efe nitsumɔ.",
+      "detailsRejected": "Nɛɛse ekpɔ - Refund 20% fɛɛ yɛ o dɛŋ: {ceo}. Book nɛɛse kroko.",
+      "close": "Gbe Mu",
+      "cancelBookingBtn": "Fo Booking",
+      "confirmCashBtn": "Shi Cash Atua Mu - {cash}",
+      "cancelTitle": "Fo Booking?",
+      "cancelAfter": "Ofo WƆ nitsumɔ shishi sɛɛ.\n\nCEO ŋɔ 20%: {ceo}\nEsaaa otua nɛɛse CASH hã gbi a efe nitsumɔ: {cash} (nitsumɔ fɛɛ cash, tsake hã gbi a efe nitsumɔ kɛ nɛɛse).\nNɛɛse ba fee Available eko.",
+      "cancelBefore": "Ofo DANI nitsumɔ shishi.\n\nCEO ŋɔ 20% sɛ fo fee: {ceo}\nNɛɛse nya GH₵0.\nNɛɛse ba fee Available eko.\n\nMmara: Nɛɛse ekpɔ = refund 20% fɛɛ. Ofo dani nitsumɔ shishi = CEO ŋɔ 20%. Ofo yɛ nitsumɔ mli = CEO ŋɔ 20% + otua nɛɛse cash hã gbi a efe nitsumɔ.",
+      "noKeep": "Dabi, To Booking No",
+      "yesCancel": "Yɛ, Fo",
+      "toastCancelAfter": "Afo - CEO ŋɔ 20% + Tua nɛɛse cash hã gbi a efe nitsumɔ",
+      "toastCancelBefore": "Afo - CEO ŋɔ 20% sɛ fee",
+      "cashTitle": "Shi Sɛ Atua Nɛɛse Cash?",
+      "cashContent": "Shi sɛ otua nɛɛse CASH: {cash}\nCEO ETUA nɛɛse. Eyi sɛɛ, nitsumɔ no gbe mu na nɛɛse ba fee Available eko.",
+      "notYet": "Eko Da",
+      "yesCashPaid": "Yɛ, Cash Atua",
+      "toastCash": "Cash ashi mu - Nɛɛse fee Available eko",
+    },
 
-  StreamSubscription<DatabaseEvent>? _bookingsSub;
-  StreamSubscription<DatabaseEvent>? _historySub;
+    // 4. EWE
+    "ee": {
+      "title": "Nye Bookings",
+      "filterAll": "Katã",
+      "filterPending": "Le Lãm",
+      "filterAccepted": "Woxɔ",
+      "filterHistory": "Xɔme",
+      "banner": "Woxe CEO fee 20% le app me be nàbook. Woxe 80% CASH na nɔnɔvia le dɔ megbe. CEO mexe nɔnɔvia gbeɖe o. Ðe ɖa hafi dɔ nadze = CEO xɔ 20%. Nɔnɔvia gbe = refund 20% bliboa.",
+      "empty": "Booking aɖeke meli o.\nZi Book Nɔnɔvia be nàdze egɔme.",
+      "defaultService": "Nɔnɔvia Booking",
+      "waitingNurse": "Le nɔnɔvia lãm...",
+      "statusLabel": "Nɔnɔme: {status}",
+      "statusNurse": "Nɔnɔme: {status}\n{nurse}",
+      "totalPaid20": "Total: {total}  •  Woxe 20%: {ceo}",
+      "payNurseCash": "Xe Nɔnɔvia CASH Le Dɔ Megbe: {cash}",
+      "rejectedCard": "Nɔnɔvia gbe - Refund 20% bliboa le asiwò: {ceo}",
+      "cancelBtn": "Ðe Ða",
+      "cashPaidBtn": "Cash Woxe {cash}",
+      "detailsBooking": "Booking: {id}",
+      "detailsStatus": "Nɔnɔme: {status}",
+      "detailsNurse": "Nɔnɔvia: {name} - {phone}",
+      "detailsClient": "Ame: {name} - {phone}",
+      "detailsPatient": "Dɔnɔna: {name} - {location}",
+      "detailsTime": "Gaƒoƒo: {start} - {end} • {mode}",
+      "detailsTotal": "Total: {total}",
+      "detailsPaidCeo": "Woxe be nàbook (CEO 20%): {ceo}",
+      "detailsPayNurse": "Xe Nɔnɔvia CASH Le Dɔ Megbe (80%): {cash}",
+      "detailsTerms": "Se: Nɔnɔvia gbe = refund 20% bliboa. Èɖe ɖa hafi dɔ nadze = CEO xɔ 20%. Èɖe ɖa le dɔ me = CEO xɔ 20% + èxe nɔnɔvia cash na ŋkeke si wowɔ dɔ.",
+      "detailsRejected": "Nɔnɔvia gbe - Refund 20% bliboa le asiwò: {ceo}. Book nɔnɔvia bubu.",
+      "close": "Tu",
+      "cancelBookingBtn": "Ðe Booking Ða",
+      "confirmCashBtn": "Ðo Kpe Cash Woxe - {cash}",
+      "cancelTitle": "Ðe Booking Ða?",
+      "cancelAfter": "Èɖe ɖa LE dɔ dze megbe.\n\nCEO xɔ 20%: {ceo}\nEle be nàxe nɔnɔvia CASH na ŋkeke si wowɔ dɔ: {cash} (dɔ bliboa cash, trɔ na ŋkeke si wowɔ dɔ kple nɔnɔvia).\nNɔnɔvia zu Available gbugbɔ.",
+      "cancelBefore": "Èɖe ɖa HAFI dɔ nadze.\n\nCEO xɔ 20% abe ɖeɖe fee ene: {ceo}\nNɔnɔvia xɔ GH₵0.\nNɔnɔvia zu Available gbugbɔ.\n\nSe: Nɔnɔvia gbe = refund 20% bliboa. Èɖe ɖa hafi dɔ nadze = CEO xɔ 20%. Èɖe ɖa le dɔ me = CEO xɔ 20% + èxe nɔnɔvia cash na ŋkeke si wowɔ dɔ.",
+      "noKeep": "Ao, Dzra Booking La",
+      "yesCancel": "Ɛ̃, Ðe Ða",
+      "toastCancelAfter": "Woɖe ɖa - CEO xɔ 20% + Xe nɔnɔvia cash na ŋkeke si wowɔ dɔ",
+      "toastCancelBefore": "Woɖe ɖa - CEO xɔ 20% abe fee ene",
+      "cashTitle": "Ðo Kpe Be Woxe Nɔnɔvia Cash?",
+      "cashContent": "Ðo kpe be woxe nɔnɔvia CASH: {cash}\nCEO MEXEA nɔnɔvia o. Le esia megbe la, dɔa tu eye nɔnɔvia zu Available gbugbɔ.",
+      "notYet": "Meli o",
+      "yesCashPaid": "Ɛ̃, Cash Woxe",
+      "toastCash": "Cash woɖo kpe - Nɔnɔvia le Available gbugbɔ",
+    },
 
-  @override
-  void initState() {
-    super.initState();
-    _collectIdentities().then((_) {
-      _listenLive();
-      _loadHistory();
-    });
-    Future.delayed(const Duration(seconds: 8), () {
-      if (mounted && isLoading) setState(() => isLoading = false);
-    });
+    // 5. DUTCH
+    "nl": {
+      "title": "Mijn Boekingen",
+      "filterAll": "Alle",
+      "filterPending": "In Afwachting",
+      "filterAccepted": "Geaccepteerd",
+      "filterHistory": "Geschiedenis",
+      "banner": "20% CEO-kosten betaald in app om te boeken. 80% CONTANT betaald aan verpleegkundige na werk. CEO betaalt verpleegkundige nooit. Annuleren voor start = CEO houdt 20%. Verpleegkundige weigert = volledige 20% terugbetaling.",
+      "empty": "Nog geen boekingen.\nTik Boek Verpleegkundige om te starten.",
+      "defaultService": "Verpleegkundige Boeking",
+      "waitingNurse": "Wachten op verpleegkundige...",
+      "statusLabel": "Status: {status}",
+      "statusNurse": "Status: {status}\n{nurse}",
+      "totalPaid20": "Totaal: {total}  •  Betaald 20%: {ceo}",
+      "payNurseCash": "Betaal Verpleegkundige CONTANT Na Werk: {cash}",
+      "rejectedCard": "Verpleegkundige geweigerd - Volledige 20% terugbetaling verschuldigd: {ceo}",
+      "cancelBtn": "Annuleren",
+      "cashPaidBtn": "Contant Betaald {cash}",
+      "detailsBooking": "Boeking: {id}",
+      "detailsStatus": "Status: {status}",
+      "detailsNurse": "Verpleegkundige: {name} - {phone}",
+      "detailsClient": "Klant: {name} - {phone}",
+      "detailsPatient": "Patiënt: {name} - {location}",
+      "detailsTime": "Tijd: {start} - {end} • {mode}",
+      "detailsTotal": "Totaal: {total}",
+      "detailsPaidCeo": "Betaald om te Boeken (CEO 20%): {ceo}",
+      "detailsPayNurse": "Betaal Verpleegkundige CONTANT Na Werk (80%): {cash}",
+      "detailsTerms": "Voorwaarden: Verpleegkundige weigert = volledige 20% terugbetaling. Je annuleert voor start = CEO houdt 20%. Je annuleert na start = CEO houdt 20% + je betaalt verpleegkundige contant voor gewerkte dagen.",
+      "detailsRejected": "Verpleegkundige geweigerd - Volledige 20% terugbetaling verschuldigd aan jou: {ceo}. Boek een andere verpleegkundige.",
+      "close": "Sluiten",
+      "cancelBookingBtn": "Boeking Annuleren",
+      "confirmCashBtn": "Bevestig Contant Betaald - {cash}",
+      "cancelTitle": "Boeking Annuleren?",
+      "cancelAfter": "Je annuleert NADAT werk is gestart.\n\nCEO houdt 20%: {ceo}\nJe moet verpleegkundige CONTANT betalen voor gewerkte dagen: {cash} (volledige contant, aanpassen voor gewerkte dagen met verpleegkundige).\nVerpleegkundige wordt weer Beschikbaar.",
+      "cancelBefore": "Je annuleert VOORDAT werk start.\n\nCEO houdt 20% als annuleringskosten: {ceo}\nVerpleegkundige krijgt GH₵0.\nVerpleegkundige wordt weer Beschikbaar.\n\nVoorwaarden: Verpleegkundige weigert = volledige 20% terugbetaling. Je annuleert voor start = CEO houdt 20%. Je annuleert na start = CEO houdt 20% + je betaalt verpleegkundige contant voor gewerkte dagen.",
+      "noKeep": "Nee, Boeking Houden",
+      "yesCancel": "Ja, Annuleren",
+      "toastCancelAfter": "Geannuleerd - CEO houdt 20% + Betaal verpleegkundige contant voor gewerkte dagen",
+      "toastCancelBefore": "Geannuleerd - CEO houdt 20% als kosten",
+      "cashTitle": "Bevestig Contant Betaald Aan Verpleegkundige?",
+      "cashContent": "Bevestig dat je verpleegkundige CONTANT hebt betaald: {cash}\nCEO betaalt verpleegkundige NIET. Hierna is de klus gesloten en wordt verpleegkundige weer Beschikbaar.",
+      "notYet": "Nog Niet",
+      "yesCashPaid": "Ja, Contant Betaald",
+      "toastCash": "Contant bevestigd - Verpleegkundige is weer Beschikbaar",
+    },
+
+    // 6. FRENCH
+    "fr": {
+      "title": "Mes Réservations",
+      "filterAll": "Toutes",
+      "filterPending": "En Attente",
+      "filterAccepted": "Acceptée",
+      "filterHistory": "Historique",
+      "banner": "20% de frais CEO payés dans l'app pour réserver. 80% payés en ESPÈCES à l'infirmière après le travail. Le CEO ne paie jamais l'infirmière. Annuler avant le début = CEO garde 20%. Infirmière refuse = remboursement complet de 20%.",
+      "empty": "Aucune réservation.\nAppuyez sur Réserver une Infirmière pour commencer.",
+      "defaultService": "Réservation Infirmière",
+      "waitingNurse": "En attente d'une infirmière...",
+      "statusLabel": "Statut: {status}",
+      "statusNurse": "Statut: {status}\n{nurse}",
+      "totalPaid20": "Total: {total}  •  Payé 20%: {ceo}",
+      "payNurseCash": "Payer Infirmière en ESPÈCES Après Travail: {cash}",
+      "rejectedCard": "Infirmière a refusé - Remboursement complet de 20% dû: {ceo}",
+      "cancelBtn": "Annuler",
+      "cashPaidBtn": "Espèces Payées {cash}",
+      "detailsBooking": "Réservation: {id}",
+      "detailsStatus": "Statut: {status}",
+      "detailsNurse": "Infirmière: {name} - {phone}",
+      "detailsClient": "Client: {name} - {phone}",
+      "detailsPatient": "Patient: {name} - {location}",
+      "detailsTime": "Heure: {start} - {end} • {mode}",
+      "detailsTotal": "Total: {total}",
+      "detailsPaidCeo": "Payé pour Réserver (CEO 20%): {ceo}",
+      "detailsPayNurse": "Payer Infirmière en ESPÈCES Après Travail (80%): {cash}",
+      "detailsTerms": "Conditions: Infirmière refuse = remboursement complet de 20%. Vous annulez avant le début = CEO garde 20%. Vous annulez après le début = CEO garde 20% + vous payez l'infirmière en espèces pour les jours travaillés.",
+      "detailsRejected": "Infirmière a refusé - Remboursement complet de 20% dû à vous: {ceo}. Réservez une autre infirmière.",
+      "close": "Fermer",
+      "cancelBookingBtn": "Annuler Réservation",
+      "confirmCashBtn": "Confirmer Espèces Payées - {cash}",
+      "cancelTitle": "Annuler Réservation?",
+      "cancelAfter": "Vous annulez APRÈS le début du travail.\n\nCEO garde 20%: {ceo}\nVous devez payer l'infirmière en ESPÈCES pour les jours travaillés: {cash} (espèces complètes, ajuster pour les jours travaillés avec l'infirmière).\nL'infirmière redevient Disponible.",
+      "cancelBefore": "Vous annulez AVANT le début du travail.\n\nCEO garde 20% comme frais d'annulation: {ceo}\nL'infirmière reçoit GH₵0.\nL'infirmière redevient Disponible.\n\nConditions: Infirmière refuse = remboursement complet de 20%. Vous annulez avant le début = CEO garde 20%. Vous annulez après le début = CEO garde 20% + vous payez l'infirmière en espèces pour les jours travaillés.",
+      "noKeep": "Non, Garder Réservation",
+      "yesCancel": "Oui, Annuler",
+      "toastCancelAfter": "Annulé - CEO garde 20% + Payer infirmière en espèces pour jours travaillés",
+      "toastCancelBefore": "Annulé - CEO garde 20% comme frais",
+      "cashTitle": "Confirmer Espèces Payées à l'Infirmière?",
+      "cashContent": "Confirmez que vous avez payé l'infirmière en ESPÈCES: {cash}\nLe CEO ne paie PAS l'infirmière. Après cela, le travail est fermé et l'infirmière redevient Disponible.",
+      "notYet": "Pas Encore",
+      "yesCashPaid": "Oui, Espèces Payées",
+      "toastCash": "Espèces confirmées - Infirmière est à nouveau Disponible",
+    },
+
+    // 7. GERMAN
+    "de": {
+      "title": "Meine Buchungen",
+      "filterAll": "Alle",
+      "filterPending": "Ausstehend",
+      "filterAccepted": "Akzeptiert",
+      "filterHistory": "Verlauf",
+      "banner": "20% CEO-Gebühr in App bezahlt zum Buchen. 80% BAR an Krankenschwester nach Arbeit bezahlt. CEO zahlt Krankenschwester nie. Stornieren vor Start = CEO behält 20%. Krankenschwester lehnt ab = volle 20% Erstattung.",
+      "empty": "Noch keine Buchungen.\nTippe Krankenschwester Buchen zum Starten.",
+      "defaultService": "Krankenschwester Buchung",
+      "waitingNurse": "Warte auf Krankenschwester...",
+      "statusLabel": "Status: {status}",
+      "statusNurse": "Status: {status}\n{nurse}",
+      "totalPaid20": "Gesamt: {total}  •  Bezahlt 20%: {ceo}",
+      "payNurseCash": "Krankenschwester BAR Nach Arbeit Bezahlen: {cash}",
+      "rejectedCard": "Krankenschwester abgelehnt - Volle 20% Erstattung fällig: {ceo}",
+      "cancelBtn": "Stornieren",
+      "cashPaidBtn": "Bar Bezahlt {cash}",
+      "detailsBooking": "Buchung: {id}",
+      "detailsStatus": "Status: {status}",
+      "detailsNurse": "Krankenschwester: {name} - {phone}",
+      "detailsClient": "Kunde: {name} - {phone}",
+      "detailsPatient": "Patient: {name} - {location}",
+      "detailsTime": "Zeit: {start} - {end} • {mode}",
+      "detailsTotal": "Gesamt: {total}",
+      "detailsPaidCeo": "Bezahlt zum Buchen (CEO 20%): {ceo}",
+      "detailsPayNurse": "Krankenschwester BAR Nach Arbeit Bezahlen (80%): {cash}",
+      "detailsTerms": "Bedingungen: Krankenschwester lehnt ab = volle 20% Erstattung. Du stornierst vor Start = CEO behält 20%. Du stornierst nach Start = CEO behält 20% + du zahlst Krankenschwester bar für gearbeitete Tage.",
+      "detailsRejected": "Krankenschwester abgelehnt - Volle 20% Erstattung fällig an dich: {ceo}. Buche eine andere Krankenschwester.",
+      "close": "Schließen",
+      "cancelBookingBtn": "Buchung Stornieren",
+      "confirmCashBtn": "Bar Bezahlt Bestätigen - {cash}",
+      "cancelTitle": "Buchung Stornieren?",
+      "cancelAfter": "Du stornierst NACH Arbeitsbeginn.\n\nCEO behält 20%: {ceo}\nDu musst Krankenschwester BAR für gearbeitete Tage bezahlen: {cash} (volles Bar, anpassen für gearbeitete Tage mit Krankenschwester).\nKrankenschwester wird wieder Verfügbar.",
+      "cancelBefore": "Du stornierst VOR Arbeitsbeginn.\n\nCEO behält 20% als Stornogebühr: {ceo}\nKrankenschwester bekommt GH₵0.\nKrankenschwester wird wieder Verfügbar.\n\nBedingungen: Krankenschwester lehnt ab = volle 20% Erstattung. Du stornierst vor Start = CEO behält 20%. Du stornierst nach Start = CEO behält 20% + du zahlst Krankenschwester bar für gearbeitete Tage.",
+      "noKeep": "Nein, Buchung Behalten",
+      "yesCancel": "Ja, Stornieren",
+      "toastCancelAfter": "Storniert - CEO behält 20% + Krankenschwester bar für gearbeitete Tage bezahlen",
+      "toastCancelBefore": "Storniert - CEO behält 20% als Gebühr",
+      "cashTitle": "Bar An Krankenschwester Bezahlt Bestätigen?",
+      "cashContent": "Bestätige, dass du Krankenschwester BAR bezahlt hast: {cash}\nCEO zahlt Krankenschwester NICHT. Danach ist der Job geschlossen und Krankenschwester wird wieder Verfügbar.",
+      "notYet": "Noch Nicht",
+      "yesCashPaid": "Ja, Bar Bezahlt",
+      "toastCash": "Bar bestätigt - Krankenschwester ist wieder Verfügbar",
+    },
+
+    // 8. SPANISH
+    "es": {
+      "title": "Mis Reservas",
+      "filterAll": "Todas",
+      "filterPending": "Pendiente",
+      "filterAccepted": "Aceptada",
+      "filterHistory": "Historial",
+      "banner": "20% de tarifa CEO pagada en app para reservar. 80% pagado en EFECTIVO a enfermera después del trabajo. CEO nunca paga a enfermera. Cancelar antes de inicio = CEO se queda 20%. Enfermera rechaza = reembolso completo 20%.",
+      "empty": "Sin reservas aún.\nToca Reservar Enfermera para empezar.",
+      "defaultService": "Reserva Enfermera",
+      "waitingNurse": "Esperando enfermera...",
+      "statusLabel": "Estado: {status}",
+      "statusNurse": "Estado: {status}\n{nurse}",
+      "totalPaid20": "Total: {total}  •  Pagado 20%: {ceo}",
+      "payNurseCash": "Pagar Enfermera en EFECTIVO Después del Trabajo: {cash}",
+      "rejectedCard": "Enfermera rechazó - Reembolso completo 20% adeudado: {ceo}",
+      "cancelBtn": "Cancelar",
+      "cashPaidBtn": "Efectivo Pagado {cash}",
+      "detailsBooking": "Reserva: {id}",
+      "detailsStatus": "Estado: {status}",
+      "detailsNurse": "Enfermera: {name} - {phone}",
+      "detailsClient": "Cliente: {name} - {phone}",
+      "detailsPatient": "Paciente: {name} - {location}",
+      "detailsTime": "Hora: {start} - {end} • {mode}",
+      "detailsTotal": "Total: {total}",
+      "detailsPaidCeo": "Pagado para Reservar (CEO 20%): {ceo}",
+      "detailsPayNurse": "Pagar Enfermera en EFECTIVO Después del Trabajo (80%): {cash}",
+      "detailsTerms": "Términos: Enfermera rechaza = reembolso completo 20%. Cancelas antes de inicio = CEO se queda 20%. Cancelas después de inicio = CEO se queda 20% + pagas a enfermera en efectivo por días trabajados.",
+      "detailsRejected": "Enfermera rechazó - Reembolso completo 20% adeudado a ti: {ceo}. Reserva otra enfermera.",
+      "close": "Cerrar",
+      "cancelBookingBtn": "Cancelar Reserva",
+      "confirmCashBtn": "Confirmar Efectivo Pagado - {cash}",
+      "cancelTitle": "¿Cancelar Reserva?",
+      "cancelAfter": "Cancelas DESPUÉS de que empezó el trabajo.\n\nCEO se queda 20%: {ceo}\nDebes pagar a enfermera en EFECTIVO por días trabajados: {cash} (efectivo completo, ajustar por días trabajados con enfermera).\nEnfermera vuelve a estar Disponible.",
+      "cancelBefore": "Cancelas ANTES de que empiece el trabajo.\n\nCEO se queda 20% como tarifa de cancelación: {ceo}\nEnfermera recibe GH₵0.\nEnfermera vuelve a estar Disponible.\n\nTérminos: Enfermera rechaza = reembolso completo 20%. Cancelas antes de inicio = CEO se queda 20%. Cancelas después de inicio = CEO se queda 20% + pagas a enfermera en efectivo por días trabajados.",
+      "noKeep": "No, Mantener Reserva",
+      "yesCancel": "Sí, Cancelar",
+      "toastCancelAfter": "Cancelado - CEO se queda 20% + Pagar enfermera en efectivo por días trabajados",
+      "toastCancelBefore": "Cancelado - CEO se queda 20% como tarifa",
+      "cashTitle": "¿Confirmar Efectivo Pagado a Enfermera?",
+      "cashContent": "Confirma que pagaste a enfermera en EFECTIVO: {cash}\nCEO NO paga a enfermera. Después de esto, el trabajo se cierra y enfermera vuelve a estar Disponible.",
+      "notYet": "Todavía No",
+      "yesCashPaid": "Sí, Efectivo Pagado",
+      "toastCash": "Efectivo confirmado - Enfermera está Disponible de nuevo",
+    },
+
+    // 9. ITALIAN
+    "it": {
+      "title": "Le Mie Prenotazioni",
+      "filterAll": "Tutte",
+      "filterPending": "In Attesa",
+      "filterAccepted": "Accettata",
+      "filterHistory": "Cronologia",
+      "banner": "20% di commissione CEO pagata in app per prenotare. 80% pagato in CONTANTI all'infermiera dopo il lavoro. Il CEO non paga mai l'infermiera. Annulla prima dell'inizio = CEO trattiene 20%. Infermiera rifiuta = rimborso completo 20%.",
+      "empty": "Nessuna prenotazione.\nTocca Prenota Infermiera per iniziare.",
+      "defaultService": "Prenotazione Infermiera",
+      "waitingNurse": "In attesa di infermiera...",
+      "statusLabel": "Stato: {status}",
+      "statusNurse": "Stato: {status}\n{nurse}",
+      "totalPaid20": "Totale: {total}  •  Pagato 20%: {ceo}",
+      "payNurseCash": "Paga Infermiera in CONTANTI Dopo Lavoro: {cash}",
+      "rejectedCard": "Infermiera ha rifiutato - Rimborso completo 20% dovuto: {ceo}",
+      "cancelBtn": "Annulla",
+      "cashPaidBtn": "Contanti Pagati {cash}",
+      "detailsBooking": "Prenotazione: {id}",
+      "detailsStatus": "Stato: {status}",
+      "detailsNurse": "Infermiera: {name} - {phone}",
+      "detailsClient": "Cliente: {name} - {phone}",
+      "detailsPatient": "Paziente: {name} - {location}",
+      "detailsTime": "Ora: {start} - {end} • {mode}",
+      "detailsTotal": "Totale: {total}",
+      "detailsPaidCeo": "Pagato per Prenotare (CEO 20%): {ceo}",
+      "detailsPayNurse": "Paga Infermiera in CONTANTI Dopo Lavoro (80%): {cash}",
+      "detailsTerms": "Termini: Infermiera rifiuta = rimborso completo 20%. Annulli prima dell'inizio = CEO trattiene 20%. Annulli dopo l'inizio = CEO trattiene 20% + paghi infermiera in contanti per giorni lavorati.",
+      "detailsRejected": "Infermiera ha rifiutato - Rimborso completo 20% dovuto a te: {ceo}. Prenota un'altra infermiera.",
+      "close": "Chiudi",
+      "cancelBookingBtn": "Annulla Prenotazione",
+      "confirmCashBtn": "Conferma Contanti Pagati - {cash}",
+      "cancelTitle": "Annullare Prenotazione?",
+      "cancelAfter": "Annulli DOPO l'inizio del lavoro.\n\nCEO trattiene 20%: {ceo}\nDevi pagare infermiera in CONTANTI per giorni lavorati: {cash} (contanti completi, aggiusta per giorni lavorati con infermiera).\nInfermiera torna Disponibile.",
+      "cancelBefore": "Annulli PRIMA dell'inizio del lavoro.\n\nCEO trattiene 20% come tariffa di annullamento: {ceo}\nInfermiera riceve GH₵0.\nInfermiera torna Disponibile.\n\nTermini: Infermiera rifiuta = rimborso completo 20%. Annulli prima dell'inizio = CEO trattiene 20%. Annulli dopo l'inizio = CEO trattiene 20% + paghi infermiera in contanti per giorni lavorati.",
+      "noKeep": "No, Tieni Prenotazione",
+      "yesCancel": "Sì, Annulla",
+      "toastCancelAfter": "Annullato - CEO trattiene 20% + Paga infermiera in contanti per giorni lavorati",
+      "toastCancelBefore": "Annullato - CEO trattiene 20% come tariffa",
+      "cashTitle": "Confermare Contanti Pagati all'Infermiera?",
+      "cashContent": "Conferma di aver pagato infermiera in CONTANTI: {cash}\nIl CEO NON paga l'infermiera. Dopo questo, il lavoro è chiuso e infermiera torna Disponibile.",
+      "notYet": "Non Ancora",
+      "yesCashPaid": "Sì, Contanti Pagati",
+      "toastCash": "Contanti confermati - Infermiera è di nuovo Disponibile",
+    },
+
+    // 10. PORTUGUESE
+    "pt": {
+      "title": "Minhas Reservas",
+      "filterAll": "Todas",
+      "filterPending": "Pendente",
+      "filterAccepted": "Aceita",
+      "filterHistory": "Histórico",
+      "banner": "20% de taxa CEO paga no app para reservar. 80% pago em DINHEIRO à enfermeira após o trabalho. CEO nunca paga enfermeira. Cancelar antes do início = CEO fica 20%. Enfermeira rejeita = reembolso total 20%.",
+      "empty": "Nenhuma reserva ainda.\nToque em Reservar Enfermeira para começar.",
+      "defaultService": "Reserva Enfermeira",
+      "waitingNurse": "Aguardando enfermeira...",
+      "statusLabel": "Status: {status}",
+      "statusNurse": "Status: {status}\n{nurse}",
+      "totalPaid20": "Total: {total}  •  Pago 20%: {ceo}",
+      "payNurseCash": "Pagar Enfermeira em DINHEIRO Após Trabalho: {cash}",
+      "rejectedCard": "Enfermeira rejeitou - Reembolso total 20% devido: {ceo}",
+      "cancelBtn": "Cancelar",
+      "cashPaidBtn": "Dinheiro Pago {cash}",
+      "detailsBooking": "Reserva: {id}",
+      "detailsStatus": "Status: {status}",
+      "detailsNurse": "Enfermeira: {name} - {phone}",
+      "detailsClient": "Cliente: {name} - {phone}",
+      "detailsPatient": "Paciente: {name} - {location}",
+      "detailsTime": "Hora: {start} - {end} • {mode}",
+      "detailsTotal": "Total: {total}",
+      "detailsPaidCeo": "Pago para Reservar (CEO 20%): {ceo}",
+      "detailsPayNurse": "Pagar Enfermeira em DINHEIRO Após Trabalho (80%): {cash}",
+      "detailsTerms": "Termos: Enfermeira rejeita = reembolso total 20%. Você cancela antes do início = CEO fica 20%. Você cancela após o início = CEO fica 20% + você paga enfermeira em dinheiro por dias trabalhados.",
+      "detailsRejected": "Enfermeira rejeitou - Reembolso total 20% devido a você: {ceo}. Reserve outra enfermeira.",
+      "close": "Fechar",
+      "cancelBookingBtn": "Cancelar Reserva",
+      "confirmCashBtn": "Confirmar Dinheiro Pago - {cash}",
+      "cancelTitle": "Cancelar Reserva?",
+      "cancelAfter": "Você cancela DEPOIS do início do trabalho.\n\nCEO fica 20%: {ceo}\nVocê deve pagar enfermeira em DINHEIRO por dias trabalhados: {cash} (dinheiro total, ajustar por dias trabalhados com enfermeira).\nEnfermeira fica Disponível novamente.",
+      "cancelBefore": "Você cancela ANTES do início do trabalho.\n\nCEO fica 20% como taxa de cancelamento: {ceo}\nEnfermeira recebe GH₵0.\nEnfermeira fica Disponível novamente.\n\nTermos: Enfermeira rejeita = reembolso total 20%. Você cancela antes do início = CEO fica 20%. Você cancela após o início = CEO fica 20% + você paga enfermeira em dinheiro por dias trabalhados.",
+      "noKeep": "Não, Manter Reserva",
+      "yesCancel": "Sim, Cancelar",
+      "toastCancelAfter": "Cancelado - CEO fica 20% + Pagar enfermeira em dinheiro por dias trabalhados",
+      "toastCancelBefore": "Cancelado - CEO fica 20% como taxa",
+      "cashTitle": "Confirmar Dinheiro Pago à Enfermeira?",
+      "cashContent": "Confirme que você pagou enfermeira em DINHEIRO: {cash}\nCEO NÃO paga enfermeira. Depois disso, o trabalho é fechado e enfermeira fica Disponível novamente.",
+      "notYet": "Ainda Não",
+      "yesCashPaid": "Sim, Dinheiro Pago",
+      "toastCash": "Dinheiro confirmado - Enfermeira está Disponível novamente",
+    },
+
+    // 11. ARABIC
+    "ar": {
+      "title": "حجوزاتي",
+      "filterAll": "الكل",
+      "filterPending": "قيد الانتظار",
+      "filterAccepted": "مقبول",
+      "filterHistory": "السجل",
+      "banner": "تم دفع رسوم المدير 20% في التطبيق للحجز. يتم دفع 80% نقداً للممرضة بعد العمل. المدير لا يدفع للممرضة أبداً. الإلغاء قبل البدء = المدير يحتفظ بـ 20%. الممرضة ترفض = استرداد كامل 20%.",
+      "empty": "لا حجوزات بعد.\nاضغط احجز ممرضة للبدء.",
+      "defaultService": "حجز ممرضة",
+      "waitingNurse": "في انتظار ممرضة...",
+      "statusLabel": "الحالة: {status}",
+      "statusNurse": "الحالة: {status}\n{nurse}",
+      "totalPaid20": "الإجمالي: {total}  •  المدفوع 20%: {ceo}",
+      "payNurseCash": "ادفع للممرضة نقداً بعد العمل: {cash}",
+      "rejectedCard": "الممرضة رفضت - استرداد كامل 20% مستحق: {ceo}",
+      "cancelBtn": "إلغاء",
+      "cashPaidBtn": "تم دفع نقداً {cash}",
+      "detailsBooking": "الحجز: {id}",
+      "detailsStatus": "الحالة: {status}",
+      "detailsNurse": "الممرضة: {name} - {phone}",
+      "detailsClient": "العميل: {name} - {phone}",
+      "detailsPatient": "المريض: {name} - {location}",
+      "detailsTime": "الوقت: {start} - {end} • {mode}",
+      "detailsTotal": "الإجمالي: {total}",
+      "detailsPaidCeo": "المدفوع للحجز (المدير 20%): {ceo}",
+      "detailsPayNurse": "ادفع للممرضة نقداً بعد العمل (80%): {cash}",
+      "detailsTerms": "الشروط: الممرضة ترفض = استرداد كامل 20%. تلغي قبل البدء = المدير يحتفظ بـ 20%. تلغي بعد البدء = المدير يحتفظ بـ 20% + تدفع للممرضة نقداً عن الأيام التي عملتها.",
+      "detailsRejected": "الممرضة رفضت - استرداد كامل 20% مستحق لك: {ceo}. احجز ممرضة أخرى.",
+      "close": "إغلاق",
+      "cancelBookingBtn": "إلغاء الحجز",
+      "confirmCashBtn": "تأكيد دفع نقداً - {cash}",
+      "cancelTitle": "إلغاء الحجز؟",
+      "cancelAfter": "تلغي بعد بدء العمل.\n\nالمدير يحتفظ بـ 20%: {ceo}\nيجب أن تدفع للممرضة نقداً عن الأيام التي عملتها: {cash} (نقداً كاملاً، اضبط حسب الأيام التي عملتها مع الممرضة).\nالممرضة تصبح متاحة مرة أخرى.",
+      "cancelBefore": "تلغي قبل بدء العمل.\n\nالمدير يحتفظ بـ 20% كرسوم إلغاء: {ceo}\nالممرضة تحصل على GH₵0.\nالممرضة تصبح متاحة مرة أخرى.\n\nالشروط: الممرضة ترفض = استرداد كامل 20%. تلغي قبل البدء = المدير يحتفظ بـ 20%. تلغي بعد البدء = المدير يحتفظ بـ 20% + تدفع للممرضة نقداً عن الأيام التي عملتها.",
+      "noKeep": "لا، الاحتفاظ بالحجز",
+      "yesCancel": "نعم، إلغاء",
+      "toastCancelAfter": "تم الإلغاء - المدير يحتفظ بـ 20% + ادفع للممرضة نقداً عن الأيام التي عملتها",
+      "toastCancelBefore": "تم الإلغاء - المدير يحتفظ بـ 20% كرسوم",
+      "cashTitle": "تأكيد دفع نقداً للممرضة؟",
+      "cashContent": "أكّد أنك دفعت للممرضة نقداً: {cash}\nالمدير لا يدفع للممرضة. بعد هذا، يتم إغلاق العمل وتصبح الممرضة متاحة مرة أخرى.",
+      "notYet": "ليس بعد",
+      "yesCashPaid": "نعم، تم الدفع نقداً",
+      "toastCash": "تم تأكيد النقد - الممرضة متاحة مرة أخرى",
+    },
+
+    // 12. CHINESE
+    "zh": {
+      "title": "我的预订",
+      "filterAll": "全部",
+      "filterPending": "待处理",
+      "filterAccepted": "已接受",
+      "filterHistory": "历史",
+      "banner": "在应用内支付 20% CEO 费用以预订。工作后以现金向护士支付 80%。CEO 从不向护士付款。开始前取消 = CEO 保留 20%。护士拒绝 = 全额退还 20%。",
+      "empty": "尚无预订。\n点击预订护士开始。",
+      "defaultService": "护士预订",
+      "waitingNurse": "等待护士...",
+      "statusLabel": "状态: {status}",
+      "statusNurse": "状态: {status}\n{nurse}",
+      "totalPaid20": "总额: {total}  •  已付 20%: {ceo}",
+      "payNurseCash": "工作后以现金支付护士: {cash}",
+      "rejectedCard": "护士拒绝 - 应退还全额 20%: {ceo}",
+      "cancelBtn": "取消",
+      "cashPaidBtn": "现金已付 {cash}",
+      "detailsBooking": "预订: {id}",
+      "detailsStatus": "状态: {status}",
+      "detailsNurse": "护士: {name} - {phone}",
+      "detailsClient": "客户: {name} - {phone}",
+      "detailsPatient": "患者: {name} - {location}",
+      "detailsTime": "时间: {start} - {end} • {mode}",
+      "detailsTotal": "总额: {total}",
+      "detailsPaidCeo": "已付预订 (CEO 20%): {ceo}",
+      "detailsPayNurse": "工作后以现金支付护士 (80%): {cash}",
+      "detailsTerms": "条款: 护士拒绝 = 全额退还 20%。开始前取消 = CEO 保留 20%。开始后取消 = CEO 保留 20% + 您以现金支付护士工作天数的费用。",
+      "detailsRejected": "护士拒绝 - 应向您退还全额 20%: {ceo}。请预订另一位护士。",
+      "close": "关闭",
+      "cancelBookingBtn": "取消预订",
+      "confirmCashBtn": "确认现金已付 - {cash}",
+      "cancelTitle": "取消预订?",
+      "cancelAfter": "您在工作开始后取消。\n\nCEO 保留 20%: {ceo}\n您必须以现金支付护士工作天数的费用: {cash} (全额现金，根据与护士一起工作的天数调整)。\n护士再次可用。",
+      "cancelBefore": "您在工作开始前取消。\n\nCEO 保留 20% 作为取消费: {ceo}\n护士获得 GH₵0。\n护士再次可用。\n\n条款: 护士拒绝 = 全额退还 20%。开始前取消 = CEO 保留 20%。开始后取消 = CEO 保留 20% + 您以现金支付护士工作天数的费用。",
+      "noKeep": "不，保留预订",
+      "yesCancel": "是，取消",
+      "toastCancelAfter": "已取消 - CEO 保留 20% + 以现金支付护士工作天数的费用",
+      "toastCancelBefore": "已取消 - CEO 保留 20% 作为费用",
+      "cashTitle": "确认已向护士支付现金?",
+      "cashContent": "确认您已向护士支付现金: {cash}\nCEO 不向护士付款。此后，工作关闭，护士再次可用。",
+      "notYet": "尚未",
+      "yesCashPaid": "是，现金已付",
+      "toastCash": "现金已确认 - 护士再次可用",
+    },
+
+    // 13. HINDI
+    "hi": {
+      "title": "मेरी बुकिंग",
+      "filterAll": "सभी",
+      "filterPending": "लंबित",
+      "filterAccepted": "स्वीकार",
+      "filterHistory": "इतिहास",
+      "banner": "बुक करने के लिए ऐप में 20% CEO शुल्क का भुगतान किया गया। काम के बाद नर्स को 80% नकद भुगतान किया गया। CEO कभी नर्स को भुगतान नहीं करता। शुरू होने से पहले रद्द करें = CEO 20% रखता है। नर्स अस्वीकार करती है = पूर्ण 20% रिफंड।",
+      "empty": "अभी तक कोई बुकिंग नहीं।\nशुरू करने के लिए नर्स बुक करें पर टैप करें।",
+      "defaultService": "नर्स बुकिंग",
+      "waitingNurse": "नर्स की प्रतीक्षा...",
+      "statusLabel": "स्थिति: {status}",
+      "statusNurse": "स्थिति: {status}\n{nurse}",
+      "totalPaid20": "कुल: {total}  •  भुगतान 20%: {ceo}",
+      "payNurseCash": "काम के बाद नर्स को नकद भुगतान करें: {cash}",
+      "rejectedCard": "नर्स ने अस्वीकार किया - पूर्ण 20% रिफंड देय: {ceo}",
+      "cancelBtn": "रद्द करें",
+      "cashPaidBtn": "नकद भुगतान {cash}",
+      "detailsBooking": "बुकिंग: {id}",
+      "detailsStatus": "स्थिति: {status}",
+      "detailsNurse": "नर्स: {name} - {phone}",
+      "detailsClient": "ग्राहक: {name} - {phone}",
+      "detailsPatient": "मरीज: {name} - {location}",
+      "detailsTime": "समय: {start} - {end} • {mode}",
+      "detailsTotal": "कुल: {total}",
+      "detailsPaidCeo": "बुक करने के लिए भुगतान (CEO 20%): {ceo}",
+      "detailsPayNurse": "काम के बाद नर्स को नकद भुगतान करें (80%): {cash}",
+      "detailsTerms": "शर्तें: नर्स अस्वीकार करती है = पूर्ण 20% रिफंड। आप शुरू होने से पहले रद्द करते हैं = CEO 20% रखता है। आप शुरू होने के बाद रद्द करते हैं = CEO 20% रखता है + आप काम किए गए दिनों के लिए नर्स को नकद भुगतान करते हैं।",
+      "detailsRejected": "नर्स ने अस्वीकार किया - आपको पूर्ण 20% रिफंड देय: {ceo}। दूसरी नर्स बुक करें।",
+      "close": "बंद करें",
+      "cancelBookingBtn": "बुकिंग रद्द करें",
+      "confirmCashBtn": "नकद भुगतान की पुष्टि करें - {cash}",
+      "cancelTitle": "बुकिंग रद्द करें?",
+      "cancelAfter": "आप काम शुरू होने के बाद रद्द करते हैं।\n\nCEO 20% रखता है: {ceo}\nआपको काम किए गए दिनों के लिए नर्स को नकद भुगतान करना होगा: {cash} (पूर्ण नकद, नर्स के साथ काम किए गए दिनों के अनुसार समायोजित करें)।\nनर्स फिर से उपलब्ध हो जाती है।",
+      "cancelBefore": "आप काम शुरू होने से पहले रद्द करते हैं।\n\nCEO 20% रद्दीकरण शुल्क के रूप में रखता है: {ceo}\nनर्स को GH₵0 मिलता है।\nनर्स फिर से उपलब्ध हो जाती है।\n\nशर्तें: नर्स अस्वीकार करती है = पूर्ण 20% रिफंड। आप शुरू होने से पहले रद्द करते हैं = CEO 20% रखता है। आप शुरू होने के बाद रद्द करते हैं = CEO 20% रखता है + आप काम किए गए दिनों के लिए नर्स को नकद भुगतान करते हैं।",
+      "noKeep": "नहीं, बुकिंग रखें",
+      "yesCancel": "हाँ, रद्द करें",
+      "toastCancelAfter": "रद्द - CEO 20% रखता है + काम किए गए दिनों के लिए नर्स को नकद भुगतान करें",
+      "toastCancelBefore": "रद्द - CEO 20% शुल्क के रूप में रखता है",
+      "cashTitle": "नर्स को नकद भुगतान की पुष्टि करें?",
+      "cashContent": "पुष्टि करें कि आपने नर्स को नकद भुगतान किया: {cash}\nCEO नर्स को भुगतान नहीं करता। इसके बाद, काम बंद हो जाता है और नर्स फिर से उपलब्ध हो जाती है।",
+      "notYet": "अभी नहीं",
+      "yesCashPaid": "हाँ, नकद भुगतान किया",
+      "toastCash": "नकद की पुष्टि - नर्स फिर से उपलब्ध है",
+    },
+
+    // 14. SWAHILI
+    "sw": {
+      "title": "Booking Zangu",
+      "filterAll": "Zote",
+      "filterPending": "Inasubiri",
+      "filterAccepted": "Imekubaliwa",
+      "filterHistory": "Historia",
+      "banner": "Ada ya CEO 20% imelipwa kwenye app ili kuweka booking. 80% imelipwa TASLIMU kwa muuguzi baada ya kazi. CEO kamwe hamlipi muuguzi. Ghairi kabla ya kuanza = CEO anabaki na 20%. Muuguzi anakataa = marejesho kamili 20%.",
+      "empty": "Hakuna booking bado.\nGusa Weka Muuguzi ili kuanza.",
+      "defaultService": "Booking Ya Muuguzi",
+      "waitingNurse": "Inamsubiri muuguzi...",
+      "statusLabel": "Hali: {status}",
+      "statusNurse": "Hali: {status}\n{nurse}",
+      "totalPaid20": "Jumla: {total}  •  Imelipwa 20%: {ceo}",
+      "payNurseCash": "Mlipie Muuguzi TASLIMU Baada Ya Kazi: {cash}",
+      "rejectedCard": "Muuguzi amekataa - Marejesho kamili 20% yanadaiwa: {ceo}",
+      "cancelBtn": "Ghairi",
+      "cashPaidBtn": "Taslimu Imelipwa {cash}",
+      "detailsBooking": "Booking: {id}",
+      "detailsStatus": "Hali: {status}",
+      "detailsNurse": "Muuguzi: {name} - {phone}",
+      "detailsClient": "Mteja: {name} - {phone}",
+      "detailsPatient": "Mgonjwa: {name} - {location}",
+      "detailsTime": "Wakati: {start} - {end} • {mode}",
+      "detailsTotal": "Jumla: {total}",
+      "detailsPaidCeo": "Imelipwa Ili Kuweka Booking (CEO 20%): {ceo}",
+      "detailsPayNurse": "Mlipie Muuguzi TASLIMU Baada Ya Kazi (80%): {cash}",
+      "detailsTerms": "Masharti: Muuguzi anakataa = marejesho kamili 20%. Unaghairi kabla ya kuanza = CEO anabaki na 20%. Unaghairi baada ya kuanza = CEO anabaki na 20% + unamlipa muuguzi taslimu kwa siku zilizofanya kazi.",
+      "detailsRejected": "Muuguzi amekataa - Marejesho kamili 20% yanadaiwa kwako: {ceo}. Weka muuguzi mwingine.",
+      "close": "Funga",
+      "cancelBookingBtn": "Ghairi Booking",
+      "confirmCashBtn": "Thibitisha Taslimu Imelipwa - {cash}",
+      "cancelTitle": "Ghairi Booking?",
+      "cancelAfter": "Unaghairi BAADA ya kazi kuanza.\n\nCEO anabaki na 20%: {ceo}\nLazima umlipie muuguzi TASLIMU kwa siku zilizofanya kazi: {cash} (taslimu kamili, rekebisha kwa siku zilizofanya kazi na muuguzi).\nMuuguzi anakuwa Anapatikana tena.",
+      "cancelBefore": "Unaghairi KABLA ya kazi kuanza.\n\nCEO anabaki na 20% kama ada ya kughairi: {ceo}\nMuuguzi anapata GH₵0.\nMuuguzi anakuwa Anapatikana tena.\n\nMasharti: Muuguzi anakataa = marejesho kamili 20%. Unaghairi kabla ya kuanza = CEO anabaki na 20%. Unaghairi baada ya kuanza = CEO anabaki na 20% + unamlipa muuguzi taslimu kwa siku zilizofanya kazi.",
+      "noKeep": "Hapana, Weka Booking",
+      "yesCancel": "Ndiyo, Ghairi",
+      "toastCancelAfter": "Imeghairiwa - CEO anabaki na 20% + Mlipie muuguzi taslimu kwa siku zilizofanya kazi",
+      "toastCancelBefore": "Imeghairiwa - CEO anabaki na 20% kama ada",
+      "cashTitle": "Thibitisha Taslimu Imelipwa Kwa Muuguzi?",
+      "cashContent": "Thibitisha umemlipia muuguzi TASLIMU: {cash}\nCEO HAMLIPI muuguzi. Baada ya hii, kazi imefungwa na muuguzi anakuwa Anapatikana tena.",
+      "notYet": "Bado",
+      "yesCashPaid": "Ndiyo, Taslimu Imelipwa",
+      "toastCash": "Taslimu imethibitishwa - Muuguzi Anapatikana tena",
+    },
+
+    // 15. YORUBA
+    "yo": {
+      "title": "Awọn Booking Mi",
+      "filterAll": "Gbogbo",
+      "filterPending": "Nduro",
+      "filterAccepted": "A Gba",
+      "filterHistory": "Itan",
+      "banner": "A san owo CEO 20% ninu app lati ṣe booking. A san 80% OWO ORI si nọọsi lẹhin iṣẹ. CEO ko san nọọsi rara. Fagile ṣaaju ibẹrẹ = CEO pa 20% mọ. Nọọsi kọ = agbapada kikun 20%.",
+      "empty": "Ko si booking sibẹ.\nTẹ Book Nọọsi lati bẹrẹ.",
+      "defaultService": "Booking Nọọsi",
+      "waitingNurse": "Nduro nọọsi...",
+      "statusLabel": "Ipo: {status}",
+      "statusNurse": "Ipo: {status}\n{nurse}",
+      "totalPaid20": "Apapọ: {total}  •  San 20%: {ceo}",
+      "payNurseCash": "San Nọọsi ni OWO ORI Lẹhin Iṣẹ: {cash}",
+      "rejectedCard": "Nọọsi kọ - Agbapada kikun 20% jẹ: {ceo}",
+      "cancelBtn": "Fagile",
+      "cashPaidBtn": "Owo Ori San {cash}",
+      "detailsBooking": "Booking: {id}",
+      "detailsStatus": "Ipo: {status}",
+      "detailsNurse": "Nọọsi: {name} - {phone}",
+      "detailsClient": "Alabara: {name} - {phone}",
+      "detailsPatient": "Alaisan: {name} - {location}",
+      "detailsTime": "Akoko: {start} - {end} • {mode}",
+      "detailsTotal": "Apapọ: {total}",
+      "detailsPaidCeo": "San lati Ṣe Booking (CEO 20%): {ceo}",
+      "detailsPayNurse": "San Nọọsi ni OWO ORI Lẹhin Iṣẹ (80%): {cash}",
+      "detailsTerms": "Awọn Ofin: Nọọsi kọ = agbapada kikun 20%. O fagile ṣaaju ibẹrẹ = CEO pa 20% mọ. O fagile lẹhin ibẹrẹ = CEO pa 20% mọ + o san nọọsi ni owo ori fun awọn ọjọ ti a ṣiṣẹ.",
+      "detailsRejected": "Nọọsi kọ - Agbapada kikun 20% jẹ fun ọ: {ceo}. Book nọọsi miiran.",
+      "close": "Ti",
+      "cancelBookingBtn": "Fagile Booking",
+      "confirmCashBtn": "Jẹrisi Owo Ori San - {cash}",
+      "cancelTitle": "Fagile Booking?",
+      "cancelAfter": "O fagile LẸHIN iṣẹ ti bẹrẹ.\n\nCEO pa 20% mọ: {ceo}\nO gbọdọ san nọọsi ni OWO ORI fun awọn ọjọ ti a ṣiṣẹ: {cash} (owo ori kikun, ṣatunṣe fun awọn ọjọ ti a ṣiṣẹ pẹlu nọọsi).\nNọọsi di Wa sibẹ.",
+      "cancelBefore": "O fagile ṢAAJU iṣẹ bẹrẹ.\n\nCEO pa 20% mọ gẹgẹ bi owo fagile: {ceo}\nNọọsi gba GH₵0.\nNọọsi di Wa sibẹ.\n\nAwọn Ofin: Nọọsi kọ = agbapada kikun 20%. O fagile ṣaaju ibẹrẹ = CEO pa 20% mọ. O fagile lẹhin ibẹrẹ = CEO pa 20% mọ + o san nọọsi ni owo ori fun awọn ọjọ ti a ṣiṣẹ.",
+      "noKeep": "Rara, Pa Booking Mọ",
+      "yesCancel": "Bẹẹni, Fagile",
+      "toastCancelAfter": "Ti fagile - CEO pa 20% mọ + San nọọsi ni owo ori fun awọn ọjọ ti a ṣiṣẹ",
+      "toastCancelBefore": "Ti fagile - CEO pa 20% mọ gẹgẹ bi owo",
+      "cashTitle": "Jẹrisi Owo Ori San si Nọọsi?",
+      "cashContent": "Jẹrisi pe o san nọọsi ni OWO ORI: {cash}\nCEO KO san nọọsi. Lẹhin eyi, iṣẹ ti pari nọọsi di Wa sibẹ.",
+      "notYet": "Ko Sibẹ",
+      "yesCashPaid": "Bẹẹni, Owo Ori San",
+      "toastCash": "Owo ori ti jẹrisi - Nọọsi Wa sibẹ",
+    },
+
+    // 16. IGBO
+    "ig": {
+      "title": "Bookings M",
+      "filterAll": "Niile",
+      "filterPending": "Na-echere",
+      "filterAccepted": "Anabatala",
+      "filterHistory": "Akụkọ",
+      "banner": "Akwụgoro ego CEO 20% na app iji book. Akwụgoro 80% EGO NKITI nye nọọsụ mgbe ọrụ gasịrị. CEO anaghị akwụ nọọsụ ụgwọ mgbe ọ bụla. Kagbuo tupu mmalite = CEO na-ejide 20%. Nọọsụ jụrụ = nkwụghachi zuru ezu 20%.",
+      "empty": "Enweghị booking ugbu a.\nPịa Book Nọọsụ ka ịmalite.",
+      "defaultService": "Booking Nọọsụ",
+      "waitingNurse": "Na-eche nọọsụ...",
+      "statusLabel": "Ọnọdụ: {status}",
+      "statusNurse": "Ọnọdụ: {status}\n{nurse}",
+      "totalPaid20": "Ngụkọta: {total}  •  Akwụgoro 20%: {ceo}",
+      "payNurseCash": "Kwụọ Nọọsụ EGO NKITI Mgbe Ọrụ Gasịrị: {cash}",
+      "rejectedCard": "Nọọsụ jụrụ - Nkwụghachi zuru ezu 20% ruru: {ceo}",
+      "cancelBtn": "Kagbuo",
+      "cashPaidBtn": "Ego Nkiti Akwụgoro {cash}",
+      "detailsBooking": "Booking: {id}",
+      "detailsStatus": "Ọnọdụ: {status}",
+      "detailsNurse": "Nọọsụ: {name} - {phone}",
+      "detailsClient": "Onye Ahịa: {name} - {phone}",
+      "detailsPatient": "Onye Ọrịa: {name} - {location}",
+      "detailsTime": "Oge: {start} - {end} • {mode}",
+      "detailsTotal": "Ngụkọta: {total}",
+      "detailsPaidCeo": "Akwụgoro iji Book (CEO 20%): {ceo}",
+      "detailsPayNurse": "Kwụọ Nọọsụ EGO NKITI Mgbe Ọrụ Gasịrị (80%): {cash}",
+      "detailsTerms": "Usoro: Nọọsụ jụrụ = nkwụghachi zuru ezu 20%. Ị kagbuo tupu mmalite = CEO na-ejide 20%. Ị kagbuo mgbe mmalite gasịrị = CEO na-ejide 20% + ị na-akwụ nọọsụ ego nkiti maka ụbọchị ndị rụrụ ọrụ.",
+      "detailsRejected": "Nọọsụ jụrụ - Nkwụghachi zuru ezu 20% ruru gị: {ceo}. Book nọọsụ ọzọ.",
+      "close": "Mechie",
+      "cancelBookingBtn": "Kagbuo Booking",
+      "confirmCashBtn": "Kwenye Ego Nkiti Akwụgoro - {cash}",
+      "cancelTitle": "Kagbuo Booking?",
+      "cancelAfter": "Ị kagbuo MGBE ọrụ malitere.\n\nCEO na-ejide 20%: {ceo}\nỊ ga-akwụ nọọsụ EGO NKITI maka ụbọchị ndị rụrụ ọrụ: {cash} (ego nkiti zuru ezu, gbanwee maka ụbọchị ndị rụrụ ọrụ na nọọsụ).\nNọọsụ na-aghọ Available ọzọ.",
+      "cancelBefore": "Ị kagbuo TUPU ọrụ amalite.\n\nCEO na-ejide 20% dị ka ego kagbuo: {ceo}\nNọọsụ na-enweta GH₵0.\nNọọsụ na-aghọ Available ọzọ.\n\nUsoro: Nọọsụ jụrụ = nkwụghachi zuru ezu 20%. Ị kagbuo tupu mmalite = CEO na-ejide 20%. Ị kagbuo mgbe mmalite gasịrị = CEO na-ejide 20% + ị na-akwụ nọọsụ ego nkiti maka ụbọchị ndị rụrụ ọrụ.",
+      "noKeep": "Mba, Debe Booking",
+      "yesCancel": "Ee, Kagbuo",
+      "toastCancelAfter": "Akagbuola - CEO na-ejide 20% + Kwụọ nọọsụ ego nkiti maka ụbọchị ndị rụrụ ọrụ",
+      "toastCancelBefore": "Akagbuola - CEO na-ejide 20% dị ka ego",
+      "cashTitle": "Kwenye Ego Nkiti Akwụgoro Nye Nọọsụ?",
+      "cashContent": "Kwenye na ị kwụgoro nọọsụ EGO NKITI: {cash}\nCEO ANAGHỊ akwụ nọọsụ ụgwọ. Mgbe nke a gasịrị, a na-emechi ọrụ na nọọsụ na-aghọ Available ọzọ.",
+      "notYet": "Ọbụbeghị",
+      "yesCashPaid": "Ee, Ego Nkiti Akwụgoro",
+      "toastCash": "Ego nkiti ekwenye - Nọọsụ dị Available ọzọ",
+    },
+
+    // 17. HAUSA
+    "ha": {
+      "title": "Bookings Na",
+      "filterAll": "Duka",
+      "filterPending": "Ana Jira",
+      "filterAccepted": "An Karɓa",
+      "filterHistory": "Tarihi",
+      "banner": "An biya kuɗin CEO 20% a cikin app don yin booking. An biya 80% KUƊI TSABTA ga nurse bayan aiki. CEO ba ya taba biyan nurse. Soke kafin farawa = CEO ya riƙe 20%. Nurse ta ƙi = cikakken kuɗi 20%.",
+      "empty": "Babu booking tukuna.\nTaɓa Book Nurse don farawa.",
+      "defaultService": "Booking Nurse",
+      "waitingNurse": "Ana jiran nurse...",
+      "statusLabel": "Matsayi: {status}",
+      "statusNurse": "Matsayi: {status}\n{nurse}",
+      "totalPaid20": "Jimla: {total}  •  An Biya 20%: {ceo}",
+      "payNurseCash": "Biya Nurse KUƊI TSABTA Bayan Aiki: {cash}",
+      "rejectedCard": "Nurse ta ƙi - Cikakken kuɗi 20% na biyan: {ceo}",
+      "cancelBtn": "Soke",
+      "cashPaidBtn": "Kuɗi Tsabta An Biya {cash}",
+      "detailsBooking": "Booking: {id}",
+      "detailsStatus": "Matsayi: {status}",
+      "detailsNurse": "Nurse: {name} - {phone}",
+      "detailsClient": "Abokin Ciniki: {name} - {phone}",
+      "detailsPatient": "Majinyaci: {name} - {location}",
+      "detailsTime": "Lokaci: {start} - {end} • {mode}",
+      "detailsTotal": "Jimla: {total}",
+      "detailsPaidCeo": "An Biya Don Yin Booking (CEO 20%): {ceo}",
+      "detailsPayNurse": "Biya Nurse KUƊI TSABTA Bayan Aiki (80%): {cash}",
+      "detailsTerms": "Sharuɗɗa: Nurse ta ƙi = cikakken kuɗi 20%. Ka soke kafin farawa = CEO ya riƙe 20%. Ka soke bayan farawa = CEO ya riƙe 20% + ka biya nurse kuɗi tsabta don kwanakin da ta yi aiki.",
+      "detailsRejected": "Nurse ta ƙi - Cikakken kuɗi 20% na biyan ka: {ceo}. Yi book wata nurse.",
+      "close": "Rufe",
+      "cancelBookingBtn": "Soke Booking",
+      "confirmCashBtn": "Tabbatar Kuɗi Tsabta An Biya - {cash}",
+      "cancelTitle": "Soke Booking?",
+      "cancelAfter": "Ka soke BAYAN aiki ya fara.\n\nCEO ya riƙe 20%: {ceo}\nDole ka biya nurse KUƊI TSABTA don kwanakin da ta yi aiki: {cash} (cikakken kuɗi tsabta, daidaita don kwanakin da ta yi aiki da nurse).\nNurse ta zama Available kuma.",
+      "cancelBefore": "Ka soke KAFIN aiki ya fara.\n\nCEO ya riƙe 20% a matsayin kuɗin soke: {ceo}\nNurse ta samu GH₵0.\nNurse ta zama Available kuma.\n\nSharuɗɗa: Nurse ta ƙi = cikakken kuɗi 20%. Ka soke kafin farawa = CEO ya riƙe 20%. Ka soke bayan farawa = CEO ya riƙe 20% + ka biya nurse kuɗi tsabta don kwanakin da ta yi aiki.",
+      "noKeep": "A'a, Riƙe Booking",
+      "yesCancel": "I, Soke",
+      "toastCancelAfter": "An soke - CEO ya riƙe 20% + Biya nurse kuɗi tsabta don kwanakin da ta yi aiki",
+      "toastCancelBefore": "An soke - CEO ya riƙe 20% a matsayin kuɗi",
+      "cashTitle": "Tabbatar Kuɗi Tsabta An Biya Ga Nurse?",
+      "cashContent": "Tabbatar ka biya nurse KUƊI TSABTA: {cash}\nCEO BA YA biyan nurse. Bayan wannan, aikin ya rufe nurse ta zama Available kuma.",
+      "notYet": "Ba Tukuna Ba",
+      "yesCashPaid": "I, Kuɗi Tsabta An Biya",
+      "toastCash": "Kuɗi tsabta an tabbatar - Nurse tana Available kuma",
+    },
+
+    // 18. RUSSIAN
+    "ru": {
+      "title": "Мои Бронирования",
+      "filterAll": "Все",
+      "filterPending": "В Ожидании",
+      "filterAccepted": "Принято",
+      "filterHistory": "История",
+      "banner": "20% комиссии CEO оплачено в приложении для бронирования. 80% оплачено НАЛИЧНЫМИ медсестре после работы. CEO никогда не платит медсестре. Отмена до начала = CEO удерживает 20%. Медсестра отказывается = полный возврат 20%.",
+      "empty": "Пока нет бронирований.\nНажмите Забронировать Медсестру, чтобы начать.",
+      "defaultService": "Бронирование Медсестры",
+      "waitingNurse": "Ожидание медсестры...",
+      "statusLabel": "Статус: {status}",
+      "statusNurse": "Статус: {status}\n{nurse}",
+      "totalPaid20": "Итого: {total}  •  Оплачено 20%: {ceo}",
+      "payNurseCash": "Оплатить Медсестре НАЛИЧНЫМИ После Работы: {cash}",
+      "rejectedCard": "Медсестра отказалась - Полный возврат 20% причитается: {ceo}",
+      "cancelBtn": "Отменить",
+      "cashPaidBtn": "Наличные Оплачены {cash}",
+      "detailsBooking": "Бронирование: {id}",
+      "detailsStatus": "Статус: {status}",
+      "detailsNurse": "Медсестра: {name} - {phone}",
+      "detailsClient": "Клиент: {name} - {phone}",
+      "detailsPatient": "Пациент: {name} - {location}",
+      "detailsTime": "Время: {start} - {end} • {mode}",
+      "detailsTotal": "Итого: {total}",
+      "detailsPaidCeo": "Оплачено за Бронирование (CEO 20%): {ceo}",
+      "detailsPayNurse": "Оплатить Медсестре НАЛИЧНЫМИ После Работы (80%): {cash}",
+      "detailsTerms": "Условия: Медсестра отказывается = полный возврат 20%. Вы отменяете до начала = CEO удерживает 20%. Вы отменяете после начала = CEO удерживает 20% + вы платите медсестре наличными за отработанные дни.",
+      "detailsRejected": "Медсестра отказалась - Полный возврат 20% причитается вам: {ceo}. Забронируйте другую медсестру.",
+      "close": "Закрыть",
+      "cancelBookingBtn": "Отменить Бронирование",
+      "confirmCashBtn": "Подтвердить Наличные Оплачены - {cash}",
+      "cancelTitle": "Отменить Бронирование?",
+      "cancelAfter": "Вы отменяете ПОСЛЕ начала работы.\n\nCEO удерживает 20%: {ceo}\nВы должны заплатить медсестре НАЛИЧНЫМИ за отработанные дни: {cash} (полные наличные, скорректировать за отработанные дни с медсестрой).\nМедсестра снова становится Доступной.",
+      "cancelBefore": "Вы отменяете ДО начала работы.\n\nCEO удерживает 20% как плату за отмену: {ceo}\nМедсестра получает GH₵0.\nМедсестра снова становится Доступной.\n\nУсловия: Медсестра отказывается = полный возврат 20%. Вы отменяете до начала = CEO удерживает 20%. Вы отменяете после начала = CEO удерживает 20% + вы платите медсестре наличными за отработанные дни.",
+      "noKeep": "Нет, Сохранить Бронирование",
+      "yesCancel": "Да, Отменить",
+      "toastCancelAfter": "Отменено - CEO удерживает 20% + Оплатить медсестре наличными за отработанные дни",
+      "toastCancelBefore": "Отменено - CEO удерживает 20% как плату",
+      "cashTitle": "Подтвердить Наличные Оплачены Медсестре?",
+      "cashContent": "Подтвердите, что вы заплатили медсестре НАЛИЧНЫМИ: {cash}\nCEO НЕ платит медсестре. После этого работа закрыта и медсестра снова становится Доступной.",
+      "notYet": "Ещё Нет",
+      "yesCashPaid": "Да, Наличные Оплачены",
+      "toastCash": "Наличные подтверждены - Медсестра снова Доступна",
+    },
+
+    // 19. TURKISH
+    "tr": {
+      "title": "Rezervasyonlarım",
+      "filterAll": "Tümü",
+      "filterPending": "Beklemede",
+      "filterAccepted": "Kabul Edildi",
+      "filterHistory": "Geçmiş",
+      "banner": "Rezervasyon için uygulamada %20 CEO ücreti ödendi. İşten sonra hemşireye %80 NAKİT ödendi. CEO asla hemşireye ödeme yapmaz. Başlamadan önce iptal = CEO %20 tutar. Hemşire reddeder = tam %20 iade.",
+      "empty": "Henüz rezervasyon yok.\nBaşlamak için Hemşire Rezerve Et'e dokunun.",
+      "defaultService": "Hemşire Rezervasyonu",
+      "waitingNurse": "Hemşire bekleniyor...",
+      "statusLabel": "Durum: {status}",
+      "statusNurse": "Durum: {status}\n{nurse}",
+      "totalPaid20": "Toplam: {total}  •  Ödenen %20: {ceo}",
+      "payNurseCash": "İşten Sonra Hemşireye NAKİT Öde: {cash}",
+      "rejectedCard": "Hemşire reddetti - Tam %20 iade borçlu: {ceo}",
+      "cancelBtn": "İptal",
+      "cashPaidBtn": "Nakit Ödendi {cash}",
+      "detailsBooking": "Rezervasyon: {id}",
+      "detailsStatus": "Durum: {status}",
+      "detailsNurse": "Hemşire: {name} - {phone}",
+      "detailsClient": "Müşteri: {name} - {phone}",
+      "detailsPatient": "Hasta: {name} - {location}",
+      "detailsTime": "Saat: {start} - {end} • {mode}",
+      "detailsTotal": "Toplam: {total}",
+      "detailsPaidCeo": "Rezervasyon İçin Ödendi (CEO %20): {ceo}",
+      "detailsPayNurse": "İşten Sonra Hemşireye NAKİT Öde (%80): {cash}",
+      "detailsTerms": "Şartlar: Hemşire reddeder = tam %20 iade. Başlamadan önce iptal edersen = CEO %20 tutar. Başladıktan sonra iptal edersen = CEO %20 tutar + hemşireye çalışılan günler için nakit ödersin.",
+      "detailsRejected": "Hemşire reddetti - Sana tam %20 iade borçlu: {ceo}. Başka bir hemşire rezerve et.",
+      "close": "Kapat",
+      "cancelBookingBtn": "Rezervasyonu İptal Et",
+      "confirmCashBtn": "Nakit Ödendiğini Onayla - {cash}",
+      "cancelTitle": "Rezervasyon İptal Edilsin Mi?",
+      "cancelAfter": "İş başladıktan SONRA iptal ediyorsun.\n\nCEO %20 tutar: {ceo}\nHemşireye çalışılan günler için NAKİT ödemelisin: {cash} (tam nakit, hemşireyle çalışılan günlere göre ayarla).\nHemşire tekrar Müsait olur.",
+      "cancelBefore": "İş başlamadan ÖNCE iptal ediyorsun.\n\nCEO %20 iptal ücreti olarak tutar: {ceo}\nHemşire GH₵0 alır.\nHemşire tekrar Müsait olur.\n\nŞartlar: Hemşire reddeder = tam %20 iade. Başlamadan önce iptal edersen = CEO %20 tutar. Başladıktan sonra iptal edersen = CEO %20 tutar + hemşireye çalışılan günler için nakit ödersin.",
+      "noKeep": "Hayır, Rezervasyonu Tut",
+      "yesCancel": "Evet, İptal Et",
+      "toastCancelAfter": "İptal Edildi - CEO %20 tutar + Hemşireye çalışılan günler için nakit öde",
+      "toastCancelBefore": "İptal Edildi - CEO %20 ücret olarak tutar",
+      "cashTitle": "Hemşireye Nakit Ödendiğini Onayla?",
+      "cashContent": "Hemşireye NAKİT ödediğini onayla: {cash}\nCEO hemşireye ÖDEMEZ. Bundan sonra iş kapanır ve hemşire tekrar Müsait olur.",
+      "notYet": "Henüz Değil",
+      "yesCashPaid": "Evet, Nakit Ödendi",
+      "toastCash": "Nakit onaylandı - Hemşire tekrar Müsait",
+    },
+
+    // 20. KOREAN
+    "ko": {
+      "title": "내 예약",
+      "filterAll": "전체",
+      "filterPending": "대기 중",
+      "filterAccepted": "수락됨",
+      "filterHistory": "기록",
+      "banner": "예약을 위해 앱에서 CEO 수수료 20%를 지불했습니다. 작업 후 간호사에게 80%를 현금으로 지불합니다. CEO는 간호사에게 절대 지불하지 않습니다. 시작 전 취소 = CEO가 20%를 유지합니다. 간호사가 거부 = 20% 전액 환불.",
+      "empty": "아직 예약이 없습니다.\n시작하려면 간호사 예약을 탭하세요.",
+      "defaultService": "간호사 예약",
+      "waitingNurse": "간호사를 기다리는 중...",
+      "statusLabel": "상태: {status}",
+      "statusNurse": "상태: {status}\n{nurse}",
+      "totalPaid20": "합계: {total}  •  지불 20%: {ceo}",
+      "payNurseCash": "작업 후 간호사에게 현금으로 지불: {cash}",
+      "rejectedCard": "간호사가 거부 - 20% 전액 환불 예정: {ceo}",
+      "cancelBtn": "취소",
+      "cashPaidBtn": "현금 지불됨 {cash}",
+      "detailsBooking": "예약: {id}",
+      "detailsStatus": "상태: {status}",
+      "detailsNurse": "간호사: {name} - {phone}",
+      "detailsClient": "고객: {name} - {phone}",
+      "detailsPatient": "환자: {name} - {location}",
+      "detailsTime": "시간: {start} - {end} • {mode}",
+      "detailsTotal": "합계: {total}",
+      "detailsPaidCeo": "예약을 위해 지불 (CEO 20%): {ceo}",
+      "detailsPayNurse": "작업 후 간호사에게 현금으로 지불 (80%): {cash}",
+      "detailsTerms": "약관: 간호사가 거부 = 20% 전액 환불. 시작 전 취소 = CEO가 20%를 유지합니다. 시작 후 취소 = CEO가 20%를 유지합니다 + 근무한 일수에 대해 간호사에게 현금으로 지불합니다.",
+      "detailsRejected": "간호사가 거부 - 귀하에게 20% 전액 환불 예정: {ceo}. 다른 간호사를 예약하세요.",
+      "close": "닫기",
+      "cancelBookingBtn": "예약 취소",
+      "confirmCashBtn": "현금 지불 확인 - {cash}",
+      "cancelTitle": "예약을 취소하시겠습니까?",
+      "cancelAfter": "작업이 시작된 후에 취소합니다.\n\nCEO가 20%를 유지합니다: {ceo}\n근무한 일수에 대해 간호사에게 현금으로 지불해야 합니다: {cash} (전액 현금, 간호사와 함께 근무한 일수에 따라 조정).\n간호사가 다시 이용 가능해집니다.",
+      "cancelBefore": "작업이 시작되기 전에 취소합니다.\n\nCEO가 20%를 취소 수수료로 유지합니다: {ceo}\n간호사는 GH₵0을 받습니다.\n간호사가 다시 이용 가능해집니다.\n\n약관: 간호사가 거부 = 20% 전액 환불. 시작 전 취소 = CEO가 20%를 유지합니다. 시작 후 취소 = CEO가 20%를 유지합니다 + 근무한 일수에 대해 간호사에게 현금으로 지불합니다.",
+      "noKeep": "아니요, 예약 유지",
+      "yesCancel": "예, 취소",
+      "toastCancelAfter": "취소됨 - CEO가 20%를 유지 + 근무한 일수에 대해 간호사에게 현금으로 지불",
+      "toastCancelBefore": "취소됨 - CEO가 20%를 수수료로 유지",
+      "cashTitle": "간호사에게 현금을 지불했음을 확인하시겠습니까?",
+      "cashContent": "간호사에게 현금을 지불했음을 확인하세요: {cash}\nCEO는 간호사에게 지불하지 않습니다. 이후 작업이 종료되고 간호사가 다시 이용 가능해집니다.",
+      "notYet": "아직 아님",
+      "yesCashPaid": "예, 현금 지불됨",
+      "toastCash": "현금 확인됨 - 간호사가 다시 이용 가능해짐",
+    },
+
+    // 21. JAPANESE
+    "ja": {
+      "title": "私の予約",
+      "filterAll": "すべて",
+      "filterPending": "保留中",
+      "filterAccepted": "承認済み",
+      "filterHistory": "履歴",
+      "banner": "予約のためにアプリで CEO 手数料 20% を支払いました。仕事の後に看護師に 80% を現金で支払います。CEO は看護師に決して支払いません。開始前にキャンセル = CEO は 20% を保持。看護師が拒否 = 20% 全額返金。",
+      "empty": "まだ予約がありません。\n開始するには看護師を予約をタップしてください。",
+      "defaultService": "看護師の予約",
+      "waitingNurse": "看護師を待っています...",
+      "statusLabel": "ステータス: {status}",
+      "statusNurse": "ステータス: {status}\n{nurse}",
+      "totalPaid20": "合計: {total}  •  支払い済み 20%: {ceo}",
+      "payNurseCash": "仕事の後に看護師に現金で支払う: {cash}",
+      "rejectedCard": "看護師が拒否 - 20% 全額返金予定: {ceo}",
+      "cancelBtn": "キャンセル",
+      "cashPaidBtn": "現金支払い済み {cash}",
+      "detailsBooking": "予約: {id}",
+      "detailsStatus": "ステータス: {status}",
+      "detailsNurse": "看護師: {name} - {phone}",
+      "detailsClient": "クライアント: {name} - {phone}",
+      "detailsPatient": "患者: {name} - {location}",
+      "detailsTime": "時間: {start} - {end} • {mode}",
+      "detailsTotal": "合計: {total}",
+      "detailsPaidCeo": "予約のために支払い済み (CEO 20%): {ceo}",
+      "detailsPayNurse": "仕事の後に看護師に現金で支払う (80%): {cash}",
+      "detailsTerms": "条件: 看護師が拒否 = 20% 全額返金。開始前にキャンセル = CEO は 20% を保持。開始後にキャンセル = CEO は 20% を保持 + 勤務日数分を看護師に現金で支払う。",
+      "detailsRejected": "看護師が拒否 - あなたに 20% 全額返金予定: {ceo}。別の看護師を予約してください。",
+      "close": "閉じる",
+      "cancelBookingBtn": "予約をキャンセル",
+      "confirmCashBtn": "現金支払いを確認 - {cash}",
+      "cancelTitle": "予約をキャンセルしますか?",
+      "cancelAfter": "仕事が始まった後にキャンセルします。\n\nCEO は 20% を保持: {ceo}\n勤務日数分を看護師に現金で支払う必要があります: {cash} (全額現金、看護師と勤務した日数に合わせて調整)。\n看護師は再び利用可能になります。",
+      "cancelBefore": "仕事が始まる前にキャンセルします。\n\nCEO は 20% をキャンセル料として保持: {ceo}\n看護師は GH₵0 を受け取ります。\n看護師は再び利用可能になります。\n\n条件: 看護師が拒否 = 20% 全額返金。開始前にキャンセル = CEO は 20% を保持。開始後にキャンセル = CEO は 20% を保持 + 勤務日数分を看護師に現金で支払う。",
+      "noKeep": "いいえ、予約を保持",
+      "yesCancel": "はい、キャンセル",
+      "toastCancelAfter": "キャンセル済み - CEO は 20% を保持 + 勤務日数分を看護師に現金で支払う",
+      "toastCancelBefore": "キャンセル済み - CEO は 20% を手数料として保持",
+      "cashTitle": "看護師に現金を支払ったことを確認しますか?",
+      "cashContent": "看護師に現金で支払ったことを確認してください: {cash}\nCEO は看護師に支払いません。この後、仕事は終了し、看護師は再び利用可能になります。",
+      "notYet": "まだ",
+      "yesCashPaid": "はい、現金支払い済み",
+      "toastCash": "現金を確認 - 看護師は再び利用可能",
+    },
+
+    // 22. POLISH
+    "pl": {
+      "title": "Moje Rezerwacje",
+      "filterAll": "Wszystkie",
+      "filterPending": "Oczekujące",
+      "filterAccepted": "Zaakceptowana",
+      "filterHistory": "Historia",
+      "banner": "20% opłaty CEO zapłacone w aplikacji za rezerwację. 80% zapłacone GOTÓWKĄ pielęgniarce po pracy. CEO nigdy nie płaci pielęgniarce. Anulowanie przed startem = CEO zatrzymuje 20%. Pielęgniarka odrzuca = pełny zwrot 20%.",
+      "empty": "Brak rezerwacji.\nDotknij Zarezerwuj Pielęgniarkę, aby zacząć.",
+      "defaultService": "Rezerwacja Pielęgniarki",
+      "waitingNurse": "Oczekiwanie na pielęgniarkę...",
+      "statusLabel": "Status: {status}",
+      "statusNurse": "Status: {status}\n{nurse}",
+      "totalPaid20": "Suma: {total}  •  Zapłacono 20%: {ceo}",
+      "payNurseCash": "Zapłać Pielęgniarce GOTÓWKĄ Po Pracy: {cash}",
+      "rejectedCard": "Pielęgniarka odrzuciła - Pełny zwrot 20% należny: {ceo}",
+      "cancelBtn": "Anuluj",
+      "cashPaidBtn": "Gotówka Zapłacona {cash}",
+      "detailsBooking": "Rezerwacja: {id}",
+      "detailsStatus": "Status: {status}",
+      "detailsNurse": "Pielęgniarka: {name} - {phone}",
+      "detailsClient": "Klient: {name} - {phone}",
+      "detailsPatient": "Pacjent: {name} - {location}",
+      "detailsTime": "Czas: {start} - {end} • {mode}",
+      "detailsTotal": "Suma: {total}",
+      "detailsPaidCeo": "Zapłacono za Rezerwację (CEO 20%): {ceo}",
+      "detailsPayNurse": "Zapłać Pielęgniarce GOTÓWKĄ Po Pracy (80%): {cash}",
+      "detailsTerms": "Warunki: Pielęgniarka odrzuca = pełny zwrot 20%. Anulujesz przed startem = CEO zatrzymuje 20%. Anulujesz po starcie = CEO zatrzymuje 20% + płacisz pielęgniarce gotówką za przepracowane dni.",
+      "detailsRejected": "Pielęgniarka odrzuciła - Pełny zwrot 20% należny Tobie: {ceo}. Zarezerwuj inną pielęgniarkę.",
+      "close": "Zamknij",
+      "cancelBookingBtn": "Anuluj Rezerwację",
+      "confirmCashBtn": "Potwierdź Gotówkę Zapłaconą - {cash}",
+      "cancelTitle": "Anulować Rezerwację?",
+      "cancelAfter": "Anulujesz PO rozpoczęciu pracy.\n\nCEO zatrzymuje 20%: {ceo}\nMusisz zapłacić pielęgniarce GOTÓWKĄ za przepracowane dni: {cash} (pełna gotówka, dostosuj za przepracowane dni z pielęgniarką).\nPielęgniarka staje się ponownie Dostępna.",
+      "cancelBefore": "Anulujesz PRZED rozpoczęciem pracy.\n\nCEO zatrzymuje 20% jako opłatę za anulowanie: {ceo}\nPielęgniarka otrzymuje GH₵0.\nPielęgniarka staje się ponownie Dostępna.\n\nWarunki: Pielęgniarka odrzuca = pełny zwrot 20%. Anulujesz przed startem = CEO zatrzymuje 20%. Anulujesz po starcie = CEO zatrzymuje 20% + płacisz pielęgniarce gotówką za przepracowane dni.",
+      "noKeep": "Nie, Zachowaj Rezerwację",
+      "yesCancel": "Tak, Anuluj",
+      "toastCancelAfter": "Anulowano - CEO zatrzymuje 20% + Zapłać pielęgniarce gotówką za przepracowane dni",
+      "toastCancelBefore": "Anulowano - CEO zatrzymuje 20% jako opłatę",
+      "cashTitle": "Potwierdzić Gotówkę Zapłaconą Pielęgniarce?",
+      "cashContent": "Potwierdź, że zapłaciłeś pielęgniarce GOTÓWKĄ: {cash}\nCEO NIE płaci pielęgniarce. Po tym praca jest zamknięta i pielęgniarka staje się ponownie Dostępna.",
+      "notYet": "Jeszcze Nie",
+      "yesCashPaid": "Tak, Gotówka Zapłacona",
+      "toastCash": "Gotówka potwierdzona - Pielęgniarka jest ponownie Dostępna",
+    },
+  };
+
+  // ---------- THE RULE ----------
+  // CEO = English ONLY. Nurse + Client = chosen language.
+  static String get(String lang, String key) {
+    return all[lang]?[key] ?? all['en']?[key] ?? key;
   }
 
-  @override
-  void dispose() {
-    _bookingsSub?.cancel();
-    _historySub?.cancel();
-    super.dispose();
-  }
-
-  String normPhone(String? p) {
-    if (p == null) return '';
-    var d = p.replaceAll(RegExp(r'[^0-9]'), '');
-    if (d.startsWith('233')) d = '0${d.substring(3)}';
-    if (d.length > 10) d = d.substring(d.length - 10);
-    return d;
-  }
-
-  String normEmail(String? e) => (e ?? '').trim().toLowerCase();
-
-  Future<void> _collectIdentities() async {
-    myPhones.clear();
-    myEmails.clear();
-    myUids.clear();
-    final prefs = await SharedPreferences.getInstance();
-    final authUser = FirebaseAuth.instance.currentUser;
-    if (authUser != null) {
-      myUids.add(authUser.uid);
-      if (authUser.phoneNumber != null) myPhones.add(normPhone(authUser.phoneNumber));
-      if (authUser.email != null) myEmails.add(normEmail(authUser.email));
+  static String getForRole(String role, String lang, String key) {
+    if (role.toLowerCase() == 'ceo') {
+      return all['en']?[key] ?? key;
     }
-    for (final k in prefs.getKeys()) {
-      final lk = k.toLowerCase();
-      final v = prefs.get(k);
-      if (v is! String || v.isEmpty) continue;
-      if (lk.contains('phone')) myPhones.add(normPhone(v));
-      if (lk.contains('email')) myEmails.add(normEmail(v));
-      if (lk.contains('uid') || lk.contains('user_id')) myUids.add(v);
-      if (lk.contains('name') || lk.contains('username')) myName = v;
-    }
-    myName ??= prefs.getString('clientName') ?? prefs.getString('fullName') ?? prefs.getString('name');
+    return all[lang]?[key] ?? all['en']?[key] ?? key;
   }
 
-  void _listenLive() {
-    setState(() => isLoading = true);
-    _bookingsSub = FirebaseDatabase.instance.ref('bookings').onValue.listen((event) {
-      final map = <String, Map>{};
-      _addNodeToMap(map, event.snapshot);
-      _applyFilter(map);
-    }, onError: (_) {
-      if (mounted) setState(() => isLoading = false);
+  static String getWith(String role, String lang, String key, Map<String, String> params) {
+    String raw = getForRole(role, lang, key);
+    params.forEach((k, v) {
+      raw = raw.replaceAll('{$k}', v);
     });
-  }
-
-  void _addNodeToMap(Map<String, Map> map, DataSnapshot snap) {
-    if (!snap.exists || snap.value == null) return;
-    final val = snap.value;
-    if (val is Map) {
-      val.forEach((k, v) {
-        if (v is Map) {
-          final m = Map<String, dynamic>.from(v);
-          m['key'] = k.toString();
-          map[k.toString()] = m;
-        }
-      });
-    }
-  }
-
-  void _applyFilter(Map<String, Map> map) {
-    var arr = map.values.toList();
-    List<Map> filtered = arr.where((v) {
-      if (isTerminal(v) || isHistory(v)) return false;
-      if (myPhones.isEmpty && myEmails.isEmpty && myUids.isEmpty) return true;
-      return matchesBooking(v);
-    }).toList();
-    filtered.sort((a, b) => _asNum(b['time'] ?? b['createdAt'] ?? 0).compareTo(_asNum(a['time'] ?? a['createdAt'] ?? 0)));
-    if (!mounted) return;
-    setState(() {
-      bookings = filtered;
-      isLoading = false;
-    });
-  }
-
-  void _loadHistory() {
-    _historySub = FirebaseDatabase.instance.ref('bookings').onValue.listen((event) {
-      final map = <String, Map>{};
-      _addNodeToMap(map, event.snapshot);
-      var arr = map.values.where((v) => isTerminal(v) || isHistory(v)).toList();
-      arr = arr.where((v) {
-        if (myPhones.isEmpty && myEmails.isEmpty && myUids.isEmpty) return true;
-        return matchesBooking(v);
-      }).toList();
-      if (mounted) setState(() => history = arr);
-    });
-  }
-
-  bool matchesBooking(Map v) {
-    final p = normPhone('${v['clientPhone'] ?? v['phone'] ?? v['phoneNumber'] ?? ''}');
-    final e = normEmail('${v['clientEmail'] ?? v['email'] ?? ''}');
-    final u = '${v['clientId'] ?? v['userId'] ?? v['uid'] ?? ''}';
-    final n = '${v['clientName'] ?? v['name'] ?? v['fullName'] ?? ''}'.toLowerCase();
-    if (p.isNotEmpty && myPhones.contains(p)) return true;
-    if (e.isNotEmpty && myEmails.contains(e)) return true;
-    if (u.isNotEmpty && myUids.contains(u)) return true;
-    if (myName != null && myName!.isNotEmpty && n.contains(myName!.toLowerCase())) return true;
-    return false;
-  }
-
-  bool isTerminal(Map v) {
-    final s = '${v['status'] ?? ''}'.toLowerCase();
-    return s.contains('complete') || s.contains('cancel') || s.contains('reject') || s.contains('done') || s.contains('cash_received') || s.contains('cash_confirmed');
-  }
-
-  bool isHistory(Map v) => v['isHistory'] == true;
-  num _asNum(dynamic v) => v is num ? v : num.tryParse('$v') ?? 0;
-  double _asDouble(dynamic v) => _asNum(v).toDouble();
-
-  // ---- NEW 20/80 MONEY HELPERS (CLIENT SEES FULL, NURSE SEES ONLY HER CASH) ----
-  double _total(Map b) {
-    double t = _asDouble(b['totalAmount'] ?? b['total'] ?? b['amount']);
-    if (t > 0) return t;
-    final ceo = _asDouble(b['ceoFee']);
-    final nurse = _asDouble(b['nurseCash'] ?? b['nurseCashAmount']);
-    if (ceo > 0 || nurse > 0) return ceo + nurse;
-    return 0;
-  }
-  double _ceoFee(Map b) {
-    double c = _asDouble(b['ceoFee'] ?? b['amountPaidNow'] ?? b['payNow']);
-    if (c > 0) return c;
-    return _total(b) * 0.20;
-  }
-  double _nurseCash(Map b) {
-    double n = _asDouble(b['nurseCash'] ?? b['nurseCashAmount'] ?? b['amountYouWillCollectCash'] ?? b['payLater']);
-    if (n > 0) return n;
-    return _total(b) * 0.80;
-  }
-  String _money(Map b, double v) => '${b['currency'] ?? 'GHS'} ${v.toStringAsFixed(2)}';
-
-  bool _isAfterStart(Map b) {
-    final s = '${b['status'] ?? ''}'.toLowerCase();
-    return s == 'accepted' || s == 'on_the_way' || s == 'close' || s == 'completed' || s == 'on_the_way_to_client' || s.contains('started') || s.contains('in_progress');
-  }
-
-  Future<void> _unlockNurse(Map b) async {
-    final nid = '${b['nurseId'] ?? ''}';
-    if (nid.isEmpty) return;
-    try {
-      await FirebaseDatabase.instance.ref('nurses/$nid').update({'isAvailable': true, 'isBooked': false, 'isBusy': false, 'status': 'available', 'currentBookingId': null, 'currentBookingStatus': null});
-    } catch (_) {}
-    try {
-      await FirebaseDatabase.instance.ref('onlineNurses/$nid').update({'isAvailable': true, 'isBooked': false, 'currentBookingId': null});
-    } catch (_) {}
-  }
-
-  void _toast(String m) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
-
-  Future<void> _cancelBooking(Map b) async {
-    final id = (b['key'] ?? b['bookingId'] ?? b['id'] ?? '').toString();
-    if (id.isEmpty) return;
-    final afterStart = _isAfterStart(b);
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Cancel Booking?'),
-        content: Text(
-          afterStart
-              ? 'You cancel AFTER work started.\n\nCEO keeps 20%: ${_money(b, _ceoFee(b))}\nYou must pay nurse CASH for days worked: ${_money(b, _nurseCash(b))} (full job cash, adjust for days worked with nurse).\nNurse becomes Available again.'
-              : 'You cancel BEFORE work starts.\n\nCEO keeps 20% as cancellation fee: ${_money(b, _ceoFee(b))}\nNurse gets GH₵0.\nNurse becomes Available again.\n\nTerms: Nurse rejects = full 20% refund. You cancel before start = CEO keeps 20%. You cancel after start = CEO keeps 20% + you pay nurse cash for days worked.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No, Keep Booking')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Cancel')),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    await FirebaseDatabase.instance.ref('bookings/$id').update({
-      'status': 'cancelled_by_client',
-      'lastChangedBy': 'client',
-      'lastChangedAt': now,
-      'cancelledAt': now,
-      'cancelledByClient': true,
-      'cancelTermsApplied': afterStart ? 'client_cancels_after_start_ceo_keeps_20_plus_nurse_cash_days_worked' : 'client_cancels_before_start_ceo_keeps_20',
-      'ceoKeepsFee': true,
-      'refundCeoFee': false,
-      'nurseCashDueOnCancel': _nurseCash(b),
-    });
-    await _unlockNurse(b);
-    _toast(afterStart ? 'Cancelled - CEO keeps 20% + Pay nurse cash for days worked' : 'Cancelled - CEO keeps 20% as fee');
-    _listenLive();
-  }
-
-  Future<void> _confirmCashPaid(Map b) async {
-    final id = (b['key'] ?? b['bookingId'] ?? b['id'] ?? '').toString();
-    if (id.isEmpty) return;
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Confirm Cash Paid to Nurse?'),
-        content: Text('Confirm you paid nurse CASH: ${_money(b, _nurseCash(b))}\nCEO does NOT pay nurse. After this, job is closed and nurse becomes Available again.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Not Yet')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Cash Paid')),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    await FirebaseDatabase.instance.ref('bookings/$id').update({
-      'status': 'cash_confirmed_by_client',
-      'lastChangedBy': 'client',
-      'lastChangedAt': now,
-      'cashPaidToNurse': true,
-      'nurseCashPaid': true,
-      'cashConfirmedByClient': true,
-      'cashConfirmedAt': now,
-    });
-    await _unlockNurse(b);
-    _toast('Cash confirmed - Nurse is Available again');
-    _listenLive();
-  }
-
-  void _showDetails(Map b) {
-    final s = '${b['status'] ?? 'Pending'}';
-    final isRejected = s.toLowerCase().contains('reject');
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('${b['service'] ?? b['type'] ?? 'Nurse Booking'}'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('Booking: ${b['bookingId'] ?? b['key'] ?? ''}'),
-              Text('Status: $s'),
-              Text('Nurse: ${b['nurseName'] ?? 'Waiting for nurse...'} - ${b['nursePhone'] ?? ''}'),
-              Text('Client: ${b['clientName'] ?? ''} - ${b['clientPhone'] ?? ''}'),
-              Text('Patient: ${b['patientName'] ?? ''} - ${b['patientLocation'] ?? b['location'] ?? ''}'),
-              Text('Time: ${b['startTime'] ?? ''} - ${b['endTime'] ?? ''} • ${b['careMode'] ?? ''}'),
-              const SizedBox(height: 10),
-              Text('Total: ${_money(b, _total(b))}', style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text('Paid to Book (CEO 20%): ${_money(b, _ceoFee(b))}', style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-              Text('Pay Nurse CASH After Work (80%): ${_money(b, _nurseCash(b))}', style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text(
-                isRejected
-                    ? 'Nurse rejected - Full 20% refund due to you: ${_money(b, _ceoFee(b))}. Book another nurse.'
-                    : 'Terms: Nurse rejects = full 20% refund. You cancel before start = CEO keeps 20%. You cancel after start = CEO keeps 20% + you pay nurse cash for days worked.',
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-          if (!isTerminal(b))
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _cancelBooking(b);
-              },
-              child: const Text('Cancel Booking', style: TextStyle(color: Colors.red)),
-            ),
-          if (!isTerminal(b))
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _confirmCashPaid(b);
-              },
-              child: Text('Confirm Cash Paid - ${_money(b, _nurseCash(b))}'),
-            ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final list = filter == 'All' ? bookings : bookings.where((b) => '${b['status']}'.toLowerCase() == filter.toLowerCase()).toList();
-    final showing = filter == 'History' ? history : list;
-    return Scaffold(
-      appBar: AppBar(title: const Text('My Bookings'), backgroundColor: const Color(0xFFD81B60)),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: ['All', 'Pending', 'Accepted', 'History'].map((f) {
-                return Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: ChoiceChip(
-                      label: Text(f),
-                      selected: filter == f,
-                      onSelected: (_) => setState(() => filter = f),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.pink.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-            child: const Text(
-              '20% CEO fee paid in app to book. 80% paid CASH to nurse after work. CEO never pays nurse. Cancel before start = CEO keeps 20%. Nurse rejects = full 20% refund.',
-              style: TextStyle(fontSize: 11, color: Colors.black54),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFD81B60)))
-                : showing.isEmpty
-                    ? RefreshIndicator(
-                        onRefresh: () async => _listenLive(),
-                        child: ListView(
-                          children: const [
-                            SizedBox(height: 120),
-                            Center(child: Text('No bookings yet.\nTap Book Nurse to start.', textAlign: TextAlign.center)),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: () async => _listenLive(),
-                        child: ListView.builder(
-                          itemCount: showing.length,
-                          itemBuilder: (_, i) {
-                            final b = showing[i];
-                            final s = '${b['status'] ?? 'Pending'}';
-                            final isRejected = s.toLowerCase().contains('reject');
-                            return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              child: InkWell(
-                                onTap: () => _showDetails(b),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          const CircleAvatar(backgroundColor: Color(0xFFD81B60), child: Icon(Icons.person, color: Colors.white)),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text('${b['service'] ?? b['type'] ?? 'Nurse Booking'}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                                Text('Status: $s\n${b['nurseName'] ?? 'Waiting for nurse...'}', style: const TextStyle(fontSize: 12)),
-                                              ],
-                                            ),
-                                          ),
-                                          const Icon(Icons.arrow_forward_ios, size: 14),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text('Total: ${_money(b, _total(b))}  •  Paid 20%: ${_money(b, _ceoFee(b))}', style: const TextStyle(fontSize: 12)),
-                                      Text('Pay Nurse CASH After Work: ${_money(b, _nurseCash(b))}', style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold)),
-                                      if (isRejected) Text('Nurse rejected - Full 20% refund due: ${_money(b, _ceoFee(b))}', style: const TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 8),
-                                      if (!isTerminal(b))
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: OutlinedButton(
-                                                onPressed: () => _cancelBooking(b),
-                                                style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
-                                                child: const Text('Cancel', style: TextStyle(fontSize: 12)),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: ElevatedButton(
-                                                onPressed: () => _confirmCashPaid(b),
-                                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
-                                                child: Text('Cash Paid ${_money(b, _nurseCash(b))}', style: const TextStyle(fontSize: 11)),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-          ),
-        ],
-      ),
-    );
+    return raw;
   }
 }
