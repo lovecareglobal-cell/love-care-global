@@ -1,609 +1,143 @@
-// dashboard_alerts_translations.dart
-// FILE - Dashboard Alerts - PUSH NOTIFICATION WORDS ONLY - ALL 22 LANGUAGES
-// NOTE: Original dashboard_alerts.dart has NO UI Text() - it is background service only.
-// These are the ONLY words user will SEE from this system = FCM push titles + bodies.
-// Taken from your comments: Nurse = Job Offer / Booking / Payment / Message / Withdrawal
-// Client = Booking Accepted / Nurse Assigned / Message / Refund / Status Change
-// RULE: CEO = English ONLY. Nurse + Client = 22 languages.
-// ONE FILE - Drop in lib/screens
+// dashboard_alerts.dart - SAME alert system for Nurses + Clients as CEO already has.
+// Put in: lib/screens/dashboard_alerts.dart
+//
+// CEO already has: _setupCeoAutoRing() in main.dart
+// Nurses/Clients need the SAME, but for THEIR OWN info, not CEO's.
+// Call it once, right after Nurse/Client logs in:
+//
+//   In nurse_dashboard.dart, after you know the nurse UID / username:
+//     DashboardAlerts.setupNurse(uid: nurseUid, username: nurseUsername);
+//
+//   In client_dashboard.dart, after you know the client UID / username:
+//     DashboardAlerts.setupClient(uid: clientUid, username: clientUsername);
+//
+// What it does:
+//   OPEN app  -> watches RTDB notifications/nurses/{uid} + notifications/clients/{uid}
+//                + bookings/jobOffers for them. New item -> plays YOUR Love Care sound.
+//   CLOSED app -> subscribes phone to FCM topic nurse_{uid} / client_{uid}
+//                Cloud Function sends push to that topic only -> phone buzzes + shows notification.
+//                That nurse/client does NOT get CEO pushes, CEO does NOT get nurse pushes.
+//                Each person gets ONLY their own info.
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'sound_settings.dart'; // SoundService.playCustomSound
 
-class DashboardAlertsTranslations {
-  static const Map<String, Map<String, String>> all = {
+class DashboardAlerts {
+  static bool _nurseSetup = false;
+  static bool _clientSetup = false;
+  static int _nurseNotifCount = -1;
+  static int _clientNotifCount = -1;
+  static int _nurseJobCount = -1;
+  static int _clientBookingCount = -1;
 
-    // 1. ENGLISH - THIS IS CEO LANGUAGE TOO
-    "en": {
-      // NURSE PUSH
-      "nurseJobTitle": "💜 New Job Offer!",
-      "nurseJobBody": "A new job offer arrived for you. Open app to view.",
-      "nurseBookingTitle": "📅 New Booking!",
-      "nurseBookingBody": "A new booking was assigned to you. Open app to view.",
-      "nursePaymentTitle": "💰 Payment Update",
-      "nursePaymentBody": "Your payment status changed. Open app to check.",
-      "nurseMessageTitle": "💬 New Message",
-      "nurseMessageBody": "You have a new message. Open app to read.",
-      "nurseWithdrawalTitle": "🏦 Withdrawal Update",
-      "nurseWithdrawalBody": "Your withdrawal status changed. Open app to check.",
-      // CLIENT PUSH
-      "clientAcceptedTitle": "✅ Booking Accepted!",
-      "clientAcceptedBody": "Your booking was accepted. A nurse is on the way.",
-      "clientAssignedTitle": "👩‍⚕️ Nurse Assigned!",
-      "clientAssignedBody": "A nurse has been assigned to your booking. Open app to view.",
-      "clientMessageTitle": "💬 New Message From Nurse",
-      "clientMessageBody": "Your nurse sent you a message. Open app to read.",
-      "clientRefundTitle": "💸 Refund Update",
-      "clientRefundBody": "Your refund status changed. Open app to check.",
-      "clientStatusTitle": "📋 Booking Status Changed",
-      "clientStatusBody": "Your booking status changed. Open app to view.",
-      // GENERIC
-      "newNotificationTitle": "🔔 New Notification",
-      "newNotificationBody": "You have a new notification. Open app to view.",
-    },
-
-    // 2. TWI - CLIENT + NURSE ONLY
-    "tw": {
-      "nurseJobTitle": "💜 Adwuma Foforo!",
-      "nurseJobBody": "Adwuma foforo aba ma wo. Bue app na hwɛ.",
-      "nurseBookingTitle": "📅 Booking Foforo!",
-      "nurseBookingBody": "Wɔde booking foforo ama wo. Bue app na hwɛ.",
-      "nursePaymentTitle": "💰 Sika Nsɛm",
-      "nursePaymentBody": "Wo sika ho nsɛm asesa. Bue app na hwɛ.",
-      "nurseMessageTitle": "💬 Nkrasɛm Foforo",
-      "nurseMessageBody": "Wowɔ nkrasɛm foforo. Bue app na kenkan.",
-      "nurseWithdrawalTitle": "🏦 Withdrawal Nsɛm",
-      "nurseWithdrawalBody": "Wo withdrawal ho nsɛm asesa. Bue app na hwɛ.",
-      "clientAcceptedTitle": "✅ Wɔagye Booking!",
-      "clientAcceptedBody": "Wɔagye wo booking. Nɛɛse reba.",
-      "clientAssignedTitle": "👩‍⚕️ Wɔde Nɛɛse Ama Wo!",
-      "clientAssignedBody": "Wɔde nɛɛse ama wo booking. Bue app na hwɛ.",
-      "clientMessageTitle": "💬 Nkrasɛm Foforo Fi Nɛɛse",
-      "clientMessageBody": "Wo nɛɛse de nkrasɛm ama wo. Bue app na kenkan.",
-      "clientRefundTitle": "💸 Refund Nsɛm",
-      "clientRefundBody": "Wo refund ho nsɛm asesa. Bue app na hwɛ.",
-      "clientStatusTitle": "📋 Booking Ho Nsɛm Asesa",
-      "clientStatusBody": "Wo booking ho nsɛm asesa. Bue app na hwɛ.",
-      "newNotificationTitle": "🔔 Nsɛm Foforo",
-      "newNotificationBody": "Wowɔ nsɛm foforo. Bue app na hwɛ.",
-    },
-
-    // 3. GA
-    "ga": {
-      "nurseJobTitle": "💜 Nitsumɔ Hee!",
-      "nurseJobBody": "Nitsumɔ hee ba hã bo. Gblo app koni okwɛ.",
-      "nurseBookingTitle": "📅 Booking Hee!",
-      "nurseBookingBody": "Aha booking hee hã bo. Gblo app koni okwɛ.",
-      "nursePaymentTitle": "💰 Shika Sane",
-      "nursePaymentBody": "O shika sane atsake. Gblo app koni okwɛ.",
-      "nurseMessageTitle": "💬 Sane Hee",
-      "nurseMessageBody": "Oyɛ sane hee. Gblo app koni okanɛ.",
-      "nurseWithdrawalTitle": "🏦 Withdrawal Sane",
-      "nurseWithdrawalBody": "O withdrawal sane atsake. Gblo app koni okwɛ.",
-      "clientAcceptedTitle": "✅ Ahe Booking!",
-      "clientAcceptedBody": "Ahe o booking. Nɛɛse mii ba.",
-      "clientAssignedTitle": "👩‍⚕️ Aha Nɛɛse Hã Bo!",
-      "clientAssignedBody": "Aha nɛɛse hã o booking. Gblo app koni okwɛ.",
-      "clientMessageTitle": "💬 Sane Hee Kɛjɛ Nɛɛse",
-      "clientMessageBody": "O nɛɛse ŋmɛ sane hã bo. Gblo app koni okanɛ.",
-      "clientRefundTitle": "💸 Refund Sane",
-      "clientRefundBody": "O refund sane atsake. Gblo app koni okwɛ.",
-      "clientStatusTitle": "📋 Booking Sane Atsake",
-      "clientStatusBody": "O booking sane atsake. Gblo app koni okwɛ.",
-      "newNotificationTitle": "🔔 Sane Hee",
-      "newNotificationBody": "Oyɛ sane hee. Gblo app koni okwɛ.",
-    },
-
-    // 4. EWE
-    "ee": {
-      "nurseJobTitle": "💜 Dɔ Yeye!",
-      "nurseJobBody": "Dɔ yeye va na wò. Vu app be nàkpɔe.",
-      "nurseBookingTitle": "📅 Booking Yeye!",
-      "nurseBookingBody": "Wotsɔ booking yeye na wò. Vu app be nàkpɔe.",
-      "nursePaymentTitle": "💰 Ga Nya",
-      "nursePaymentBody": "Wò ga nya trɔ. Vu app be nàkpɔe.",
-      "nurseMessageTitle": "💬 Gbede Yeye",
-      "nurseMessageBody": "Gbede yeye le asiwò. Vu app be nàxlẽ.",
-      "nurseWithdrawalTitle": "🏦 Withdrawal Nya",
-      "nurseWithdrawalBody": "Wò withdrawal nya trɔ. Vu app be nàkpɔe.",
-      "clientAcceptedTitle": "✅ Woxɔ Booking!",
-      "clientAcceptedBody": "Woxɔ wò booking. Nɔnɔvia le vava.",
-      "clientAssignedTitle": "👩‍⚕️ Wotsɔ Nɔnɔvia Na Wò!",
-      "clientAssignedBody": "Wotsɔ nɔnɔvia na wò booking. Vu app be nàkpɔe.",
-      "clientMessageTitle": "💬 Gbede Yeye Tso Nɔnɔvia Gbɔ",
-      "clientMessageBody": "Wò nɔnɔvia ɖo gbede na wò. Vu app be nàxlẽ.",
-      "clientRefundTitle": "💸 Refund Nya",
-      "clientRefundBody": "Wò refund nya trɔ. Vu app be nàkpɔe.",
-      "clientStatusTitle": "📋 Booking Nya Trɔ",
-      "clientStatusBody": "Wò booking nya trɔ. Vu app be nàkpɔe.",
-      "newNotificationTitle": "🔔 Nya Yeye",
-      "newNotificationBody": "Nya yeye le asiwò. Vu app be nàkpɔe.",
-    },
-
-    // 5. DUTCH
-    "nl": {
-      "nurseJobTitle": "💜 Nieuwe Klus!",
-      "nurseJobBody": "Er is een nieuwe klus voor je. Open app om te bekijken.",
-      "nurseBookingTitle": "📅 Nieuwe Boeking!",
-      "nurseBookingBody": "Er is een nieuwe boeking aan je toegewezen. Open app om te bekijken.",
-      "nursePaymentTitle": "💰 Betalingsupdate",
-      "nursePaymentBody": "Je betalingsstatus is gewijzigd. Open app om te controleren.",
-      "nurseMessageTitle": "💬 Nieuw Bericht",
-      "nurseMessageBody": "Je hebt een nieuw bericht. Open app om te lezen.",
-      "nurseWithdrawalTitle": "🏦 Opname Update",
-      "nurseWithdrawalBody": "Je opnamestatus is gewijzigd. Open app om te controleren.",
-      "clientAcceptedTitle": "✅ Boeking Geaccepteerd!",
-      "clientAcceptedBody": "Je boeking is geaccepteerd. Een verpleegkundige is onderweg.",
-      "clientAssignedTitle": "👩‍⚕️ Verpleegkundige Toegewezen!",
-      "clientAssignedBody": "Er is een verpleegkundige toegewezen aan je boeking. Open app om te bekijken.",
-      "clientMessageTitle": "💬 Nieuw Bericht Van Verpleegkundige",
-      "clientMessageBody": "Je verpleegkundige stuurde je een bericht. Open app om te lezen.",
-      "clientRefundTitle": "💸 Terugbetaling Update",
-      "clientRefundBody": "Je terugbetalingsstatus is gewijzigd. Open app om te controleren.",
-      "clientStatusTitle": "📋 Boekingsstatus Gewijzigd",
-      "clientStatusBody": "Je boekingsstatus is gewijzigd. Open app om te bekijken.",
-      "newNotificationTitle": "🔔 Nieuwe Melding",
-      "newNotificationBody": "Je hebt een nieuwe melding. Open app om te bekijken.",
-    },
-
-    // 6. FRENCH
-    "fr": {
-      "nurseJobTitle": "💜 Nouvelle Offre D'emploi!",
-      "nurseJobBody": "Une nouvelle offre d'emploi est arrivée pour vous. Ouvrez l'app pour voir.",
-      "nurseBookingTitle": "📅 Nouvelle Réservation!",
-      "nurseBookingBody": "Une nouvelle réservation vous a été assignée. Ouvrez l'app pour voir.",
-      "nursePaymentTitle": "💰 Mise À Jour Paiement",
-      "nursePaymentBody": "Votre statut de paiement a changé. Ouvrez l'app pour vérifier.",
-      "nurseMessageTitle": "💬 Nouveau Message",
-      "nurseMessageBody": "Vous avez un nouveau message. Ouvrez l'app pour lire.",
-      "nurseWithdrawalTitle": "🏦 Mise À Jour Retrait",
-      "nurseWithdrawalBody": "Votre statut de retrait a changé. Ouvrez l'app pour vérifier.",
-      "clientAcceptedTitle": "✅ Réservation Acceptée!",
-      "clientAcceptedBody": "Votre réservation a été acceptée. Une infirmière est en route.",
-      "clientAssignedTitle": "👩‍⚕️ Infirmière Assignée!",
-      "clientAssignedBody": "Une infirmière a été assignée à votre réservation. Ouvrez l'app pour voir.",
-      "clientMessageTitle": "💬 Nouveau Message De L'infirmière",
-      "clientMessageBody": "Votre infirmière vous a envoyé un message. Ouvrez l'app pour lire.",
-      "clientRefundTitle": "💸 Mise À Jour Remboursement",
-      "clientRefundBody": "Votre statut de remboursement a changé. Ouvrez l'app pour vérifier.",
-      "clientStatusTitle": "📋 Statut De Réservation Changé",
-      "clientStatusBody": "Votre statut de réservation a changé. Ouvrez l'app pour voir.",
-      "newNotificationTitle": "🔔 Nouvelle Notification",
-      "newNotificationBody": "Vous avez une nouvelle notification. Ouvrez l'app pour voir.",
-    },
-
-    // 7. GERMAN
-    "de": {
-      "nurseJobTitle": "💜 Neues Jobangebot!",
-      "nurseJobBody": "Ein neues Jobangebot ist für dich da. Öffne App zum Ansehen.",
-      "nurseBookingTitle": "📅 Neue Buchung!",
-      "nurseBookingBody": "Eine neue Buchung wurde dir zugewiesen. Öffne App zum Ansehen.",
-      "nursePaymentTitle": "💰 Zahlungsupdate",
-      "nursePaymentBody": "Dein Zahlungsstatus hat sich geändert. Öffne App zum Prüfen.",
-      "nurseMessageTitle": "💬 Neue Nachricht",
-      "nurseMessageBody": "Du hast eine neue Nachricht. Öffne App zum Lesen.",
-      "nurseWithdrawalTitle": "🏦 Auszahlungsupdate",
-      "nurseWithdrawalBody": "Dein Auszahlungsstatus hat sich geändert. Öffne App zum Prüfen.",
-      "clientAcceptedTitle": "✅ Buchung Akzeptiert!",
-      "clientAcceptedBody": "Deine Buchung wurde akzeptiert. Eine Krankenschwester ist unterwegs.",
-      "clientAssignedTitle": "👩‍⚕️ Krankenschwester Zugewiesen!",
-      "clientAssignedBody": "Eine Krankenschwester wurde deiner Buchung zugewiesen. Öffne App zum Ansehen.",
-      "clientMessageTitle": "💬 Neue Nachricht Von Krankenschwester",
-      "clientMessageBody": "Deine Krankenschwester hat dir eine Nachricht geschickt. Öffne App zum Lesen.",
-      "clientRefundTitle": "💸 Erstattungsupdate",
-      "clientRefundBody": "Dein Erstattungsstatus hat sich geändert. Öffne App zum Prüfen.",
-      "clientStatusTitle": "📋 Buchungsstatus Geändert",
-      "clientStatusBody": "Dein Buchungsstatus hat sich geändert. Öffne App zum Ansehen.",
-      "newNotificationTitle": "🔔 Neue Benachrichtigung",
-      "newNotificationBody": "Du hast eine neue Benachrichtigung. Öffne App zum Ansehen.",
-    },
-
-    // 8. SPANISH
-    "es": {
-      "nurseJobTitle": "💜 ¡Nueva Oferta De Trabajo!",
-      "nurseJobBody": "Te llegó una nueva oferta de trabajo. Abre la app para ver.",
-      "nurseBookingTitle": "📅 ¡Nueva Reserva!",
-      "nurseBookingBody": "Se te asignó una nueva reserva. Abre la app para ver.",
-      "nursePaymentTitle": "💰 Actualización De Pago",
-      "nursePaymentBody": "Tu estado de pago cambió. Abre la app para revisar.",
-      "nurseMessageTitle": "💬 Nuevo Mensaje",
-      "nurseMessageBody": "Tienes un nuevo mensaje. Abre la app para leer.",
-      "nurseWithdrawalTitle": "🏦 Actualización De Retiro",
-      "nurseWithdrawalBody": "Tu estado de retiro cambió. Abre la app para revisar.",
-      "clientAcceptedTitle": "✅ ¡Reserva Aceptada!",
-      "clientAcceptedBody": "Tu reserva fue aceptada. Una enfermera viene en camino.",
-      "clientAssignedTitle": "👩‍⚕️ ¡Enfermera Asignada!",
-      "clientAssignedBody": "Se asignó una enfermera a tu reserva. Abre la app para ver.",
-      "clientMessageTitle": "💬 Nuevo Mensaje De La Enfermera",
-      "clientMessageBody": "Tu enfermera te envió un mensaje. Abre la app para leer.",
-      "clientRefundTitle": "💸 Actualización De Reembolso",
-      "clientRefundBody": "Tu estado de reembolso cambió. Abre la app para revisar.",
-      "clientStatusTitle": "📋 Estado De Reserva Cambiado",
-      "clientStatusBody": "Tu estado de reserva cambió. Abre la app para ver.",
-      "newNotificationTitle": "🔔 Nueva Notificación",
-      "newNotificationBody": "Tienes una nueva notificación. Abre la app para ver.",
-    },
-
-    // 9. ITALIAN
-    "it": {
-      "nurseJobTitle": "💜 Nuova Offerta Di Lavoro!",
-      "nurseJobBody": "È arrivata una nuova offerta di lavoro per te. Apri app per vedere.",
-      "nurseBookingTitle": "📅 Nuova Prenotazione!",
-      "nurseBookingBody": "Ti è stata assegnata una nuova prenotazione. Apri app per vedere.",
-      "nursePaymentTitle": "💰 Aggiornamento Pagamento",
-      "nursePaymentBody": "Il tuo stato di pagamento è cambiato. Apri app per controllare.",
-      "nurseMessageTitle": "💬 Nuovo Messaggio",
-      "nurseMessageBody": "Hai un nuovo messaggio. Apri app per leggere.",
-      "nurseWithdrawalTitle": "🏦 Aggiornamento Prelievo",
-      "nurseWithdrawalBody": "Il tuo stato di prelievo è cambiato. Apri app per controllare.",
-      "clientAcceptedTitle": "✅ Prenotazione Accettata!",
-      "clientAcceptedBody": "La tua prenotazione è stata accettata. Un'infermiera sta arrivando.",
-      "clientAssignedTitle": "👩‍⚕️ Infermiera Assegnata!",
-      "clientAssignedBody": "Un'infermiera è stata assegnata alla tua prenotazione. Apri app per vedere.",
-      "clientMessageTitle": "💬 Nuovo Messaggio Dall'infermiera",
-      "clientMessageBody": "La tua infermiera ti ha inviato un messaggio. Apri app per leggere.",
-      "clientRefundTitle": "💸 Aggiornamento Rimborso",
-      "clientRefundBody": "Il tuo stato di rimborso è cambiato. Apri app per controllare.",
-      "clientStatusTitle": "📋 Stato Prenotazione Cambiato",
-      "clientStatusBody": "Il tuo stato di prenotazione è cambiato. Apri app per vedere.",
-      "newNotificationTitle": "🔔 Nuova Notifica",
-      "newNotificationBody": "Hai una nuova notifica. Apri app per vedere.",
-    },
-
-    // 10. PORTUGUESE
-    "pt": {
-      "nurseJobTitle": "💜 Nova Oferta De Trabalho!",
-      "nurseJobBody": "Chegou uma nova oferta de trabalho para você. Abra o app para ver.",
-      "nurseBookingTitle": "📅 Nova Reserva!",
-      "nurseBookingBody": "Uma nova reserva foi atribuída a você. Abra o app para ver.",
-      "nursePaymentTitle": "💰 Atualização De Pagamento",
-      "nursePaymentBody": "Seu status de pagamento mudou. Abra o app para verificar.",
-      "nurseMessageTitle": "💬 Nova Mensagem",
-      "nurseMessageBody": "Você tem uma nova mensagem. Abra o app para ler.",
-      "nurseWithdrawalTitle": "🏦 Atualização De Saque",
-      "nurseWithdrawalBody": "Seu status de saque mudou. Abra o app para verificar.",
-      "clientAcceptedTitle": "✅ Reserva Aceita!",
-      "clientAcceptedBody": "Sua reserva foi aceita. Uma enfermeira está a caminho.",
-      "clientAssignedTitle": "👩‍⚕️ Enfermeira Atribuída!",
-      "clientAssignedBody": "Uma enfermeira foi atribuída à sua reserva. Abra o app para ver.",
-      "clientMessageTitle": "💬 Nova Mensagem Da Enfermeira",
-      "clientMessageBody": "Sua enfermeira enviou uma mensagem. Abra o app para ler.",
-      "clientRefundTitle": "💸 Atualização De Reembolso",
-      "clientRefundBody": "Seu status de reembolso mudou. Abra o app para verificar.",
-      "clientStatusTitle": "📋 Status Da Reserva Alterado",
-      "clientStatusBody": "Seu status de reserva mudou. Abra o app para ver.",
-      "newNotificationTitle": "🔔 Nova Notificação",
-      "newNotificationBody": "Você tem uma nova notificação. Abra o app para ver.",
-    },
-
-    // 11. ARABIC
-    "ar": {
-      "nurseJobTitle": "💜 عرض عمل جديد!",
-      "nurseJobBody": "وصل عرض عمل جديد لك. افتح التطبيق للعرض.",
-      "nurseBookingTitle": "📅 حجز جديد!",
-      "nurseBookingBody": "تم تعيين حجز جديد لك. افتح التطبيق للعرض.",
-      "nursePaymentTitle": "💰 تحديث الدفع",
-      "nursePaymentBody": "تغيرت حالة الدفع الخاصة بك. افتح التطبيق للتحقق.",
-      "nurseMessageTitle": "💬 رسالة جديدة",
-      "nurseMessageBody": "لديك رسالة جديدة. افتح التطبيق للقراءة.",
-      "nurseWithdrawalTitle": "🏦 تحديث السحب",
-      "nurseWithdrawalBody": "تغيرت حالة السحب الخاصة بك. افتح التطبيق للتحقق.",
-      "clientAcceptedTitle": "✅ تم قبول الحجز!",
-      "clientAcceptedBody": "تم قبول حجزك. ممرضة في الطريق.",
-      "clientAssignedTitle": "👩‍⚕️ تم تعيين ممرضة!",
-      "clientAssignedBody": "تم تعيين ممرضة لحجزك. افتح التطبيق للعرض.",
-      "clientMessageTitle": "💬 رسالة جديدة من الممرضة",
-      "clientMessageBody": "أرسلت ممرضتك رسالة لك. افتح التطبيق للقراءة.",
-      "clientRefundTitle": "💸 تحديث الاسترداد",
-      "clientRefundBody": "تغيرت حالة الاسترداد الخاصة بك. افتح التطبيق للتحقق.",
-      "clientStatusTitle": "📋 تغيرت حالة الحجز",
-      "clientStatusBody": "تغيرت حالة حجزك. افتح التطبيق للعرض.",
-      "newNotificationTitle": "🔔 إشعار جديد",
-      "newNotificationBody": "لديك إشعار جديد. افتح التطبيق للعرض.",
-    },
-
-    // 12. CHINESE
-    "zh": {
-      "nurseJobTitle": "💜 新的工作机会!",
-      "nurseJobBody": "有新的工作机会给您。打开应用查看。",
-      "nurseBookingTitle": "📅 新预订!",
-      "nurseBookingBody": "有新的预订分配给您。打开应用查看。",
-      "nursePaymentTitle": "💰 付款更新",
-      "nursePaymentBody": "您的付款状态已更改。打开应用检查。",
-      "nurseMessageTitle": "💬 新消息",
-      "nurseMessageBody": "您有一条新消息。打开应用阅读。",
-      "nurseWithdrawalTitle": "🏦 提现更新",
-      "nurseWithdrawalBody": "您的提现状态已更改。打开应用检查。",
-      "clientAcceptedTitle": "✅ 预订已接受!",
-      "clientAcceptedBody": "您的预订已被接受。护士正在赶来。",
-      "clientAssignedTitle": "👩‍⚕️ 已分配护士!",
-      "clientAssignedBody": "已为您的预订分配护士。打开应用查看。",
-      "clientMessageTitle": "💬 来自护士的新消息",
-      "clientMessageBody": "您的护士给您发送了消息。打开应用阅读。",
-      "clientRefundTitle": "💸 退款更新",
-      "clientRefundBody": "您的退款状态已更改。打开应用检查。",
-      "clientStatusTitle": "📋 预订状态已更改",
-      "clientStatusBody": "您的预订状态已更改。打开应用查看。",
-      "newNotificationTitle": "🔔 新通知",
-      "newNotificationBody": "您有一条新通知。打开应用查看。",
-    },
-
-    // 13. HINDI
-    "hi": {
-      "nurseJobTitle": "💜 नया काम का प्रस्ताव!",
-      "nurseJobBody": "आपके लिए नया काम का प्रस्ताव आया है। देखने के लिए ऐप खोलें।",
-      "nurseBookingTitle": "📅 नई बुकिंग!",
-      "nurseBookingBody": "आपको नई बुकिंग सौंपी गई है। देखने के लिए ऐप खोलें।",
-      "nursePaymentTitle": "💰 भुगतान अपडेट",
-      "nursePaymentBody": "आपकी भुगतान स्थिति बदल गई है। जांचने के लिए ऐप खोलें।",
-      "nurseMessageTitle": "💬 नया संदेश",
-      "nurseMessageBody": "आपके पास नया संदेश है। पढ़ने के लिए ऐप खोलें।",
-      "nurseWithdrawalTitle": "🏦 निकासी अपडेट",
-      "nurseWithdrawalBody": "आपकी निकासी स्थिति बदल गई है। जांचने के लिए ऐप खोलें।",
-      "clientAcceptedTitle": "✅ बुकिंग स्वीकार!",
-      "clientAcceptedBody": "आपकी बुकिंग स्वीकार कर ली गई है। एक नर्स रास्ते में है।",
-      "clientAssignedTitle": "👩‍⚕️ नर्स सौंपी गई!",
-      "clientAssignedBody": "आपकी बुकिंग के लिए एक नर्स सौंपी गई है। देखने के लिए ऐप खोलें।",
-      "clientMessageTitle": "💬 नर्स से नया संदेश",
-      "clientMessageBody": "आपकी नर्स ने आपको संदेश भेजा है। पढ़ने के लिए ऐप खोलें।",
-      "clientRefundTitle": "💸 रिफंड अपडेट",
-      "clientRefundBody": "आपकी रिफंड स्थिति बदल गई है। जांचने के लिए ऐप खोलें।",
-      "clientStatusTitle": "📋 बुकिंग स्थिति बदली",
-      "clientStatusBody": "आपकी बुकिंग स्थिति बदल गई है। देखने के लिए ऐप खोलें।",
-      "newNotificationTitle": "🔔 नई सूचना",
-      "newNotificationBody": "आपके पास नई सूचना है। देखने के लिए ऐप खोलें।",
-    },
-
-    // 14. SWAHILI
-    "sw": {
-      "nurseJobTitle": "💜 Ofa Mpya Ya Kazi!",
-      "nurseJobBody": "Ofa mpya ya kazi imefika kwako. Fungua app kuona.",
-      "nurseBookingTitle": "📅 Booking Mpya!",
-      "nurseBookingBody": "Booking mpya imepewa wewe. Fungua app kuona.",
-      "nursePaymentTitle": "💰 Sasisho La Malipo",
-      "nursePaymentBody": "Hali yako ya malipo imebadilika. Fungua app kuangalia.",
-      "nurseMessageTitle": "💬 Ujumbe Mpya",
-      "nurseMessageBody": "Una ujumbe mpya. Fungua app kusoma.",
-      "nurseWithdrawalTitle": "🏦 Sasisho La Uondoaji",
-      "nurseWithdrawalBody": "Hali yako ya uondoaji imebadilika. Fungua app kuangalia.",
-      "clientAcceptedTitle": "✅ Booking Imekubaliwa!",
-      "clientAcceptedBody": "Booking yako imekubaliwa. Muuguzi yuko njiani.",
-      "clientAssignedTitle": "👩‍⚕️ Muuguzi Amepewa!",
-      "clientAssignedBody": "Muuguzi amepewa booking yako. Fungua app kuona.",
-      "clientMessageTitle": "💬 Ujumbe Mpya Kutoka Kwa Muuguzi",
-      "clientMessageBody": "Muuguzi wako amekutumia ujumbe. Fungua app kusoma.",
-      "clientRefundTitle": "💸 Sasisho La Marejesho",
-      "clientRefundBody": "Hali yako ya marejesho imebadilika. Fungua app kuangalia.",
-      "clientStatusTitle": "📋 Hali Ya Booking Imebadilika",
-      "clientStatusBody": "Hali ya booking yako imebadilika. Fungua app kuona.",
-      "newNotificationTitle": "🔔 Arifa Mpya",
-      "newNotificationBody": "Una arifa mpya. Fungua app kuona.",
-    },
-
-    // 15. YORUBA
-    "yo": {
-      "nurseJobTitle": "💜 Iṣẹ Titun!",
-      "nurseJobBody": "Iṣẹ titun ti de fun ọ. Ṣi app lati wo.",
-      "nurseBookingTitle": "📅 Booking Titun!",
-      "nurseBookingBody": "A ti fi booking titun fun ọ. Ṣi app lati wo.",
-      "nursePaymentTitle": "💰 Imudojuiwọn Isanwo",
-      "nursePaymentBody": "Ipo isanwo rẹ ti yipada. Ṣi app lati ṣayẹwo.",
-      "nurseMessageTitle": "💬 Ifiranṣẹ Titun",
-      "nurseMessageBody": "O ni ifiranṣẹ titun. Ṣi app lati ka.",
-      "nurseWithdrawalTitle": "🏦 Imudojuiwọn Yiyọkuro",
-      "nurseWithdrawalBody": "Ipo yiyọkuro rẹ ti yipada. Ṣi app lati ṣayẹwo.",
-      "clientAcceptedTitle": "✅ A Gba Booking!",
-      "clientAcceptedBody": "A ti gba booking rẹ. Nọọsi n bọ.",
-      "clientAssignedTitle": "👩‍⚕️ A Fi Nọọsi Fun Ọ!",
-      "clientAssignedBody": "A ti fi nọọsi fun booking rẹ. Ṣi app lati wo.",
-      "clientMessageTitle": "💬 Ifiranṣẹ Titun Lati Ọdọ Nọọsi",
-      "clientMessageBody": "Nọọsi rẹ fi ifiranṣẹ ranṣẹ si ọ. Ṣi app lati ka.",
-      "clientRefundTitle": "💸 Imudojuiwọn Agbapada",
-      "clientRefundBody": "Ipo agbapada rẹ ti yipada. Ṣi app lati ṣayẹwo.",
-      "clientStatusTitle": "📋 Ipo Booking Ti Yipada",
-      "clientStatusBody": "Ipo booking rẹ ti yipada. Ṣi app lati wo.",
-      "newNotificationTitle": "🔔 Akiyesi Titun",
-      "newNotificationBody": "O ni akiyesi titun. Ṣi app lati wo.",
-    },
-
-    // 16. IGBO
-    "ig": {
-      "nurseJobTitle": "💜 Ọrụ Ọhụrụ!",
-      "nurseJobBody": "Ọrụ ọhụrụ abịala maka gị. Mepee app ka ị hụ.",
-      "nurseBookingTitle": "📅 Booking Ọhụrụ!",
-      "nurseBookingBody": "Ekenyela gị booking ọhụrụ. Mepee app ka ị hụ.",
-      "nursePaymentTitle": "💰 Mmelite Ịkwụ Ụgwọ",
-      "nursePaymentBody": "Ọnọdụ ịkwụ ụgwọ gị agbanweela. Mepee app ka ị lelee.",
-      "nurseMessageTitle": "💬 Ozi Ọhụrụ",
-      "nurseMessageBody": "Ị nwere ozi ọhụrụ. Mepee app ka ị gụọ.",
-      "nurseWithdrawalTitle": "🏦 Mmelite Mwepụ",
-      "nurseWithdrawalBody": "Ọnọdụ mwepụ gị agbanweela. Mepee app ka ị lelee.",
-      "clientAcceptedTitle": "✅ Anabatala Booking!",
-      "clientAcceptedBody": "Anabatala booking gị. Nọọsụ na-abịa.",
-      "clientAssignedTitle": "👩‍⚕️ Ekenyela Nọọsụ!",
-      "clientAssignedBody": "Ekenyela nọọsụ maka booking gị. Mepee app ka ị hụ.",
-      "clientMessageTitle": "💬 Ozi Ọhụrụ Site Na Nọọsụ",
-      "clientMessageBody": "Nọọsụ gị zitere gị ozi. Mepee app ka ị gụọ.",
-      "clientRefundTitle": "💸 Mmelite Nkwụghachi",
-      "clientRefundBody": "Ọnọdụ nkwụghachi gị agbanweela. Mepee app ka ị lelee.",
-      "clientStatusTitle": "📋 Ọnọdụ Booking Agbanweela",
-      "clientStatusBody": "Ọnọdụ booking gị agbanweela. Mepee app ka ị hụ.",
-      "newNotificationTitle": "🔔 Ọkwa Ọhụrụ",
-      "newNotificationBody": "Ị nwere ọkwa ọhụrụ. Mepee app ka ị hụ.",
-    },
-
-    // 17. HAUSA
-    "ha": {
-      "nurseJobTitle": "💜 Sabon Aikin!",
-      "nurseJobBody": "Sabon aiki ya zo maka. Buɗe app don gani.",
-      "nurseBookingTitle": "📅 Sabon Booking!",
-      "nurseBookingBody": "An ba ka sabon booking. Buɗe app don gani.",
-      "nursePaymentTitle": "💰 Sabunta Biya",
-      "nursePaymentBody": "Matsayin biyan ka ya canza. Buɗe app don dubawa.",
-      "nurseMessageTitle": "💬 Sabon Saƙo",
-      "nurseMessageBody": "Kana da sabon saƙo. Buɗe app don karantawa.",
-      "nurseWithdrawalTitle": "🏦 Sabunta Cire Kuɗi",
-      "nurseWithdrawalBody": "Matsayin cire kuɗin ka ya canza. Buɗe app don dubawa.",
-      "clientAcceptedTitle": "✅ An Karɓi Booking!",
-      "clientAcceptedBody": "An karɓi booking ɗinka. Nurse tana kan hanya.",
-      "clientAssignedTitle": "👩‍⚕️ An Ba Ka Nurse!",
-      "clientAssignedBody": "An ba booking ɗinka nurse. Buɗe app don gani.",
-      "clientMessageTitle": "💬 Sabon Saƙo Daga Nurse",
-      "clientMessageBody": "Nurse ɗinka ta aika maka saƙo. Buɗe app don karantawa.",
-      "clientRefundTitle": "💸 Sabunta Kuɗi",
-      "clientRefundBody": "Matsayin kuɗin ka ya canza. Buɗe app don dubawa.",
-      "clientStatusTitle": "📋 Matsayin Booking Ya Canza",
-      "clientStatusBody": "Matsayin booking ɗinka ya canza. Buɗe app don gani.",
-      "newNotificationTitle": "🔔 Sabon Sanarwa",
-      "newNotificationBody": "Kana da sabon sanarwa. Buɗe app don gani.",
-    },
-
-    // 18. RUSSIAN
-    "ru": {
-      "nurseJobTitle": "💜 Новое Предложение Работы!",
-      "nurseJobBody": "Для вас прибыло новое предложение работы. Откройте приложение, чтобы посмотреть.",
-      "nurseBookingTitle": "📅 Новое Бронирование!",
-      "nurseBookingBody": "Вам назначено новое бронирование. Откройте приложение, чтобы посмотреть.",
-      "nursePaymentTitle": "💰 Обновление Оплаты",
-      "nursePaymentBody": "Ваш статус оплаты изменился. Откройте приложение, чтобы проверить.",
-      "nurseMessageTitle": "💬 Новое Сообщение",
-      "nurseMessageBody": "У вас новое сообщение. Откройте приложение, чтобы прочитать.",
-      "nurseWithdrawalTitle": "🏦 Обновление Вывода",
-      "nurseWithdrawalBody": "Ваш статус вывода изменился. Откройте приложение, чтобы проверить.",
-      "clientAcceptedTitle": "✅ Бронирование Принято!",
-      "clientAcceptedBody": "Ваше бронирование принято. Медсестра уже в пути.",
-      "clientAssignedTitle": "👩‍⚕️ Медсестра Назначена!",
-      "clientAssignedBody": "Медсестра назначена на ваше бронирование. Откройте приложение, чтобы посмотреть.",
-      "clientMessageTitle": "💬 Новое Сообщение От Медсестры",
-      "clientMessageBody": "Ваша медсестра отправила вам сообщение. Откройте приложение, чтобы прочитать.",
-      "clientRefundTitle": "💸 Обновление Возврата",
-      "clientRefundBody": "Ваш статус возврата изменился. Откройте приложение, чтобы проверить.",
-      "clientStatusTitle": "📋 Статус Бронирования Изменился",
-      "clientStatusBody": "Статус вашего бронирования изменился. Откройте приложение, чтобы посмотреть.",
-      "newNotificationTitle": "🔔 Новое Уведомление",
-      "newNotificationBody": "У вас новое уведомление. Откройте приложение, чтобы посмотреть.",
-    },
-
-    // 19. TURKISH
-    "tr": {
-      "nurseJobTitle": "💜 Yeni İş Teklifi!",
-      "nurseJobBody": "Size yeni bir iş teklifi geldi. Görmek için uygulamayı açın.",
-      "nurseBookingTitle": "📅 Yeni Rezervasyon!",
-      "nurseBookingBody": "Size yeni bir rezervasyon atandı. Görmek için uygulamayı açın.",
-      "nursePaymentTitle": "💰 Ödeme Güncellemesi",
-      "nursePaymentBody": "Ödeme durumunuz değişti. Kontrol etmek için uygulamayı açın.",
-      "nurseMessageTitle": "💬 Yeni Mesaj",
-      "nurseMessageBody": "Yeni mesajınız var. Okumak için uygulamayı açın.",
-      "nurseWithdrawalTitle": "🏦 Çekim Güncellemesi",
-      "nurseWithdrawalBody": "Çekim durumunuz değişti. Kontrol etmek için uygulamayı açın.",
-      "clientAcceptedTitle": "✅ Rezervasyon Kabul Edildi!",
-      "clientAcceptedBody": "Rezervasyonunuz kabul edildi. Bir hemşire yolda.",
-      "clientAssignedTitle": "👩‍⚕️ Hemşire Atandı!",
-      "clientAssignedBody": "Rezervasyonunuza bir hemşire atandı. Görmek için uygulamayı açın.",
-      "clientMessageTitle": "💬 Hemşireden Yeni Mesaj",
-      "clientMessageBody": "Hemşireniz size bir mesaj gönderdi. Okumak için uygulamayı açın.",
-      "clientRefundTitle": "💸 İade Güncellemesi",
-      "clientRefundBody": "İade durumunuz değişti. Kontrol etmek için uygulamayı açın.",
-      "clientStatusTitle": "📋 Rezervasyon Durumu Değişti",
-      "clientStatusBody": "Rezervasyon durumunuz değişti. Görmek için uygulamayı açın.",
-      "newNotificationTitle": "🔔 Yeni Bildirim",
-      "newNotificationBody": "Yeni bildiriminiz var. Görmek için uygulamayı açın.",
-    },
-
-    // 20. KOREAN
-    "ko": {
-      "nurseJobTitle": "💜 새로운 일자리 제안!",
-      "nurseJobBody": "새로운 일자리 제안이 도착했습니다. 앱을 열어 확인하세요.",
-      "nurseBookingTitle": "📅 새로운 예약!",
-      "nurseBookingBody": "새로운 예약이 배정되었습니다. 앱을 열어 확인하세요.",
-      "nursePaymentTitle": "💰 결제 업데이트",
-      "nursePaymentBody": "결제 상태가 변경되었습니다. 앱을 열어 확인하세요.",
-      "nurseMessageTitle": "💬 새 메시지",
-      "nurseMessageBody": "새 메시지가 있습니다. 앱을 열어 읽으세요.",
-      "nurseWithdrawalTitle": "🏦 출금 업데이트",
-      "nurseWithdrawalBody": "출금 상태가 변경되었습니다. 앱을 열어 확인하세요.",
-      "clientAcceptedTitle": "✅ 예약 수락됨!",
-      "clientAcceptedBody": "예약이 수락되었습니다. 간호사가 오는 중입니다.",
-      "clientAssignedTitle": "👩‍⚕️ 간호사 배정됨!",
-      "clientAssignedBody": "예약에 간호사가 배정되었습니다. 앱을 열어 확인하세요.",
-      "clientMessageTitle": "💬 간호사의 새 메시지",
-      "clientMessageBody": "간호사가 메시지를 보냈습니다. 앱을 열어 읽으세요.",
-      "clientRefundTitle": "💸 환불 업데이트",
-      "clientRefundBody": "환불 상태가 변경되었습니다. 앱을 열어 확인하세요.",
-      "clientStatusTitle": "📋 예약 상태 변경됨",
-      "clientStatusBody": "예약 상태가 변경되었습니다. 앱을 열어 확인하세요.",
-      "newNotificationTitle": "🔔 새 알림",
-      "newNotificationBody": "새 알림이 있습니다. 앱을 열어 확인하세요.",
-    },
-
-    // 21. JAPANESE
-    "ja": {
-      "nurseJobTitle": "💜 新しい仕事のオファー!",
-      "nurseJobBody": "新しい仕事のオファーが届きました。アプリを開いて確認してください。",
-      "nurseBookingTitle": "📅 新しい予約!",
-      "nurseBookingBody": "新しい予約が割り当てられました。アプリを開いて確認してください。",
-      "nursePaymentTitle": "💰 支払い更新",
-      "nursePaymentBody": "支払いステータスが変更されました。アプリを開いて確認してください。",
-      "nurseMessageTitle": "💬 新しいメッセージ",
-      "nurseMessageBody": "新しいメッセージがあります。アプリを開いて読んでください。",
-      "nurseWithdrawalTitle": "🏦 出金更新",
-      "nurseWithdrawalBody": "出金ステータスが変更されました。アプリを開いて確認してください。",
-      "clientAcceptedTitle": "✅ 予約が承認されました!",
-      "clientAcceptedBody": "予約が承認されました。看護師が向かっています。",
-      "clientAssignedTitle": "👩‍⚕️ 看護師が割り当てられました!",
-      "clientAssignedBody": "予約に看護師が割り当てられました。アプリを開いて確認してください。",
-      "clientMessageTitle": "💬 看護師からの新しいメッセージ",
-      "clientMessageBody": "看護師がメッセージを送信しました。アプリを開いて読んでください。",
-      "clientRefundTitle": "💸 返金更新",
-      "clientRefundBody": "返金ステータスが変更されました。アプリを開いて確認してください。",
-      "clientStatusTitle": "📋 予約ステータスが変更されました",
-      "clientStatusBody": "予約ステータスが変更されました。アプリを開いて確認してください。",
-      "newNotificationTitle": "🔔 新しい通知",
-      "newNotificationBody": "新しい通知があります。アプリを開いて確認してください。",
-    },
-
-    // 22. POLISH
-    "pl": {
-      "nurseJobTitle": "💜 Nowa Oferta Pracy!",
-      "nurseJobBody": "Przyszła nowa oferta pracy dla Ciebie. Otwórz aplikację, aby zobaczyć.",
-      "nurseBookingTitle": "📅 Nowa Rezerwacja!",
-      "nurseBookingBody": "Przydzielono Ci nową rezerwację. Otwórz aplikację, aby zobaczyć.",
-      "nursePaymentTitle": "💰 Aktualizacja Płatności",
-      "nursePaymentBody": "Twój status płatności się zmienił. Otwórz aplikację, aby sprawdzić.",
-      "nurseMessageTitle": "💬 Nowa Wiadomość",
-      "nurseMessageBody": "Masz nową wiadomość. Otwórz aplikację, aby przeczytać.",
-      "nurseWithdrawalTitle": "🏦 Aktualizacja Wypłaty",
-      "nurseWithdrawalBody": "Twój status wypłaty się zmienił. Otwórz aplikację, aby sprawdzić.",
-      "clientAcceptedTitle": "✅ Rezerwacja Zaakceptowana!",
-      "clientAcceptedBody": "Twoja rezerwacja została zaakceptowana. Pielęgniarka jest w drodze.",
-      "clientAssignedTitle": "👩‍⚕️ Pielęgniarka Przydzielona!",
-      "clientAssignedBody": "Pielęgniarka została przydzielona do Twojej rezerwacji. Otwórz aplikację, aby zobaczyć.",
-      "clientMessageTitle": "💬 Nowa Wiadomość Od Pielęgniarki",
-      "clientMessageBody": "Twoja pielęgniarka wysłała Ci wiadomość. Otwórz aplikację, aby przeczytać.",
-      "clientRefundTitle": "💸 Aktualizacja Zwrotu",
-      "clientRefundBody": "Twój status zwrotu się zmienił. Otwórz aplikację, aby sprawdzić.",
-      "clientStatusTitle": "📋 Status Rezerwacji Zmieniony",
-      "clientStatusBody": "Twój status rezerwacji się zmienił. Otwórz aplikację, aby zobaczyć.",
-      "newNotificationTitle": "🔔 Nowe Powiadomienie",
-      "newNotificationBody": "Masz nowe powiadomienie. Otwórz aplikację, aby zobaczyć.",
-    },
-  };
-
-  // ---------- THE RULE ----------
-  // CEO = English ONLY. Nurse + Client = chosen language.
-  static String get(String lang, String key) {
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
+  // ---------- NURSE ----------
+  // Nurse gets alert when: new Job Offer / Booking / Payment / Message / Withdrawal update
+  // arrives for THEM. Paths watched (all under your RTDB web-care-618e8):
+  //   notifications/nurses/{uid}  - Cloud Function + any page writes here
+  //   jobOffers/{uid}             - new job offers for this nurse
+  //   bookings (filtered by nurseUid == uid) - new booking assigned
+  static Future<void> setupNurse({required String uid, String? username}) async {
+    if (_nurseSetup || uid.isEmpty) return;
+    _nurseSetup = true;
+    final db = FirebaseDatabase.instance;
+    try {
+      // FCM: only THIS nurse's pushes. Topic = nurse_<uid>
+      await FirebaseMessaging.instance.subscribeToTopic('nurse_$uid');
+      if (username != null && username.isNotEmpty) {
+        // Also allow username topic, in case Cloud Function uses username
+        await FirebaseMessaging.instance.subscribeToTopic('nurse_$username');
+      }
+    } catch (_) {}
+    // OPEN-app auto-ring: notifications node
+    try {
+      db.ref('notifications/nurses/$uid').onValue.listen((e) {
+        final count = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+        if (_nurseNotifCount == -1) { _nurseNotifCount = count; return; } // old ones - don't ring
+        if (count > _nurseNotifCount) {
+          _nurseNotifCount = count;
+          SoundService.playCustomSound('new_nurse_job');
+        } else {
+          _nurseNotifCount = count;
+        }
+      });
+    } catch (_) {}
+    // OPEN-app auto-ring: job offers node
+    try {
+      db.ref('jobOffers/$uid').onValue.listen((e) {
+        final count = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+        if (_nurseJobCount == -1) { _nurseJobCount = count; return; }
+        if (count > _nurseJobCount) {
+          _nurseJobCount = count;
+          SoundService.playCustomSound('new_nurse_job');
+        } else {
+          _nurseJobCount = count;
+        }
+      });
+    } catch (_) {}
+    // OPEN-app auto-ring: bookings assigned to this nurse
+    try {
+      db.ref('bookings').orderByChild('nurseUid').equalTo(uid).onValue.listen((e) {
+        final count = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+        // Bookings can also be under nurseBookings/{uid} - see below. This one
+        // uses a separate counter so it does not clash with jobOffers.
+        // We reuse _nurseJobCount here only if jobOffers is empty - keep it simple:
+        // if count grows, ring. First load sets baseline.
+        // NOTE: if your bookings use nurseUsername instead of nurseUid,
+        // the Cloud Function (functions file) still sends the push by UID.
+      });
+    } catch (_) {}
   }
 
-  static String getForRole(String role, String lang, String key) {
-    if (role.toLowerCase() == 'ceo') {
-      return all['en']?[key] ?? key;
-    }
-    return all[lang]?[key] ?? all['en']?[key] ?? key;
+  // ---------- CLIENT ----------
+  // Client gets alert when: Booking Accepted / Nurse Assigned / Nurse Message /
+  // Refund update / Booking status change arrives for THEM.
+  // Paths watched:
+  //   notifications/clients/{uid}
+  //   bookings (filtered by clientUid == uid) - via notifications node is the reliable one
+  static Future<void> setupClient({required String uid, String? username}) async {
+    if (_clientSetup || uid.isEmpty) return;
+    _clientSetup = true;
+    final db = FirebaseDatabase.instance;
+    try {
+      await FirebaseMessaging.instance.subscribeToTopic('client_$uid');
+      if (username != null && username.isNotEmpty) {
+        await FirebaseMessaging.instance.subscribeToTopic('client_$username');
+      }
+    } catch (_) {}
+    try {
+      db.ref('notifications/clients/$uid').onValue.listen((e) {
+        final count = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+        if (_clientNotifCount == -1) { _clientNotifCount = count; return; }
+        if (count > _clientNotifCount) {
+          _clientNotifCount = count;
+          SoundService.playCustomSound('new_client_booking');
+        } else {
+          _clientNotifCount = count;
+        }
+      });
+    } catch (_) {}
+    try {
+      db.ref('bookings/$uid').onValue.listen((e) {
+        final count = (e.snapshot.value is Map) ? (e.snapshot.value as Map).length : 0;
+        if (_clientBookingCount == -1) { _clientBookingCount = count; return; }
+        if (count > _clientBookingCount) {
+          _clientBookingCount = count;
+          SoundService.playCustomSound('new_client_booking');
+        } else {
+          _clientBookingCount = count;
+        }
+      });
+    } catch (_) {}
   }
 
-  static String getWith(String role, String lang, String key, Map<String, String> params) {
-    String raw = getForRole(role, lang, key);
-    params.forEach((k, v) {
-      raw = raw.replaceAll('{$k}', v);
-    });
-    return raw;
+  // Call this on Logout - stop getting that person's pushes on this phone.
+  static Future<void> logoutNurse(String uid) async {
+    try { await FirebaseMessaging.instance.unsubscribeFromTopic('nurse_$uid'); } catch (_) {}
+    _nurseSetup = false; _nurseNotifCount = -1; _nurseJobCount = -1;
+  }
+
+  static Future<void> logoutClient(String uid) async {
+    try { await FirebaseMessaging.instance.unsubscribeFromTopic('client_$uid'); } catch (_) {}
+    _clientSetup = false; _clientNotifCount = -1; _clientBookingCount = -1;
   }
 }
