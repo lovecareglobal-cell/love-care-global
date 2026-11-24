@@ -746,7 +746,7 @@ class NurseRegistrationTranslations {
       "submit": "ZIGA NDEBANYE AHA",
       "fillAll": "Jupụta ubi niile achọrọ - pịgharịa elu ka ịhụ njehie uhie.",
       "checkIdFirst": "Pịa LEE ID M ỌZỌ ma hụ na o kwuru ID enyochala mbụ.",
-      "pickPhotoErr": "Biko họrọ"Foto", "pickCVEerr": "Biko họrọ CV gị", "pickPINCardErr": "Biko họrọ Kaadị PIN gị",
+      "pickPhotoErr": "Biko horo Foto", "pickCVEerr": "Biko horo CV gi", "pickPINCardErr": "Biko horo Kaadi PIN gi",
       "scanIdErr": "Biko scan N'Ihu + N'Azụ ID gị", "pickCertErr": "Biko họrọ Asambodo gị", "pickLicenceErr": "Biko họrọ Ikike gị",
       "enterLicenceErr": "Biko tinye Nọmba Ikike gị", "enterPinErr": "Biko tinye Nọmba PIN gị",
       "emailClientBlock": "Email a edebanyela aha dị ka ONYE AHỊA. Otu email enweghị ike ịbụ Onye Ahịa na Nọọsụ.",
