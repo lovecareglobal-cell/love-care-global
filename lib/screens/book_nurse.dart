@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
 // NO EMBEDDED GoogleMap widget - it crashes on some phones even with key.
@@ -42,6 +43,8 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
  final _patientLocCtrl = TextEditingController();
  String patientRelationship = 'Self';
  bool sameLocation = true;
+ String _clientLocationText = '';
+ bool _syncingPatient = false;
  // Booking
  String startTime = '08:00';
  String endTime = '17:00';
@@ -68,15 +71,25 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
  @override
  void initState() {
  super.initState();
+ _clientNameCtrl.addListener(_onClientChanged);
+ _clientPhoneCtrl.addListener(_onClientChanged);
+ _clientEmailCtrl.addListener(_onClientChanged);
  _loadClientData();
  _loadCEORates();
  _autoCaptureLocation();
+ }
+ void _onClientChanged() {
+ if (!sameLocation || _syncingPatient) return;
+ _syncPatientFromClient();
  }
 
  @override
  void dispose() {
  _disposed = true;
  for (final sub in _rateSubs) { sub.cancel(); }
+ _clientNameCtrl.removeListener(_onClientChanged);
+ _clientPhoneCtrl.removeListener(_onClientChanged);
+ _clientEmailCtrl.removeListener(_onClientChanged);
  _clientNameCtrl.dispose();
  _clientPhoneCtrl.dispose();
  _clientEmailCtrl.dispose();
@@ -103,13 +116,107 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
  }
 
  Future<void> _loadClientData() async {
+ String name = '';
+ String phone = '';
+ String email = '';
+ String locText = '';
+ try {
+ final user = FirebaseAuth.instance.currentUser;
+ if (user != null) {
+ email = user.email ?? '';
+ name = user.displayName ?? '';
+ if (user.phoneNumber != null && user.phoneNumber!.isNotEmpty) phone = user.phoneNumber!;
+ }
+ } catch (_) {}
+ try {
+ final user = FirebaseAuth.instance.currentUser;
+ Map<String, dynamic>? d;
+ if (user != null) {
+ final byUid = await FirebaseFirestore.instance.collection('clients').doc(user.uid).get();
+ if (byUid.exists) d = byUid.data();
+ if (d == null && email.isNotEmpty) {
+ final byEmail = await FirebaseFirestore.instance.collection('clients').doc(email).get();
+ if (byEmail.exists) d = byEmail.data();
+ }
+ if (d == null && email.isNotEmpty) {
+ final q = await FirebaseFirestore.instance.collection('clients').where('email', isEqualTo: email).limit(1).get();
+ if (q.docs.isNotEmpty) d = q.docs.first.data();
+ }
+ if (d == null && email.isNotEmpty) {
+ final q2 = await FirebaseFirestore.instance.collection('clients').where('clientEmail', isEqualTo: email).limit(1).get();
+ if (q2.docs.isNotEmpty) d = q2.docs.first.data();
+ }
+ }
+ if (d != null) {
+ String pick(List<String> keys) {
+ for (final k in keys) {
+ final v = d![k];
+ if (v != null && v.toString().trim().isNotEmpty) return v.toString().trim();
+ }
+ return '';
+ }
+ final n = pick(['name', 'fullName', 'clientName', 'username', 'displayName']);
+ final ph = pick(['phone', 'phoneNumber', 'clientPhone', 'mobile']);
+ final em = pick(['email', 'clientEmail']);
+ final lt = pick(['location', 'locationText', 'address', 'clientLocation', 'patientLocationText']);
+ if (n.isNotEmpty) name = n;
+ if (ph.isNotEmpty) phone = ph;
+ if (em.isNotEmpty) email = em;
+ if (lt.isNotEmpty) locText = lt;
+ }
+ } catch (_) {}
+ try {
  final prefs = await SharedPreferences.getInstance();
+ String pPick(List<String> keys) {
+ for (final k in keys) {
+ final v = prefs.getString(k);
+ if (v != null && v.trim().isNotEmpty) return v.trim();
+ }
+ return '';
+ }
+ if (name.isEmpty) name = pPick(['clientName', 'fullName', 'name', 'username', 'client_name']);
+ if (phone.isEmpty) phone = pPick(['clientPhone', 'phone', 'phoneNumber', 'mobile']);
+ if (email.isEmpty) email = pPick(['clientEmail', 'email']);
+ if (locText.isEmpty) locText = pPick(['clientLocation', 'location', 'locationText', 'address']);
+ } catch (_) {}
  if (_disposed || !mounted) return;
+ _clientLocationText = locText;
+ if (name.isNotEmpty) _clientNameCtrl.text = name;
+ if (phone.isNotEmpty) _clientPhoneCtrl.text = phone;
+ if (email.isNotEmpty) _clientEmailCtrl.text = email;
+ if (mounted) setState(() {});
+ if (sameLocation) _syncPatientFromClient();
+ }
+ void _syncPatientFromClient() {
+ if (!sameLocation || _disposed) return;
+ _syncingPatient = true;
+ try {
+ if (_clientNameCtrl.text.trim().isNotEmpty) _patientNameCtrl.text = _clientNameCtrl.text.trim();
+ if (_clientPhoneCtrl.text.trim().isNotEmpty) _patientPhoneCtrl.text = _clientPhoneCtrl.text.trim();
+ if (_clientLocationText.isNotEmpty) {
+ _patientLocCtrl.text = _clientLocationText;
+ } else if (_patientLocCtrl.text.trim().isEmpty) {
+ _patientLocCtrl.text = 'Same location as client';
+ }
+ patientRelationship = 'Self';
+ if (clientLat != null && clientLng != null) {
+ patientLat = clientLat;
+ patientLng = clientLng;
+ }
+ } finally {
+ _syncingPatient = false;
+ }
+ if (mounted) setState(() {});
+ }
+ void _onSameLocationChanged(bool v) {
  setState(() {
- _clientNameCtrl.text = prefs.getString('clientName') ?? prefs.getString('fullName') ?? '';
- _clientPhoneCtrl.text = prefs.getString('clientPhone') ?? prefs.getString('phone') ?? '';
- _clientEmailCtrl.text = prefs.getString('clientEmail') ?? prefs.getString('email') ?? '';
+ sameLocation = v;
+ if (v) {
+ patientLat = clientLat;
+ patientLng = clientLng;
+ }
  });
+ if (v) _syncPatientFromClient();
  }
 
  void _loadCEORates() {
@@ -464,13 +571,13 @@ class _BookNurseScreenState extends State<BookNurseScreen> {
  Row(children: [Expanded(child: TextField(controller: _clientPhoneCtrl, decoration: const InputDecoration(labelText: 'CLIENT PHONE *', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: TextField(controller: _clientEmailCtrl, decoration: const InputDecoration(labelText: 'CLIENT EMAIL *', border: OutlineInputBorder())))]),
  const SizedBox(height: 16),
  _sectionTitle(' PATIENT " Who needs care'),
- TextField(controller: _patientNameCtrl, decoration: const InputDecoration(labelText: 'PATIENT NAME *', border: OutlineInputBorder())),
+ TextField(controller: _patientNameCtrl, enabled: !sameLocation, decoration: InputDecoration(labelText: sameLocation ? 'PATIENT NAME * (Same as Client)' : 'PATIENT NAME *', border: OutlineInputBorder())),
  const SizedBox(height: 8),
- Row(children: [Expanded(child: TextField(controller: _patientPhoneCtrl, decoration: const InputDecoration(labelText: 'PATIENT PHONE', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: DropdownButtonFormField<String>(value: patientRelationship, decoration: const InputDecoration(labelText: 'RELATIONSHIP', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Self', child: Text('Self')), DropdownMenuItem(value: 'Parent', child: Text('Parent')), DropdownMenuItem(value: 'Child', child: Text('Child')), DropdownMenuItem(value: 'Spouse', child: Text('Spouse')), DropdownMenuItem(value: 'Other', child: Text('Other'))], onChanged: (v) => setState(() => patientRelationship = v ?? 'Self')))]),
+ Row(children: [Expanded(child: TextField(controller: _patientPhoneCtrl, enabled: !sameLocation, decoration: const InputDecoration(labelText: 'PATIENT PHONE', border: OutlineInputBorder()))), const SizedBox(width: 8), Expanded(child: DropdownButtonFormField<String>(value: patientRelationship, decoration: const InputDecoration(labelText: 'RELATIONSHIP', border: OutlineInputBorder()), items: const [DropdownMenuItem(value: 'Self', child: Text('Self')), DropdownMenuItem(value: 'Parent', child: Text('Parent')), DropdownMenuItem(value: 'Child', child: Text('Child')), DropdownMenuItem(value: 'Spouse', child: Text('Spouse')), DropdownMenuItem(value: 'Other', child: Text('Other'))], onChanged: (v) => setState(() => patientRelationship = v ?? 'Self')))]),
  const SizedBox(height: 8),
- TextField(controller: _patientLocCtrl, decoration: const InputDecoration(labelText: 'PATIENT LOCATION TEXT', border: OutlineInputBorder())),
+ TextField(controller: _patientLocCtrl, enabled: !sameLocation, decoration: InputDecoration(labelText: sameLocation ? 'PATIENT LOCATION (Same as Client)' : 'PATIENT LOCATION TEXT', border: OutlineInputBorder())),
  const SizedBox(height: 8),
- SwitchListTile(title: const Text('Same location as Client'), value: sameLocation, onChanged: (v) => setState(() { sameLocation = v; if (v) { patientLat = clientLat; patientLng = clientLng; } })),
+ SwitchListTile(title: const Text('Same location as Client'), subtitle: Text(sameLocation ? 'Patient = Client (auto-filled)' : 'Fill patient details yourself'), value: sameLocation, onChanged: _onSameLocationChanged),
  const SizedBox(height: 16),
  _sectionTitle('[Online] ONLINE Nurses within ${searchRadius.toInt()}km - Only online show - ${onlineNurses.length} nurses'),
  if (onlineNurses.isNotEmpty && _autoPickedNurse != null)
