@@ -1020,7 +1020,7 @@ class _CEOPasswordGateState extends State<CEOPasswordGate> {
 
               children: [
 
-                const Text('馃挏', style: TextStyle(fontSize: 50)),
+                const Text('LOVE', style: TextStyle(fontSize: 28)),
 
                 const SizedBox(height: 8),
 
@@ -1156,7 +1156,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
 
-        title: const Text('💜 Welcome', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Welcome', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
 
         content: const Column(
 
@@ -1172,7 +1172,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
             SizedBox(height: 10),
 
-            Text('鈿狅笍 Not for emergencies. For emergency, call 112 / Ambulance immediately.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
+            Text('WARNING:  Not for emergencies. For emergency, call 112 / Ambulance immediately.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.bold)),
 
           ],
 
@@ -1180,7 +1180,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
         actions: [
 
-          Center(child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12)), child: const Text('Start 鉂わ笍', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+          Center(child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF880E4F), padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12)), child: const Text('Start [Client] ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
 
         ],
 
@@ -1212,7 +1212,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
             children: [
 
-              Text('鈿狅笍 EMERGENCY DISCLAIMER:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+              Text('WARNING:  EMERGENCY DISCLAIMER:', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
 
               Text('This app does NOT provide emergency medical services. For emergencies, call Ambulance / 112 or go to nearest hospital immediately. Love Care Global is for non-emergency home care only.'),
 
@@ -1268,7 +1268,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
           foregroundColor: Colors.white,
 
-          title: const Text('馃挏 Love Care Global', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          title: const Text('Love Care Global', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
 
           centerTitle: false,
 
@@ -1300,7 +1300,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
                       onTap: _handleSecretTap,
 
-                      child: const Column(children: [Text('馃挏', style: TextStyle(fontSize: 50)), Text('LOVE CARE GLOBAL', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))]),
+                      child: const Column(children: [Text('LOVE', style: TextStyle(fontSize: 28)), Text('LOVE CARE GLOBAL', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold))]),
 
                     ),
 
@@ -1310,7 +1310,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
                     const SizedBox(height: 8),
 
-                    const Text('Tap 鈽� top-left to see all Policies', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const Text('Tap Menu top-left to see all Policies', style: TextStyle(color: Colors.white70, fontSize: 12)),
 
                     const SizedBox(height: 20),
 
@@ -1318,11 +1318,11 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
                     const SizedBox(height: 24),
 
-                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/auth-choice'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('GET STARTED 鈫�', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)))),
+                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pushNamed(context, '/auth-choice'), style: ElevatedButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('GET STARTED ', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 16)))),
 
                     const SizedBox(height: 12),
 
-                    SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _showAboutPopup, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('How It Works 鉂�', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+                    SizedBox(width: double.infinity, child: OutlinedButton(onPressed: _showAboutPopup, style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white), padding: const EdgeInsets.all(14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('How It Works ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
 
                     const SizedBox(height: 12),
 
@@ -1359,7 +1359,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
                   children: [
 
-                    Text('鈿狅笍', style: TextStyle(fontSize: 18)),
+                    Text('WARNING: ', style: TextStyle(fontSize: 18)),
 
                     SizedBox(width: 8),
 
@@ -1393,11 +1393,11 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
                   children: [
 
-                    _actionCard('馃┖', 'I am a NURSE', 'Register / Login - CEO Approval Required', () => Navigator.pushNamed(context, '/nurse-registration')),
+                    _actionCard('[Nurse] ', 'I am a NURSE', 'Register / Login - CEO Approval Required', () => Navigator.pushNamed(context, '/nurse-registration')),
 
                     const SizedBox(height: 12),
 
-                    _actionCard('鉂わ笍', 'I am a CLIENT', 'Register / Login - Verify Email, Login Immediately', () => Navigator.pushNamed(context, '/client-registration')),
+                    _actionCard('[Client] ', 'I am a CLIENT', 'Register / Login - Verify Email, Login Immediately', () => Navigator.pushNamed(context, '/client-registration')),
 
                     const SizedBox(height: 20),
 
@@ -1427,7 +1427,7 @@ class _LoveCareHomePageState extends State<LoveCareHomePage> {
 
                     const SizedBox(height: 10),
 
-                    const Text('漏 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                    const Text('(c) 2026 Love Care Global - Accra, Ghana', style: TextStyle(color: Colors.white60, fontSize: 11)),
 
                     const SizedBox(height: 20),
 
@@ -1527,7 +1527,7 @@ class _LoveCareDrawer extends StatelessWidget {
 
               children: const [
 
-                Text('馃挏', style: TextStyle(fontSize: 36)),
+                Text('LOVE', style: TextStyle(fontSize: 20)),
 
                 SizedBox(height: 6),
 
@@ -1555,7 +1555,7 @@ class _LoveCareDrawer extends StatelessWidget {
 
             padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
 
-            child: Text('馃搵 POLICIES & LEGAL', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 12)),
+            child: Text(' POLICIES & LEGAL', style: TextStyle(color: Color(0xFF880E4F), fontWeight: FontWeight.bold, fontSize: 12)),
 
           ),
 
@@ -1577,7 +1577,7 @@ class _LoveCareDrawer extends StatelessWidget {
 
             padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
 
-            child: Text('鈿狅笍 EMERGENCY: This app is NOT ambulance. For emergency, call 112 immediately.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+            child: Text('WARNING:  EMERGENCY: This app is NOT ambulance. For emergency, call 112 immediately.', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
 
           ),
 
@@ -1585,7 +1585,7 @@ class _LoveCareDrawer extends StatelessWidget {
 
             padding: EdgeInsets.fromLTRB(16, 8, 16, 16),
 
-            child: Text('漏 2026 Love Care Global\nlovecareglobal@gmail.com', style: TextStyle(color: Colors.grey, fontSize: 11)),
+            child: Text('(c) 2026 Love Care Global\nlovecareglobal@gmail.com', style: TextStyle(color: Colors.grey, fontSize: 11)),
 
           ),
 
@@ -1805,7 +1805,7 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
 
             color: Colors.black26,
 
-            child: const Center(child: Text('馃帴 CEO Video / Photo', style: TextStyle(color: Colors.white))),
+            child: const Center(child: Text('[Video]  CEO Video / Photo', style: TextStyle(color: Colors.white))),
 
           ),
 
@@ -1841,7 +1841,7 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
 
       decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
 
-      child: const Center(child: Text('馃帴 CEO Video Announcement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+      child: const Center(child: Text('[Video]  CEO Video Announcement', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
 
     );
 
@@ -1921,7 +1921,7 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
 
               const Expanded(
 
-                child: Text('馃摙 CEO ANNOUNCEMENT', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                child: Text('[Announcement]  CEO ANNOUNCEMENT', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
 
               ),
 
@@ -1961,7 +1961,7 @@ class _CeoAnnouncementBannerState extends State<_CeoAnnouncementBanner> {
 
               decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(12)),
 
-              child: Text('馃帴 Video attached (${videoUrls.length}) - see CEO Control', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+              child: Text('[Video]  Video attached (${videoUrls.length}) - see CEO Control', style: const TextStyle(color: Colors.white70, fontSize: 11)),
 
             ),
 
